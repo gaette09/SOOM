@@ -3,6 +3,7 @@ import SwiftUI
 struct RecoveryView: View {
     @StateObject private var viewModel: RecoveryViewModel
     private let explanationBuilder = RecoveryExplanationBuilder()
+    private let readinessBuilder = DailyReadinessBuilder()
 
     init(viewModel: RecoveryViewModel = RecoveryViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -34,10 +35,10 @@ struct RecoveryView: View {
 
     @ViewBuilder
     private func recoveryContent(_ recovery: RecoverySummary) -> some View {
-        todayFocusSection(recovery)
+        coreRecoverySection(recovery)
 
         supportingInterpretationSection(recovery)
-        checkInActionSection
+        managementActionSection
         dataQualityFootnote(recovery)
     }
 
@@ -56,6 +57,8 @@ struct RecoveryView: View {
 
     private func todayFocusSection(_ recovery: RecoverySummary) -> some View {
         VStack(alignment: .leading, spacing: SOOMLayout.RecoveryScreen.focusCardSpacing) {
+            DailyReadinessCard(state: readinessBuilder.build(from: recovery))
+
             RecoveryScoreCard(
                 score: recovery.score,
                 status: recovery.status,
@@ -87,6 +90,15 @@ struct RecoveryView: View {
         }
     }
 
+    private func coreRecoverySection(_ recovery: RecoverySummary) -> some View {
+        RecoverySection(
+            title: "오늘 핵심",
+            caption: "상태, 이유, 다음 행동"
+        ) {
+            todayFocusSection(recovery)
+        }
+    }
+
     private func explanationCard(_ recovery: RecoverySummary) -> some View {
         let explanation = explanationBuilder.build(
             summary: recovery,
@@ -107,7 +119,7 @@ struct RecoveryView: View {
         if let latestCheckIn = viewModel.latestCheckIn {
             RecoverySection(
                 title: "최근 컨디션 기록",
-                caption: "회복 점수는 바꾸지 않고 코칭 문구를 보완합니다."
+                caption: "점수는 그대로, 코칭만 보완"
             ) {
                 CheckInSummaryCard(checkIn: latestCheckIn)
             }
@@ -127,7 +139,7 @@ struct RecoveryView: View {
     private func trendSection(_ recovery: RecoverySummary) -> some View {
         RecoverySection(
             title: "최근 변화",
-            caption: "오늘 판단을 보조하는 지표 흐름"
+            caption: "오늘 판단을 보조하는 흐름"
         ) {
             ForEach(recovery.trends) { trend in
                 TrendCard(
@@ -145,7 +157,7 @@ struct RecoveryView: View {
     private func timelineSection(_ recovery: RecoverySummary) -> some View {
         RecoverySection(
             title: "회복 흐름",
-            caption: "최근 며칠의 상태가 어떻게 이어졌는지 확인하세요."
+            caption: "일별 스냅샷 기반 흐름"
         ) {
             if viewModel.timelineEntries.isEmpty {
                 timelineEmptyCard
@@ -172,7 +184,7 @@ struct RecoveryView: View {
     private var weeklySummarySection: some View {
         RecoverySection(
             title: "이번 주 회복 흐름",
-            caption: "저장된 일별 회복 스냅샷을 바탕으로 한 주 흐름을 가볍게 요약합니다."
+            caption: "7일 흐름을 가볍게 요약"
         ) {
             if let weeklySummary = viewModel.weeklySummary {
                 WeeklyCoachSummaryCard(summary: weeklySummary)
@@ -198,7 +210,7 @@ struct RecoveryView: View {
     private func insightSection(_ recovery: RecoverySummary) -> some View {
         RecoverySection(
             title: "인사이트",
-            caption: "지표를 행동으로 바꾸는 짧은 해석"
+            caption: "행동으로 이어지는 짧은 해석"
         ) {
             ForEach(recovery.insights) { insight in
                 InsightCard(
@@ -211,14 +223,46 @@ struct RecoveryView: View {
         }
     }
 
-    private var checkInActionSection: some View {
+    private var managementActionSection: some View {
         RecoverySection(
-            title: "컨디션 기록",
-            caption: "필요할 때만 가볍게 남기고 다시 확인하세요."
+            title: "관리",
+            caption: "컨디션 기록과 데이터 연결 설정"
         ) {
-            checkInEntryCard
-            checkInHistoryEntryCard
-            healthKitSettingsEntryCard
+            SOOMCard {
+                managementNavigationRow(
+                    destination: CheckInViewContainer(),
+                    icon: SOOMIcon.edit,
+                    title: "오늘 컨디션 기록하기",
+                    subtitle: "10초 안에 몸 상태를 남겨요.",
+                    tint: SOOMColor.recovery,
+                    accessibilityLabel: "오늘 컨디션 기록하기",
+                    accessibilityHint: "피로감, 수면감, 근육통, 기분을 기록하는 화면으로 이동합니다."
+                )
+
+                managementDivider
+
+                managementNavigationRow(
+                    destination: CheckInHistoryViewContainer(),
+                    icon: SOOMIcon.calendarClock,
+                    title: "컨디션 기록 보기",
+                    subtitle: "최근 기록을 확인하고 수정합니다.",
+                    tint: SOOMColor.recovery,
+                    accessibilityLabel: "컨디션 기록 보기",
+                    accessibilityHint: "저장된 컨디션 기록 목록으로 이동합니다."
+                )
+
+                managementDivider
+
+                managementNavigationRow(
+                    destination: HealthKitSettingsViewContainer(),
+                    icon: SOOMIcon.health,
+                    title: "HealthKit 연결",
+                    subtitle: "읽기 권한과 연결 상태를 관리합니다.",
+                    tint: SOOMColor.secondaryInk,
+                    accessibilityLabel: "HealthKit 연결",
+                    accessibilityHint: "HealthKit 권한 상태와 읽기 권한 요청 화면으로 이동합니다."
+                )
+            }
         }
     }
 
@@ -264,58 +308,34 @@ struct RecoveryView: View {
             .accessibilityValue(recovery.dataQuality.label)
     }
 
-    private var checkInEntryCard: some View {
-        NavigationLink {
-            CheckInViewContainer()
-        } label: {
-            SOOMCard {
-                SOOMActionRow(
-                    icon: SOOMIcon.edit,
-                    title: "오늘 컨디션 기록하기",
-                    subtitle: "10초 안에 몸 상태를 남기고 회복 해석을 더 개인화하세요.",
-                    tint: SOOMColor.recovery
-                )
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("오늘 컨디션 기록하기")
-        .accessibilityHint("피로감, 수면감, 근육통, 기분을 기록하는 화면으로 이동합니다.")
+    private var managementDivider: some View {
+        Divider()
+            .overlay(SOOMColor.line)
+            .padding(.leading, SOOMLayout.Metrics.actionIconFrame + SOOMLayout.Metrics.actionRowSpacing)
     }
 
-    private var checkInHistoryEntryCard: some View {
+    private func managementNavigationRow<Destination: View>(
+        destination: Destination,
+        icon: String,
+        title: String,
+        subtitle: String,
+        tint: Color,
+        accessibilityLabel: String,
+        accessibilityHint: String
+    ) -> some View {
         NavigationLink {
-            CheckInHistoryViewContainer()
+            destination
         } label: {
-            SOOMCard {
-                SOOMActionRow(
-                    icon: SOOMIcon.calendarClock,
-                    title: "컨디션 기록 보기",
-                    subtitle: "최근에 남긴 피로감, 수면감, 근육통, 기분을 확인하세요.",
-                    tint: SOOMColor.recovery
-                )
-            }
+            SOOMActionRow(
+                icon: icon,
+                title: title,
+                subtitle: subtitle,
+                tint: tint
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("컨디션 기록 보기")
-        .accessibilityHint("저장된 컨디션 기록 목록으로 이동합니다.")
-    }
-
-    private var healthKitSettingsEntryCard: some View {
-        NavigationLink {
-            HealthKitSettingsViewContainer()
-        } label: {
-            SOOMCard {
-                SOOMActionRow(
-                    icon: SOOMIcon.health,
-                    title: "HealthKit 연결",
-                    subtitle: "운동 기록 읽기 권한을 확인하고 연결을 준비하세요.",
-                    tint: SOOMColor.recovery
-                )
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("HealthKit 연결")
-        .accessibilityHint("HealthKit 권한 상태와 읽기 권한 요청 화면으로 이동합니다.")
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
     }
 }
 

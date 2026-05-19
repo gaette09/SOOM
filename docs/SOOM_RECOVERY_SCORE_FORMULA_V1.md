@@ -139,6 +139,19 @@ score = clamp(rawScore, 45, 95)
 - “훈련하면 안 됩니다.”
 - “의학적으로 회복되지 않았습니다.”
 
+### Daily Readiness
+
+Daily Readiness는 Recovery score를 새로 계산하지 않는 interpretation layer다. `DailyReadinessBuilder`는 `RecoverySummary.score/status`를 읽어 사용자가 오늘 접근 방식을 빠르게 이해하도록 준비 상태 문장을 만든다.
+
+v1 Daily Readiness 기준:
+
+- `status == "데이터 부족"`: insufficientData
+- `score >= 85`: ready
+- `score 70...84`: moderate
+- `score 45...69`: recovery
+
+Readiness는 `RecoveryCalculator`의 score/status/recommendation 계산에 관여하지 않는다. HealthKit, check-in, snapshot 데이터를 직접 읽지 않고, 이미 만들어진 `RecoverySummary`를 해석하는 역할만 가진다.
+
 ## F. Limitations
 
 v1은 초기 제품 경험을 위한 단순 추정이다. 다음 한계를 명확히 유지한다.

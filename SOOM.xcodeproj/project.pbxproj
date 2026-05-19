@@ -149,6 +149,10 @@
 		010146 /* HealthKitRecoveryPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020147 /* HealthKitRecoveryPreviewView.swift */; };
 		010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020148 /* HealthKitRecoveryPreviewViewModelTests.swift */; };
 		010148 /* HealthKitRecoveryPreviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020149 /* HealthKitRecoveryPreviewViewContainer.swift */; };
+		010149 /* DailyReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020150 /* DailyReadinessCard.swift */; };
+		010150 /* DailyReadinessState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020151 /* DailyReadinessState.swift */; };
+		010151 /* DailyReadinessBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020152 /* DailyReadinessBuilder.swift */; };
+		010152 /* DailyReadinessBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020153 /* DailyReadinessBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -307,6 +311,10 @@
 		020147 /* HealthKitRecoveryPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewView.swift; sourceTree = "<group>"; };
 		020148 /* HealthKitRecoveryPreviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewViewModelTests.swift; sourceTree = "<group>"; };
 		020149 /* HealthKitRecoveryPreviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewViewContainer.swift; sourceTree = "<group>"; };
+		020150 /* DailyReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessCard.swift; sourceTree = "<group>"; };
+		020151 /* DailyReadinessState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessState.swift; sourceTree = "<group>"; };
+		020152 /* DailyReadinessBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessBuilder.swift; sourceTree = "<group>"; };
+		020153 /* DailyReadinessBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -434,6 +442,7 @@
 				020047 /* RecommendationCard.swift */,
 				020048 /* TrendCard.swift */,
 				020049 /* CoachMessageCard.swift */,
+				020150 /* DailyReadinessCard.swift */,
 				020088 /* RecoveryExplanationCard.swift */,
 				020090 /* RecoveryTimelineCard.swift */,
 				020123 /* WeeklyCoachSummaryCard.swift */,
@@ -511,6 +520,8 @@
 				020069 /* RecoveryInsightPersonalizer.swift */,
 				020071 /* RecoverySummaryComposer.swift */,
 				020089 /* RecoveryExplanationBuilder.swift */,
+				020151 /* DailyReadinessState.swift */,
+				020152 /* DailyReadinessBuilder.swift */,
 				020091 /* RecoveryTimelineEntry.swift */,
 				020092 /* RecoveryTimelineBuilder.swift */,
 				020093 /* DailyRecoverySnapshot.swift */,
@@ -634,6 +645,7 @@
 				020144 /* RecoveryDataProviderFactoryTests.swift */,
 				020145 /* HealthKitRecoverySourceSmokeTests.swift */,
 				020148 /* HealthKitRecoveryPreviewViewModelTests.swift */,
+				020153 /* DailyReadinessBuilderTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -758,6 +770,7 @@
 				010045 /* RecommendationCard.swift in Sources */,
 				010046 /* TrendCard.swift in Sources */,
 				010047 /* CoachMessageCard.swift in Sources */,
+				010149 /* DailyReadinessCard.swift in Sources */,
 				010065 /* CheckInSummaryCard.swift in Sources */,
 				010010 /* RootTabView.swift in Sources */,
 				010011 /* HomeView.swift in Sources */,
@@ -812,6 +825,8 @@
 				010085 /* CheckInDetailViewContainer.swift in Sources */,
 				010086 /* RecoveryExplanationCard.swift in Sources */,
 				010087 /* RecoveryExplanationBuilder.swift in Sources */,
+				010150 /* DailyReadinessState.swift in Sources */,
+				010151 /* DailyReadinessBuilder.swift in Sources */,
 				010088 /* RecoveryTimelineCard.swift in Sources */,
 				010089 /* RecoveryTimelineEntry.swift in Sources */,
 				010090 /* RecoveryTimelineBuilder.swift in Sources */,
@@ -877,6 +892,7 @@
 				010143 /* RecoveryDataProviderFactoryTests.swift in Sources */,
 				010144 /* HealthKitRecoverySourceSmokeTests.swift in Sources */,
 				010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */,
+				010152 /* DailyReadinessBuilderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
