@@ -1,0 +1,1132 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		010001 /* SOOMApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020001 /* SOOMApp.swift */; };
+		010002 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020002 /* Workout.swift */; };
+		010003 /* AIAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020003 /* AIAnalysis.swift */; };
+		010004 /* Community.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020004 /* Community.swift */; };
+		010005 /* WorkoutHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020005 /* WorkoutHarness.swift */; };
+		010006 /* MockWorkoutHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020006 /* MockWorkoutHarness.swift */; };
+		010007 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020007 /* DashboardViewModel.swift */; };
+		010008 /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020008 /* CommunityViewModel.swift */; };
+		010009 /* SoomColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020009 /* SoomColor.swift */; };
+		010010 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020010 /* RootTabView.swift */; };
+		010011 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020011 /* HomeView.swift */; };
+		010012 /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020012 /* AnalysisView.swift */; };
+		010013 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020013 /* RecordView.swift */; };
+		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
+		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
+		010016 /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020016 /* DetailViews.swift */; };
+		010017 /* GmarketSansTTFMedium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020019 /* GmarketSansTTFMedium.ttf */; };
+		010018 /* GmarketSansTTFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020020 /* GmarketSansTTFBold.ttf */; };
+		010019 /* NanumSquareNeo-bRg.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020021 /* NanumSquareNeo-bRg.ttf */; };
+		010020 /* NanumSquareNeo-cBd.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020022 /* NanumSquareNeo-cBd.ttf */; };
+		010021 /* WorkoutMapSheetScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020023 /* WorkoutMapSheetScaffold.swift */; };
+		010022 /* WorkoutDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020024 /* WorkoutDetailContent.swift */; };
+		010023 /* WorkoutMetricCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020025 /* WorkoutMetricCards.swift */; };
+		010024 /* FeedPostDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020026 /* FeedPostDetailContent.swift */; };
+		010025 /* SoomTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020027 /* SoomTypography.swift */; };
+		010026 /* SoomSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020028 /* SoomSpacing.swift */; };
+		010027 /* SoomRadius.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020029 /* SoomRadius.swift */; };
+		010028 /* SoomIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020030 /* SoomIcon.swift */; };
+		010029 /* SoomCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020031 /* SoomCard.swift */; };
+		010030 /* SoomButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020032 /* SoomButton.swift */; };
+		010032 /* SoomSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020034 /* SoomSectionHeader.swift */; };
+		010033 /* WorkoutSheetState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020035 /* WorkoutSheetState.swift */; };
+		010034 /* WorkoutSheetHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020036 /* WorkoutSheetHeader.swift */; };
+		010035 /* WorkoutMapControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020037 /* WorkoutMapControls.swift */; };
+		010036 /* WorkoutBottomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020038 /* WorkoutBottomSheet.swift */; };
+		010037 /* WorkoutMetricsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020039 /* WorkoutMetricsSection.swift */; };
+		010038 /* SoomMetricPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020040 /* SoomMetricPill.swift */; };
+		010039 /* SoomMetricRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020041 /* SoomMetricRing.swift */; };
+		010040 /* SoomMetricRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020042 /* SoomMetricRow.swift */; };
+		010041 /* SoomActionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020043 /* SoomActionRow.swift */; };
+		010042 /* FlowTags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020044 /* FlowTags.swift */; };
+		010043 /* RecoveryScoreCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020045 /* RecoveryScoreCard.swift */; };
+		010044 /* InsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020046 /* InsightCard.swift */; };
+		010045 /* RecommendationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020047 /* RecommendationCard.swift */; };
+		010046 /* TrendCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020048 /* TrendCard.swift */; };
+		010047 /* CoachMessageCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020049 /* CoachMessageCard.swift */; };
+		010048 /* RecoveryMockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020050 /* RecoveryMockData.swift */; };
+		010049 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020051 /* RecoveryView.swift */; };
+		010050 /* RecoveryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020052 /* RecoveryModels.swift */; };
+		010051 /* RecoveryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020053 /* RecoveryViewModel.swift */; };
+		010052 /* RecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020054 /* RecoveryDataProvider.swift */; };
+		010053 /* RecoveryActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020055 /* RecoveryActivityModels.swift */; };
+		010054 /* ActivityRecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020056 /* ActivityRecoveryDataProvider.swift */; };
+		010055 /* RecoveryActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020057 /* RecoveryActivityStore.swift */; };
+		010056 /* RecoveryCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020058 /* RecoveryCalculator.swift */; };
+		010057 /* RecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020059 /* RecoveryActivityMapper.swift */; };
+		010058 /* LocalActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020060 /* LocalActivityStore.swift */; };
+		010059 /* RecoveryCheckInModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020061 /* RecoveryCheckInModels.swift */; };
+		010060 /* RecoveryCheckInStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020062 /* RecoveryCheckInStore.swift */; };
+		010061 /* RecoveryInputContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020063 /* RecoveryInputContext.swift */; };
+		010062 /* CombinedRecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020064 /* CombinedRecoveryDataProvider.swift */; };
+		010063 /* CheckInViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020065 /* CheckInViewModel.swift */; };
+		010064 /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020066 /* CheckInView.swift */; };
+		010065 /* CheckInSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020067 /* CheckInSummaryCard.swift */; };
+		010066 /* RecoveryCoachMessagePersonalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020068 /* RecoveryCoachMessagePersonalizer.swift */; };
+		010067 /* RecoveryInsightPersonalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020069 /* RecoveryInsightPersonalizer.swift */; };
+		010068 /* RecoveryCheckInSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020070 /* RecoveryCheckInSignal.swift */; };
+		010069 /* RecoverySummaryComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020071 /* RecoverySummaryComposer.swift */; };
+		010070 /* CheckInRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020072 /* CheckInRecord.swift */; };
+		010071 /* RecoveryCheckInPersistenceMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020073 /* RecoveryCheckInPersistenceMapper.swift */; };
+		010072 /* SwiftDataCheckInStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020074 /* SwiftDataCheckInStore.swift */; };
+		010073 /* CheckInViewModelFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020075 /* CheckInViewModelFactory.swift */; };
+		010074 /* CheckInViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020076 /* CheckInViewContainer.swift */; };
+		010075 /* RecoveryViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020077 /* RecoveryViewContainer.swift */; };
+		010076 /* CheckInHistoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020078 /* CheckInHistoryViewModel.swift */; };
+		010077 /* CheckInHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020079 /* CheckInHistoryView.swift */; };
+		010078 /* CheckInHistoryViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020080 /* CheckInHistoryViewContainer.swift */; };
+		010079 /* CheckInDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020081 /* CheckInDetailView.swift */; };
+		010080 /* CheckInScaleSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020082 /* CheckInScaleSelector.swift */; };
+		010081 /* CheckInEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020083 /* CheckInEditViewModel.swift */; };
+		010082 /* CheckInEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020084 /* CheckInEditView.swift */; };
+		010083 /* CheckInEditViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020085 /* CheckInEditViewContainer.swift */; };
+		010084 /* CheckInDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020086 /* CheckInDetailViewModel.swift */; };
+		010085 /* CheckInDetailViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020087 /* CheckInDetailViewContainer.swift */; };
+		010086 /* RecoveryExplanationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020088 /* RecoveryExplanationCard.swift */; };
+		010087 /* RecoveryExplanationBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020089 /* RecoveryExplanationBuilder.swift */; };
+		010088 /* RecoveryTimelineCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020090 /* RecoveryTimelineCard.swift */; };
+		010089 /* RecoveryTimelineEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020091 /* RecoveryTimelineEntry.swift */; };
+		010090 /* RecoveryTimelineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020092 /* RecoveryTimelineBuilder.swift */; };
+		010091 /* DailyRecoverySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020093 /* DailyRecoverySnapshot.swift */; };
+		010092 /* DailyRecoverySnapshotRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020094 /* DailyRecoverySnapshotRecord.swift */; };
+		010093 /* DailyRecoverySnapshotMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020095 /* DailyRecoverySnapshotMapper.swift */; };
+		010094 /* DailyRecoverySnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020096 /* DailyRecoverySnapshotStore.swift */; };
+		010095 /* DailyRecoverySnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020097 /* DailyRecoverySnapshotWriter.swift */; };
+		010101 /* RecoveryCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020101 /* RecoveryCalculatorTests.swift */; };
+		010102 /* RecoveryActivityMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020103 /* RecoveryActivityMapperTests.swift */; };
+		010103 /* RecoveryCheckInStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020104 /* RecoveryCheckInStoreTests.swift */; };
+		010104 /* CombinedRecoveryDataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020105 /* CombinedRecoveryDataProviderTests.swift */; };
+		010105 /* CheckInViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020106 /* CheckInViewModelTests.swift */; };
+		010106 /* RecoveryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020107 /* RecoveryViewModelTests.swift */; };
+		010107 /* RecoveryCoachMessagePersonalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020108 /* RecoveryCoachMessagePersonalizerTests.swift */; };
+		010108 /* RecoveryInsightPersonalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020109 /* RecoveryInsightPersonalizerTests.swift */; };
+		010109 /* RecoveryCheckInSignalClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020110 /* RecoveryCheckInSignalClassifierTests.swift */; };
+		010110 /* RecoverySummaryComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020111 /* RecoverySummaryComposerTests.swift */; };
+		010111 /* SwiftDataCheckInStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020112 /* SwiftDataCheckInStoreTests.swift */; };
+		010112 /* CheckInViewModelFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020113 /* CheckInViewModelFactoryTests.swift */; };
+		010113 /* CheckInHistoryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020114 /* CheckInHistoryViewModelTests.swift */; };
+		010114 /* CheckInEditViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020115 /* CheckInEditViewModelTests.swift */; };
+		010115 /* CheckInDetailViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020116 /* CheckInDetailViewModelTests.swift */; };
+		010116 /* RecoveryExplanationBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020117 /* RecoveryExplanationBuilderTests.swift */; };
+		010117 /* RecoveryTimelineBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020118 /* RecoveryTimelineBuilderTests.swift */; };
+		010118 /* DailyRecoverySnapshotStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020119 /* DailyRecoverySnapshotStoreTests.swift */; };
+		010119 /* DailyRecoverySnapshotWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020120 /* DailyRecoverySnapshotWriterTests.swift */; };
+		010120 /* WeeklyRecoverySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020121 /* WeeklyRecoverySummary.swift */; };
+		010121 /* WeeklyRecoverySummaryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020122 /* WeeklyRecoverySummaryBuilder.swift */; };
+		010122 /* WeeklyCoachSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020123 /* WeeklyCoachSummaryCard.swift */; };
+		010123 /* WeeklyRecoverySummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020124 /* WeeklyRecoverySummaryBuilderTests.swift */; };
+		010124 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020125 /* HealthKitManager.swift */; };
+		010125 /* HealthKitWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020126 /* HealthKitWorkout.swift */; };
+		010126 /* HealthKitWorkoutFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020127 /* HealthKitWorkoutFetcher.swift */; };
+		010127 /* HealthKitStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020128 /* HealthKitStatusCard.swift */; };
+		010128 /* HealthKitWorkoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020129 /* HealthKitWorkoutTests.swift */; };
+		010129 /* HealthKitRecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020130 /* HealthKitRecoveryActivityMapper.swift */; };
+		010130 /* HealthKitActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020131 /* HealthKitActivityStore.swift */; };
+		010131 /* HealthKitRecoveryActivityMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020132 /* HealthKitRecoveryActivityMapperTests.swift */; };
+		010132 /* HealthKitActivityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020133 /* HealthKitActivityStoreTests.swift */; };
+		010133 /* HealthKitSettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020134 /* HealthKitSettingsViewModel.swift */; };
+		010134 /* HealthKitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020135 /* HealthKitSettingsView.swift */; };
+		010135 /* HealthKitSettingsViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020136 /* HealthKitSettingsViewContainer.swift */; };
+		010136 /* HealthKitSettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020137 /* HealthKitSettingsViewModelTests.swift */; };
+		010137 /* HealthKitWorkoutPreviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020138 /* HealthKitWorkoutPreviewViewModel.swift */; };
+		010138 /* HealthKitWorkoutPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020139 /* HealthKitWorkoutPreviewView.swift */; };
+		010139 /* HealthKitWorkoutPreviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020140 /* HealthKitWorkoutPreviewViewContainer.swift */; };
+		010140 /* HealthKitWorkoutPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020141 /* HealthKitWorkoutPreviewViewModelTests.swift */; };
+		010141 /* RecoveryActivitySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020142 /* RecoveryActivitySource.swift */; };
+		010142 /* RecoveryDataProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020143 /* RecoveryDataProviderFactory.swift */; };
+		010143 /* RecoveryDataProviderFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020144 /* RecoveryDataProviderFactoryTests.swift */; };
+		010144 /* HealthKitRecoverySourceSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020145 /* HealthKitRecoverySourceSmokeTests.swift */; };
+		010145 /* HealthKitRecoveryPreviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020146 /* HealthKitRecoveryPreviewViewModel.swift */; };
+		010146 /* HealthKitRecoveryPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020147 /* HealthKitRecoveryPreviewView.swift */; };
+		010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020148 /* HealthKitRecoveryPreviewViewModelTests.swift */; };
+		010148 /* HealthKitRecoveryPreviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020149 /* HealthKitRecoveryPreviewViewContainer.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0C0101 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 070001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 050001;
+			remoteInfo = SOOM;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		020001 /* SOOMApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOOMApp.swift; sourceTree = "<group>"; };
+		020002 /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		020003 /* AIAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysis.swift; sourceTree = "<group>"; };
+		020004 /* Community.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Community.swift; sourceTree = "<group>"; };
+		020005 /* WorkoutHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHarness.swift; sourceTree = "<group>"; };
+		020006 /* MockWorkoutHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockWorkoutHarness.swift; sourceTree = "<group>"; };
+		020007 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		020008 /* CommunityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
+		020009 /* SoomColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomColor.swift; sourceTree = "<group>"; };
+		020010 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		020011 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		020012 /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
+		020013 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
+		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
+		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
+		020017 /* SOOM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SOOM.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		020018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		020019 /* GmarketSansTTFMedium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GmarketSansTTFMedium.ttf; sourceTree = "<group>"; };
+		020020 /* GmarketSansTTFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GmarketSansTTFBold.ttf; sourceTree = "<group>"; };
+		020021 /* NanumSquareNeo-bRg.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NanumSquareNeo-bRg.ttf"; sourceTree = "<group>"; };
+		020022 /* NanumSquareNeo-cBd.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NanumSquareNeo-cBd.ttf"; sourceTree = "<group>"; };
+		020023 /* WorkoutMapSheetScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMapSheetScaffold.swift; sourceTree = "<group>"; };
+		020024 /* WorkoutDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailContent.swift; sourceTree = "<group>"; };
+		020025 /* WorkoutMetricCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricCards.swift; sourceTree = "<group>"; };
+		020026 /* FeedPostDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDetailContent.swift; sourceTree = "<group>"; };
+		020027 /* SoomTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomTypography.swift; sourceTree = "<group>"; };
+		020028 /* SoomSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSpacing.swift; sourceTree = "<group>"; };
+		020029 /* SoomRadius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomRadius.swift; sourceTree = "<group>"; };
+		020030 /* SoomIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomIcon.swift; sourceTree = "<group>"; };
+		020031 /* SoomCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomCard.swift; sourceTree = "<group>"; };
+		020032 /* SoomButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomButton.swift; sourceTree = "<group>"; };
+		020034 /* SoomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSectionHeader.swift; sourceTree = "<group>"; };
+		020035 /* WorkoutSheetState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSheetState.swift; sourceTree = "<group>"; };
+		020036 /* WorkoutSheetHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSheetHeader.swift; sourceTree = "<group>"; };
+		020037 /* WorkoutMapControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMapControls.swift; sourceTree = "<group>"; };
+		020038 /* WorkoutBottomSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBottomSheet.swift; sourceTree = "<group>"; };
+		020039 /* WorkoutMetricsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricsSection.swift; sourceTree = "<group>"; };
+		020040 /* SoomMetricPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMetricPill.swift; sourceTree = "<group>"; };
+		020041 /* SoomMetricRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMetricRing.swift; sourceTree = "<group>"; };
+		020042 /* SoomMetricRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMetricRow.swift; sourceTree = "<group>"; };
+		020043 /* SoomActionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomActionRow.swift; sourceTree = "<group>"; };
+		020044 /* FlowTags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowTags.swift; sourceTree = "<group>"; };
+		020045 /* RecoveryScoreCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryScoreCard.swift; sourceTree = "<group>"; };
+		020046 /* InsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightCard.swift; sourceTree = "<group>"; };
+		020047 /* RecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationCard.swift; sourceTree = "<group>"; };
+		020048 /* TrendCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendCard.swift; sourceTree = "<group>"; };
+		020049 /* CoachMessageCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMessageCard.swift; sourceTree = "<group>"; };
+		020050 /* RecoveryMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryMockData.swift; sourceTree = "<group>"; };
+		020051 /* RecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
+		020052 /* RecoveryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryModels.swift; sourceTree = "<group>"; };
+		020053 /* RecoveryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryViewModel.swift; sourceTree = "<group>"; };
+		020054 /* RecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryDataProvider.swift; sourceTree = "<group>"; };
+		020055 /* RecoveryActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityModels.swift; sourceTree = "<group>"; };
+		020056 /* ActivityRecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRecoveryDataProvider.swift; sourceTree = "<group>"; };
+		020057 /* RecoveryActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityStore.swift; sourceTree = "<group>"; };
+		020058 /* RecoveryCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCalculator.swift; sourceTree = "<group>"; };
+		020059 /* RecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityMapper.swift; sourceTree = "<group>"; };
+		020060 /* LocalActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalActivityStore.swift; sourceTree = "<group>"; };
+		020061 /* RecoveryCheckInModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInModels.swift; sourceTree = "<group>"; };
+		020062 /* RecoveryCheckInStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInStore.swift; sourceTree = "<group>"; };
+		020063 /* RecoveryInputContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryInputContext.swift; sourceTree = "<group>"; };
+		020064 /* CombinedRecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedRecoveryDataProvider.swift; sourceTree = "<group>"; };
+		020065 /* CheckInViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewModel.swift; sourceTree = "<group>"; };
+		020066 /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInView.swift; sourceTree = "<group>"; };
+		020067 /* CheckInSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInSummaryCard.swift; sourceTree = "<group>"; };
+		020068 /* RecoveryCoachMessagePersonalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCoachMessagePersonalizer.swift; sourceTree = "<group>"; };
+		020069 /* RecoveryInsightPersonalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryInsightPersonalizer.swift; sourceTree = "<group>"; };
+		020070 /* RecoveryCheckInSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInSignal.swift; sourceTree = "<group>"; };
+		020071 /* RecoverySummaryComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySummaryComposer.swift; sourceTree = "<group>"; };
+		020072 /* CheckInRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInRecord.swift; sourceTree = "<group>"; };
+		020073 /* RecoveryCheckInPersistenceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInPersistenceMapper.swift; sourceTree = "<group>"; };
+		020074 /* SwiftDataCheckInStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCheckInStore.swift; sourceTree = "<group>"; };
+		020075 /* CheckInViewModelFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewModelFactory.swift; sourceTree = "<group>"; };
+		020076 /* CheckInViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewContainer.swift; sourceTree = "<group>"; };
+		020077 /* RecoveryViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryViewContainer.swift; sourceTree = "<group>"; };
+		020078 /* CheckInHistoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryViewModel.swift; sourceTree = "<group>"; };
+		020079 /* CheckInHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryView.swift; sourceTree = "<group>"; };
+		020080 /* CheckInHistoryViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryViewContainer.swift; sourceTree = "<group>"; };
+		020081 /* CheckInDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInDetailView.swift; sourceTree = "<group>"; };
+		020082 /* CheckInScaleSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInScaleSelector.swift; sourceTree = "<group>"; };
+		020083 /* CheckInEditViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditViewModel.swift; sourceTree = "<group>"; };
+		020084 /* CheckInEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditView.swift; sourceTree = "<group>"; };
+		020085 /* CheckInEditViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditViewContainer.swift; sourceTree = "<group>"; };
+		020086 /* CheckInDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInDetailViewModel.swift; sourceTree = "<group>"; };
+		020087 /* CheckInDetailViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInDetailViewContainer.swift; sourceTree = "<group>"; };
+		020088 /* RecoveryExplanationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryExplanationCard.swift; sourceTree = "<group>"; };
+		020089 /* RecoveryExplanationBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryExplanationBuilder.swift; sourceTree = "<group>"; };
+		020090 /* RecoveryTimelineCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryTimelineCard.swift; sourceTree = "<group>"; };
+		020091 /* RecoveryTimelineEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryTimelineEntry.swift; sourceTree = "<group>"; };
+		020092 /* RecoveryTimelineBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryTimelineBuilder.swift; sourceTree = "<group>"; };
+		020093 /* DailyRecoverySnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshot.swift; sourceTree = "<group>"; };
+		020094 /* DailyRecoverySnapshotRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotRecord.swift; sourceTree = "<group>"; };
+		020095 /* DailyRecoverySnapshotMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotMapper.swift; sourceTree = "<group>"; };
+		020096 /* DailyRecoverySnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotStore.swift; sourceTree = "<group>"; };
+		020097 /* DailyRecoverySnapshotWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotWriter.swift; sourceTree = "<group>"; };
+		020101 /* RecoveryCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCalculatorTests.swift; sourceTree = "<group>"; };
+		020102 /* SOOMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SOOMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		020103 /* RecoveryActivityMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityMapperTests.swift; sourceTree = "<group>"; };
+		020104 /* RecoveryCheckInStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInStoreTests.swift; sourceTree = "<group>"; };
+		020105 /* CombinedRecoveryDataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedRecoveryDataProviderTests.swift; sourceTree = "<group>"; };
+		020106 /* CheckInViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewModelTests.swift; sourceTree = "<group>"; };
+		020107 /* RecoveryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryViewModelTests.swift; sourceTree = "<group>"; };
+		020108 /* RecoveryCoachMessagePersonalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCoachMessagePersonalizerTests.swift; sourceTree = "<group>"; };
+		020109 /* RecoveryInsightPersonalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryInsightPersonalizerTests.swift; sourceTree = "<group>"; };
+		020110 /* RecoveryCheckInSignalClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCheckInSignalClassifierTests.swift; sourceTree = "<group>"; };
+		020111 /* RecoverySummaryComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySummaryComposerTests.swift; sourceTree = "<group>"; };
+		020112 /* SwiftDataCheckInStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCheckInStoreTests.swift; sourceTree = "<group>"; };
+		020113 /* CheckInViewModelFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewModelFactoryTests.swift; sourceTree = "<group>"; };
+		020114 /* CheckInHistoryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryViewModelTests.swift; sourceTree = "<group>"; };
+		020115 /* CheckInEditViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditViewModelTests.swift; sourceTree = "<group>"; };
+		020116 /* CheckInDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInDetailViewModelTests.swift; sourceTree = "<group>"; };
+		020117 /* RecoveryExplanationBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryExplanationBuilderTests.swift; sourceTree = "<group>"; };
+		020118 /* RecoveryTimelineBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryTimelineBuilderTests.swift; sourceTree = "<group>"; };
+		020119 /* DailyRecoverySnapshotStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotStoreTests.swift; sourceTree = "<group>"; };
+		020120 /* DailyRecoverySnapshotWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecoverySnapshotWriterTests.swift; sourceTree = "<group>"; };
+		020121 /* WeeklyRecoverySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecoverySummary.swift; sourceTree = "<group>"; };
+		020122 /* WeeklyRecoverySummaryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecoverySummaryBuilder.swift; sourceTree = "<group>"; };
+		020123 /* WeeklyCoachSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyCoachSummaryCard.swift; sourceTree = "<group>"; };
+		020124 /* WeeklyRecoverySummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecoverySummaryBuilderTests.swift; sourceTree = "<group>"; };
+		020125 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		020126 /* HealthKitWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkout.swift; sourceTree = "<group>"; };
+		020127 /* HealthKitWorkoutFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutFetcher.swift; sourceTree = "<group>"; };
+		020128 /* HealthKitStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitStatusCard.swift; sourceTree = "<group>"; };
+		020129 /* HealthKitWorkoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutTests.swift; sourceTree = "<group>"; };
+		020130 /* HealthKitRecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryActivityMapper.swift; sourceTree = "<group>"; };
+		020131 /* HealthKitActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitActivityStore.swift; sourceTree = "<group>"; };
+		020132 /* HealthKitRecoveryActivityMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryActivityMapperTests.swift; sourceTree = "<group>"; };
+		020133 /* HealthKitActivityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitActivityStoreTests.swift; sourceTree = "<group>"; };
+		020134 /* HealthKitSettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSettingsViewModel.swift; sourceTree = "<group>"; };
+		020135 /* HealthKitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSettingsView.swift; sourceTree = "<group>"; };
+		020136 /* HealthKitSettingsViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSettingsViewContainer.swift; sourceTree = "<group>"; };
+		020137 /* HealthKitSettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSettingsViewModelTests.swift; sourceTree = "<group>"; };
+		020138 /* HealthKitWorkoutPreviewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutPreviewViewModel.swift; sourceTree = "<group>"; };
+		020139 /* HealthKitWorkoutPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutPreviewView.swift; sourceTree = "<group>"; };
+		020140 /* HealthKitWorkoutPreviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutPreviewViewContainer.swift; sourceTree = "<group>"; };
+		020141 /* HealthKitWorkoutPreviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutPreviewViewModelTests.swift; sourceTree = "<group>"; };
+		020142 /* RecoveryActivitySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivitySource.swift; sourceTree = "<group>"; };
+		020143 /* RecoveryDataProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryDataProviderFactory.swift; sourceTree = "<group>"; };
+		020144 /* RecoveryDataProviderFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryDataProviderFactoryTests.swift; sourceTree = "<group>"; };
+		020145 /* HealthKitRecoverySourceSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoverySourceSmokeTests.swift; sourceTree = "<group>"; };
+		020146 /* HealthKitRecoveryPreviewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewViewModel.swift; sourceTree = "<group>"; };
+		020147 /* HealthKitRecoveryPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewView.swift; sourceTree = "<group>"; };
+		020148 /* HealthKitRecoveryPreviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewViewModelTests.swift; sourceTree = "<group>"; };
+		020149 /* HealthKitRecoveryPreviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRecoveryPreviewViewContainer.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		030001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		030101 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		040001 = {
+			isa = PBXGroup;
+			children = (
+				040003 /* SOOM */,
+				040101 /* SOOMTests */,
+				040002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		040002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				020017 /* SOOM.app */,
+				020102 /* SOOMTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		040003 /* SOOM */ = {
+			isa = PBXGroup;
+			children = (
+				040004 /* App */,
+				040005 /* Models */,
+				040006 /* Harnesses */,
+				040009 /* ViewModels */,
+				040010 /* DesignSystem */,
+				040011 /* Components */,
+				040014 /* Features */,
+				040012 /* Resources */,
+				020018 /* Info.plist */,
+			);
+			path = SOOM;
+			sourceTree = "<group>";
+		};
+		040004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				020001 /* SOOMApp.swift */,
+				020010 /* RootTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		040005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				020002 /* Workout.swift */,
+				020003 /* AIAnalysis.swift */,
+				020004 /* Community.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		040006 /* Harnesses */ = {
+			isa = PBXGroup;
+			children = (
+				020005 /* WorkoutHarness.swift */,
+				040007 /* Mock */,
+			);
+			path = Harnesses;
+			sourceTree = "<group>";
+		};
+		040007 /* Mock */ = {
+			isa = PBXGroup;
+			children = (
+				020006 /* MockWorkoutHarness.swift */,
+			);
+			path = Mock;
+			sourceTree = "<group>";
+		};
+		040009 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				020007 /* DashboardViewModel.swift */,
+				020008 /* CommunityViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		040010 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				020009 /* SoomColor.swift */,
+				020027 /* SoomTypography.swift */,
+				020028 /* SoomSpacing.swift */,
+				020029 /* SoomRadius.swift */,
+				020030 /* SoomIcon.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		040011 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				020031 /* SoomCard.swift */,
+				020032 /* SoomButton.swift */,
+				020040 /* SoomMetricPill.swift */,
+				020041 /* SoomMetricRing.swift */,
+				020042 /* SoomMetricRow.swift */,
+				020043 /* SoomActionRow.swift */,
+				020034 /* SoomSectionHeader.swift */,
+				020044 /* FlowTags.swift */,
+				020045 /* RecoveryScoreCard.swift */,
+				020046 /* InsightCard.swift */,
+				020047 /* RecommendationCard.swift */,
+				020048 /* TrendCard.swift */,
+				020049 /* CoachMessageCard.swift */,
+				020088 /* RecoveryExplanationCard.swift */,
+				020090 /* RecoveryTimelineCard.swift */,
+				020123 /* WeeklyCoachSummaryCard.swift */,
+				020067 /* CheckInSummaryCard.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		040014 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				040015 /* Home */,
+				040016 /* Activity */,
+				040019 /* Feed */,
+				040017 /* Recovery */,
+				040021 /* HealthKit */,
+				040018 /* Profile */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		040015 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				020011 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		040016 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				020012 /* AnalysisView.swift */,
+				020013 /* RecordView.swift */,
+				020016 /* DetailViews.swift */,
+				020023 /* WorkoutMapSheetScaffold.swift */,
+				020035 /* WorkoutSheetState.swift */,
+				020036 /* WorkoutSheetHeader.swift */,
+				020037 /* WorkoutMapControls.swift */,
+				020038 /* WorkoutBottomSheet.swift */,
+				020039 /* WorkoutMetricsSection.swift */,
+				020024 /* WorkoutDetailContent.swift */,
+				020025 /* WorkoutMetricCards.swift */,
+			);
+			path = Activity;
+			sourceTree = "<group>";
+		};
+		040019 /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				020014 /* FeedView.swift */,
+				020026 /* FeedPostDetailContent.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		040017 /* Recovery */ = {
+			isa = PBXGroup;
+			children = (
+				040020 /* Persistence */,
+				020052 /* RecoveryModels.swift */,
+				020055 /* RecoveryActivityModels.swift */,
+				020054 /* RecoveryDataProvider.swift */,
+				020057 /* RecoveryActivityStore.swift */,
+				020060 /* LocalActivityStore.swift */,
+				020059 /* RecoveryActivityMapper.swift */,
+				020061 /* RecoveryCheckInModels.swift */,
+				020062 /* RecoveryCheckInStore.swift */,
+				020063 /* RecoveryInputContext.swift */,
+				020056 /* ActivityRecoveryDataProvider.swift */,
+				020064 /* CombinedRecoveryDataProvider.swift */,
+				020058 /* RecoveryCalculator.swift */,
+				020070 /* RecoveryCheckInSignal.swift */,
+				020068 /* RecoveryCoachMessagePersonalizer.swift */,
+				020069 /* RecoveryInsightPersonalizer.swift */,
+				020071 /* RecoverySummaryComposer.swift */,
+				020089 /* RecoveryExplanationBuilder.swift */,
+				020091 /* RecoveryTimelineEntry.swift */,
+				020092 /* RecoveryTimelineBuilder.swift */,
+				020093 /* DailyRecoverySnapshot.swift */,
+				020097 /* DailyRecoverySnapshotWriter.swift */,
+				020121 /* WeeklyRecoverySummary.swift */,
+				020122 /* WeeklyRecoverySummaryBuilder.swift */,
+				020053 /* RecoveryViewModel.swift */,
+				020142 /* RecoveryActivitySource.swift */,
+				020143 /* RecoveryDataProviderFactory.swift */,
+				020065 /* CheckInViewModel.swift */,
+				020075 /* CheckInViewModelFactory.swift */,
+				020078 /* CheckInHistoryViewModel.swift */,
+				020086 /* CheckInDetailViewModel.swift */,
+				020083 /* CheckInEditViewModel.swift */,
+				020050 /* RecoveryMockData.swift */,
+				020051 /* RecoveryView.swift */,
+				020077 /* RecoveryViewContainer.swift */,
+				020082 /* CheckInScaleSelector.swift */,
+				020066 /* CheckInView.swift */,
+				020076 /* CheckInViewContainer.swift */,
+				020079 /* CheckInHistoryView.swift */,
+				020080 /* CheckInHistoryViewContainer.swift */,
+				020081 /* CheckInDetailView.swift */,
+				020087 /* CheckInDetailViewContainer.swift */,
+				020084 /* CheckInEditView.swift */,
+				020085 /* CheckInEditViewContainer.swift */,
+			);
+			path = Recovery;
+			sourceTree = "<group>";
+		};
+		040020 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				020072 /* CheckInRecord.swift */,
+				020073 /* RecoveryCheckInPersistenceMapper.swift */,
+				020074 /* SwiftDataCheckInStore.swift */,
+				020094 /* DailyRecoverySnapshotRecord.swift */,
+				020095 /* DailyRecoverySnapshotMapper.swift */,
+				020096 /* DailyRecoverySnapshotStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		040021 /* HealthKit */ = {
+			isa = PBXGroup;
+			children = (
+				020125 /* HealthKitManager.swift */,
+				020126 /* HealthKitWorkout.swift */,
+				020127 /* HealthKitWorkoutFetcher.swift */,
+				020130 /* HealthKitRecoveryActivityMapper.swift */,
+				020131 /* HealthKitActivityStore.swift */,
+				020128 /* HealthKitStatusCard.swift */,
+				020134 /* HealthKitSettingsViewModel.swift */,
+				020135 /* HealthKitSettingsView.swift */,
+				020136 /* HealthKitSettingsViewContainer.swift */,
+				020138 /* HealthKitWorkoutPreviewViewModel.swift */,
+				020139 /* HealthKitWorkoutPreviewView.swift */,
+				020140 /* HealthKitWorkoutPreviewViewContainer.swift */,
+				020146 /* HealthKitRecoveryPreviewViewModel.swift */,
+				020147 /* HealthKitRecoveryPreviewView.swift */,
+				020149 /* HealthKitRecoveryPreviewViewContainer.swift */,
+			);
+			path = HealthKit;
+			sourceTree = "<group>";
+		};
+		040018 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				020015 /* ClubsView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		040012 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				040013 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		040013 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				020019 /* GmarketSansTTFMedium.ttf */,
+				020020 /* GmarketSansTTFBold.ttf */,
+				020021 /* NanumSquareNeo-bRg.ttf */,
+				020022 /* NanumSquareNeo-cBd.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		040101 /* SOOMTests */ = {
+			isa = PBXGroup;
+			children = (
+				020101 /* RecoveryCalculatorTests.swift */,
+				020103 /* RecoveryActivityMapperTests.swift */,
+				020104 /* RecoveryCheckInStoreTests.swift */,
+				020105 /* CombinedRecoveryDataProviderTests.swift */,
+				020106 /* CheckInViewModelTests.swift */,
+				020113 /* CheckInViewModelFactoryTests.swift */,
+				020114 /* CheckInHistoryViewModelTests.swift */,
+				020116 /* CheckInDetailViewModelTests.swift */,
+				020115 /* CheckInEditViewModelTests.swift */,
+				020107 /* RecoveryViewModelTests.swift */,
+				020108 /* RecoveryCoachMessagePersonalizerTests.swift */,
+				020109 /* RecoveryInsightPersonalizerTests.swift */,
+				020110 /* RecoveryCheckInSignalClassifierTests.swift */,
+				020111 /* RecoverySummaryComposerTests.swift */,
+				020117 /* RecoveryExplanationBuilderTests.swift */,
+				020118 /* RecoveryTimelineBuilderTests.swift */,
+				020112 /* SwiftDataCheckInStoreTests.swift */,
+				020119 /* DailyRecoverySnapshotStoreTests.swift */,
+				020120 /* DailyRecoverySnapshotWriterTests.swift */,
+				020124 /* WeeklyRecoverySummaryBuilderTests.swift */,
+				020129 /* HealthKitWorkoutTests.swift */,
+				020132 /* HealthKitRecoveryActivityMapperTests.swift */,
+				020133 /* HealthKitActivityStoreTests.swift */,
+				020137 /* HealthKitSettingsViewModelTests.swift */,
+				020141 /* HealthKitWorkoutPreviewViewModelTests.swift */,
+				020144 /* RecoveryDataProviderFactoryTests.swift */,
+				020145 /* HealthKitRecoverySourceSmokeTests.swift */,
+				020148 /* HealthKitRecoveryPreviewViewModelTests.swift */,
+			);
+			path = SOOMTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		050001 /* SOOM */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 090002 /* Build configuration list for PBXNativeTarget "SOOM" */;
+			buildPhases = (
+				060001 /* Sources */,
+				030001 /* Frameworks */,
+				060002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SOOM;
+			productName = SOOM;
+			productReference = 020017 /* SOOM.app */;
+			productType = "com.apple.product-type.application";
+		};
+		050101 /* SOOMTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 090101 /* Build configuration list for PBXNativeTarget "SOOMTests" */;
+			buildPhases = (
+				060101 /* Sources */,
+				030101 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0B0101 /* PBXTargetDependency */,
+			);
+			name = SOOMTests;
+			productName = SOOMTests;
+			productReference = 020102 /* SOOMTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		070001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					050001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					050101 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 050001;
+					};
+				};
+			};
+			buildConfigurationList = 090001 /* Build configuration list for PBXProject "SOOM" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 040001;
+			productRefGroup = 040002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				050001 /* SOOM */,
+				050101 /* SOOMTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		060002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				010017 /* GmarketSansTTFMedium.ttf in Resources */,
+				010018 /* GmarketSansTTFBold.ttf in Resources */,
+				010019 /* NanumSquareNeo-bRg.ttf in Resources */,
+				010020 /* NanumSquareNeo-cBd.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		060001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				010001 /* SOOMApp.swift in Sources */,
+				010002 /* Workout.swift in Sources */,
+				010003 /* AIAnalysis.swift in Sources */,
+				010004 /* Community.swift in Sources */,
+				010005 /* WorkoutHarness.swift in Sources */,
+				010006 /* MockWorkoutHarness.swift in Sources */,
+				010007 /* DashboardViewModel.swift in Sources */,
+				010008 /* CommunityViewModel.swift in Sources */,
+				010009 /* SoomColor.swift in Sources */,
+				010025 /* SoomTypography.swift in Sources */,
+				010026 /* SoomSpacing.swift in Sources */,
+				010027 /* SoomRadius.swift in Sources */,
+				010028 /* SoomIcon.swift in Sources */,
+				010029 /* SoomCard.swift in Sources */,
+				010030 /* SoomButton.swift in Sources */,
+				010038 /* SoomMetricPill.swift in Sources */,
+				010039 /* SoomMetricRing.swift in Sources */,
+				010040 /* SoomMetricRow.swift in Sources */,
+				010041 /* SoomActionRow.swift in Sources */,
+				010032 /* SoomSectionHeader.swift in Sources */,
+				010042 /* FlowTags.swift in Sources */,
+				010043 /* RecoveryScoreCard.swift in Sources */,
+				010044 /* InsightCard.swift in Sources */,
+				010045 /* RecommendationCard.swift in Sources */,
+				010046 /* TrendCard.swift in Sources */,
+				010047 /* CoachMessageCard.swift in Sources */,
+				010065 /* CheckInSummaryCard.swift in Sources */,
+				010010 /* RootTabView.swift in Sources */,
+				010011 /* HomeView.swift in Sources */,
+				010012 /* AnalysisView.swift in Sources */,
+				010013 /* RecordView.swift in Sources */,
+				010014 /* FeedView.swift in Sources */,
+				010015 /* ClubsView.swift in Sources */,
+				010016 /* DetailViews.swift in Sources */,
+				010021 /* WorkoutMapSheetScaffold.swift in Sources */,
+				010033 /* WorkoutSheetState.swift in Sources */,
+				010034 /* WorkoutSheetHeader.swift in Sources */,
+				010035 /* WorkoutMapControls.swift in Sources */,
+				010036 /* WorkoutBottomSheet.swift in Sources */,
+				010037 /* WorkoutMetricsSection.swift in Sources */,
+				010022 /* WorkoutDetailContent.swift in Sources */,
+				010023 /* WorkoutMetricCards.swift in Sources */,
+				010024 /* FeedPostDetailContent.swift in Sources */,
+				010050 /* RecoveryModels.swift in Sources */,
+				010053 /* RecoveryActivityModels.swift in Sources */,
+				010052 /* RecoveryDataProvider.swift in Sources */,
+				010055 /* RecoveryActivityStore.swift in Sources */,
+				010058 /* LocalActivityStore.swift in Sources */,
+				010057 /* RecoveryActivityMapper.swift in Sources */,
+				010059 /* RecoveryCheckInModels.swift in Sources */,
+				010060 /* RecoveryCheckInStore.swift in Sources */,
+				010061 /* RecoveryInputContext.swift in Sources */,
+				010054 /* ActivityRecoveryDataProvider.swift in Sources */,
+				010062 /* CombinedRecoveryDataProvider.swift in Sources */,
+				010056 /* RecoveryCalculator.swift in Sources */,
+				010070 /* CheckInRecord.swift in Sources */,
+				010071 /* RecoveryCheckInPersistenceMapper.swift in Sources */,
+				010072 /* SwiftDataCheckInStore.swift in Sources */,
+				010068 /* RecoveryCheckInSignal.swift in Sources */,
+				010066 /* RecoveryCoachMessagePersonalizer.swift in Sources */,
+				010067 /* RecoveryInsightPersonalizer.swift in Sources */,
+				010069 /* RecoverySummaryComposer.swift in Sources */,
+				010051 /* RecoveryViewModel.swift in Sources */,
+				010141 /* RecoveryActivitySource.swift in Sources */,
+				010142 /* RecoveryDataProviderFactory.swift in Sources */,
+				010063 /* CheckInViewModel.swift in Sources */,
+				010073 /* CheckInViewModelFactory.swift in Sources */,
+				010076 /* CheckInHistoryViewModel.swift in Sources */,
+				010084 /* CheckInDetailViewModel.swift in Sources */,
+				010048 /* RecoveryMockData.swift in Sources */,
+				010049 /* RecoveryView.swift in Sources */,
+				010075 /* RecoveryViewContainer.swift in Sources */,
+				010064 /* CheckInView.swift in Sources */,
+				010074 /* CheckInViewContainer.swift in Sources */,
+				010077 /* CheckInHistoryView.swift in Sources */,
+				010078 /* CheckInHistoryViewContainer.swift in Sources */,
+				010079 /* CheckInDetailView.swift in Sources */,
+				010085 /* CheckInDetailViewContainer.swift in Sources */,
+				010086 /* RecoveryExplanationCard.swift in Sources */,
+				010087 /* RecoveryExplanationBuilder.swift in Sources */,
+				010088 /* RecoveryTimelineCard.swift in Sources */,
+				010089 /* RecoveryTimelineEntry.swift in Sources */,
+				010090 /* RecoveryTimelineBuilder.swift in Sources */,
+				010091 /* DailyRecoverySnapshot.swift in Sources */,
+				010092 /* DailyRecoverySnapshotRecord.swift in Sources */,
+				010093 /* DailyRecoverySnapshotMapper.swift in Sources */,
+				010094 /* DailyRecoverySnapshotStore.swift in Sources */,
+				010095 /* DailyRecoverySnapshotWriter.swift in Sources */,
+				010120 /* WeeklyRecoverySummary.swift in Sources */,
+				010121 /* WeeklyRecoverySummaryBuilder.swift in Sources */,
+				010122 /* WeeklyCoachSummaryCard.swift in Sources */,
+				010124 /* HealthKitManager.swift in Sources */,
+				010125 /* HealthKitWorkout.swift in Sources */,
+				010126 /* HealthKitWorkoutFetcher.swift in Sources */,
+				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
+				010130 /* HealthKitActivityStore.swift in Sources */,
+				010127 /* HealthKitStatusCard.swift in Sources */,
+				010133 /* HealthKitSettingsViewModel.swift in Sources */,
+				010134 /* HealthKitSettingsView.swift in Sources */,
+				010135 /* HealthKitSettingsViewContainer.swift in Sources */,
+				010137 /* HealthKitWorkoutPreviewViewModel.swift in Sources */,
+				010138 /* HealthKitWorkoutPreviewView.swift in Sources */,
+				010139 /* HealthKitWorkoutPreviewViewContainer.swift in Sources */,
+				010145 /* HealthKitRecoveryPreviewViewModel.swift in Sources */,
+				010146 /* HealthKitRecoveryPreviewView.swift in Sources */,
+				010148 /* HealthKitRecoveryPreviewViewContainer.swift in Sources */,
+				010080 /* CheckInScaleSelector.swift in Sources */,
+				010081 /* CheckInEditViewModel.swift in Sources */,
+				010082 /* CheckInEditView.swift in Sources */,
+				010083 /* CheckInEditViewContainer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		060101 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				010101 /* RecoveryCalculatorTests.swift in Sources */,
+				010102 /* RecoveryActivityMapperTests.swift in Sources */,
+				010103 /* RecoveryCheckInStoreTests.swift in Sources */,
+				010104 /* CombinedRecoveryDataProviderTests.swift in Sources */,
+				010105 /* CheckInViewModelTests.swift in Sources */,
+				010112 /* CheckInViewModelFactoryTests.swift in Sources */,
+				010113 /* CheckInHistoryViewModelTests.swift in Sources */,
+				010115 /* CheckInDetailViewModelTests.swift in Sources */,
+				010114 /* CheckInEditViewModelTests.swift in Sources */,
+				010106 /* RecoveryViewModelTests.swift in Sources */,
+				010107 /* RecoveryCoachMessagePersonalizerTests.swift in Sources */,
+				010108 /* RecoveryInsightPersonalizerTests.swift in Sources */,
+				010109 /* RecoveryCheckInSignalClassifierTests.swift in Sources */,
+				010110 /* RecoverySummaryComposerTests.swift in Sources */,
+				010116 /* RecoveryExplanationBuilderTests.swift in Sources */,
+				010117 /* RecoveryTimelineBuilderTests.swift in Sources */,
+				010111 /* SwiftDataCheckInStoreTests.swift in Sources */,
+				010118 /* DailyRecoverySnapshotStoreTests.swift in Sources */,
+				010119 /* DailyRecoverySnapshotWriterTests.swift in Sources */,
+				010123 /* WeeklyRecoverySummaryBuilderTests.swift in Sources */,
+				010128 /* HealthKitWorkoutTests.swift in Sources */,
+				010131 /* HealthKitRecoveryActivityMapperTests.swift in Sources */,
+				010132 /* HealthKitActivityStoreTests.swift in Sources */,
+				010136 /* HealthKitSettingsViewModelTests.swift in Sources */,
+				010140 /* HealthKitWorkoutPreviewViewModelTests.swift in Sources */,
+				010143 /* RecoveryDataProviderFactoryTests.swift in Sources */,
+				010144 /* HealthKitRecoverySourceSmokeTests.swift in Sources */,
+				010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0B0101 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 050001 /* SOOM */;
+			targetProxy = 0C0101 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		080001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 82D59P8SDL;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		080002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 82D59P8SDL;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		080003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SOOM/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		080004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SOOM/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		080101 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SOOM.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SOOM";
+			};
+			name = Debug;
+		};
+		080102 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SOOM.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SOOM";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		090001 /* Build configuration list for PBXProject "SOOM" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				080001 /* Debug */,
+				080002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		090002 /* Build configuration list for PBXNativeTarget "SOOM" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				080003 /* Debug */,
+				080004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		090101 /* Build configuration list for PBXNativeTarget "SOOMTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				080101 /* Debug */,
+				080102 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 070001 /* Project object */;
+}
