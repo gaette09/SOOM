@@ -514,3 +514,23 @@ MVP 규칙:
 - 이 카드는 진단이나 위험 경고가 아니라 다음 운동 전 확인하면 좋은 코칭 힌트다.
 - Feed/SNS 공유, ML 예측, Garmin/Samsung 실제 연동은 포함하지 않는다.
 
+## Workout Session Summary MVP
+
+Workout Session Summary는 운동 상세에서 기본 수치 이후 가장 먼저 보이는 핵심 해석 레이어다. 기존 Growth Summary, Weakness Insight, Recovery Impact를 다시 계산하지 않고 조합해 사용자가 오늘 운동을 한 번에 이해하도록 돕는다.
+
+- 흐름: 운동 기본 수치 → 오늘 운동 요약 → 좋아진 점 → 다음에 좋아질 점 → 회복 영향
+- 역할: 성장, 개선 힌트, 회복 연결을 한 카드 안에서 짧게 요약한다.
+- 정책: 새로운 점수 계산, Recovery score 변경, ML 예측은 하지 않는다.
+- 톤: 부정적 평가보다 “다음 운동에서 더 좋아질 수 있는 힌트” 중심으로 표현한다.
+
+## Shareable Workout Card Direction
+
+Workout Session Summary, Personal Record, Weekly Progress는 장기적으로 공유 가능한 운동 카드의 기반이 된다. 공유 카드는 단순한 자랑이나 랭킹이 아니라 “성장, 리듬, 꾸준함”을 부드럽게 보여주는 동기부여 레이어다.
+
+- Session Summary는 한 번의 운동을 공유하는 기본 카드 후보다.
+- Weekly Progress는 이번 주 루틴과 누적 흐름을 공유하는 카드 후보다.
+- Personal Record는 개인 성장 중심의 성과 카드 후보다.
+- Recovery Impact는 회복 친화적 운동이나 다음 행동 힌트를 공유 가능한 문장으로 전환할 수 있다.
+
+공유 카드 상세 기준은 [SOOM_SHAREABLE_WORKOUT_CARD.md](SOOM_SHAREABLE_WORKOUT_CARD.md)를 따른다.
+

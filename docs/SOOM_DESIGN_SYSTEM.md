@@ -309,3 +309,23 @@ Analysis 화면은 점진적으로 Container/ViewModel 구조로 이동한다. V
 - “위험”, “나쁨”, “무리”처럼 불안감을 주는 표현보다 “조금 더 챙기기”, “확인하기”, “가볍게 마무리” 같은 코칭 톤을 쓴다.
 - Recovery score를 대체하거나 재계산하는 카드처럼 보이면 안 된다.
 
+## Workout Session Summary Card
+
+Workout Session Summary Card는 운동 상세의 핵심 해석 카드다. 운동 기본 수치 아래, Growth/Weakness/Recovery Impact 카드 위에 배치해 사용자가 오늘 운동 결과를 먼저 이해하게 한다.
+
+- 시각적 역할: 상세 화면의 “오늘 운동 요약”으로 가장 먼저 읽히는 해석 카드
+- 내용 구조: 요약 제목, 짧은 설명, 좋아진 점, 다음 힌트, 회복 연결, 마무리 동기부여
+- 디자인 톤: Strava의 기록성은 유지하되 Apple Fitness처럼 차분하고 정돈된 카드 밀도를 사용한다.
+- 제한: 과한 배지, 복잡한 차트, 부정적인 평가 문구는 사용하지 않는다.
+
+## Feed / Shareable Workout Card Tone
+
+SOOM의 Feed/SNS 경험은 경쟁보다 성장 공유 중심이다. 공유 카드는 사용자가 자신의 운동 리듬, 꾸준함, 회복 친화적 선택을 차분하게 보여주는 도구이며, 랭킹이나 자극적인 achievement tone이 핵심이 아니다.
+
+- 좋은 공유 카드: 오늘 운동 요약, 성장 신호, 다음 힌트, 회복 연결을 짧게 보여준다.
+- 피해야 할 공유 카드: 상대 비교, 과한 배지, 순위 압박, 위치/심박/회복 score 기본 공개.
+- 공유 문구는 “리듬을 이어갔어요”, “조금씩 좋아지고 있어요”, “회복 흐름을 해치지 않는 좋은 강도였어요”처럼 부드럽고 자기 성장 중심이어야 한다.
+- Feed UI는 Workout/Growth 데이터를 기반으로 하되 사용자가 선택한 정보만 노출한다. 위치, 심박, Recovery score, Check-in note는 기본 비공개 후보로 둔다.
+
+공유 카드 제품/기술 방향은 [SOOM_SHAREABLE_WORKOUT_CARD.md](SOOM_SHAREABLE_WORKOUT_CARD.md)를 따른다.
+

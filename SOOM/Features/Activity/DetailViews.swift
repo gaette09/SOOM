@@ -11,6 +11,7 @@ struct WorkoutDetailView: View {
                     WorkoutDetailContent(
                         workout: workout,
                         showsHeader: true,
+                        sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
                         weaknessInsight: weaknessInsight,
                         recoveryImpact: recoveryImpact
@@ -23,6 +24,7 @@ struct WorkoutDetailView: View {
                     WorkoutDetailContent(
                         workout: workout,
                         showsHeader: true,
+                        sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
                         weaknessInsight: weaknessInsight,
                         recoveryImpact: recoveryImpact
@@ -31,6 +33,15 @@ struct WorkoutDetailView: View {
             }
         }
         .hidesSOOMTabBar()
+    }
+
+    private var sessionSummary: WorkoutSessionSummary {
+        WorkoutSessionSummaryBuilder().build(
+            workout: workout,
+            growthSummary: growthSummary,
+            weaknessInsight: weaknessInsight,
+            recoveryImpact: recoveryImpact
+        )
     }
 
     private var growthSummary: WorkoutGrowthSummary {

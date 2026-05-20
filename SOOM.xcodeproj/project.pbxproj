@@ -227,6 +227,10 @@
 		010224 /* WorkoutRecoveryImpactBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020225 /* WorkoutRecoveryImpactBuilder.swift */; };
 		010225 /* WorkoutRecoveryImpactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020226 /* WorkoutRecoveryImpactCard.swift */; };
 		010226 /* WorkoutRecoveryImpactBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020227 /* WorkoutRecoveryImpactBuilderTests.swift */; };
+		010228 /* WorkoutSessionSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020228 /* WorkoutSessionSummary.swift */; };
+		010229 /* WorkoutSessionSummaryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020229 /* WorkoutSessionSummaryBuilder.swift */; };
+		010230 /* WorkoutSessionSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020230 /* WorkoutSessionSummaryCard.swift */; };
+		010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020231 /* WorkoutSessionSummaryBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -463,6 +467,10 @@
 		020225 /* WorkoutRecoveryImpactBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRecoveryImpactBuilder.swift; sourceTree = "<group>"; };
 		020226 /* WorkoutRecoveryImpactCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRecoveryImpactCard.swift; sourceTree = "<group>"; };
 		020227 /* WorkoutRecoveryImpactBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRecoveryImpactBuilderTests.swift; sourceTree = "<group>"; };
+		020228 /* WorkoutSessionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummary.swift; sourceTree = "<group>"; };
+		020229 /* WorkoutSessionSummaryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilder.swift; sourceTree = "<group>"; };
+		020230 /* WorkoutSessionSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryCard.swift; sourceTree = "<group>"; };
+		020231 /* WorkoutSessionSummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -595,6 +603,7 @@
 				020162 /* WorkoutGrowthCard.swift */,
 				020166 /* WorkoutWeaknessCard.swift */,
 				020226 /* WorkoutRecoveryImpactCard.swift */,
+				020230 /* WorkoutSessionSummaryCard.swift */,
 				020170 /* WeeklyWorkoutProgressCard.swift */,
 				020214 /* FourWeekWorkoutTrendCard.swift */,
 				020221 /* PersonalRecordCard.swift */,
@@ -659,6 +668,8 @@
 				020165 /* WorkoutWeaknessInsightBuilder.swift */,
 				020224 /* WorkoutRecoveryImpact.swift */,
 				020225 /* WorkoutRecoveryImpactBuilder.swift */,
+				020228 /* WorkoutSessionSummary.swift */,
+				020229 /* WorkoutSessionSummaryBuilder.swift */,
 				020168 /* WeeklyWorkoutProgress.swift */,
 				020169 /* WeeklyWorkoutProgressBuilder.swift */,
 				020212 /* FourWeekWorkoutTrend.swift */,
@@ -885,6 +896,7 @@
 				020163 /* WorkoutGrowthSummaryBuilderTests.swift */,
 				020167 /* WorkoutWeaknessInsightBuilderTests.swift */,
 				020227 /* WorkoutRecoveryImpactBuilderTests.swift */,
+				020231 /* WorkoutSessionSummaryBuilderTests.swift */,
 				020171 /* WeeklyWorkoutProgressBuilderTests.swift */,
 				020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */,
 				020216 /* FourWeekWorkoutTrendBuilderTests.swift */,
@@ -1021,6 +1033,7 @@
 				010161 /* WorkoutGrowthCard.swift in Sources */,
 				010165 /* WorkoutWeaknessCard.swift in Sources */,
 				010225 /* WorkoutRecoveryImpactCard.swift in Sources */,
+				010230 /* WorkoutSessionSummaryCard.swift in Sources */,
 				010169 /* WeeklyWorkoutProgressCard.swift in Sources */,
 				010213 /* FourWeekWorkoutTrendCard.swift in Sources */,
 				010220 /* PersonalRecordCard.swift in Sources */,
@@ -1048,6 +1061,8 @@
 				010164 /* WorkoutWeaknessInsightBuilder.swift in Sources */,
 				010223 /* WorkoutRecoveryImpact.swift in Sources */,
 				010224 /* WorkoutRecoveryImpactBuilder.swift in Sources */,
+				010228 /* WorkoutSessionSummary.swift in Sources */,
+				010229 /* WorkoutSessionSummaryBuilder.swift in Sources */,
 				010167 /* WeeklyWorkoutProgress.swift in Sources */,
 				010168 /* WeeklyWorkoutProgressBuilder.swift in Sources */,
 				010211 /* FourWeekWorkoutTrend.swift in Sources */,
@@ -1206,6 +1221,7 @@
 				010162 /* WorkoutGrowthSummaryBuilderTests.swift in Sources */,
 				010166 /* WorkoutWeaknessInsightBuilderTests.swift in Sources */,
 				010226 /* WorkoutRecoveryImpactBuilderTests.swift in Sources */,
+				010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */,
 				010170 /* WeeklyWorkoutProgressBuilderTests.swift in Sources */,
 				010207 /* UnifiedWorkoutWeeklyProgressProviderTests.swift in Sources */,
 				010215 /* FourWeekWorkoutTrendBuilderTests.swift in Sources */,

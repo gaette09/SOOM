@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkoutDetailContent: View {
     let workout: Workout
     let showsHeader: Bool
+    var sessionSummary: WorkoutSessionSummary?
     var growthSummary: WorkoutGrowthSummary?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
@@ -19,6 +20,9 @@ struct WorkoutDetailContent: View {
             }
 
             WorkoutMetricsSection(workout: workout)
+            if let sessionSummary {
+                WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
+            }
             if let growthSummary {
                 WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
             }
