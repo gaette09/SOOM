@@ -10,6 +10,11 @@ struct AnalysisView: View {
                 .font(SOOMFont.display(38, relativeTo: .largeTitle))
                 .foregroundStyle(SOOMColor.ink)
 
+            WeeklyWorkoutProgressCard(
+                progress: weeklyWorkoutProgress,
+                tint: SOOMColor.bike
+            )
+
             SOOMCard {
                 SOOMSectionHeader("지난 한 달 변화", caption: "종목별 볼륨과 강도 흐름")
                 Chart(viewModel.monthlySnapshot.summaries) { item in
@@ -49,7 +54,7 @@ struct AnalysisView: View {
                     .font(SOOMFont.displayMedium(17, relativeTo: .headline))
                 ForEach(viewModel.workouts) { workout in
                     NavigationLink {
-                        WorkoutDetailView(workout: workout)
+                        WorkoutDetailView(workout: workout, comparisonWorkouts: viewModel.workouts)
                     } label: {
                         SOOMCard {
                             SOOMActionRow(icon: workout.sport.iconName, title: workout.title, subtitle: "\(workout.formattedDistance) · \(workout.formattedPace)", tint: workout.sport.tint)
@@ -61,5 +66,9 @@ struct AnalysisView: View {
         }
         .navigationTitle("분석")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var weeklyWorkoutProgress: WeeklyWorkoutProgress {
+        WeeklyWorkoutProgressBuilder().build(workouts: viewModel.workouts)
     }
 }

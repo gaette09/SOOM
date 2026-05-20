@@ -116,7 +116,7 @@ struct HomeView: View {
 
             ForEach(viewModel.recentWorkouts) { workout in
                 NavigationLink {
-                    WorkoutDetailView(workout: workout)
+                    WorkoutDetailView(workout: workout, comparisonWorkouts: viewModel.workouts)
                 } label: {
                     SOOMCard {
                         SOOMActionRow(

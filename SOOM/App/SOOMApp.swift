@@ -20,7 +20,8 @@ struct SOOMApp: App {
         }
         .modelContainer(for: [
             CheckInRecord.self,
-            DailyRecoverySnapshotRecord.self
+            DailyRecoverySnapshotRecord.self,
+            UnifiedWorkoutRecord.self
         ])
     }
 }

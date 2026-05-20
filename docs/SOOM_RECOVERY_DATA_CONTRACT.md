@@ -6,6 +6,8 @@ SOOM Recovery는 HealthKit을 바로 연결하기 전에 화면이 필요로 하
 
 일별 회복 기록 저장과 Timeline의 실제 데이터 전환 계획은 [SOOM_DAILY_RECOVERY_SNAPSHOT_PLAN.md](SOOM_DAILY_RECOVERY_SNAPSHOT_PLAN.md)를 따른다. Snapshot은 과거 `RecoverySummary` 결과 보관용이며 현재 score 계산 공식에 개입하지 않는다.
 
+장기적으로 `RecoveryActivity`는 Apple HealthKit, Garmin, Samsung Health, SOOM 자체 기록을 정제한 `UnifiedWorkout`에서 파생된다. 통합 데이터 소스와 source mapping 기준은 [SOOM_UNIFIED_HEALTH_DATA_SOURCE.md](SOOM_UNIFIED_HEALTH_DATA_SOURCE.md)를 따른다. 여러 source에서 같은 운동이 들어올 수 있으므로, `RecoveryActivity` 생성 전에는 [SOOM_UNIFIED_WORKOUT_IMPORT_PIPELINE.md](SOOM_UNIFIED_WORKOUT_IMPORT_PIPELINE.md)를 통해 source fetch, unified mapping, data quality evaluation, deduplication을 거친 primary workout collection을 사용하는 것이 원칙이다. 세부 중복 판단 기준은 [SOOM_UNIFIED_WORKOUT_DEDUPLICATION.md](SOOM_UNIFIED_WORKOUT_DEDUPLICATION.md)를 따른다.
+
 ## 1. Screen Contract
 
 `RecoveryView`는 `RecoveryViewModel`이 제공하는 `RecoverySummary`만 읽는다. 화면은 데이터 출처가 mock인지, HealthKit인지, 서버 계산값인지 알지 않는다.
@@ -52,6 +54,8 @@ SOOM 앱 자체 운동 기록에서 가져올 데이터:
 - 주관적 운동 강도, 피로도, 메모
 - 휴식일 수와 연속 훈련일
 
+운동 기록은 Recovery 계산 입력일 뿐 아니라 Workout Growth Experience의 핵심 데이터 원천이다. Recovery는 최근 운동 부하와 회복 상태를 해석하고, Workout Growth는 개별 운동 상세에서 성과, 이전 기록 대비 개선, 부족한 점, 다음 훈련 힌트를 설명한다. 현재 `WorkoutGrowthSummaryBuilder`는 `Workout`과 최근 운동 배열만 사용해 거리 증가, 페이스 개선, 운동 빈도, 후반 심박 안정성을 규칙 기반으로 해석한다. 이 흐름은 Recovery score/status/recommendation을 변경하지 않는다. 성장 경험 설계 기준은 [SOOM_WORKOUT_GROWTH_EXPERIENCE.md](SOOM_WORKOUT_GROWTH_EXPERIENCE.md)를 따른다.
+
 현재 Activity 기반 MVP 입력 모델:
 
 - `workoutType`: ride, run, swim, brick
@@ -78,9 +82,15 @@ SOOM 앱에는 현재 내부 운동 기록 모델인 `Workout`이 존재한다. 
 
 `LocalWorkoutSnapshot`은 실제 로컬 DB/저장소가 붙기 전까지 `LocalActivityStore`가 사용할 임시 입력 모델이다. 이 모델은 HealthKit 전 단계에서 앱 내부 운동 기록 저장소와 Recovery 계산 계층 사이의 연결 지점을 검증하기 위해 유지한다.
 
+Unified source 전환 이후에는 `Workout`, `LocalWorkoutSnapshot`, `HealthKitWorkout`, Garmin Activity, Samsung Health exercise를 먼저 import pipeline에서 `UnifiedWorkout`으로 정제하고, data quality와 deduplication 후보를 정리한 뒤, Recovery 계층은 deduped primary `UnifiedWorkout` collection에서 `UnifiedWorkoutToRecoveryActivityMapper`를 통해 `RecoveryActivity` 입력을 받는다. `RecoveryActivity`는 원본 운동 기록이 아니라 RecoveryCalculator에 전달하기 위한 파생 계산 모델이며, 원본 source와 상세 필드는 `UnifiedWorkout` 쪽에 보존한다.
+
+RecoveryActivity 생성 전에는 `UnifiedWorkoutAnalysisInputSelector`를 적용해 `isExcludedFromAnalysis == true`인 workout을 제거하는 것이 원칙이다. v1 selector는 이미 포함/제외 필터와 `UnifiedWorkout -> RecoveryActivity` 변환을 제공하지만, production `RecoveryViewModel` 또는 `ActivityRecoveryDataProvider`에는 아직 자동 연결하지 않는다. 이 단계는 사용자 수동 제외 상태를 향후 Recovery 계산 입력에 반영하기 위한 준비 계층이다.
+
 ### Subjective Check-in Inputs
 
 Subjective check-in은 사용자가 직접 입력하는 컨디션 기록이다. 이 데이터는 v2 Recovery 알고리즘 입력 후보이며, 현재 v1 `RecoveryCalculator`에는 연결하지 않는다. 입력 UX 원칙과 화면 설계 기준은 [SOOM_CHECKIN_UX_SPEC.md](SOOM_CHECKIN_UX_SPEC.md)를 따른다. 앱 재실행 후에도 check-in을 유지하기 위한 저장 전략은 [SOOM_CHECKIN_PERSISTENCE_PLAN.md](SOOM_CHECKIN_PERSISTENCE_PLAN.md)를 기준으로 검토하고, 실제 SwiftData 앱 연결은 [SOOM_SWIFTDATA_INTEGRATION_PLAN.md](SOOM_SWIFTDATA_INTEGRATION_PLAN.md)의 rollout 계획을 따른다.
+
+Morning Check-in은 check-in의 v1 기본 사용 루프다. 앱 실행 후 Daily Readiness를 확인하고, 오늘 컨디션 기록이 없으면 10초 이내의 가벼운 기록을 제안한다. 전체 흐름과 상태 규칙은 [SOOM_MORNING_CHECKIN_FLOW.md](SOOM_MORNING_CHECKIN_FLOW.md)를 따른다.
 
 현재 계약 모델:
 
@@ -104,6 +114,8 @@ Subjective check-in은 사용자가 직접 입력하는 컨디션 기록이다. 
 - `RecoveryViewModel`은 `RecoverySummary`와 별도로 최신 `RecoveryCheckIn`을 노출할 수 있다.
 - check-in fetch 실패는 Recovery summary 로딩 실패로 처리하지 않는다.
 - 최신 check-in은 Recovery 화면에서 부드러운 컨디션 요약 카드로만 표시한다.
+- Morning loop에서는 오늘 또는 가장 최근 check-in을 우선 사용해 coach message와 insight를 개인화한다.
+- 전체 History에는 모든 check-in 기록을 유지한다. 같은 날 여러 번 기록하더라도 Recovery 개인화에는 최신 기록만 사용한다.
 - v1 score, status, recommendation은 check-in 유무와 관계없이 activity 기반 계산 결과를 유지한다.
 - v1.5에서는 score formula를 변경하지 않고, 최신 check-in을 coachMessage와 insights 개인화에만 사용할 수 있다.
 
@@ -273,6 +285,8 @@ protocol RecoveryActivityStore {
 현재 `LocalActivityStore`는 실제 저장소 대신 `LocalWorkoutSnapshot.mockRecent`를 사용한다. 이 mock은 앱 내부 Workout 저장소가 준비되기 전까지 Local store 흐름을 빌드와 테스트에서 검증하기 위한 임시 장치다.
 
 `HealthKitRecoveryActivityMapper`는 HealthKit 전용 workout snapshot을 Recovery 계산 입력으로 변환한다. 이 mapper의 `relativeEffort`와 `trainingLoad`는 아직 단순 추정값이며, v2에서 TRIMP, HR zone, power, sport-specific load를 반영할 때 교체한다. 이 계층은 `RecoveryCalculator` 공식을 바꾸지 않고 입력 변환 정책만 좁게 다루기 위해 유지한다.
+
+`UnifiedWorkoutToRecoveryActivityMapper`는 source-independent `UnifiedWorkout`을 `RecoveryActivity`로 변환한다. 이 mapper는 Apple HealthKit, Garmin, Samsung Health, SOOM local/manual source가 같은 Recovery 계산 입력 구조로 들어올 수 있게 하는 공통 변환 계층이다. 현재는 `ActivityRecoveryDataProvider` 기본 source를 바꾸지 않으며, `trainingLoad`와 `relativeEffort`는 duration, heart rate, active energy 기반 MVP 추정값으로만 계산한다.
 
 ### Check-in Store Layer
 

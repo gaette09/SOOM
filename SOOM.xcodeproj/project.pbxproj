@@ -153,6 +153,59 @@
 		010150 /* DailyReadinessState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020151 /* DailyReadinessState.swift */; };
 		010151 /* DailyReadinessBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020152 /* DailyReadinessBuilder.swift */; };
 		010152 /* DailyReadinessBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020153 /* DailyReadinessBuilderTests.swift */; };
+		010153 /* MorningCheckInPromptCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020154 /* MorningCheckInPromptCard.swift */; };
+		010154 /* MorningCheckInState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020155 /* MorningCheckInState.swift */; };
+		010155 /* MorningCheckInStateBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020156 /* MorningCheckInStateBuilder.swift */; };
+		010156 /* MorningCheckInStateBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020157 /* MorningCheckInStateBuilderTests.swift */; };
+		010157 /* MorningCheckInSkipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020158 /* MorningCheckInSkipStore.swift */; };
+		010158 /* MorningCheckInSkipStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020159 /* MorningCheckInSkipStoreTests.swift */; };
+		010159 /* WorkoutGrowthSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020160 /* WorkoutGrowthSummary.swift */; };
+		010160 /* WorkoutGrowthSummaryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020161 /* WorkoutGrowthSummaryBuilder.swift */; };
+		010161 /* WorkoutGrowthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020162 /* WorkoutGrowthCard.swift */; };
+		010162 /* WorkoutGrowthSummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020163 /* WorkoutGrowthSummaryBuilderTests.swift */; };
+		010163 /* WorkoutWeaknessInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020164 /* WorkoutWeaknessInsight.swift */; };
+		010164 /* WorkoutWeaknessInsightBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020165 /* WorkoutWeaknessInsightBuilder.swift */; };
+		010165 /* WorkoutWeaknessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020166 /* WorkoutWeaknessCard.swift */; };
+		010166 /* WorkoutWeaknessInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020167 /* WorkoutWeaknessInsightBuilderTests.swift */; };
+		010167 /* WeeklyWorkoutProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020168 /* WeeklyWorkoutProgress.swift */; };
+		010168 /* WeeklyWorkoutProgressBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020169 /* WeeklyWorkoutProgressBuilder.swift */; };
+		010169 /* WeeklyWorkoutProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020170 /* WeeklyWorkoutProgressCard.swift */; };
+		010170 /* WeeklyWorkoutProgressBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020171 /* WeeklyWorkoutProgressBuilderTests.swift */; };
+		010171 /* UnifiedDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020172 /* UnifiedDataSource.swift */; };
+		010172 /* UnifiedWorkoutType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020173 /* UnifiedWorkoutType.swift */; };
+		010173 /* UnifiedWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020174 /* UnifiedWorkout.swift */; };
+		010174 /* UnifiedDataQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020175 /* UnifiedDataQuality.swift */; };
+		010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020176 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift */; };
+		010176 /* HealthKitWorkoutToUnifiedWorkoutMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020177 /* HealthKitWorkoutToUnifiedWorkoutMapperTests.swift */; };
+		010177 /* UnifiedWorkoutToRecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020178 /* UnifiedWorkoutToRecoveryActivityMapper.swift */; };
+		010178 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020179 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift */; };
+		010179 /* WorkoutGrowthInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020180 /* WorkoutGrowthInput.swift */; };
+		010180 /* UnifiedWorkoutToGrowthInputMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020181 /* UnifiedWorkoutToGrowthInputMapper.swift */; };
+		010181 /* UnifiedWorkoutToGrowthInputMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020182 /* UnifiedWorkoutToGrowthInputMapperTests.swift */; };
+		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
+		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
+		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
+		010185 /* UnifiedWorkoutRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020186 /* UnifiedWorkoutRecord.swift */; };
+		010186 /* UnifiedWorkoutPersistenceMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020187 /* UnifiedWorkoutPersistenceMapper.swift */; };
+		010187 /* UnifiedWorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020188 /* UnifiedWorkoutStore.swift */; };
+		010188 /* UnifiedWorkoutStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020189 /* UnifiedWorkoutStoreTests.swift */; };
+		010189 /* HealthKitWorkoutImportResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020190 /* HealthKitWorkoutImportResult.swift */; };
+		010190 /* HealthKitWorkoutImportPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020191 /* HealthKitWorkoutImportPipeline.swift */; };
+		010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020192 /* HealthKitWorkoutImportPipelineTests.swift */; };
+		010192 /* HealthKitWorkoutImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020193 /* HealthKitWorkoutImportViewModel.swift */; };
+		010193 /* HealthKitWorkoutImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020194 /* HealthKitWorkoutImportView.swift */; };
+		010194 /* HealthKitWorkoutImportViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020195 /* HealthKitWorkoutImportViewContainer.swift */; };
+		010195 /* HealthKitWorkoutImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020196 /* HealthKitWorkoutImportViewModelTests.swift */; };
+		010196 /* UnifiedWorkoutLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020197 /* UnifiedWorkoutLibraryViewModel.swift */; };
+		010197 /* UnifiedWorkoutLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020198 /* UnifiedWorkoutLibraryView.swift */; };
+		010198 /* UnifiedWorkoutLibraryViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020199 /* UnifiedWorkoutLibraryViewContainer.swift */; };
+		010199 /* UnifiedWorkoutLibraryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020200 /* UnifiedWorkoutLibraryViewModelTests.swift */; };
+		010200 /* UnifiedWorkoutDuplicateReviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020201 /* UnifiedWorkoutDuplicateReviewViewModel.swift */; };
+		010201 /* UnifiedWorkoutDuplicateReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020202 /* UnifiedWorkoutDuplicateReviewView.swift */; };
+		010202 /* UnifiedWorkoutDuplicateReviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020203 /* UnifiedWorkoutDuplicateReviewViewContainer.swift */; };
+		010203 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020204 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift */; };
+		010204 /* UnifiedWorkoutAnalysisInputSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020205 /* UnifiedWorkoutAnalysisInputSelector.swift */; };
+		010205 /* UnifiedWorkoutAnalysisInputSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -315,6 +368,59 @@
 		020151 /* DailyReadinessState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessState.swift; sourceTree = "<group>"; };
 		020152 /* DailyReadinessBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessBuilder.swift; sourceTree = "<group>"; };
 		020153 /* DailyReadinessBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReadinessBuilderTests.swift; sourceTree = "<group>"; };
+		020154 /* MorningCheckInPromptCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInPromptCard.swift; sourceTree = "<group>"; };
+		020155 /* MorningCheckInState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInState.swift; sourceTree = "<group>"; };
+		020156 /* MorningCheckInStateBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInStateBuilder.swift; sourceTree = "<group>"; };
+		020157 /* MorningCheckInStateBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInStateBuilderTests.swift; sourceTree = "<group>"; };
+		020158 /* MorningCheckInSkipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInSkipStore.swift; sourceTree = "<group>"; };
+		020159 /* MorningCheckInSkipStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInSkipStoreTests.swift; sourceTree = "<group>"; };
+		020160 /* WorkoutGrowthSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthSummary.swift; sourceTree = "<group>"; };
+		020161 /* WorkoutGrowthSummaryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthSummaryBuilder.swift; sourceTree = "<group>"; };
+		020162 /* WorkoutGrowthCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthCard.swift; sourceTree = "<group>"; };
+		020163 /* WorkoutGrowthSummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthSummaryBuilderTests.swift; sourceTree = "<group>"; };
+		020164 /* WorkoutWeaknessInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWeaknessInsight.swift; sourceTree = "<group>"; };
+		020165 /* WorkoutWeaknessInsightBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWeaknessInsightBuilder.swift; sourceTree = "<group>"; };
+		020166 /* WorkoutWeaknessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWeaknessCard.swift; sourceTree = "<group>"; };
+		020167 /* WorkoutWeaknessInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWeaknessInsightBuilderTests.swift; sourceTree = "<group>"; };
+		020168 /* WeeklyWorkoutProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyWorkoutProgress.swift; sourceTree = "<group>"; };
+		020169 /* WeeklyWorkoutProgressBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyWorkoutProgressBuilder.swift; sourceTree = "<group>"; };
+		020170 /* WeeklyWorkoutProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyWorkoutProgressCard.swift; sourceTree = "<group>"; };
+		020171 /* WeeklyWorkoutProgressBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyWorkoutProgressBuilderTests.swift; sourceTree = "<group>"; };
+		020172 /* UnifiedDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDataSource.swift; sourceTree = "<group>"; };
+		020173 /* UnifiedWorkoutType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutType.swift; sourceTree = "<group>"; };
+		020174 /* UnifiedWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkout.swift; sourceTree = "<group>"; };
+		020175 /* UnifiedDataQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDataQuality.swift; sourceTree = "<group>"; };
+		020176 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutToUnifiedWorkoutMapper.swift; sourceTree = "<group>"; };
+		020177 /* HealthKitWorkoutToUnifiedWorkoutMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutToUnifiedWorkoutMapperTests.swift; sourceTree = "<group>"; };
+		020178 /* UnifiedWorkoutToRecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutToRecoveryActivityMapper.swift; sourceTree = "<group>"; };
+		020179 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutToRecoveryActivityMapperTests.swift; sourceTree = "<group>"; };
+		020180 /* WorkoutGrowthInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthInput.swift; sourceTree = "<group>"; };
+		020181 /* UnifiedWorkoutToGrowthInputMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutToGrowthInputMapper.swift; sourceTree = "<group>"; };
+		020182 /* UnifiedWorkoutToGrowthInputMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutToGrowthInputMapperTests.swift; sourceTree = "<group>"; };
+		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
+		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
+		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
+		020186 /* UnifiedWorkoutRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutRecord.swift; sourceTree = "<group>"; };
+		020187 /* UnifiedWorkoutPersistenceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutPersistenceMapper.swift; sourceTree = "<group>"; };
+		020188 /* UnifiedWorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutStore.swift; sourceTree = "<group>"; };
+		020189 /* UnifiedWorkoutStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutStoreTests.swift; sourceTree = "<group>"; };
+		020190 /* HealthKitWorkoutImportResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportResult.swift; sourceTree = "<group>"; };
+		020191 /* HealthKitWorkoutImportPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportPipeline.swift; sourceTree = "<group>"; };
+		020192 /* HealthKitWorkoutImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportPipelineTests.swift; sourceTree = "<group>"; };
+		020193 /* HealthKitWorkoutImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportViewModel.swift; sourceTree = "<group>"; };
+		020194 /* HealthKitWorkoutImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportView.swift; sourceTree = "<group>"; };
+		020195 /* HealthKitWorkoutImportViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportViewContainer.swift; sourceTree = "<group>"; };
+		020196 /* HealthKitWorkoutImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutImportViewModelTests.swift; sourceTree = "<group>"; };
+		020197 /* UnifiedWorkoutLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutLibraryViewModel.swift; sourceTree = "<group>"; };
+		020198 /* UnifiedWorkoutLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutLibraryView.swift; sourceTree = "<group>"; };
+		020199 /* UnifiedWorkoutLibraryViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutLibraryViewContainer.swift; sourceTree = "<group>"; };
+		020200 /* UnifiedWorkoutLibraryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutLibraryViewModelTests.swift; sourceTree = "<group>"; };
+		020201 /* UnifiedWorkoutDuplicateReviewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateReviewViewModel.swift; sourceTree = "<group>"; };
+		020202 /* UnifiedWorkoutDuplicateReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateReviewView.swift; sourceTree = "<group>"; };
+		020203 /* UnifiedWorkoutDuplicateReviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateReviewViewContainer.swift; sourceTree = "<group>"; };
+		020204 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateReviewViewModelTests.swift; sourceTree = "<group>"; };
+		020205 /* UnifiedWorkoutAnalysisInputSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutAnalysisInputSelector.swift; sourceTree = "<group>"; };
+		020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutAnalysisInputSelectorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -443,6 +549,10 @@
 				020048 /* TrendCard.swift */,
 				020049 /* CoachMessageCard.swift */,
 				020150 /* DailyReadinessCard.swift */,
+				020154 /* MorningCheckInPromptCard.swift */,
+				020162 /* WorkoutGrowthCard.swift */,
+				020166 /* WorkoutWeaknessCard.swift */,
+				020170 /* WeeklyWorkoutProgressCard.swift */,
 				020088 /* RecoveryExplanationCard.swift */,
 				020090 /* RecoveryTimelineCard.swift */,
 				020123 /* WeeklyCoachSummaryCard.swift */,
@@ -456,8 +566,10 @@
 			children = (
 				040015 /* Home */,
 				040016 /* Activity */,
+				040022 /* Workout */,
 				040019 /* Feed */,
 				040017 /* Recovery */,
+				040023 /* UnifiedHealth */,
 				040021 /* HealthKit */,
 				040018 /* Profile */,
 			);
@@ -488,6 +600,53 @@
 				020025 /* WorkoutMetricCards.swift */,
 			);
 			path = Activity;
+			sourceTree = "<group>";
+		};
+		040022 /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				020160 /* WorkoutGrowthSummary.swift */,
+				020161 /* WorkoutGrowthSummaryBuilder.swift */,
+				020180 /* WorkoutGrowthInput.swift */,
+				020164 /* WorkoutWeaknessInsight.swift */,
+				020165 /* WorkoutWeaknessInsightBuilder.swift */,
+				020168 /* WeeklyWorkoutProgress.swift */,
+				020169 /* WeeklyWorkoutProgressBuilder.swift */,
+			);
+			path = Workout;
+			sourceTree = "<group>";
+		};
+		040023 /* UnifiedHealth */ = {
+			isa = PBXGroup;
+			children = (
+				040024 /* Persistence */,
+				020172 /* UnifiedDataSource.swift */,
+				020173 /* UnifiedWorkoutType.swift */,
+				020175 /* UnifiedDataQuality.swift */,
+				020174 /* UnifiedWorkout.swift */,
+				020178 /* UnifiedWorkoutToRecoveryActivityMapper.swift */,
+				020181 /* UnifiedWorkoutToGrowthInputMapper.swift */,
+				020183 /* UnifiedWorkoutDuplicateCandidate.swift */,
+				020184 /* UnifiedWorkoutDeduplicationEngine.swift */,
+				020205 /* UnifiedWorkoutAnalysisInputSelector.swift */,
+				020197 /* UnifiedWorkoutLibraryViewModel.swift */,
+				020198 /* UnifiedWorkoutLibraryView.swift */,
+				020199 /* UnifiedWorkoutLibraryViewContainer.swift */,
+				020201 /* UnifiedWorkoutDuplicateReviewViewModel.swift */,
+				020202 /* UnifiedWorkoutDuplicateReviewView.swift */,
+				020203 /* UnifiedWorkoutDuplicateReviewViewContainer.swift */,
+			);
+			path = UnifiedHealth;
+			sourceTree = "<group>";
+		};
+		040024 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				020186 /* UnifiedWorkoutRecord.swift */,
+				020187 /* UnifiedWorkoutPersistenceMapper.swift */,
+				020188 /* UnifiedWorkoutStore.swift */,
+			);
+			path = Persistence;
 			sourceTree = "<group>";
 		};
 		040019 /* Feed */ = {
@@ -522,6 +681,9 @@
 				020089 /* RecoveryExplanationBuilder.swift */,
 				020151 /* DailyReadinessState.swift */,
 				020152 /* DailyReadinessBuilder.swift */,
+				020155 /* MorningCheckInState.swift */,
+				020156 /* MorningCheckInStateBuilder.swift */,
+				020158 /* MorningCheckInSkipStore.swift */,
 				020091 /* RecoveryTimelineEntry.swift */,
 				020092 /* RecoveryTimelineBuilder.swift */,
 				020093 /* DailyRecoverySnapshot.swift */,
@@ -572,6 +734,12 @@
 				020126 /* HealthKitWorkout.swift */,
 				020127 /* HealthKitWorkoutFetcher.swift */,
 				020130 /* HealthKitRecoveryActivityMapper.swift */,
+				020176 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift */,
+				020190 /* HealthKitWorkoutImportResult.swift */,
+				020191 /* HealthKitWorkoutImportPipeline.swift */,
+				020193 /* HealthKitWorkoutImportViewModel.swift */,
+				020194 /* HealthKitWorkoutImportView.swift */,
+				020195 /* HealthKitWorkoutImportViewContainer.swift */,
 				020131 /* HealthKitActivityStore.swift */,
 				020128 /* HealthKitStatusCard.swift */,
 				020134 /* HealthKitSettingsViewModel.swift */,
@@ -639,6 +807,16 @@
 				020124 /* WeeklyRecoverySummaryBuilderTests.swift */,
 				020129 /* HealthKitWorkoutTests.swift */,
 				020132 /* HealthKitRecoveryActivityMapperTests.swift */,
+				020177 /* HealthKitWorkoutToUnifiedWorkoutMapperTests.swift */,
+				020179 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift */,
+				020182 /* UnifiedWorkoutToGrowthInputMapperTests.swift */,
+				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
+				020189 /* UnifiedWorkoutStoreTests.swift */,
+				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
+				020196 /* HealthKitWorkoutImportViewModelTests.swift */,
+				020200 /* UnifiedWorkoutLibraryViewModelTests.swift */,
+				020204 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift */,
+				020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */,
 				020133 /* HealthKitActivityStoreTests.swift */,
 				020137 /* HealthKitSettingsViewModelTests.swift */,
 				020141 /* HealthKitWorkoutPreviewViewModelTests.swift */,
@@ -646,6 +824,11 @@
 				020145 /* HealthKitRecoverySourceSmokeTests.swift */,
 				020148 /* HealthKitRecoveryPreviewViewModelTests.swift */,
 				020153 /* DailyReadinessBuilderTests.swift */,
+				020157 /* MorningCheckInStateBuilderTests.swift */,
+				020159 /* MorningCheckInSkipStoreTests.swift */,
+				020163 /* WorkoutGrowthSummaryBuilderTests.swift */,
+				020167 /* WorkoutWeaknessInsightBuilderTests.swift */,
+				020171 /* WeeklyWorkoutProgressBuilderTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -771,6 +954,10 @@
 				010046 /* TrendCard.swift in Sources */,
 				010047 /* CoachMessageCard.swift in Sources */,
 				010149 /* DailyReadinessCard.swift in Sources */,
+				010153 /* MorningCheckInPromptCard.swift in Sources */,
+				010161 /* WorkoutGrowthCard.swift in Sources */,
+				010165 /* WorkoutWeaknessCard.swift in Sources */,
+				010169 /* WeeklyWorkoutProgressCard.swift in Sources */,
 				010065 /* CheckInSummaryCard.swift in Sources */,
 				010010 /* RootTabView.swift in Sources */,
 				010011 /* HomeView.swift in Sources */,
@@ -787,6 +974,31 @@
 				010037 /* WorkoutMetricsSection.swift in Sources */,
 				010022 /* WorkoutDetailContent.swift in Sources */,
 				010023 /* WorkoutMetricCards.swift in Sources */,
+				010159 /* WorkoutGrowthSummary.swift in Sources */,
+				010160 /* WorkoutGrowthSummaryBuilder.swift in Sources */,
+				010163 /* WorkoutWeaknessInsight.swift in Sources */,
+				010164 /* WorkoutWeaknessInsightBuilder.swift in Sources */,
+				010167 /* WeeklyWorkoutProgress.swift in Sources */,
+				010168 /* WeeklyWorkoutProgressBuilder.swift in Sources */,
+				010179 /* WorkoutGrowthInput.swift in Sources */,
+				010171 /* UnifiedDataSource.swift in Sources */,
+				010172 /* UnifiedWorkoutType.swift in Sources */,
+				010174 /* UnifiedDataQuality.swift in Sources */,
+				010173 /* UnifiedWorkout.swift in Sources */,
+				010177 /* UnifiedWorkoutToRecoveryActivityMapper.swift in Sources */,
+				010180 /* UnifiedWorkoutToGrowthInputMapper.swift in Sources */,
+				010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */,
+				010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */,
+				010204 /* UnifiedWorkoutAnalysisInputSelector.swift in Sources */,
+				010185 /* UnifiedWorkoutRecord.swift in Sources */,
+				010186 /* UnifiedWorkoutPersistenceMapper.swift in Sources */,
+				010187 /* UnifiedWorkoutStore.swift in Sources */,
+				010196 /* UnifiedWorkoutLibraryViewModel.swift in Sources */,
+				010197 /* UnifiedWorkoutLibraryView.swift in Sources */,
+				010198 /* UnifiedWorkoutLibraryViewContainer.swift in Sources */,
+				010200 /* UnifiedWorkoutDuplicateReviewViewModel.swift in Sources */,
+				010201 /* UnifiedWorkoutDuplicateReviewView.swift in Sources */,
+				010202 /* UnifiedWorkoutDuplicateReviewViewContainer.swift in Sources */,
 				010024 /* FeedPostDetailContent.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
@@ -827,6 +1039,9 @@
 				010087 /* RecoveryExplanationBuilder.swift in Sources */,
 				010150 /* DailyReadinessState.swift in Sources */,
 				010151 /* DailyReadinessBuilder.swift in Sources */,
+				010154 /* MorningCheckInState.swift in Sources */,
+				010155 /* MorningCheckInStateBuilder.swift in Sources */,
+				010157 /* MorningCheckInSkipStore.swift in Sources */,
 				010088 /* RecoveryTimelineCard.swift in Sources */,
 				010089 /* RecoveryTimelineEntry.swift in Sources */,
 				010090 /* RecoveryTimelineBuilder.swift in Sources */,
@@ -842,6 +1057,12 @@
 				010125 /* HealthKitWorkout.swift in Sources */,
 				010126 /* HealthKitWorkoutFetcher.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
+				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
+				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
+				010190 /* HealthKitWorkoutImportPipeline.swift in Sources */,
+				010192 /* HealthKitWorkoutImportViewModel.swift in Sources */,
+				010193 /* HealthKitWorkoutImportView.swift in Sources */,
+				010194 /* HealthKitWorkoutImportViewContainer.swift in Sources */,
 				010130 /* HealthKitActivityStore.swift in Sources */,
 				010127 /* HealthKitStatusCard.swift in Sources */,
 				010133 /* HealthKitSettingsViewModel.swift in Sources */,
@@ -886,6 +1107,16 @@
 				010123 /* WeeklyRecoverySummaryBuilderTests.swift in Sources */,
 				010128 /* HealthKitWorkoutTests.swift in Sources */,
 				010131 /* HealthKitRecoveryActivityMapperTests.swift in Sources */,
+				010176 /* HealthKitWorkoutToUnifiedWorkoutMapperTests.swift in Sources */,
+				010178 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift in Sources */,
+				010181 /* UnifiedWorkoutToGrowthInputMapperTests.swift in Sources */,
+				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
+				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
+				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,
+				010195 /* HealthKitWorkoutImportViewModelTests.swift in Sources */,
+				010199 /* UnifiedWorkoutLibraryViewModelTests.swift in Sources */,
+				010203 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift in Sources */,
+				010205 /* UnifiedWorkoutAnalysisInputSelectorTests.swift in Sources */,
 				010132 /* HealthKitActivityStoreTests.swift in Sources */,
 				010136 /* HealthKitSettingsViewModelTests.swift in Sources */,
 				010140 /* HealthKitWorkoutPreviewViewModelTests.swift in Sources */,
@@ -893,6 +1124,11 @@
 				010144 /* HealthKitRecoverySourceSmokeTests.swift in Sources */,
 				010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */,
 				010152 /* DailyReadinessBuilderTests.swift in Sources */,
+				010156 /* MorningCheckInStateBuilderTests.swift in Sources */,
+				010158 /* MorningCheckInSkipStoreTests.swift in Sources */,
+				010162 /* WorkoutGrowthSummaryBuilderTests.swift in Sources */,
+				010166 /* WorkoutWeaknessInsightBuilderTests.swift in Sources */,
+				010170 /* WeeklyWorkoutProgressBuilderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

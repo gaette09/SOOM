@@ -49,6 +49,56 @@ final class RecoveryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.summary?.score, expectedSummary.score)
     }
 
+    func testMorningCheckInStateIsNotCheckedInTodayWhenThereIsNoTodayCheckIn() async {
+        let expectedSummary = RecoverySummary.mockToday
+        let yesterday = Date().addingTimeInterval(-86_400)
+        let viewModel = RecoveryViewModel(
+            provider: FixedRecoveryDataProvider(summary: expectedSummary),
+            checkInStore: FakeCheckInStore(checkIns: [makeCheckIn(date: yesterday, fatigue: 3)])
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.morningCheckInState, .notCheckedInToday)
+        XCTAssertEqual(viewModel.summary?.score, expectedSummary.score)
+        XCTAssertEqual(viewModel.summary?.status, expectedSummary.status)
+        XCTAssertEqual(viewModel.summary?.recommendation, expectedSummary.recommendation)
+    }
+
+    func testMorningCheckInStateIsCheckedInTodayWhenLatestCheckInIsToday() async {
+        let expectedSummary = RecoverySummary.mockToday
+        let viewModel = RecoveryViewModel(
+            provider: FixedRecoveryDataProvider(summary: expectedSummary),
+            checkInStore: FakeCheckInStore(checkIns: [makeCheckIn(date: Date(), fatigue: 3)])
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.morningCheckInState, .checkedInToday)
+        XCTAssertEqual(viewModel.summary?.score, expectedSummary.score)
+        XCTAssertEqual(viewModel.summary?.status, expectedSummary.status)
+        XCTAssertEqual(viewModel.summary?.recommendation, expectedSummary.recommendation)
+    }
+
+    func testSkipMorningCheckInSetsSkippedTodayWithoutChangingScoreStatusOrRecommendation() async {
+        let expectedSummary = RecoverySummary.mockToday
+        let fixture = makeMorningSkipStore(now: { Date() })
+        let viewModel = RecoveryViewModel(
+            provider: FixedRecoveryDataProvider(summary: expectedSummary),
+            checkInStore: FakeCheckInStore(checkIns: []),
+            morningCheckInSkipStore: fixture.store
+        )
+
+        await viewModel.load()
+        viewModel.skipMorningCheckIn()
+
+        XCTAssertEqual(viewModel.morningCheckInState, .skippedToday)
+        XCTAssertEqual(viewModel.summary?.score, expectedSummary.score)
+        XCTAssertEqual(viewModel.summary?.status, expectedSummary.status)
+        XCTAssertEqual(viewModel.summary?.recommendation, expectedSummary.recommendation)
+        fixture.cleanup()
+    }
+
     func testCheckInPersonalizationIsAppliedToSummaryWithoutChangingScore() async {
         let expectedSummary = RecoverySummary.mockToday
         let viewModel = RecoveryViewModel(
@@ -302,6 +352,21 @@ final class RecoveryViewModelTests: XCTestCase {
         return try ModelContainer(
             for: schema,
             configurations: [configuration]
+        )
+    }
+
+    private func makeMorningSkipStore(
+        now: @escaping () -> Date
+    ) -> (store: MorningCheckInSkipStore, cleanup: () -> Void) {
+        let suiteName = "RecoveryViewModelMorningSkipTests-\(UUID().uuidString)"
+        let userDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        userDefaults.removePersistentDomain(forName: suiteName)
+
+        return (
+            MorningCheckInSkipStore(userDefaults: userDefaults, now: now),
+            {
+                userDefaults.removePersistentDomain(forName: suiteName)
+            }
         )
     }
 }

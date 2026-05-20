@@ -4,6 +4,8 @@
 
 SOOM은 장기적으로 Apple 건강 앱과 Apple Watch 운동 기록을 읽어 Recovery, 운동 흐름, AI Coach 문장을 더 정확하게 만들 수 있어야 한다. Phase 1은 실제 Recovery 점수 계산에 HealthKit 데이터를 연결하지 않고, read-only 권한 흐름과 workout fetch 기반만 준비한다.
 
+HealthKit은 SOOM의 유일한 건강 데이터 원천이 아니라 Unified Health Data Source 중 하나다. 장기적으로 Apple HealthKit, Garmin, Samsung Health, SOOM 자체 기록은 [SOOM_UNIFIED_HEALTH_DATA_SOURCE.md](SOOM_UNIFIED_HEALTH_DATA_SOURCE.md)의 공통 모델로 정제된 뒤 Recovery와 Workout Growth에 전달한다.
+
 ## Phase 1 Scope
 
 Phase 1에서 준비하는 것:
@@ -59,6 +61,8 @@ SOOM v1의 HealthKit 권한 전략은 최소 read-only 원칙을 따른다.
 Phase 1에서는 `HKWorkout`을 `HealthKitWorkout`으로 변환하는 수준까지만 둔다.
 
 Phase 2에서는 `HealthKitRecoveryActivityMapper`와 `HealthKitActivityStore`를 추가해 `HealthKitWorkout`을 `RecoveryActivity`로 변환할 수 있게 한다. 단, 이 store는 아직 production 기본 store로 연결하지 않으며, Recovery score 계산에도 사용하지 않는다.
+
+Unified Health 단계에서는 기존 HealthKit 구조를 유지한 채 `HealthKitWorkoutToUnifiedWorkoutMapper`를 추가했다. 이 mapper는 `HealthKitWorkout`을 source-independent `UnifiedWorkout`으로 변환하며, 아직 `RecoveryActivity` 또는 Workout Growth 입력으로 연결하지 않는다.
 
 ## Phase 2 Mapping Policy
 
@@ -267,3 +271,21 @@ Phase 5 완료 기준:
 - `RecoveryViewContainer`에 내부 개발용 activity source 주입 지점 추가
 - factory source별 provider 생성 테스트 추가
 - 기본 Recovery 입력은 기존 mock-backed 흐름 유지
+
+Phase 7 완료 기준:
+
+- `HealthKitWorkoutImportPipeline` 생성
+- `HealthKitWorkoutImportResult` 생성
+- `HealthKitWorkoutFetching -> HealthKitWorkoutToUnifiedWorkoutMapper -> UnifiedWorkoutStore` import path 추가
+- HealthKit workout을 `UnifiedWorkoutStore`에 저장하는 테스트 추가
+- 같은 `externalId + source` 재import는 store upsert 정책으로 중복 증가를 막음
+- Recovery 기본 source, RecoveryCalculator, Workout Growth 입력은 변경하지 않음
+
+Phase 8 완료 기준:
+
+- `HealthKitWorkoutImportViewModel` 생성
+- `HealthKitWorkoutImportView`와 container 생성
+- HealthKit 설정 화면에서 수동 import preview 진입 추가
+- 사용자가 fetched/saved/skipped/failed count와 message를 확인할 수 있음
+- 가져온 `UnifiedWorkout`은 아직 Recovery/Growth에 자동 반영하지 않음
+- DeduplicationEngine 자동 적용, Recovery 기본 source 전환, Workout Growth 입력 전환은 하지 않음

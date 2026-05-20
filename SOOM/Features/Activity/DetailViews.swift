@@ -2,22 +2,47 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
     let workout: Workout
+    var comparisonWorkouts: [Workout] = []
 
     var body: some View {
         Group {
             if workout.route.isEmpty {
                 SOOMScreen {
-                    WorkoutDetailContent(workout: workout, showsHeader: true)
+                    WorkoutDetailContent(
+                        workout: workout,
+                        showsHeader: true,
+                        growthSummary: growthSummary,
+                        weaknessInsight: weaknessInsight
+                    )
                 }
                 .navigationTitle("운동 상세")
                 .navigationBarTitleDisplayMode(.inline)
             } else {
                 WorkoutMapSheetScaffold(workout: workout, navigationTitle: "운동 상세") {
-                    WorkoutDetailContent(workout: workout, showsHeader: true)
+                    WorkoutDetailContent(
+                        workout: workout,
+                        showsHeader: true,
+                        growthSummary: growthSummary,
+                        weaknessInsight: weaknessInsight
+                    )
                 }
             }
         }
         .hidesSOOMTabBar()
+    }
+
+    private var growthSummary: WorkoutGrowthSummary {
+        WorkoutGrowthSummaryBuilder().build(
+            current: workout,
+            recentWorkouts: comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts
+        )
+    }
+
+    private var weaknessInsight: WorkoutWeaknessInsight {
+        WorkoutWeaknessInsightBuilder().build(
+            current: workout,
+            recentWorkouts: comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts
+        )
     }
 }
 

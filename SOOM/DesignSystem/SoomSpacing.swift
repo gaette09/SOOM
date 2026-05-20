@@ -139,6 +139,10 @@ enum SOOMLayout {
         static let ctaVerticalPadding: CGFloat = 12
         static let ctaCornerRadius: CGFloat = SOOMRadius.compactControl
         static let messageLineSpacing: CGFloat = 3
+        static let promptIconFrame: CGFloat = 34
+        static let promptIconSize: CGFloat = 15
+        static let promptButtonVerticalPadding: CGFloat = 8
+        static let promptButtonHorizontalPadding: CGFloat = 12
     }
 
     enum RecoveryScreen {

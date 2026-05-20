@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecoveryView: View {
     @StateObject private var viewModel: RecoveryViewModel
+    @State private var isShowingCheckIn = false
     private let explanationBuilder = RecoveryExplanationBuilder()
     private let readinessBuilder = DailyReadinessBuilder()
 
@@ -28,6 +29,9 @@ struct RecoveryView: View {
             Task {
                 await viewModel.refreshCheckInPersonalization()
             }
+        }
+        .navigationDestination(isPresented: $isShowingCheckIn) {
+            CheckInViewContainer()
         }
         .navigationTitle("회복")
         .navigationBarTitleDisplayMode(.inline)
@@ -93,7 +97,7 @@ struct RecoveryView: View {
     private func coreRecoverySection(_ recovery: RecoverySummary) -> some View {
         RecoverySection(
             title: "오늘 핵심",
-            caption: "상태, 이유, 다음 행동"
+            caption: "준비 상태에서 오늘 행동까지"
         ) {
             todayFocusSection(recovery)
         }
@@ -115,20 +119,48 @@ struct RecoveryView: View {
     }
 
     @ViewBuilder
-    private var latestCheckInSection: some View {
-        if let latestCheckIn = viewModel.latestCheckIn {
+    private var morningCheckInSection: some View {
+        switch viewModel.morningCheckInState {
+        case .notCheckedInToday:
             RecoverySection(
-                title: "최근 컨디션 기록",
-                caption: "점수는 그대로, 코칭만 보완"
+                title: "오늘 컨디션",
+                caption: "선택적으로 코칭을 더 맞추는 기록"
             ) {
-                CheckInSummaryCard(checkIn: latestCheckIn)
+                MorningCheckInPromptCard(
+                    onRecord: {
+                        isShowingCheckIn = true
+                    },
+                    onLater: {
+                        viewModel.skipMorningCheckIn()
+                    }
+                )
+            }
+        case .checkedInToday:
+            if let latestCheckIn = viewModel.latestCheckIn {
+                RecoverySection(
+                    title: "오늘 컨디션 기록",
+                    caption: "점수는 그대로, 코칭만 보완"
+                ) {
+                    CheckInSummaryCard(checkIn: latestCheckIn)
+                }
+            }
+        case .skippedToday:
+            EmptyView()
+        case .insufficientData, .healthKitNotConnected:
+            RecoverySection(
+                title: "오늘 컨디션",
+                caption: "기록하지 않아도 회복 추천은 계속 볼 수 있어요"
+            ) {
+                MorningCheckInPromptCard {
+                    isShowingCheckIn = true
+                }
             }
         }
     }
 
     private func supportingInterpretationSection(_ recovery: RecoverySummary) -> some View {
         VStack(alignment: .leading, spacing: SOOMLayout.RecoveryScreen.sectionGroupSpacing) {
-            latestCheckInSection
+            morningCheckInSection
             trendSection(recovery)
             timelineSection(recovery)
             weeklySummarySection
@@ -232,8 +264,8 @@ struct RecoveryView: View {
                 managementNavigationRow(
                     destination: CheckInViewContainer(),
                     icon: SOOMIcon.edit,
-                    title: "오늘 컨디션 기록하기",
-                    subtitle: "10초 안에 몸 상태를 남겨요.",
+                    title: "컨디션 새로 기록하기",
+                    subtitle: "필요할 때만 오늘 상태를 다시 남겨요.",
                     tint: SOOMColor.recovery,
                     accessibilityLabel: "오늘 컨디션 기록하기",
                     accessibilityHint: "피로감, 수면감, 근육통, 기분을 기록하는 화면으로 이동합니다."

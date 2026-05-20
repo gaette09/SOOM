@@ -4,6 +4,7 @@ import Foundation
 final class RecoveryViewModel: ObservableObject {
     @Published private(set) var summary: RecoverySummary?
     @Published private(set) var latestCheckIn: RecoveryCheckIn?
+    @Published private(set) var morningCheckInState: MorningCheckInState = .notCheckedInToday
     @Published private(set) var timelineEntries: [RecoveryTimelineEntry] = []
     @Published private(set) var weeklySummary: WeeklyRecoverySummary?
     @Published private(set) var isLoading = false
@@ -16,6 +17,8 @@ final class RecoveryViewModel: ObservableObject {
     private let snapshotWriter: DailyRecoverySnapshotWriter?
     private let explanationBuilder: RecoveryExplanationBuilder
     private let composer: RecoverySummaryComposer
+    private let morningCheckInStateBuilder: MorningCheckInStateBuilder
+    private let morningCheckInSkipStore: MorningCheckInSkipStore
     private var baseSummary: RecoverySummary?
 
     init(
@@ -25,7 +28,9 @@ final class RecoveryViewModel: ObservableObject {
         weeklySummaryBuilder: WeeklyRecoverySummaryBuilder? = nil,
         snapshotWriter: DailyRecoverySnapshotWriter? = nil,
         explanationBuilder: RecoveryExplanationBuilder = RecoveryExplanationBuilder(),
-        composer: RecoverySummaryComposer = RecoverySummaryComposer()
+        composer: RecoverySummaryComposer = RecoverySummaryComposer(),
+        morningCheckInStateBuilder: MorningCheckInStateBuilder = MorningCheckInStateBuilder(),
+        morningCheckInSkipStore: MorningCheckInSkipStore = MorningCheckInSkipStore()
     ) {
         self.provider = provider
         self.checkInStore = checkInStore
@@ -34,6 +39,8 @@ final class RecoveryViewModel: ObservableObject {
         self.snapshotWriter = snapshotWriter
         self.explanationBuilder = explanationBuilder
         self.composer = composer
+        self.morningCheckInStateBuilder = morningCheckInStateBuilder
+        self.morningCheckInSkipStore = morningCheckInSkipStore
     }
 
     @MainActor
@@ -79,7 +86,20 @@ final class RecoveryViewModel: ObservableObject {
             latestCheckIn = nil
         }
 
+        morningCheckInState = morningCheckInStateBuilder.build(
+            latestCheckIn: latestCheckIn,
+            hasSkippedToday: morningCheckInSkipStore.hasSkippedToday()
+        )
         applyRecoveryPersonalization()
+    }
+
+    @MainActor
+    func skipMorningCheckIn() {
+        morningCheckInSkipStore.markSkippedToday()
+        morningCheckInState = morningCheckInStateBuilder.build(
+            latestCheckIn: latestCheckIn,
+            hasSkippedToday: true
+        )
     }
 
     private func applyRecoveryPersonalization() {

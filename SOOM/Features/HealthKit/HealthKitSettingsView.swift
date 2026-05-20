@@ -13,6 +13,8 @@ struct HealthKitSettingsView: View {
             HealthKitStatusCard(status: viewModel.status)
             permissionCard
             workoutPreviewEntryCard
+            workoutImportEntryCard
+            workoutLibraryEntryCard
             recoveryPreviewEntryCard
 
             if let errorMessage = viewModel.errorMessage {
@@ -126,6 +128,42 @@ struct HealthKitSettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("HealthKit Recovery 미리보기")
         .accessibilityHint("HealthKit 기반 Recovery 개발용 미리보기 화면으로 이동합니다.")
+    }
+
+    private var workoutImportEntryCard: some View {
+        NavigationLink {
+            HealthKitWorkoutImportViewContainer()
+        } label: {
+            SOOMCard {
+                SOOMActionRow(
+                    icon: SOOMIcon.sync,
+                    title: "HealthKit 운동 가져오기",
+                    subtitle: "운동 기록을 SOOM 공통 운동 데이터로 저장합니다.",
+                    tint: SOOMColor.recovery
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("HealthKit 운동 가져오기")
+        .accessibilityHint("HealthKit 운동 기록 import 화면으로 이동합니다.")
+    }
+
+    private var workoutLibraryEntryCard: some View {
+        NavigationLink {
+            UnifiedWorkoutLibraryViewContainer()
+        } label: {
+            SOOMCard {
+                SOOMActionRow(
+                    icon: SOOMIcon.package,
+                    title: "가져온 운동 기록 보기",
+                    subtitle: "SOOM 공통 운동 데이터로 저장된 기록을 확인합니다.",
+                    tint: SOOMColor.secondaryInk
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("가져온 운동 기록 보기")
+        .accessibilityHint("UnifiedWorkout 저장소에 저장된 운동 기록 목록으로 이동합니다.")
     }
 }
 
