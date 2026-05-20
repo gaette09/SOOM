@@ -93,7 +93,7 @@ struct RootTabView: View {
             }
         case .analysis:
             NavigationStack {
-                AnalysisView()
+                AnalysisViewContainer()
             }
         case .record:
             NavigationStack {

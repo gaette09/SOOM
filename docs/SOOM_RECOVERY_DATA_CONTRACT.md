@@ -457,3 +457,15 @@ struct RecoveryCalculator {
 - 사용자별 기준선을 계산해 개인화된 회복 점수를 만든다.
 - 운동 계획, AI 코칭, 부상 위험 예측과 연결한다.
 - `dataQuality`를 UI에 표시해 데이터가 부족한 상황을 투명하게 안내한다.
+
+## 15. Workout Recovery Impact Interpretation Layer
+
+`WorkoutRecoveryImpact`는 운동 상세 화면에서 `WorkoutGrowthInput`과 선택적 `RecoverySummary`를 읽어 “이 운동이 회복 흐름에 어떤 영향을 줄 수 있는지” 설명하는 해석 계층이다. 이 계층은 Recovery score/status/recommendation을 계산하거나 수정하지 않는다.
+
+정책:
+
+- `RecoveryCalculator` 공식은 변경하지 않는다.
+- `RecoverySummary`가 전달되더라도 읽기 전용 맥락으로만 사용한다.
+- 운동 상세에서는 Growth Summary, Weakness Insight와 함께 사용자의 다음 운동 판단을 돕는 코칭 문장으로만 표시한다.
+- 문구는 의료/진단 표현이 아니라 “회복 리듬”, “다음 운동 전 확인”, “가벼운 마무리”처럼 행동 가능한 표현을 사용한다.
+

@@ -12,7 +12,8 @@ struct WorkoutDetailView: View {
                         workout: workout,
                         showsHeader: true,
                         growthSummary: growthSummary,
-                        weaknessInsight: weaknessInsight
+                        weaknessInsight: weaknessInsight,
+                        recoveryImpact: recoveryImpact
                     )
                 }
                 .navigationTitle("운동 상세")
@@ -23,7 +24,8 @@ struct WorkoutDetailView: View {
                         workout: workout,
                         showsHeader: true,
                         growthSummary: growthSummary,
-                        weaknessInsight: weaknessInsight
+                        weaknessInsight: weaknessInsight,
+                        recoveryImpact: recoveryImpact
                     )
                 }
             }
@@ -43,6 +45,10 @@ struct WorkoutDetailView: View {
             current: workout,
             recentWorkouts: comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts
         )
+    }
+
+    private var recoveryImpact: WorkoutRecoveryImpact {
+        WorkoutRecoveryImpactBuilder().build(workout: workout)
     }
 }
 

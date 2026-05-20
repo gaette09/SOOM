@@ -5,6 +5,7 @@ struct WorkoutDetailContent: View {
     let showsHeader: Bool
     var growthSummary: WorkoutGrowthSummary?
     var weaknessInsight: WorkoutWeaknessInsight?
+    var recoveryImpact: WorkoutRecoveryImpact?
 
     var body: some View {
         Group {
@@ -23,6 +24,9 @@ struct WorkoutDetailContent: View {
             }
             if let weaknessInsight {
                 WorkoutWeaknessCard(insight: weaknessInsight, tint: workout.sport.tint)
+            }
+            if let recoveryImpact {
+                WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
             }
             WorkoutChartStack(workout: workout)
             WorkoutSplitsCard(workout: workout)

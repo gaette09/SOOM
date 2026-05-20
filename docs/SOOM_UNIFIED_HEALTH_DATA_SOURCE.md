@@ -409,3 +409,14 @@ UnifiedWorkout Domain Model v1에서 추가된 Swift 모델:
 
 UnifiedWorkout 기반 Growth 흐름은 `UnifiedWorkoutStore` -> `UnifiedWorkoutAnalysisInputSelector` -> `UnifiedWorkoutToGrowthInputMapper` -> `WeeklyWorkoutProgressBuilder` 순서로 시작한다. 이 단계는 HealthKit import preview로 저장된 workout을 주간 성장 요약에 반영하기 위한 첫 연결이며, Recovery 계산과 DeduplicationEngine 자동 적용은 아직 분리되어 있다.
 
+
+## UnifiedWorkout -> GrowthTrend Flow
+
+UnifiedWorkout 기반 장기 성장 흐름은 `UnifiedWorkoutStore` -> `UnifiedWorkoutAnalysisInputSelector` -> `UnifiedWorkoutToGrowthInputMapper` -> `FourWeekWorkoutTrendBuilder` 순서로 계산한다. 이 연결은 HealthKit import preview로 저장된 workout이 Analysis 화면의 4주 성장 추세에 반영되는 첫 흐름이다.
+
+현재 경계:
+
+- `isExcludedFromAnalysis == true`인 workout은 4주 추세 입력에서 제외한다.
+- DeduplicationEngine은 아직 자동 적용하지 않는다.
+- RecoveryActivity 생성과 RecoveryCalculator 입력에는 연결하지 않는다.
+- Garmin/Samsung 실제 import는 아직 구현하지 않는다.

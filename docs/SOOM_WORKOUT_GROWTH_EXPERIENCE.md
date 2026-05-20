@@ -430,10 +430,87 @@ MVP 규칙:
 - “더 많이 해야 한다”보다 “리듬이 만들어지고 있다”에 집중한다.
 - 가벼운 주간도 실패가 아니라 다음 리듬을 준비하는 흐름으로 표현한다.
 - 복잡한 차트나 ML 예측 없이, 사용자가 바로 이해할 수 있는 한 줄 요약과 핵심 수치만 보여준다.
-3. Recovery load 연결 문구 추가
-4. Feed 공유 카드 데이터 계약 설계
 
 ## UnifiedWorkout Weekly Progress 연결 v1
 
 Weekly Workout Progress는 `UnifiedWorkoutStore`에 저장된 운동 기록을 `UnifiedWorkoutAnalysisInputSelector`로 필터링한 뒤 `WorkoutGrowthInput`으로 변환해 계산할 수 있다. 이 흐름을 통해 HealthKit import preview로 가져온 workout이 주간 성장 요약에 반영될 수 있다. `isExcludedFromAnalysis == true`인 운동은 Growth 입력에서 제외하며, Recovery score와는 분리한다.
+
+## Analysis Architecture Cleanup v1
+
+Analysis 화면은 Growth interpretation layer로 유지하며, SwiftData 조회와 `UnifiedWorkoutWeeklyProgressProvider` 호출 책임은 `AnalysisViewModel`과 `AnalysisViewContainer`로 분리한다. `AnalysisView`는 화면 구성과 기존 dashboard 표시만 담당하고, 가져온 `UnifiedWorkout` 기반 주간 성장 요약은 ViewModel을 통해 주입받는다.
+
+## 4-Week Workout Growth Trend MVP
+
+4주 운동 성장 추세 MVP는 주간 요약보다 긴 호흡으로 사용자의 운동 리듬이 커지고 있는지, 안정적인지, 또는 잠시 가벼워졌는지 보여주는 보조 성장 레이어다.
+
+구현된 구성:
+
+- `FourWeekWorkoutTrend`: 최근 4주 추세 도메인 모델
+- `FourWeekWorkoutTrendBuilder`: `WorkoutGrowthInput`을 4개의 7일 구간으로 묶어 추세를 판단하는 규칙 기반 Builder
+- `UnifiedWorkoutGrowthTrendProvider`: `UnifiedWorkoutStore`에서 가져온 workout을 selector와 mapper를 거쳐 4주 추세 입력으로 만든다
+- `FourWeekWorkoutTrendCard`: Analysis 화면에서 주간 요약 아래에 표시되는 보조 동기부여 카드
+
+MVP 규칙:
+
+- 거리, 시간, 횟수가 점진적으로 증가하면 `improving`
+- 큰 변화 없이 이어지면 `steady`
+- 최근 주가 이전 흐름보다 낮으면 `lighter`
+- 2주 미만의 기록만 있으면 `insufficientData`
+
+경계:
+
+- Recovery score/status/recommendation은 변경하지 않는다.
+- DeduplicationEngine은 자동 적용하지 않는다. 사용자가 `분석 제외`로 표시한 workout만 `UnifiedWorkoutAnalysisInputSelector`가 제외한다.
+- 복잡한 차트나 ML 예측 없이 미니 바와 짧은 코칭 문장으로 장기 흐름만 보여준다.
+
+## Personal Record / Achievement MVP
+
+Personal Record / Achievement MVP는 사용자가 자신의 최고 기록과 최근 성과를 확인하도록 돕는 성장 동기부여 레이어다. 목적은 경쟁이나 랭킹이 아니라 “내가 조금씩 좋아지고 있다”는 개인 성장 감각을 만드는 것이다.
+
+구현된 구성:
+
+- `PersonalRecord`: 개인 기록 도메인 모델
+- `PersonalRecordBuilder`: `WorkoutGrowthInput` 배열에서 거리, 시간, 페이스, 평균 속도, 상승 고도, 주간 꾸준함 기록을 계산하는 규칙 기반 Builder
+- `UnifiedWorkoutPersonalRecordProvider`: `UnifiedWorkoutStore`에서 workout을 가져와 selector와 mapper를 거쳐 개인 기록을 만든다
+- `PersonalRecordCard`: Analysis 화면에서 PR/achievement를 차분하게 표시하는 카드
+
+MVP 규칙:
+
+- 최대 거리: 최근 입력 중 가장 긴 거리
+- 최대 시간: 가장 오래 움직인 기록
+- 최고 페이스: running/walking/hiking 기준 가장 낮은 분/km
+- 최고 평균 속도: cycling 등 speed 중심 운동의 가장 높은 평균 속도
+- 최고 상승 고도: 상승고도 50m 이상일 때 표시
+- 주간 꾸준함: 최근 7일에 3회 이상 운동이 있으면 루틴 성과로 표시
+
+경계:
+
+- `isExcludedFromAnalysis == true`인 workout은 개인 기록 계산에서 제외한다.
+- Recovery score/status/recommendation은 변경하지 않는다.
+- 배지 시스템, 리더보드, Feed/SNS 공유는 아직 구현하지 않는다.
+- 문구는 경쟁보다 개인 성장과 꾸준함을 중심으로 둔다.
+
+## Workout Recovery Impact MVP
+
+Workout Recovery Impact MVP는 개별 운동 상세에서 해당 운동이 회복 흐름에 어떤 영향을 줄 수 있는지 부드럽게 설명하는 interpretation layer다. 이 기능은 Recovery score를 다시 계산하지 않고, 운동 상세의 성장/개선 흐름과 Recovery 경험을 연결하는 첫 단계다.
+
+구현된 구성:
+
+- `WorkoutRecoveryImpact`: 회복 영향 도메인 모델
+- `WorkoutRecoveryImpactBuilder`: `WorkoutGrowthInput`과 선택적 `RecoverySummary`를 읽어 회복 영향 문장을 만드는 규칙 기반 Builder
+- `WorkoutRecoveryImpactCard`: Workout Detail에서 Growth/Weakness 아래에 표시되는 코칭 카드
+
+MVP 규칙:
+
+- 긴 운동 시간과 높은 평균 심박이 함께 있으면 회복 리듬을 조금 더 챙기는 흐름으로 해석한다.
+- 회복 우선 상태에서 강도가 높은 운동이면 다음 운동 전 회복 확인을 제안한다.
+- 짧고 낮은 심박의 운동은 recovery-friendly 활동으로 해석한다.
+- 입력 데이터가 부족하면 판단하지 않고 기록 축적을 안내한다.
+
+경계:
+
+- `RecoveryCalculator`를 호출하거나 변경하지 않는다.
+- Recovery score/status/recommendation은 변경하지 않는다.
+- 이 카드는 진단이나 위험 경고가 아니라 다음 운동 전 확인하면 좋은 코칭 힌트다.
+- Feed/SNS 공유, ML 예측, Garmin/Samsung 실제 연동은 포함하지 않는다.
 
