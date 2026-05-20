@@ -1,8 +1,11 @@
 import Charts
+import SwiftData
 import SwiftUI
 
 struct AnalysisView: View {
     @EnvironmentObject private var viewModel: DashboardViewModel
+    @Environment(\.modelContext) private var modelContext
+    @State private var unifiedWeeklyWorkoutProgress: WeeklyWorkoutProgress?
 
     var body: some View {
         SOOMScreen {
@@ -64,11 +67,26 @@ struct AnalysisView: View {
                 }
             }
         }
+        .task {
+            await loadUnifiedWeeklyWorkoutProgress()
+        }
         .navigationTitle("분석")
         .navigationBarTitleDisplayMode(.inline)
     }
 
     private var weeklyWorkoutProgress: WeeklyWorkoutProgress {
-        WeeklyWorkoutProgressBuilder().build(workouts: viewModel.workouts)
+        unifiedWeeklyWorkoutProgress ?? WeeklyWorkoutProgressBuilder().build(workouts: viewModel.workouts)
+    }
+
+    @MainActor
+    private func loadUnifiedWeeklyWorkoutProgress() async {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let provider = UnifiedWorkoutWeeklyProgressProvider(store: store)
+
+        do {
+            unifiedWeeklyWorkoutProgress = try await provider.fetchWeeklyProgress()
+        } catch {
+            unifiedWeeklyWorkoutProgress = WeeklyWorkoutProgressBuilder().build(inputs: [])
+        }
     }
 }

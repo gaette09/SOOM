@@ -206,6 +206,8 @@
 		010203 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020204 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift */; };
 		010204 /* UnifiedWorkoutAnalysisInputSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020205 /* UnifiedWorkoutAnalysisInputSelector.swift */; };
 		010205 /* UnifiedWorkoutAnalysisInputSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */; };
+		010206 /* UnifiedWorkoutWeeklyProgressProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */; };
+		010207 /* UnifiedWorkoutWeeklyProgressProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -421,6 +423,8 @@
 		020204 /* UnifiedWorkoutDuplicateReviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateReviewViewModelTests.swift; sourceTree = "<group>"; };
 		020205 /* UnifiedWorkoutAnalysisInputSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutAnalysisInputSelector.swift; sourceTree = "<group>"; };
 		020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutAnalysisInputSelectorTests.swift; sourceTree = "<group>"; };
+		020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutWeeklyProgressProvider.swift; sourceTree = "<group>"; };
+		020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutWeeklyProgressProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -612,6 +616,7 @@
 				020165 /* WorkoutWeaknessInsightBuilder.swift */,
 				020168 /* WeeklyWorkoutProgress.swift */,
 				020169 /* WeeklyWorkoutProgressBuilder.swift */,
+				020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */,
 			);
 			path = Workout;
 			sourceTree = "<group>";
@@ -829,6 +834,7 @@
 				020163 /* WorkoutGrowthSummaryBuilderTests.swift */,
 				020167 /* WorkoutWeaknessInsightBuilderTests.swift */,
 				020171 /* WeeklyWorkoutProgressBuilderTests.swift */,
+				020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -980,6 +986,7 @@
 				010164 /* WorkoutWeaknessInsightBuilder.swift in Sources */,
 				010167 /* WeeklyWorkoutProgress.swift in Sources */,
 				010168 /* WeeklyWorkoutProgressBuilder.swift in Sources */,
+				010206 /* UnifiedWorkoutWeeklyProgressProvider.swift in Sources */,
 				010179 /* WorkoutGrowthInput.swift in Sources */,
 				010171 /* UnifiedDataSource.swift in Sources */,
 				010172 /* UnifiedWorkoutType.swift in Sources */,
@@ -1129,6 +1136,7 @@
 				010162 /* WorkoutGrowthSummaryBuilderTests.swift in Sources */,
 				010166 /* WorkoutWeaknessInsightBuilderTests.swift in Sources */,
 				010170 /* WeeklyWorkoutProgressBuilderTests.swift in Sources */,
+				010207 /* UnifiedWorkoutWeeklyProgressProviderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -432,3 +432,8 @@ MVP 규칙:
 - 복잡한 차트나 ML 예측 없이, 사용자가 바로 이해할 수 있는 한 줄 요약과 핵심 수치만 보여준다.
 3. Recovery load 연결 문구 추가
 4. Feed 공유 카드 데이터 계약 설계
+
+## UnifiedWorkout Weekly Progress 연결 v1
+
+Weekly Workout Progress는 `UnifiedWorkoutStore`에 저장된 운동 기록을 `UnifiedWorkoutAnalysisInputSelector`로 필터링한 뒤 `WorkoutGrowthInput`으로 변환해 계산할 수 있다. 이 흐름을 통해 HealthKit import preview로 가져온 workout이 주간 성장 요약에 반영될 수 있다. `isExcludedFromAnalysis == true`인 운동은 Growth 입력에서 제외하며, Recovery score와는 분리한다.
+

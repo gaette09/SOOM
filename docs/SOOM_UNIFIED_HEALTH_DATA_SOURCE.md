@@ -404,3 +404,8 @@ UnifiedWorkout Domain Model v1에서 추가된 Swift 모델:
 - 기존 `ActivityRecoveryDataProvider` 기본 source는 변경하지 않음
 - `RecoveryCalculator`, Workout Growth Builder 입력 변경 없음
 - Garmin/Samsung source는 문서와 모델 수용 범위만 준비됨
+
+## UnifiedWorkout -> WorkoutGrowthInput -> WeeklyProgress
+
+UnifiedWorkout 기반 Growth 흐름은 `UnifiedWorkoutStore` -> `UnifiedWorkoutAnalysisInputSelector` -> `UnifiedWorkoutToGrowthInputMapper` -> `WeeklyWorkoutProgressBuilder` 순서로 시작한다. 이 단계는 HealthKit import preview로 저장된 workout을 주간 성장 요약에 반영하기 위한 첫 연결이며, Recovery 계산과 DeduplicationEngine 자동 적용은 아직 분리되어 있다.
+

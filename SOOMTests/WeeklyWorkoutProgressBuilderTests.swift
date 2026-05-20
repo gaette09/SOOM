@@ -78,6 +78,33 @@ final class WeeklyWorkoutProgressBuilderTests: XCTestCase {
         XCTAssertGreaterThan(progress.totalDurationMinutes, 0)
     }
 
+
+    func testBuildFromWorkoutGrowthInputsCalculatesWeeklyProgress() {
+        let inputs = [
+            makeGrowthInput(daysAgo: 0, type: .running, distanceKm: 10, durationMinutes: 50),
+            makeGrowthInput(daysAgo: 2, type: .running, distanceKm: 5, durationMinutes: 25),
+            makeGrowthInput(daysAgo: 8, type: .running, distanceKm: 7, durationMinutes: 40)
+        ]
+
+        let progress = builder.build(inputs: inputs, referenceDate: baseDate)
+
+        XCTAssertEqual(progress.workoutCount, 2)
+        XCTAssertEqual(progress.totalDistanceKm, 15.0, accuracy: 0.01)
+        XCTAssertEqual(progress.totalDurationMinutes, 75)
+        XCTAssertTrue(progress.averagePaceOrSpeedText.contains("/km"))
+    }
+
+    func testBuildFromCyclingGrowthInputsUsesSpeedText() {
+        let inputs = [
+            makeGrowthInput(daysAgo: 0, type: .cycling, distanceKm: 30, durationMinutes: 60),
+            makeGrowthInput(daysAgo: 2, type: .cycling, distanceKm: 20, durationMinutes: 40)
+        ]
+
+        let progress = builder.build(inputs: inputs, referenceDate: baseDate)
+
+        XCTAssertTrue(progress.averagePaceOrSpeedText.contains("km/h"))
+    }
+
     private func makeWorkout(
         daysAgo: Int,
         sport: WorkoutSport = .run,
@@ -105,6 +132,29 @@ final class WeeklyWorkoutProgressBuilderTests: XCTestCase {
             zones: [],
             achievements: [],
             aiSummary: "테스트 운동입니다."
+        )
+    }
+
+
+
+    private func makeGrowthInput(
+        daysAgo: Int,
+        type: UnifiedWorkoutType,
+        distanceKm: Double?,
+        durationMinutes: Int
+    ) -> WorkoutGrowthInput {
+        WorkoutGrowthInput(
+            id: UUID(),
+            source: .appleHealthKit,
+            workoutType: type,
+            startDate: Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate,
+            durationMinutes: durationMinutes,
+            distanceKm: distanceKm,
+            averagePaceText: nil,
+            averageSpeedKmh: nil,
+            averageHeartRate: 148,
+            elevationGainMeters: 64,
+            activeEnergyKcal: 420
         )
     }
 

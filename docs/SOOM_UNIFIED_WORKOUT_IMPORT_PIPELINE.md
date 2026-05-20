@@ -400,3 +400,8 @@ Phase 7: Feed card 생성
 - DeduplicationEngine은 자동 적용하지 않는다.
 - 편집/삭제 UI는 제공하지 않는다.
 - 가져온 기록이 분석 후보인지, 분석 제외 상태인지 확인하는 용도로만 사용한다.
+
+## UnifiedWorkout -> Weekly Workout Progress 연결 v1
+
+Imported `UnifiedWorkout`은 `UnifiedWorkoutStore`에서 조회된 뒤 `UnifiedWorkoutAnalysisInputSelector`를 거쳐 `WorkoutGrowthInput`으로 변환되고, `WeeklyWorkoutProgressBuilder`의 주간 성장 요약 입력으로 사용할 수 있다. 이는 HealthKit으로 가져온 workout이 Growth analysis에 반영되는 첫 연결이다. RecoveryActivity 생성, RecoveryCalculator 입력, DeduplicationEngine 자동 적용은 아직 연결하지 않는다.
+
