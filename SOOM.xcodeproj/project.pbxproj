@@ -252,6 +252,11 @@
 		010250 /* RecoveryComparisonBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020250 /* RecoveryComparisonBuilder.swift */; };
 		010251 /* RecoveryComparisonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020251 /* RecoveryComparisonCard.swift */; };
 		010252 /* RecoveryComparisonBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020252 /* RecoveryComparisonBuilderTests.swift */; };
+		010253 /* FeedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020253 /* FeedItem.swift */; };
+		010254 /* FeedMockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020254 /* FeedMockData.swift */; };
+		010255 /* FeedItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020255 /* FeedItemCard.swift */; };
+		010256 /* FeedItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020256 /* FeedItemTests.swift */; };
+		010257 /* FeedMockDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020257 /* FeedMockDataTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -513,6 +518,11 @@
 		020250 /* RecoveryComparisonBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilder.swift; sourceTree = "<group>"; };
 		020251 /* RecoveryComparisonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonCard.swift; sourceTree = "<group>"; };
 		020252 /* RecoveryComparisonBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilderTests.swift; sourceTree = "<group>"; };
+		020253 /* FeedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItem.swift; sourceTree = "<group>"; };
+		020254 /* FeedMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMockData.swift; sourceTree = "<group>"; };
+		020255 /* FeedItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemCard.swift; sourceTree = "<group>"; };
+		020256 /* FeedItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemTests.swift; sourceTree = "<group>"; };
+		020257 /* FeedMockDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMockDataTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -649,6 +659,7 @@
 				020230 /* WorkoutSessionSummaryCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
+				020255 /* FeedItemCard.swift */,
 				020237 /* WorkoutShareSheet.swift */,
 				020170 /* WeeklyWorkoutProgressCard.swift */,
 				020214 /* FourWeekWorkoutTrendCard.swift */,
@@ -770,6 +781,8 @@
 		040019 /* Feed */ = {
 			isa = PBXGroup;
 			children = (
+				020253 /* FeedItem.swift */,
+				020254 /* FeedMockData.swift */,
 				020014 /* FeedView.swift */,
 				020026 /* FeedPostDetailContent.swift */,
 			);
@@ -967,6 +980,8 @@
 				020222 /* PersonalRecordBuilderTests.swift */,
 				020223 /* UnifiedWorkoutPersonalRecordProviderTests.swift */,
 				020211 /* AnalysisViewModelTests.swift */,
+				020256 /* FeedItemTests.swift */,
+				020257 /* FeedMockDataTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -1099,6 +1114,7 @@
 				010230 /* WorkoutSessionSummaryCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
+				010255 /* FeedItemCard.swift in Sources */,
 				010237 /* WorkoutShareSheet.swift in Sources */,
 				010169 /* WeeklyWorkoutProgressCard.swift in Sources */,
 				010213 /* FourWeekWorkoutTrendCard.swift in Sources */,
@@ -1110,6 +1126,8 @@
 				010208 /* AnalysisViewModel.swift in Sources */,
 				010209 /* AnalysisViewContainer.swift in Sources */,
 				010013 /* RecordView.swift in Sources */,
+				010253 /* FeedItem.swift in Sources */,
+				010254 /* FeedMockData.swift in Sources */,
 				010014 /* FeedView.swift in Sources */,
 				010015 /* ClubsView.swift in Sources */,
 				010016 /* DetailViews.swift in Sources */,
@@ -1313,6 +1331,8 @@
 				010221 /* PersonalRecordBuilderTests.swift in Sources */,
 				010222 /* UnifiedWorkoutPersonalRecordProviderTests.swift in Sources */,
 				010210 /* AnalysisViewModelTests.swift in Sources */,
+				010256 /* FeedItemTests.swift in Sources */,
+				010257 /* FeedMockDataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

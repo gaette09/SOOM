@@ -1,65 +1,52 @@
 import SwiftUI
 
 struct FeedView: View {
-    @EnvironmentObject private var viewModel: CommunityViewModel
+    let items: [FeedItem]
+
+    init(items: [FeedItem] = FeedMockData.items) {
+        self.items = items.sorted { $0.createdAt > $1.createdAt }
+    }
 
     var body: some View {
         SOOMScreen {
-            Text("피드")
-                .font(SOOMFont.display(38, relativeTo: .largeTitle))
-                .foregroundStyle(SOOMColor.ink)
+            VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+                Text("피드")
+                    .font(SOOMFont.display(38, relativeTo: .largeTitle))
+                    .foregroundStyle(SOOMColor.ink)
 
-            ForEach(viewModel.posts) { post in
-                NavigationLink {
-                    FeedPostDetailView(post: post)
-                } label: {
-                    SOOMCard {
-                        HStack {
-                            Image(systemName: post.sport.iconName)
-                                .font(.title2.weight(.semibold))
-                                .foregroundStyle(post.sport.tint)
-                                .frame(width: 48, height: 48)
-                                .background(post.sport.tint.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(post.athleteName)
-                                    .font(SOOMFont.displayMedium(17, relativeTo: .headline))
-                                    .foregroundStyle(SOOMColor.ink)
-                                Text(post.handle)
-                                    .font(SOOMFont.body(12, relativeTo: .caption))
-                                    .foregroundStyle(SOOMColor.secondaryInk)
-                            }
-                            Spacer()
-                            Text(post.sport.title)
-                                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                                .foregroundStyle(post.sport.tint)
-                        }
+                Text("서로의 기록을 비교하기보다, 각자의 리듬과 성장을 차분히 나누는 공간입니다.")
+                    .font(SOOMFont.body(15, relativeTo: .subheadline))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-                        Text(post.title)
-                            .font(SOOMFont.display(20, relativeTo: .title3))
-                            .foregroundStyle(SOOMColor.ink)
-                        Text(post.caption)
-                            .font(SOOMFont.body(15, relativeTo: .subheadline))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .lineLimit(3)
-
-                        HStack {
-                            SOOMMetricPill("거리", post.distance, tint: post.sport.tint)
-                            SOOMMetricPill("시간", post.duration, tint: SOOMColor.ink)
-                        }
-
-                        HStack(spacing: 16) {
-                            Label("\(post.likes)", systemImage: SOOMIcon.thumbsUp)
-                            Label("\(post.comments)", systemImage: SOOMIcon.comment)
-                        }
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                    }
+            if items.isEmpty {
+                emptyState
+            } else {
+                ForEach(items) { item in
+                    FeedItemCard(item: item)
                 }
-                .buttonStyle(.plain)
             }
         }
         .navigationTitle("피드")
         .navigationBarTitleDisplayMode(.inline)
     }
+
+    private var emptyState: some View {
+        SOOMCard {
+            SOOMSectionHeader("아직 공유된 기록이 없어요", caption: "운동 공유 카드가 생기면 여기에서 성장 흐름을 볼 수 있어요.")
+            Text("SOOM 피드는 랭킹보다 꾸준함과 회복 친화적인 선택을 나누는 방향으로 준비하고 있습니다.")
+                .font(SOOMFont.body(15, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.secondaryInk)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("피드 빈 상태")
+    }
+}
+
+#Preview("FeedView") {
+    NavigationStack {
+        FeedView()
+    }
+    .preferredColorScheme(.light)
 }
