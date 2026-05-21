@@ -26,4 +26,13 @@ final class FeedItemTests: XCTestCase {
         XCTAssertEqual(card.visibility, item.visibility)
         XCTAssertFalse(card.progressMessage.isEmpty)
     }
+
+    func testFeedViewSortsItemsByNewestFirst() {
+        let older = FeedMockData.items[2]
+        let newer = FeedMockData.items[0]
+
+        let view = FeedView(items: [older, newer])
+
+        XCTAssertEqual(view.items.map(\.id), [newer.id, older.id])
+    }
 }

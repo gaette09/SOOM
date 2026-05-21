@@ -37,6 +37,7 @@
 		010026 /* SoomSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020028 /* SoomSpacing.swift */; };
 		010027 /* SoomRadius.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020029 /* SoomRadius.swift */; };
 		010028 /* SoomIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020030 /* SoomIcon.swift */; };
+		010258 /* SoomMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020258 /* SoomMotion.swift */; };
 		010029 /* SoomCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020031 /* SoomCard.swift */; };
 		010030 /* SoomButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020032 /* SoomButton.swift */; };
 		010032 /* SoomSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020034 /* SoomSectionHeader.swift */; };
@@ -302,6 +303,7 @@
 		020028 /* SoomSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSpacing.swift; sourceTree = "<group>"; };
 		020029 /* SoomRadius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomRadius.swift; sourceTree = "<group>"; };
 		020030 /* SoomIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomIcon.swift; sourceTree = "<group>"; };
+		020258 /* SoomMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMotion.swift; sourceTree = "<group>"; };
 		020031 /* SoomCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomCard.swift; sourceTree = "<group>"; };
 		020032 /* SoomButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomButton.swift; sourceTree = "<group>"; };
 		020034 /* SoomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSectionHeader.swift; sourceTree = "<group>"; };
@@ -630,6 +632,7 @@
 				020028 /* SoomSpacing.swift */,
 				020029 /* SoomRadius.swift */,
 				020030 /* SoomIcon.swift */,
+				020258 /* SoomMotion.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -1093,6 +1096,7 @@
 				010026 /* SoomSpacing.swift in Sources */,
 				010027 /* SoomRadius.swift in Sources */,
 				010028 /* SoomIcon.swift in Sources */,
+				010258 /* SoomMotion.swift in Sources */,
 				010029 /* SoomCard.swift in Sources */,
 				010030 /* SoomButton.swift in Sources */,
 				010038 /* SoomMetricPill.swift in Sources */,

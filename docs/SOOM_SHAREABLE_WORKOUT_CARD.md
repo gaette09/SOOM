@@ -439,3 +439,16 @@ Local Feed Mock MVP는 서버 없이 `FeedItem`, `FeedMockData`, `FeedItemCard`,
 - 위치, 심박, Recovery score, Check-in note 같은 민감 정보는 기본 노출하지 않는다.
 - v1은 mock 검증 단계이며 서버 Feed, SNS API, kudos/comment/follow는 future work로 둔다.
 
+
+
+## Share Card Motion Principles
+
+Share card motion follows `SOOM_MOTION_SYSTEM_V1.md`. The card should feel calmly revealed, not announced like a social achievement badge. Motion must preserve export stability and privacy trust.
+
+Principles:
+
+- Share card preview may reveal with opacity and a small upward offset.
+- Export uses a short feedback state, then lets the native iOS share sheet provide the main transition.
+- Card contents should not animate independently during image rendering.
+- Press feedback should stay subtle, with scale no smaller than `0.98`.
+- Reduce Motion should fall back to opacity-only or immediate state changes.

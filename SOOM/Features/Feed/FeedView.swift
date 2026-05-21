@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FeedView: View {
     let items: [FeedItem]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
 
     init(items: [FeedItem] = FeedMockData.items) {
         self.items = items.sorted { $0.createdAt > $1.createdAt }
@@ -23,13 +25,21 @@ struct FeedView: View {
             if items.isEmpty {
                 emptyState
             } else {
-                ForEach(items) { item in
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     FeedItemCard(item: item)
+                        .feedCardReveal(
+                            index: index,
+                            isVisible: hasAppeared,
+                            reduceMotion: reduceMotion
+                        )
                 }
             }
         }
         .navigationTitle("피드")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            hasAppeared = true
+        }
     }
 
     private var emptyState: some View {
@@ -49,4 +59,17 @@ struct FeedView: View {
         FeedView()
     }
     .preferredColorScheme(.light)
+}
+
+private extension View {
+    func feedCardReveal(index: Int, isVisible: Bool, reduceMotion: Bool) -> some View {
+        opacity(isVisible ? SOOMMotion.Opacity.visible : SOOMMotion.Opacity.hidden)
+            .offset(y: reduceMotion || isVisible ? 0 : SOOMMotion.Offset.cardRevealY)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : SOOMMotion.normalEaseOut.delay(Double(index) * 0.035),
+                value: isVisible
+            )
+    }
 }

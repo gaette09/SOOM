@@ -411,3 +411,29 @@ SOOM Feed의 첫 구현은 서버 없는 local mock 기반이다. 피드는 `Sha
 - Feed는 Instagram식 경쟁/성과 과시보다 Apple Fitness에 가까운 차분한 성장 기록 모음처럼 보여야 한다.
 - Ranking, leaderboard, 승패 표현, 자극적인 achievement tone은 사용하지 않는다.
 
+
+
+## Motion System v1
+
+SOOM motion is defined in `SOOM_MOTION_SYSTEM_V1.md` and tokenized lightly in `SOOMMotion`. Motion should support the rhythm of workout data without distracting from reading. Feed, Share, Recovery, and Analysis surfaces should use restrained ease-out motion, subtle press feedback, and no heavy social bounce.
+
+Design 기준:
+
+- Primary motion is reserved for important state changes such as share card reveal, recovery summary updates, or sheet position changes.
+- Secondary motion supports button/card feedback and should remain quick and subtle.
+- Background motion should be rare, slow, and removable when Reduce Motion is enabled.
+- Feed card motion should use fade plus slight upward movement rather than bounce.
+- Recovery score and readiness motion should feel stable and trustworthy.
+- Share card export motion should keep the rendered card visually stable.
+- Tap scale should not go below `0.98` for cards and primary actions.
+
+
+### Feed Motion Polish v1
+
+Feed card motion is the first application of the SOOM Motion System. The local Feed uses restrained reveal motion and subtle press feedback only.
+
+- Feed items appear with fade plus a small upward offset.
+- Stagger is minimal and should never delay reading.
+- Reduce Motion disables the movement and keeps content readable.
+- Press feedback uses `SOOMMotion.Scale.pressed` and should not feel like a social reaction.
+- Visibility badges in Feed remain preview/trust cues, not full permission enforcement.

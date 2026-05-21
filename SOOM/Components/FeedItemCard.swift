@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FeedItemCard: View {
     let item: FeedItem
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @GestureState private var isPressed = false
 
     var body: some View {
         SOOMCard {
@@ -18,13 +20,18 @@ struct FeedItemCard: View {
             cardPreview
                 .padding(.top, SOOMLayout.SectionHeader.spacing)
         }
+        .scaleEffect(isPressed && !reduceMotion ? SOOMMotion.Scale.pressed : 1)
+        .opacity(isPressed && !reduceMotion ? SOOMMotion.Opacity.muted + 0.22 : 1)
+        .animation(reduceMotion ? nil : SOOMMotion.quickEaseOut, value: isPressed)
+        .contentShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
+        .simultaneousGesture(pressGesture)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.authorName)의 \(item.itemType.title) 피드")
         .accessibilityValue(accessibilitySummary)
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
+        HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionRowSpacing) {
             ZStack {
                 Circle()
                     .fill(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
@@ -59,7 +66,15 @@ struct FeedItemCard: View {
             Spacer()
 
             ShareablePrivacyBadge(title: item.visibility.title, tint: tint)
+                .accessibilityLabel("공개 범위 미리보기")
         }
+    }
+
+    private var pressGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .updating($isPressed) { _, state, _ in
+                state = true
+            }
     }
 
     @ViewBuilder
