@@ -66,6 +66,25 @@ final class RecoveryRealDataPreviewViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.summary?.status, "데이터 부족")
     }
 
+
+    func testLoadPublishesComparisonWhenOfficialProviderIsAvailable() async {
+        let officialSummary = RecoverySummary.mockToday
+        let viewModel = RecoveryRealDataPreviewViewModel(
+            provider: UnifiedWorkoutRecoveryPreviewProvider(
+                store: FakeRealDataPreviewWorkoutStore(workouts: [makeWorkout(daysAgo: 0)]),
+                calculator: RecoveryCalculator(referenceDate: baseDate)
+            ),
+            officialProvider: FakeOfficialRecoveryDataProvider(summary: officialSummary)
+        )
+
+        await viewModel.load()
+
+        XCTAssertNotNil(viewModel.comparison)
+        XCTAssertEqual(viewModel.comparison?.officialScore, officialSummary.score)
+        XCTAssertEqual(viewModel.comparison?.previewScore, viewModel.summary?.score)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     private var baseDate: Date {
         Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 21, hour: 7)) ?? Date()
     }
@@ -119,4 +138,12 @@ private final class FakeRealDataPreviewWorkoutStore: UnifiedWorkoutStore {
     func fetchByExternalId(_ externalId: String, source: UnifiedDataSource) async throws -> UnifiedWorkout? { nil }
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws {}
     func deleteWorkout(id: UUID) async throws {}
+}
+
+private struct FakeOfficialRecoveryDataProvider: RecoveryDataProvider {
+    let summary: RecoverySummary
+
+    func fetchRecoverySummary() async throws -> RecoverySummary {
+        summary
+    }
 }

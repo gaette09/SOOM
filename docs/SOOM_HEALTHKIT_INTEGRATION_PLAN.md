@@ -297,5 +297,6 @@ Phase 9 완료 기준:
 - HealthKit 설정/관리 영역에서 “실제 운동 기반 Recovery 미리보기” 진입 제공
 - 가져온 HealthKit workout은 preview 계산에 사용할 수 있지만, 기본 Recovery score에는 자동 반영하지 않음
 - Real Data Preview는 기본 Recovery 전환 전 검증/비교 단계이며, 사용자는 이 결과를 공식 점수가 아니라 imported workout 기반 미리보기로 이해해야 함
+- Recovery Comparison Preview는 공식 Recovery와 imported workout 기반 preview의 차이를 설명하는 UX이며, 기본 provider 전환 전 검증 단계로 유지함
 - DeduplicationEngine 자동 적용, HealthKit source 기본 전환, RecoveryCalculator 변경은 하지 않음
 

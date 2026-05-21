@@ -53,6 +53,11 @@ struct RecoveryRealDataPreviewView: View {
             )
         } else if let summary = viewModel.summary {
             summaryCard(summary)
+
+            if let comparison = viewModel.comparison {
+                RecoveryComparisonCard(comparison: comparison)
+            }
+
             boundaryCard
         } else {
             messageCard(

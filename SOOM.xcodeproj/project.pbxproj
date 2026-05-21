@@ -248,6 +248,10 @@
 		010246 /* RecoveryRealDataPreviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020246 /* RecoveryRealDataPreviewViewContainer.swift */; };
 		010247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */; };
 		010248 /* RecoveryRealDataPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020248 /* RecoveryRealDataPreviewViewModelTests.swift */; };
+		010249 /* RecoveryComparisonSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020249 /* RecoveryComparisonSummary.swift */; };
+		010250 /* RecoveryComparisonBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020250 /* RecoveryComparisonBuilder.swift */; };
+		010251 /* RecoveryComparisonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020251 /* RecoveryComparisonCard.swift */; };
+		010252 /* RecoveryComparisonBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020252 /* RecoveryComparisonBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -505,6 +509,10 @@
 		020246 /* RecoveryRealDataPreviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewViewContainer.swift; sourceTree = "<group>"; };
 		020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutRecoveryPreviewProviderTests.swift; sourceTree = "<group>"; };
 		020248 /* RecoveryRealDataPreviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewViewModelTests.swift; sourceTree = "<group>"; };
+		020249 /* RecoveryComparisonSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonSummary.swift; sourceTree = "<group>"; };
+		020250 /* RecoveryComparisonBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilder.swift; sourceTree = "<group>"; };
+		020251 /* RecoveryComparisonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonCard.swift; sourceTree = "<group>"; };
+		020252 /* RecoveryComparisonBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -628,6 +636,7 @@
 				020034 /* SoomSectionHeader.swift */,
 				020044 /* FlowTags.swift */,
 				020045 /* RecoveryScoreCard.swift */,
+				020251 /* RecoveryComparisonCard.swift */,
 				020046 /* InsightCard.swift */,
 				020047 /* RecommendationCard.swift */,
 				020048 /* TrendCard.swift */,
@@ -806,6 +815,8 @@
 				020244 /* RecoveryRealDataPreviewViewModel.swift */,
 				020245 /* RecoveryRealDataPreviewView.swift */,
 				020246 /* RecoveryRealDataPreviewViewContainer.swift */,
+				020249 /* RecoveryComparisonSummary.swift */,
+				020250 /* RecoveryComparisonBuilder.swift */,
 				020065 /* CheckInViewModel.swift */,
 				020075 /* CheckInViewModelFactory.swift */,
 				020078 /* CheckInHistoryViewModel.swift */,
@@ -938,6 +949,7 @@
 				020148 /* HealthKitRecoveryPreviewViewModelTests.swift */,
 				020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */,
 				020248 /* RecoveryRealDataPreviewViewModelTests.swift */,
+				020252 /* RecoveryComparisonBuilderTests.swift */,
 				020153 /* DailyReadinessBuilderTests.swift */,
 				020157 /* MorningCheckInStateBuilderTests.swift */,
 				020159 /* MorningCheckInSkipStoreTests.swift */,
@@ -1177,6 +1189,9 @@
 				010244 /* RecoveryRealDataPreviewViewModel.swift in Sources */,
 				010245 /* RecoveryRealDataPreviewView.swift in Sources */,
 				010246 /* RecoveryRealDataPreviewViewContainer.swift in Sources */,
+				010249 /* RecoveryComparisonSummary.swift in Sources */,
+				010250 /* RecoveryComparisonBuilder.swift in Sources */,
+				010251 /* RecoveryComparisonCard.swift in Sources */,
 				010063 /* CheckInViewModel.swift in Sources */,
 				010073 /* CheckInViewModelFactory.swift in Sources */,
 				010076 /* CheckInHistoryViewModel.swift in Sources */,
@@ -1280,6 +1295,7 @@
 				010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */,
 				010247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift in Sources */,
 				010248 /* RecoveryRealDataPreviewViewModelTests.swift in Sources */,
+				010252 /* RecoveryComparisonBuilderTests.swift in Sources */,
 				010152 /* DailyReadinessBuilderTests.swift in Sources */,
 				010156 /* MorningCheckInStateBuilderTests.swift in Sources */,
 				010158 /* MorningCheckInSkipStoreTests.swift in Sources */,

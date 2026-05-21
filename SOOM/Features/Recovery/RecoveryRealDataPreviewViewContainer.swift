@@ -9,7 +9,8 @@ struct RecoveryRealDataPreviewViewContainer: View {
             viewModel: RecoveryRealDataPreviewViewModel(
                 provider: UnifiedWorkoutRecoveryPreviewProvider(
                     store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-                )
+                ),
+                officialProvider: RecoveryDataProviderFactory.makeProvider()
             )
         )
     }

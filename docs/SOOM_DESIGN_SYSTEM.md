@@ -390,3 +390,12 @@ Visual 기준:
 - score/status/recommendation은 보여주되, 핵심 Recovery 화면보다 낮은 시각적 우선순위를 유지한다.
 - 빈 데이터와 오류 상태는 불안감을 주지 않는 부드러운 문장으로 안내한다.
 
+
+## Recovery Comparison Preview
+
+Recovery Comparison은 `공식 Recovery > Preview Recovery > 차이 설명` 순서의 위계를 따른다.
+
+- 공식 Recovery score는 기준점으로 가장 명확하게 표시한다.
+- Preview score는 검증용 값으로 보조 위계에 둔다.
+- 비교 문구는 차이를 설명하되, 공식 점수가 틀렸다는 인상을 주지 않는다.
+- 차이 설명은 imported workout 범위, 분석 제외 설정, 중복 기록 가능성처럼 사용자가 확인할 수 있는 항목에 집중한다.
