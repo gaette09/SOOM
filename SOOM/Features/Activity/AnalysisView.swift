@@ -5,12 +5,24 @@ import UIKit
 struct AnalysisView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
     @StateObject private var analysisViewModel: AnalysisViewModel
+    private let renderWeeklyShareImage: @MainActor (ShareableWeeklyProgressCardModel) -> UIImage?
     @State private var weeklyShareImage: UIImage?
     @State private var isWeeklyShareSheetPresented = false
     @State private var weeklyShareErrorMessage: String?
 
-    init(viewModel: AnalysisViewModel) {
+    static let weeklySharePrivacyCopy = "이번 주 성장 흐름을 4:5 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
+
+    init(
+        viewModel: AnalysisViewModel,
+        renderWeeklyShareImage: @escaping @MainActor (ShareableWeeklyProgressCardModel) -> UIImage? = { card in
+            ShareableWorkoutCardRenderer().render(
+                ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
+                    .environment(\.colorScheme, .light)
+            )
+        }
+    ) {
         _analysisViewModel = StateObject(wrappedValue: viewModel)
+        self.renderWeeklyShareImage = renderWeeklyShareImage
     }
 
     var body: some View {
@@ -121,7 +133,7 @@ struct AnalysisView: View {
         return VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
             VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
                 SOOMSectionHeader("공유 카드 미리보기")
-                Text("이번 주 성장 흐름을 4:5 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다.")
+                Text(Self.weeklySharePrivacyCopy)
                     .font(SOOMFont.body(12, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
@@ -148,15 +160,17 @@ struct AnalysisView: View {
 
     @MainActor
     private func shareWeeklyProgress(_ card: ShareableWeeklyProgressCardModel) {
-        guard let image = ShareableWorkoutCardRenderer().render(
-            ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
-                .environment(\.colorScheme, .light)
-        ) else {
+        guard let image = renderedWeeklyShareImage(for: card) else {
             weeklyShareErrorMessage = "주간 공유 카드 이미지를 만들 수 없어요."
             return
         }
 
         weeklyShareImage = image
         isWeeklyShareSheetPresented = true
+    }
+
+    @MainActor
+    func renderedWeeklyShareImage(for card: ShareableWeeklyProgressCardModel) -> UIImage? {
+        renderWeeklyShareImage(card)
     }
 }

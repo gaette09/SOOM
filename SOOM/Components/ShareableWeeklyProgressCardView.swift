@@ -70,7 +70,7 @@ struct ShareableWeeklyProgressCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("주간 운동 공유 카드 미리보기")
-        .accessibilityValue("\(card.weekLabel). 운동 \(card.workoutCountText), 거리 \(card.totalDistanceText), 시간 \(card.totalDurationText). \(card.progressMessage). \(card.motivationText)")
+        .accessibilityValue("\(card.weekLabel). 운동 \(card.workoutCountText), 거리 \(card.totalDistanceText), 시간 \(card.totalDurationText). \(card.progressMessage). \(card.motivationText). \(card.visibility.title)")
     }
 
     private var header: some View {
@@ -95,13 +95,7 @@ struct ShareableWeeklyProgressCardView: View {
 
             Spacer()
 
-            Text("민감 정보 제외")
-                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.secondaryInk)
-                .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
-                .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                .background(SOOMColor.black.opacity(0.06))
-                .clipShape(Capsule())
+            ShareablePrivacyBadge(title: "민감 정보 제외")
         }
     }
 
@@ -117,13 +111,7 @@ struct ShareableWeeklyProgressCardView: View {
 
                 Spacer()
 
-                Text("나만 보기")
-                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
-                    .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                    .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
-                    .clipShape(Capsule())
+                ShareablePrivacyBadge(title: card.visibility.title, tint: tint)
             }
         }
     }

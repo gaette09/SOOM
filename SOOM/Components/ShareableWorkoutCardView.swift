@@ -85,13 +85,7 @@ struct ShareableWorkoutCardView: View {
 
             Spacer()
 
-            Text("민감 정보 제외")
-                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.secondaryInk)
-                .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
-                .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                .background(SOOMColor.black.opacity(0.06))
-                .clipShape(Capsule())
+            ShareablePrivacyBadge(title: "민감 정보 제외")
         }
     }
 
@@ -107,15 +101,28 @@ struct ShareableWorkoutCardView: View {
 
                 Spacer()
 
-                Text(card.visibility.title)
-                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
-                    .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                    .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
-                    .clipShape(Capsule())
+                ShareablePrivacyBadge(title: card.visibility.title, tint: tint)
             }
         }
+    }
+}
+
+struct ShareablePrivacyBadge: View {
+    let title: String
+    var tint: Color?
+
+    var body: some View {
+        Text(title)
+            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(tint ?? SOOMColor.secondaryInk)
+            .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
+            .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
+            .background((tint ?? SOOMColor.black).opacity(backgroundOpacity))
+            .clipShape(Capsule())
+    }
+
+    private var backgroundOpacity: Double {
+        tint == nil ? 0.06 : SOOMLayout.Metrics.actionIconBackgroundOpacity
     }
 }
 

@@ -9,9 +9,14 @@ struct WorkoutDetailContent: View {
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
+    var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
+        ShareableWorkoutCardRenderer().render(card: card, tint: tint)
+    }
     @State private var shareImage: UIImage?
     @State private var isShareSheetPresented = false
     @State private var shareErrorMessage: String?
+
+    static let sharePrivacyCopy = "4:5 이미지로 저장돼요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
 
     var body: some View {
         Group {
@@ -66,7 +71,7 @@ struct WorkoutDetailContent: View {
             if let shareableCard {
                 VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
                     SOOMSectionHeader("공유 카드 미리보기")
-                    Text("4:5 이미지로 저장돼요. 위치, 심박, 회복 점수는 기본으로 제외됩니다.")
+                    Text(Self.sharePrivacyCopy)
                         .font(SOOMFont.body(12, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -116,13 +121,18 @@ struct WorkoutDetailContent: View {
 
     @MainActor
     private func share(_ card: ShareableWorkoutCardModel) {
-        guard let image = ShareableWorkoutCardRenderer().render(card: card, tint: workout.sport.tint) else {
+        guard let image = renderedShareImage(for: card) else {
             shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
             return
         }
 
         shareImage = image
         isShareSheetPresented = true
+    }
+
+    @MainActor
+    func renderedShareImage(for card: ShareableWorkoutCardModel) -> UIImage? {
+        renderShareImage(card, workout.sport.tint)
     }
 }
 

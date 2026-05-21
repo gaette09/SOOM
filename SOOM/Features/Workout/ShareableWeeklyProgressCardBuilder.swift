@@ -3,7 +3,8 @@ import Foundation
 struct ShareableWeeklyProgressCardBuilder {
     func build(
         progress: WeeklyWorkoutProgress,
-        trend: FourWeekWorkoutTrend? = nil
+        trend: FourWeekWorkoutTrend? = nil,
+        visibility: ShareableWorkoutVisibility = .privateOnly
     ) -> ShareableWeeklyProgressCardModel {
         ShareableWeeklyProgressCardModel(
             weekLabel: weekLabel(from: progress.weekStartDate),
@@ -12,7 +13,8 @@ struct ShareableWeeklyProgressCardBuilder {
             workoutCountText: "\(progress.workoutCount)회",
             progressMessage: progressMessage(from: progress, trend: trend),
             motivationText: motivationText(from: progress, trend: trend),
-            footerText: "SOOM · 주간 성장 미리보기"
+            footerText: footerText(for: visibility),
+            visibility: visibility
         )
     }
 
@@ -80,5 +82,16 @@ struct ShareableWeeklyProgressCardBuilder {
         }
 
         return progress.motivationText
+    }
+
+    private func footerText(for visibility: ShareableWorkoutVisibility) -> String {
+        switch visibility {
+        case .privateOnly:
+            return "SOOM · 주간 성장 미리보기"
+        case .followers:
+            return "SOOM · 팔로워 주간 공유 예정"
+        case .publicFeed:
+            return "SOOM · 공개 주간 공유 예정"
+        }
     }
 }

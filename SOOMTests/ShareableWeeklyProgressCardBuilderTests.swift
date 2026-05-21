@@ -16,6 +16,21 @@ final class ShareableWeeklyProgressCardBuilderTests: XCTestCase {
         XCTAssertTrue(card.footerText.contains("SOOM"))
     }
 
+    func testDefaultVisibilityIsPrivateOnly() {
+        let card = builder.build(progress: improvingProgress)
+
+        XCTAssertEqual(card.visibility, .privateOnly)
+        XCTAssertEqual(card.visibility.title, "나만 보기")
+        XCTAssertTrue(card.footerText.contains("미리보기"))
+    }
+
+    func testVisibilityCanBeSetForFutureShareScopes() {
+        let card = builder.build(progress: improvingProgress, visibility: .followers)
+
+        XCTAssertEqual(card.visibility, .followers)
+        XCTAssertTrue(card.footerText.contains("팔로워"))
+    }
+
     func testInsufficientDataBuildsSafeShareCopy() {
         let card = builder.build(progress: insufficientProgress)
 

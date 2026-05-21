@@ -8,4 +8,5 @@ struct ShareableWeeklyProgressCardModel: Equatable {
     let progressMessage: String
     let motivationText: String
     let footerText: String
+    let visibility: ShareableWorkoutVisibility
 }
