@@ -242,6 +242,12 @@
 		010240 /* ShareableWeeklyProgressCardBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020240 /* ShareableWeeklyProgressCardBuilder.swift */; };
 		010241 /* ShareableWeeklyProgressCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020241 /* ShareableWeeklyProgressCardView.swift */; };
 		010242 /* ShareableWeeklyProgressCardBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020242 /* ShareableWeeklyProgressCardBuilderTests.swift */; };
+		010243 /* UnifiedWorkoutRecoveryPreviewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020243 /* UnifiedWorkoutRecoveryPreviewProvider.swift */; };
+		010244 /* RecoveryRealDataPreviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020244 /* RecoveryRealDataPreviewViewModel.swift */; };
+		010245 /* RecoveryRealDataPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020245 /* RecoveryRealDataPreviewView.swift */; };
+		010246 /* RecoveryRealDataPreviewViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020246 /* RecoveryRealDataPreviewViewContainer.swift */; };
+		010247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */; };
+		010248 /* RecoveryRealDataPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020248 /* RecoveryRealDataPreviewViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -493,6 +499,12 @@
 		020240 /* ShareableWeeklyProgressCardBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardBuilder.swift; sourceTree = "<group>"; };
 		020241 /* ShareableWeeklyProgressCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardView.swift; sourceTree = "<group>"; };
 		020242 /* ShareableWeeklyProgressCardBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardBuilderTests.swift; sourceTree = "<group>"; };
+		020243 /* UnifiedWorkoutRecoveryPreviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutRecoveryPreviewProvider.swift; sourceTree = "<group>"; };
+		020244 /* RecoveryRealDataPreviewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewViewModel.swift; sourceTree = "<group>"; };
+		020245 /* RecoveryRealDataPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewView.swift; sourceTree = "<group>"; };
+		020246 /* RecoveryRealDataPreviewViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewViewContainer.swift; sourceTree = "<group>"; };
+		020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutRecoveryPreviewProviderTests.swift; sourceTree = "<group>"; };
+		020248 /* RecoveryRealDataPreviewViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRealDataPreviewViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -790,6 +802,10 @@
 				020053 /* RecoveryViewModel.swift */,
 				020142 /* RecoveryActivitySource.swift */,
 				020143 /* RecoveryDataProviderFactory.swift */,
+				020243 /* UnifiedWorkoutRecoveryPreviewProvider.swift */,
+				020244 /* RecoveryRealDataPreviewViewModel.swift */,
+				020245 /* RecoveryRealDataPreviewView.swift */,
+				020246 /* RecoveryRealDataPreviewViewContainer.swift */,
 				020065 /* CheckInViewModel.swift */,
 				020075 /* CheckInViewModelFactory.swift */,
 				020078 /* CheckInHistoryViewModel.swift */,
@@ -920,6 +936,8 @@
 				020144 /* RecoveryDataProviderFactoryTests.swift */,
 				020145 /* HealthKitRecoverySourceSmokeTests.swift */,
 				020148 /* HealthKitRecoveryPreviewViewModelTests.swift */,
+				020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */,
+				020248 /* RecoveryRealDataPreviewViewModelTests.swift */,
 				020153 /* DailyReadinessBuilderTests.swift */,
 				020157 /* MorningCheckInStateBuilderTests.swift */,
 				020159 /* MorningCheckInSkipStoreTests.swift */,
@@ -1155,6 +1173,10 @@
 				010051 /* RecoveryViewModel.swift in Sources */,
 				010141 /* RecoveryActivitySource.swift in Sources */,
 				010142 /* RecoveryDataProviderFactory.swift in Sources */,
+				010243 /* UnifiedWorkoutRecoveryPreviewProvider.swift in Sources */,
+				010244 /* RecoveryRealDataPreviewViewModel.swift in Sources */,
+				010245 /* RecoveryRealDataPreviewView.swift in Sources */,
+				010246 /* RecoveryRealDataPreviewViewContainer.swift in Sources */,
 				010063 /* CheckInViewModel.swift in Sources */,
 				010073 /* CheckInViewModelFactory.swift in Sources */,
 				010076 /* CheckInHistoryViewModel.swift in Sources */,
@@ -1256,6 +1278,8 @@
 				010143 /* RecoveryDataProviderFactoryTests.swift in Sources */,
 				010144 /* HealthKitRecoverySourceSmokeTests.swift in Sources */,
 				010147 /* HealthKitRecoveryPreviewViewModelTests.swift in Sources */,
+				010247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift in Sources */,
+				010248 /* RecoveryRealDataPreviewViewModelTests.swift in Sources */,
 				010152 /* DailyReadinessBuilderTests.swift in Sources */,
 				010156 /* MorningCheckInStateBuilderTests.swift in Sources */,
 				010158 /* MorningCheckInSkipStoreTests.swift in Sources */,

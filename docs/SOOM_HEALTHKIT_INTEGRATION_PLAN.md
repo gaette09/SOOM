@@ -289,3 +289,12 @@ Phase 8 완료 기준:
 - 사용자가 fetched/saved/skipped/failed count와 message를 확인할 수 있음
 - 가져온 `UnifiedWorkout`은 아직 Recovery/Growth에 자동 반영하지 않음
 - DeduplicationEngine 자동 적용, Recovery 기본 source 전환, Workout Growth 입력 전환은 하지 않음
+
+Phase 9 완료 기준:
+
+- `RecoveryRealDataPreviewViewModel`, `RecoveryRealDataPreviewView`, `RecoveryRealDataPreviewViewContainer` 생성
+- `UnifiedWorkoutRecoveryPreviewProvider`가 `UnifiedWorkoutStore`에 저장된 imported workout을 Recovery preview summary로 변환
+- HealthKit 설정/관리 영역에서 “실제 운동 기반 Recovery 미리보기” 진입 제공
+- 가져온 HealthKit workout은 preview 계산에 사용할 수 있지만, 기본 Recovery score에는 자동 반영하지 않음
+- DeduplicationEngine 자동 적용, HealthKit source 기본 전환, RecoveryCalculator 변경은 하지 않음
+

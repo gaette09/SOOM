@@ -420,3 +420,15 @@ UnifiedWorkout 기반 장기 성장 흐름은 `UnifiedWorkoutStore` -> `UnifiedW
 - DeduplicationEngine은 아직 자동 적용하지 않는다.
 - RecoveryActivity 생성과 RecoveryCalculator 입력에는 연결하지 않는다.
 - Garmin/Samsung 실제 import는 아직 구현하지 않는다.
+
+## UnifiedWorkout -> RecoveryActivity -> Recovery Preview
+
+UnifiedWorkout 기반 Recovery preview 흐름은 `UnifiedWorkoutStore` -> `UnifiedWorkoutAnalysisInputSelector` -> `UnifiedWorkoutToRecoveryActivityMapper` -> `RecoveryCalculator` 순서로 계산한다. 이 흐름은 HealthKit import preview로 저장된 workout을 Recovery 입력 후보로 검증하기 위한 preview layer이며, 기본 Recovery 화면의 provider를 교체하지 않는다.
+
+현재 경계:
+
+- `isExcludedFromAnalysis == true`인 workout은 Recovery preview 입력에서 제외한다.
+- DeduplicationEngine은 아직 자동 적용하지 않는다.
+- score/status/recommendation 공식은 기존 `RecoveryCalculator`를 그대로 사용한다.
+- Garmin/Samsung 실제 import는 아직 구현하지 않는다.
+

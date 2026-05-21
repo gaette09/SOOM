@@ -15,6 +15,7 @@ struct HealthKitSettingsView: View {
             workoutPreviewEntryCard
             workoutImportEntryCard
             workoutLibraryEntryCard
+            realDataRecoveryPreviewEntryCard
             recoveryPreviewEntryCard
 
             if let errorMessage = viewModel.errorMessage {
@@ -128,6 +129,24 @@ struct HealthKitSettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("HealthKit Recovery 미리보기")
         .accessibilityHint("HealthKit 기반 Recovery 개발용 미리보기 화면으로 이동합니다.")
+    }
+
+    private var realDataRecoveryPreviewEntryCard: some View {
+        NavigationLink {
+            RecoveryRealDataPreviewViewContainer()
+        } label: {
+            SOOMCard {
+                SOOMActionRow(
+                    icon: SOOMIcon.recovery,
+                    title: "실제 운동 기반 Recovery 미리보기",
+                    subtitle: "가져온 운동 기록으로 계산한 Recovery 요약을 검증합니다.",
+                    tint: SOOMColor.bike
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("실제 운동 기반 Recovery 미리보기")
+        .accessibilityHint("가져온 UnifiedWorkout 기반 Recovery 미리보기 화면으로 이동합니다.")
     }
 
     private var workoutImportEntryCard: some View {

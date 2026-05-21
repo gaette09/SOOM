@@ -371,3 +371,15 @@ Weekly Progress 공유 카드는 “꾸준함/성장 공유” 중심의 보조 
 - 위치, 심박, Recovery score, Check-in note, 수면/피로 정보는 기본 노출하지 않는다.
 - 랭킹, 상대 비교, 리더보드, 과한 achievement 장식은 사용하지 않는다.
 - Analysis 화면에서는 Weekly Progress Card 아래에 배치해 분석 흐름을 방해하지 않는 preview/action 영역으로 유지한다.
+
+## Recovery Real Data Preview
+
+Recovery Real Data Preview는 검증/관리 영역이며 핵심 Recovery UI와 분리한다. 사용자는 HealthKit import로 저장된 실제 운동 기록이 Recovery 계산 흐름에서 어떻게 해석되는지 미리 볼 수 있지만, 이 결과가 기본 Recovery 점수에 자동 반영된다고 느끼면 안 된다.
+
+디자인 기준:
+
+- HealthKit 설정/관리 화면의 보조 entry로 둔다.
+- “가져온 운동 기록만 기준”, “아직 기본 Recovery 점수에는 자동 반영되지 않음”을 명확히 안내한다.
+- score/status/recommendation은 보여주되, 핵심 Recovery 화면보다 낮은 시각적 우선순위를 유지한다.
+- 빈 데이터와 오류 상태는 불안감을 주지 않는 부드러운 문장으로 안내한다.
+

@@ -469,3 +469,23 @@ struct RecoveryCalculator {
 - 운동 상세에서는 Growth Summary, Weakness Insight와 함께 사용자의 다음 운동 판단을 돕는 코칭 문장으로만 표시한다.
 - 문구는 의료/진단 표현이 아니라 “회복 리듬”, “다음 운동 전 확인”, “가벼운 마무리”처럼 행동 가능한 표현을 사용한다.
 
+## 16. UnifiedWorkout Recovery Real Data Preview
+
+Recovery Real Data Preview는 `UnifiedWorkoutStore`에 저장된 실제 운동 기록을 기반으로 RecoverySummary를 미리 계산해 보는 검증/관리 흐름이다. 기본 Recovery 화면의 provider를 교체하지 않고, 가져온 운동 기록이 향후 Recovery 입력으로 사용할 수 있는지 확인하는 preview layer로 둔다.
+
+데이터 흐름:
+
+1. `UnifiedWorkoutStore`에서 최근 workout 조회
+2. `UnifiedWorkoutAnalysisInputSelector`로 `isExcludedFromAnalysis == true` workout 제외
+3. `UnifiedWorkoutToRecoveryActivityMapper`로 `RecoveryActivity` 파생
+4. 기존 `RecoveryCalculator.calculateSummary(from:)` 호출
+5. `RecoveryRealDataPreviewView`에서 score/status/recommendation/dataQuality/사용 workout 수 표시
+
+정책:
+
+- `RecoveryCalculator` 공식과 score/status/recommendation 계산식은 변경하지 않는다.
+- 기본 `RecoveryViewModel` provider에는 연결하지 않는다.
+- DeduplicationEngine은 자동 적용하지 않는다.
+- HealthKit source를 기본 Recovery source로 바꾸지 않는다.
+- excluded workout은 preview 계산 입력에서 반드시 제외한다.
+
