@@ -437,3 +437,25 @@ Feed card motion is the first application of the SOOM Motion System. The local F
 - Reduce Motion disables the movement and keeps content readable.
 - Press feedback uses `SOOMMotion.Scale.pressed` and should not feel like a social reaction.
 - Visibility badges in Feed remain preview/trust cues, not full permission enforcement.
+
+
+### HealthKit Manual Import CTA
+
+HealthKit import is a management feature, but during the early real-data validation phase it must remain easy to find. The primary CTA should use direct wording such as `HealthKit 운동 가져오기` rather than only `연결` when the user can actually start a manual import flow.
+
+Design 기준:
+
+- Place the manual import CTA near the top of the HealthKit settings surface, below connection status.
+- Copy must make the boundary clear: imported workouts can support Growth analysis and Recovery preview, but they do not automatically replace the official Recovery score.
+- Do not make the CTA look like automatic background sync.
+- Keep HealthKit import in the management/connection area, not as a core Recovery score card.
+
+### HealthKit Import Placement
+
+HealthKit import is a data connection task. The primary CTA should live in Record > Data Connection with direct copy such as `Apple 건강 앱 운동 가져오기`. Recovery may keep a lower-priority management link, but the core Recovery cards should not imply that imported data is already the official score source.
+
+The CTA copy must keep the boundary clear: imported workouts can support Growth analysis and Recovery preview, while official Recovery still uses its existing provider until an explicit rollout.
+
+### Liquid Glass Tab Bar v1
+
+The bottom tab bar should behave as a compact floating navigation surface above content. It uses a lighter material, smaller selected pill, softer shadow, and reduced vertical height while keeping comfortable tap targets. The center Record tab can stay visually useful, but it should not become a heavy action button.

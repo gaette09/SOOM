@@ -81,7 +81,7 @@ struct RootTabView: View {
         .preferredColorScheme(.light)
         .environment(\.font, SOOMFont.body(15, relativeTo: .body))
         .sensoryFeedback(.selection, trigger: selectedTab)
-        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: tabBarVisibility.isHidden)
+        .animation(.easeOut(duration: SOOMMotion.Duration.normal), value: tabBarVisibility.isHidden)
     }
 
     @ViewBuilder
@@ -119,7 +119,7 @@ private struct SOOMBottomTabBar: View {
         HStack(spacing: 0) {
             ForEach(SOOMTab.allCases) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.08)) {
+                    withAnimation(SOOMMotion.quickEaseOut) {
                         selectedTab = tab
                     }
                 } label: {
@@ -141,9 +141,9 @@ private struct SOOMBottomTabBar: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                SOOMColor.white.opacity(0.72),
-                                SOOMColor.white.opacity(0.28),
-                                SOOMColor.white.opacity(0.12)
+                                SOOMColor.white.opacity(0.46),
+                                SOOMColor.white.opacity(0.18),
+                                SOOMColor.white.opacity(0.06)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -154,9 +154,9 @@ private struct SOOMBottomTabBar: View {
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                SOOMColor.white.opacity(0.95),
-                                SOOMColor.ink.opacity(0.10),
-                                SOOMColor.white.opacity(0.54)
+                                SOOMColor.white.opacity(0.72),
+                                SOOMColor.ink.opacity(0.08),
+                                SOOMColor.white.opacity(0.34)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -164,19 +164,18 @@ private struct SOOMBottomTabBar: View {
                         lineWidth: 1
                     )
             }
-            .shadow(color: SOOMColor.ink.opacity(0.16), radius: SOOMLayout.TabBar.containerShadowRadius, x: 0, y: SOOMLayout.TabBar.containerShadowYOffset)
-            .shadow(color: SOOMColor.white.opacity(0.62), radius: 10, x: -4, y: -4)
+            .shadow(color: SOOMColor.ink.opacity(0.10), radius: SOOMLayout.TabBar.containerShadowRadius, x: 0, y: SOOMLayout.TabBar.containerShadowYOffset)
         }
         .overlay(alignment: .top) {
             Capsule(style: .continuous)
-                .fill(SOOMColor.white.opacity(0.78))
+                .fill(SOOMColor.white.opacity(0.48))
                 .frame(height: SOOMLayout.TabBar.topHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.topHighlightHorizontalPadding)
                 .offset(y: 1.5)
         }
         .overlay(alignment: .bottom) {
             Capsule(style: .continuous)
-                .fill(SOOMColor.ink.opacity(0.06))
+                .fill(SOOMColor.ink.opacity(0.04))
                 .frame(height: SOOMLayout.TabBar.bottomHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.bottomHighlightHorizontalPadding)
                 .offset(y: -1)
@@ -200,9 +199,9 @@ private struct SOOMBottomTabItem: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        SOOMColor.white.opacity(0.80),
-                                        SOOMColor.white.opacity(0.26),
-                                        SOOMColor.ink.opacity(0.05)
+                                        SOOMColor.white.opacity(0.58),
+                                        SOOMColor.white.opacity(0.18),
+                                        SOOMColor.ink.opacity(0.04)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -211,9 +210,9 @@ private struct SOOMBottomTabItem: View {
                     }
                     .overlay {
                         Capsule(style: .continuous)
-                            .strokeBorder(SOOMColor.white.opacity(0.72), lineWidth: 1)
+                            .strokeBorder(SOOMColor.white.opacity(0.56), lineWidth: 1)
                     }
-                    .shadow(color: SOOMColor.ink.opacity(0.10), radius: 12, x: 0, y: 8)
+                    .shadow(color: SOOMColor.ink.opacity(0.06), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 4)
                     .matchedGeometryEffect(id: "selectedLiquidTab", in: namespace)
             }
 
@@ -225,7 +224,7 @@ private struct SOOMBottomTabItem: View {
                     .scaleEffect(isSelected ? SOOMLayout.TabBar.selectedIconScale : SOOMLayout.TabBar.normalIconScale)
 
                 Text(tab.title)
-                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                     .lineLimit(1)
                     .opacity(isSelected ? 1 : 0.74)
             }
@@ -237,7 +236,7 @@ private struct SOOMBottomTabItem: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(tab.title)
         .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
-        .animation(.spring(response: 0.30, dampingFraction: 0.72), value: isSelected)
+        .animation(SOOMMotion.quickEaseOut, value: isSelected)
     }
 }
 
@@ -245,7 +244,7 @@ private struct LiquidTabButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? SOOMLayout.TabBar.pressScale : 1)
-            .animation(.spring(response: 0.22, dampingFraction: 0.70), value: configuration.isPressed)
+            .animation(SOOMMotion.quickEaseOut, value: configuration.isPressed)
     }
 }
 

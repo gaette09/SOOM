@@ -300,3 +300,40 @@ Phase 9 완료 기준:
 - Recovery Comparison Preview는 공식 Recovery와 imported workout 기반 preview의 차이를 설명하는 UX이며, 기본 provider 전환 전 검증 단계로 유지함
 - DeduplicationEngine 자동 적용, HealthKit source 기본 전환, RecoveryCalculator 변경은 하지 않음
 
+
+
+## Manual Import Entry UX
+
+HealthKit workout import is a manual action in v1. SOOM does not auto-sync HealthKit workouts in the background. Users reach it through the Recovery management area by selecting `HealthKit 운동 가져오기`, then the HealthKit settings screen shows `HealthKit 운동 가져오기` near the top under the connection status.
+
+Current path:
+
+1. Recovery 관리 영역
+2. HealthKit 운동 가져오기
+3. HealthKit 운동 가져오기 화면
+4. 수동 가져오기 버튼
+
+Implementation boundary:
+
+- The import button runs `HealthKitWorkoutFetcher -> HealthKitWorkoutToUnifiedWorkoutMapper -> SwiftDataUnifiedWorkoutStore -> HealthKitWorkoutImportPipeline`.
+- Imported workouts can be used for Growth analysis and Recovery preview flows.
+- Imported workouts are not automatically applied to the official Recovery provider.
+- DeduplicationEngine is not automatically applied during import.
+- Garmin/Samsung sources remain future connector candidates.
+
+## Manual Import Entry UX Update
+
+HealthKit manual import is intentionally discoverable from the Record tab, not only from Recovery management. The primary path is now:
+
+1. Record tab
+2. Data Connection
+3. Apple Health workout import
+4. Manual import button
+
+The import flow remains user-initiated. SOOM does not auto-sync HealthKit workouts in this phase. The runtime path is:
+
+HealthKitWorkoutFetcher -> HealthKitWorkoutToUnifiedWorkoutMapper -> SwiftDataUnifiedWorkoutStore -> HealthKitWorkoutImportPipeline.
+
+Imported workouts can support Growth analysis through UnifiedWorkout-based providers and can be used in Recovery preview screens. They are still not connected to the official Recovery provider, and DeduplicationEngine is not applied automatically.
+
+The app target includes the read-only HealthKit entitlement through `SOOM/SOOM.entitlements`. `NSHealthShareUsageDescription` remains in `SOOM/Info.plist`; no write permissions are requested.

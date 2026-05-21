@@ -11,9 +11,9 @@ struct HealthKitSettingsView: View {
         SOOMScreen {
             header
             HealthKitStatusCard(status: viewModel.status)
+            workoutImportEntryCard
             permissionCard
             workoutPreviewEntryCard
-            workoutImportEntryCard
             workoutLibraryEntryCard
             realDataRecoveryPreviewEntryCard
             recoveryPreviewEntryCard
@@ -32,7 +32,7 @@ struct HealthKitSettingsView: View {
                 .font(SOOMFont.display(34, relativeTo: .largeTitle))
                 .foregroundStyle(SOOMColor.ink)
 
-            Text("운동 기록을 불러와 회복 해석을 더 정확하게 만들 수 있어요.")
+            Text("Apple 건강 앱 운동 기록을 SOOM으로 가져오고 연결 상태를 관리합니다.")
                 .font(SOOMFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -48,9 +48,9 @@ struct HealthKitSettingsView: View {
             )
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
-                Label("운동 기록을 회복 해석의 입력 후보로 준비합니다.", systemImage: SOOMIcon.record)
+                Label("운동 기록을 SOOM 공통 운동 데이터로 가져올 준비를 합니다.", systemImage: SOOMIcon.record)
                 Label("언제든 iPhone 건강 앱 설정에서 권한을 변경할 수 있어요.", systemImage: SOOMIcon.health)
-                Label("HealthKit 데이터는 아직 회복 점수에 반영하지 않습니다.", systemImage: SOOMIcon.checkCircle)
+                Label("가져온 기록은 성장 분석에 사용되고 Recovery는 아직 미리보기로만 확인합니다.", systemImage: SOOMIcon.checkCircle)
             }
             .font(SOOMFont.body(13, relativeTo: .caption))
             .foregroundStyle(SOOMColor.secondaryInk)
@@ -157,14 +157,14 @@ struct HealthKitSettingsView: View {
                 SOOMActionRow(
                     icon: SOOMIcon.sync,
                     title: "HealthKit 운동 가져오기",
-                    subtitle: "운동 기록을 SOOM 공통 운동 데이터로 저장합니다.",
+                    subtitle: "Apple 건강 앱 운동 기록을 SOOM으로 가져와요. 성장 분석에 사용되고 Recovery는 아직 미리보기로만 확인합니다.",
                     tint: SOOMColor.recovery
                 )
             }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("HealthKit 운동 가져오기")
-        .accessibilityHint("HealthKit 운동 기록 import 화면으로 이동합니다.")
+        .accessibilityHint("HealthKit 운동 기록을 SOOM으로 가져오는 화면으로 이동합니다.")
     }
 
     private var workoutLibraryEntryCard: some View {

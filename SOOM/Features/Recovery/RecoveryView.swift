@@ -288,11 +288,11 @@ struct RecoveryView: View {
                 managementNavigationRow(
                     destination: HealthKitSettingsViewContainer(),
                     icon: SOOMIcon.health,
-                    title: "HealthKit 연결",
-                    subtitle: "읽기 권한과 연결 상태를 관리합니다.",
+                    title: "데이터 연결 관리",
+                    subtitle: "HealthKit 권한과 가져온 운동 기록을 낮은 우선순위로 관리합니다.",
                     tint: SOOMColor.secondaryInk,
-                    accessibilityLabel: "HealthKit 연결",
-                    accessibilityHint: "HealthKit 권한 상태와 읽기 권한 요청 화면으로 이동합니다."
+                    accessibilityLabel: "데이터 연결 관리",
+                    accessibilityHint: "HealthKit 권한과 가져온 운동 기록 관리 화면으로 이동합니다."
                 )
             }
         }

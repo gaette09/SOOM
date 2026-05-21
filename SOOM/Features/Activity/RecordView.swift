@@ -15,13 +15,53 @@ struct RecordView: View {
             }
 
             SOOMCard {
-                SOOMSectionHeader("데이터 연결")
-                Label("Apple Health 연동 예정", systemImage: SOOMIcon.health)
-                Label("Garmin, Strava, Wahoo 가져오기 구조 예정", systemImage: SOOMIcon.sync)
-                Label("더미 하네스 데이터로 UI와 분석 흐름 검증 중", systemImage: SOOMIcon.package)
+                SOOMSectionHeader(
+                    "데이터 연결",
+                    caption: "외부 운동 기록을 SOOM 분석용 데이터로 가져옵니다."
+                )
+
+                NavigationLink {
+                    HealthKitWorkoutImportViewContainer()
+                } label: {
+                    SOOMActionRow(
+                        icon: SOOMIcon.sync,
+                        title: "Apple 건강 앱 운동 가져오기",
+                        subtitle: "가져온 기록은 성장 분석에 사용되고, Recovery에는 아직 미리보기로만 사용돼요.",
+                        tint: SOOMColor.recovery
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Apple 건강 앱 운동 가져오기")
+                .accessibilityHint("HealthKit 운동 기록을 SOOM으로 가져오는 화면으로 이동합니다.")
+
+                NavigationLink {
+                    HealthKitSettingsViewContainer()
+                } label: {
+                    SOOMActionRow(
+                        icon: SOOMIcon.health,
+                        title: "Apple 건강 앱 연결 관리",
+                        subtitle: "읽기 권한 요청과 연결 상태, 미리보기 화면을 관리합니다.",
+                        tint: SOOMColor.bike
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Apple 건강 앱 연결 관리")
+                .accessibilityHint("HealthKit 권한과 연결 관리 화면으로 이동합니다.")
+
+                NavigationLink {
+                    UnifiedWorkoutLibraryViewContainer()
+                } label: {
+                    SOOMActionRow(
+                        icon: SOOMIcon.package,
+                        title: "가져온 운동 기록 보기",
+                        subtitle: "SOOM에 저장된 공통 운동 기록과 분석 제외 상태를 확인합니다.",
+                        tint: SOOMColor.secondaryInk
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("가져온 운동 기록 보기")
+                .accessibilityHint("SOOM에 저장된 운동 기록 목록으로 이동합니다.")
             }
-            .font(SOOMFont.body(15, relativeTo: .subheadline))
-            .foregroundStyle(SOOMColor.ink)
 
             SOOMCard {
                 SOOMSectionHeader("수동 입력")

@@ -2,8 +2,6 @@ import SwiftUI
 
 struct FeedItemCard: View {
     let item: FeedItem
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @GestureState private var isPressed = false
 
     var body: some View {
         SOOMCard {
@@ -20,11 +18,6 @@ struct FeedItemCard: View {
             cardPreview
                 .padding(.top, SOOMLayout.SectionHeader.spacing)
         }
-        .scaleEffect(isPressed && !reduceMotion ? SOOMMotion.Scale.pressed : 1)
-        .opacity(isPressed && !reduceMotion ? SOOMMotion.Opacity.muted + 0.22 : 1)
-        .animation(reduceMotion ? nil : SOOMMotion.quickEaseOut, value: isPressed)
-        .contentShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
-        .simultaneousGesture(pressGesture)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.authorName)의 \(item.itemType.title) 피드")
         .accessibilityValue(accessibilitySummary)
@@ -70,12 +63,6 @@ struct FeedItemCard: View {
         }
     }
 
-    private var pressGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
-            .updating($isPressed) { _, state, _ in
-                state = true
-            }
-    }
 
     @ViewBuilder
     private var cardPreview: some View {
