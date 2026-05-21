@@ -1,0 +1,222 @@
+import SwiftUI
+
+struct ShareableWorkoutCardView: View {
+    let card: ShareableWorkoutCardModel
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
+            header
+
+            Spacer(minLength: SOOMLayout.Card.contentSpacing)
+
+            VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.messageSpacing) {
+                Text(card.title)
+                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(tint)
+
+                Text(card.primaryMessage)
+                    .font(SOOMFont.displayMedium(25, relativeTo: .title2))
+                    .foregroundStyle(SOOMColor.ink)
+                    .lineSpacing(ShareableWorkoutCardLayout.primaryLineSpacing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: ShareableWorkoutCardLayout.metricSpacing) {
+                ShareableMetric(label: "거리", value: card.distanceText)
+                ShareableMetric(label: "시간", value: card.durationText)
+            }
+
+            VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
+                ShareableMessageLine(icon: SOOMIcon.trendUp, text: card.growthMessage, tint: tint)
+                ShareableMessageLine(icon: SOOMIcon.recovery, text: card.recoveryMessage, tint: SOOMColor.recovery)
+            }
+            .padding(SOOMLayout.Card.padding)
+            .background(SOOMColor.surfaceMuted)
+            .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous))
+
+            Spacer(minLength: SOOMLayout.Card.contentSpacing)
+
+            footer
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(ShareableWorkoutCardLayout.outerPadding)
+        .aspectRatio(ShareableWorkoutCardLayout.aspectRatio, contentMode: .fit)
+        .background(
+            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
+                .fill(SOOMColor.surface)
+        )
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(tint.opacity(0.10))
+                .frame(width: ShareableWorkoutCardLayout.accentCircleSize, height: ShareableWorkoutCardLayout.accentCircleSize)
+                .offset(x: ShareableWorkoutCardLayout.accentCircleOffset, y: -ShareableWorkoutCardLayout.accentCircleOffset)
+                .allowsHitTesting(false)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
+                .stroke(SOOMColor.line, lineWidth: SOOMLayout.Card.borderWidth)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("공유 카드 미리보기")
+        .accessibilityValue("\(card.title). \(card.distanceText), \(card.durationText). \(card.primaryMessage). \(card.growthMessage). \(card.recoveryMessage). \(card.visibility.title)")
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
+            Image(systemName: card.workoutType.shareableIcon)
+                .font(.system(size: ShareableWorkoutCardLayout.headerIconSize, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: ShareableWorkoutCardLayout.headerIconFrame, height: ShareableWorkoutCardLayout.headerIconFrame)
+                .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
+                .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+                Text("SOOM")
+                    .font(SOOMFont.displayMedium(15, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.ink)
+
+                Text("오늘의 성장 기록")
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+            }
+
+            Spacer()
+
+            Text("민감 정보 제외")
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
+                .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
+                .background(SOOMColor.black.opacity(0.06))
+                .clipShape(Capsule())
+        }
+    }
+
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
+            Divider()
+                .overlay(SOOMColor.line)
+
+            HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                Text(card.footerText)
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+
+                Spacer()
+
+                Text(card.visibility.title)
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
+                    .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
+                    .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
+                    .clipShape(Capsule())
+            }
+        }
+    }
+}
+
+enum ShareableWorkoutCardLayout {
+    static let aspectRatio: CGFloat = 4.0 / 5.0
+    static let exportWidth: CGFloat = 360
+    static let exportScale: CGFloat = 3
+    static let outerPadding: CGFloat = 22
+    static let outerRadius: CGFloat = 22
+    static let innerRadius: CGFloat = 16
+    static let headerIconFrame: CGFloat = 42
+    static let headerIconSize: CGFloat = 20
+    static let metricSpacing: CGFloat = 10
+    static let messageSpacing: CGFloat = 8
+    static let primaryLineSpacing: CGFloat = 3
+    static let accentCircleSize: CGFloat = 156
+    static let accentCircleOffset: CGFloat = 58
+}
+
+private struct ShareableMetric: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+            Text(label)
+                .font(SOOMFont.body(11, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+            Text(value)
+                .font(SOOMFont.displayMedium(20, relativeTo: .headline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(SOOMLayout.Card.padding)
+        .background(SOOMColor.black.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous))
+    }
+}
+
+private struct ShareableMessageLine: View {
+    let icon: String
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            Text(text)
+                .font(SOOMFont.body(13, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+        }
+    }
+}
+
+private extension UnifiedWorkoutType {
+    var shareableIcon: String {
+        switch self {
+        case .running:
+            return SOOMIcon.run
+        case .cycling:
+            return SOOMIcon.bike
+        case .swimming:
+            return SOOMIcon.swim
+        case .walking, .hiking:
+            return SOOMIcon.run
+        case .strength:
+            return SOOMIcon.bolt
+        case .yoga:
+            return SOOMIcon.recovery
+        case .other:
+            return SOOMIcon.record
+        }
+    }
+}
+
+#Preview("ShareableWorkoutCardView") {
+    let workout = MockWorkoutHarness().loadWorkouts()[0]
+    let growth = WorkoutGrowthSummaryBuilder().build(current: workout, recentWorkouts: [workout])
+    let weakness = WorkoutWeaknessInsightBuilder().build(current: workout, recentWorkouts: [workout])
+    let impact = WorkoutRecoveryImpactBuilder().build(workout: workout)
+    let session = WorkoutSessionSummaryBuilder().build(
+        workout: workout,
+        growthSummary: growth,
+        weaknessInsight: weakness,
+        recoveryImpact: impact
+    )
+    let card = ShareableWorkoutCardBuilder().build(
+        workout: workout,
+        sessionSummary: session,
+        growthSummary: growth,
+        recoveryImpact: impact
+    )
+
+    SOOMScreen {
+        ShareableWorkoutCardView(card: card, tint: workout.sport.tint)
+    }
+    .preferredColorScheme(.light)
+}

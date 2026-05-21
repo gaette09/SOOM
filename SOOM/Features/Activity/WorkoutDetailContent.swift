@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct WorkoutDetailContent: View {
     let workout: Workout
@@ -7,6 +8,10 @@ struct WorkoutDetailContent: View {
     var growthSummary: WorkoutGrowthSummary?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
+    var shareableCard: ShareableWorkoutCardModel?
+    @State private var shareImage: UIImage?
+    @State private var isShareSheetPresented = false
+    @State private var shareErrorMessage: String?
 
     var body: some View {
         Group {
@@ -57,7 +62,67 @@ struct WorkoutDetailContent: View {
             .foregroundStyle(SOOMColor.ink)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("다음 액션")
+
+            if let shareableCard {
+                VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+                    SOOMSectionHeader("공유 카드 미리보기")
+                    Text("4:5 이미지로 저장돼요. 위치, 심박, 회복 점수는 기본으로 제외됩니다.")
+                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                ShareableWorkoutCardView(card: shareableCard, tint: workout.sport.tint)
+                shareButton(for: shareableCard)
+            }
         }
+        .sheet(isPresented: $isShareSheetPresented) {
+            if let shareImage {
+                WorkoutShareSheet(activityItems: [shareImage])
+            }
+        }
+        .alert(
+            "공유 카드를 만들지 못했어요",
+            isPresented: Binding(
+                get: { shareErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        shareErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
+        }
+    }
+
+    private func shareButton(for card: ShareableWorkoutCardModel) -> some View {
+        Button {
+            share(card)
+        } label: {
+            Label("공유하기", systemImage: SOOMIcon.share)
+                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, SOOMLayout.Card.padding)
+                .background(workout.sport.tint)
+                .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("공유 카드 공유하기")
+        .accessibilityHint("공유 카드 이미지를 만든 뒤 iOS 공유 시트를 엽니다.")
+    }
+
+    @MainActor
+    private func share(_ card: ShareableWorkoutCardModel) {
+        guard let image = ShareableWorkoutCardRenderer().render(card: card, tint: workout.sport.tint) else {
+            shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
+            return
+        }
+
+        shareImage = image
+        isShareSheetPresented = true
     }
 }
 

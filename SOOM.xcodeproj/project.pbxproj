@@ -231,6 +231,17 @@
 		010229 /* WorkoutSessionSummaryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020229 /* WorkoutSessionSummaryBuilder.swift */; };
 		010230 /* WorkoutSessionSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020230 /* WorkoutSessionSummaryCard.swift */; };
 		010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020231 /* WorkoutSessionSummaryBuilderTests.swift */; };
+		010232 /* ShareableWorkoutCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020232 /* ShareableWorkoutCardModel.swift */; };
+		010233 /* ShareableWorkoutCardBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020233 /* ShareableWorkoutCardBuilder.swift */; };
+		010234 /* ShareableWorkoutCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020234 /* ShareableWorkoutCardView.swift */; };
+		010235 /* ShareableWorkoutCardBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020235 /* ShareableWorkoutCardBuilderTests.swift */; };
+		010236 /* ShareableWorkoutCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020236 /* ShareableWorkoutCardRenderer.swift */; };
+		010237 /* WorkoutShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020237 /* WorkoutShareSheet.swift */; };
+		010238 /* ShareableWorkoutCardRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020238 /* ShareableWorkoutCardRendererTests.swift */; };
+		010239 /* ShareableWeeklyProgressCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020239 /* ShareableWeeklyProgressCardModel.swift */; };
+		010240 /* ShareableWeeklyProgressCardBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020240 /* ShareableWeeklyProgressCardBuilder.swift */; };
+		010241 /* ShareableWeeklyProgressCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020241 /* ShareableWeeklyProgressCardView.swift */; };
+		010242 /* ShareableWeeklyProgressCardBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020242 /* ShareableWeeklyProgressCardBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -471,6 +482,17 @@
 		020229 /* WorkoutSessionSummaryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilder.swift; sourceTree = "<group>"; };
 		020230 /* WorkoutSessionSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryCard.swift; sourceTree = "<group>"; };
 		020231 /* WorkoutSessionSummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilderTests.swift; sourceTree = "<group>"; };
+		020232 /* ShareableWorkoutCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardModel.swift; sourceTree = "<group>"; };
+		020233 /* ShareableWorkoutCardBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardBuilder.swift; sourceTree = "<group>"; };
+		020234 /* ShareableWorkoutCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardView.swift; sourceTree = "<group>"; };
+		020235 /* ShareableWorkoutCardBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardBuilderTests.swift; sourceTree = "<group>"; };
+		020236 /* ShareableWorkoutCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardRenderer.swift; sourceTree = "<group>"; };
+		020237 /* WorkoutShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShareSheet.swift; sourceTree = "<group>"; };
+		020238 /* ShareableWorkoutCardRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardRendererTests.swift; sourceTree = "<group>"; };
+		020239 /* ShareableWeeklyProgressCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardModel.swift; sourceTree = "<group>"; };
+		020240 /* ShareableWeeklyProgressCardBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardBuilder.swift; sourceTree = "<group>"; };
+		020241 /* ShareableWeeklyProgressCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardView.swift; sourceTree = "<group>"; };
+		020242 /* ShareableWeeklyProgressCardBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWeeklyProgressCardBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -604,6 +626,9 @@
 				020166 /* WorkoutWeaknessCard.swift */,
 				020226 /* WorkoutRecoveryImpactCard.swift */,
 				020230 /* WorkoutSessionSummaryCard.swift */,
+				020234 /* ShareableWorkoutCardView.swift */,
+				020241 /* ShareableWeeklyProgressCardView.swift */,
+				020237 /* WorkoutShareSheet.swift */,
 				020170 /* WeeklyWorkoutProgressCard.swift */,
 				020214 /* FourWeekWorkoutTrendCard.swift */,
 				020221 /* PersonalRecordCard.swift */,
@@ -670,6 +695,11 @@
 				020225 /* WorkoutRecoveryImpactBuilder.swift */,
 				020228 /* WorkoutSessionSummary.swift */,
 				020229 /* WorkoutSessionSummaryBuilder.swift */,
+				020232 /* ShareableWorkoutCardModel.swift */,
+				020233 /* ShareableWorkoutCardBuilder.swift */,
+				020239 /* ShareableWeeklyProgressCardModel.swift */,
+				020240 /* ShareableWeeklyProgressCardBuilder.swift */,
+				020236 /* ShareableWorkoutCardRenderer.swift */,
 				020168 /* WeeklyWorkoutProgress.swift */,
 				020169 /* WeeklyWorkoutProgressBuilder.swift */,
 				020212 /* FourWeekWorkoutTrend.swift */,
@@ -897,6 +927,9 @@
 				020167 /* WorkoutWeaknessInsightBuilderTests.swift */,
 				020227 /* WorkoutRecoveryImpactBuilderTests.swift */,
 				020231 /* WorkoutSessionSummaryBuilderTests.swift */,
+				020235 /* ShareableWorkoutCardBuilderTests.swift */,
+				020238 /* ShareableWorkoutCardRendererTests.swift */,
+				020242 /* ShareableWeeklyProgressCardBuilderTests.swift */,
 				020171 /* WeeklyWorkoutProgressBuilderTests.swift */,
 				020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */,
 				020216 /* FourWeekWorkoutTrendBuilderTests.swift */,
@@ -1034,6 +1067,9 @@
 				010165 /* WorkoutWeaknessCard.swift in Sources */,
 				010225 /* WorkoutRecoveryImpactCard.swift in Sources */,
 				010230 /* WorkoutSessionSummaryCard.swift in Sources */,
+				010234 /* ShareableWorkoutCardView.swift in Sources */,
+				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
+				010237 /* WorkoutShareSheet.swift in Sources */,
 				010169 /* WeeklyWorkoutProgressCard.swift in Sources */,
 				010213 /* FourWeekWorkoutTrendCard.swift in Sources */,
 				010220 /* PersonalRecordCard.swift in Sources */,
@@ -1063,6 +1099,11 @@
 				010224 /* WorkoutRecoveryImpactBuilder.swift in Sources */,
 				010228 /* WorkoutSessionSummary.swift in Sources */,
 				010229 /* WorkoutSessionSummaryBuilder.swift in Sources */,
+				010232 /* ShareableWorkoutCardModel.swift in Sources */,
+				010233 /* ShareableWorkoutCardBuilder.swift in Sources */,
+				010239 /* ShareableWeeklyProgressCardModel.swift in Sources */,
+				010240 /* ShareableWeeklyProgressCardBuilder.swift in Sources */,
+				010236 /* ShareableWorkoutCardRenderer.swift in Sources */,
 				010167 /* WeeklyWorkoutProgress.swift in Sources */,
 				010168 /* WeeklyWorkoutProgressBuilder.swift in Sources */,
 				010211 /* FourWeekWorkoutTrend.swift in Sources */,
@@ -1222,6 +1263,9 @@
 				010166 /* WorkoutWeaknessInsightBuilderTests.swift in Sources */,
 				010226 /* WorkoutRecoveryImpactBuilderTests.swift in Sources */,
 				010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */,
+				010235 /* ShareableWorkoutCardBuilderTests.swift in Sources */,
+				010238 /* ShareableWorkoutCardRendererTests.swift in Sources */,
+				010242 /* ShareableWeeklyProgressCardBuilderTests.swift in Sources */,
 				010170 /* WeeklyWorkoutProgressBuilderTests.swift in Sources */,
 				010207 /* UnifiedWorkoutWeeklyProgressProviderTests.swift in Sources */,
 				010215 /* FourWeekWorkoutTrendBuilderTests.swift in Sources */,

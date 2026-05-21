@@ -1,9 +1,13 @@
 import Charts
 import SwiftUI
+import UIKit
 
 struct AnalysisView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
     @StateObject private var analysisViewModel: AnalysisViewModel
+    @State private var weeklyShareImage: UIImage?
+    @State private var isWeeklyShareSheetPresented = false
+    @State private var weeklyShareErrorMessage: String?
 
     init(viewModel: AnalysisViewModel) {
         _analysisViewModel = StateObject(wrappedValue: viewModel)
@@ -19,6 +23,8 @@ struct AnalysisView: View {
                 progress: analysisViewModel.progress,
                 tint: SOOMColor.bike
             )
+
+            weeklySharePreview
 
             FourWeekWorkoutTrendCard(
                 trend: analysisViewModel.fourWeekTrend,
@@ -82,7 +88,75 @@ struct AnalysisView: View {
         .task {
             await analysisViewModel.load(fallbackWorkouts: dashboardViewModel.workouts)
         }
+        .sheet(isPresented: $isWeeklyShareSheetPresented) {
+            if let weeklyShareImage {
+                WorkoutShareSheet(activityItems: [weeklyShareImage])
+            }
+        }
+        .alert(
+            "공유 카드를 만들지 못했어요",
+            isPresented: Binding(
+                get: { weeklyShareErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        weeklyShareErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(weeklyShareErrorMessage ?? "잠시 후 다시 시도해주세요.")
+        }
         .navigationTitle("분석")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var weeklySharePreview: some View {
+        let card = ShareableWeeklyProgressCardBuilder().build(
+            progress: analysisViewModel.progress,
+            trend: analysisViewModel.fourWeekTrend
+        )
+
+        return VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
+            VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+                SOOMSectionHeader("공유 카드 미리보기")
+                Text("이번 주 성장 흐름을 4:5 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다.")
+                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
+
+            Button {
+                shareWeeklyProgress(card)
+            } label: {
+                Label("주간 카드 공유하기", systemImage: SOOMIcon.share)
+                    .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                    .foregroundStyle(SOOMColor.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, SOOMLayout.Card.padding)
+                    .background(SOOMColor.bike)
+                    .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("주간 공유 카드 공유하기")
+            .accessibilityHint("주간 운동 공유 카드 이미지를 만든 뒤 iOS 공유 시트를 엽니다.")
+        }
+    }
+
+    @MainActor
+    private func shareWeeklyProgress(_ card: ShareableWeeklyProgressCardModel) {
+        guard let image = ShareableWorkoutCardRenderer().render(
+            ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
+                .environment(\.colorScheme, .light)
+        ) else {
+            weeklyShareErrorMessage = "주간 공유 카드 이미지를 만들 수 없어요."
+            return
+        }
+
+        weeklyShareImage = image
+        isWeeklyShareSheetPresented = true
     }
 }

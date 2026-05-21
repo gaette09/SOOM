@@ -17,6 +17,7 @@ enum SOOMIcon {
     static let calendarClock = "calendar.badge.clock"
     static let checkCircle = "checkmark.circle"
     static let edit = "square.and.pencil"
+    static let share = "square.and.arrow.up"
     static let trash = "trash"
     static let health = "heart.text.square"
     static let map = "map"

@@ -14,7 +14,8 @@ struct WorkoutDetailView: View {
                         sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
                         weaknessInsight: weaknessInsight,
-                        recoveryImpact: recoveryImpact
+                        recoveryImpact: recoveryImpact,
+                        shareableCard: shareableCard
                     )
                 }
                 .navigationTitle("운동 상세")
@@ -27,12 +28,23 @@ struct WorkoutDetailView: View {
                         sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
                         weaknessInsight: weaknessInsight,
-                        recoveryImpact: recoveryImpact
+                        recoveryImpact: recoveryImpact,
+                        shareableCard: shareableCard
                     )
                 }
             }
         }
         .hidesSOOMTabBar()
+    }
+
+
+    private var shareableCard: ShareableWorkoutCardModel {
+        ShareableWorkoutCardBuilder().build(
+            workout: workout,
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact
+        )
     }
 
     private var sessionSummary: WorkoutSessionSummary {
