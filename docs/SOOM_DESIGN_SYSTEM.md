@@ -376,6 +376,13 @@ Weekly Progress 공유 카드는 “꾸준함/성장 공유” 중심의 보조 
 
 Recovery Real Data Preview는 검증/관리 영역이며 핵심 Recovery UI와 분리한다. 사용자는 HealthKit import로 저장된 실제 운동 기록이 Recovery 계산 흐름에서 어떻게 해석되는지 미리 볼 수 있지만, 이 결과가 기본 Recovery 점수에 자동 반영된다고 느끼면 안 된다.
 
+Visual 기준:
+
+- preview score는 공식 Recovery score보다 낮은 시각 우선순위를 가진다.
+- `Recovery Score`처럼 공식 점수로 읽히는 라벨보다 `미리보기 점수`, `검증용 Recovery 흐름`처럼 boundary가 드러나는 표현을 우선한다.
+- imported workout 기준, 분석 제외 workout 미반영, DeduplicationEngine 자동 미적용 상태를 낮은 우선순위 안내로 제공한다.
+- 안내 문구는 개발자 도구처럼 딱딱하지 않게, “회복 흐름을 미리 확인”하는 제품 언어로 유지한다.
+
 디자인 기준:
 
 - HealthKit 설정/관리 화면의 보조 entry로 둔다.

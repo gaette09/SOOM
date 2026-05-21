@@ -12,7 +12,7 @@ struct RecoveryRealDataPreviewView: View {
             header
             previewContent
         }
-        .navigationTitle("실제 운동 기반 Recovery")
+        .navigationTitle("검증용 Recovery 미리보기")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load()
@@ -21,11 +21,11 @@ struct RecoveryRealDataPreviewView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-            Text("실제 운동 기록 기반 회복 미리보기")
+            Text("실제 운동 기반 미리보기")
                 .font(SOOMFont.display(31, relativeTo: .largeTitle))
                 .foregroundStyle(SOOMColor.ink)
 
-            Text("가져온 운동 기록만 기준으로 Recovery 계산 흐름을 검증합니다. 아직 기본 Recovery 점수에는 자동 반영되지 않아요.")
+            Text("가져온 운동 기록으로 회복 흐름을 미리 확인하는 검증용 화면입니다. 아직 공식 Recovery에는 반영되지 않아요.")
                 .font(SOOMFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -48,7 +48,7 @@ struct RecoveryRealDataPreviewView: View {
             messageCard(
                 icon: SOOMIcon.record,
                 title: "가져온 운동 기록이 부족해요",
-                message: "HealthKit 운동 가져오기를 실행하면 저장된 기록으로 Recovery 계산을 미리 확인할 수 있어요.",
+                message: "HealthKit 운동 가져오기를 실행하면 저장된 기록으로 검증용 회복 흐름을 확인할 수 있어요.",
                 tint: SOOMColor.secondaryInk
             )
         } else if let summary = viewModel.summary {
@@ -58,7 +58,7 @@ struct RecoveryRealDataPreviewView: View {
             messageCard(
                 icon: SOOMIcon.recovery,
                 title: "미리보기를 준비하고 있어요",
-                message: "저장된 운동 기록을 확인한 뒤 Recovery 요약을 표시합니다.",
+                message: "저장된 운동 기록을 확인한 뒤 검증용 회복 흐름을 표시합니다.",
                 tint: SOOMColor.recovery
             )
         }
@@ -71,31 +71,31 @@ struct RecoveryRealDataPreviewView: View {
                     .tint(SOOMColor.recovery)
                     .accessibilityHidden(true)
 
-                Text("가져온 운동 기록으로 Recovery 미리보기를 계산하고 있어요.")
+                Text("가져온 운동 기록으로 검증용 회복 흐름을 계산하고 있어요.")
                     .font(SOOMFont.body(13, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.secondaryInk)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("실제 운동 기록 기반 Recovery 미리보기 계산 중")
+        .accessibilityLabel("실제 운동 기록 기반 검증용 Recovery 흐름 계산 중")
     }
 
     private func summaryCard(_ summary: RecoverySummary) -> some View {
         SOOMCard {
             SOOMSectionHeader(
-                "Preview Summary",
-                caption: "이 결과는 가져온 운동 기록만 기준으로 한 미리보기예요."
+                "검증용 Recovery 흐름",
+                caption: "가져온 운동 기록만 기준으로 계산한 미리보기입니다."
             )
 
             HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.scoreHeaderSpacing) {
                 VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    Text("Recovery Score")
+                    Text("미리보기 점수")
                         .font(SOOMFont.body(12, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.tertiaryInk)
 
                     Text("\(summary.score)")
-                        .font(SOOMFont.display(44, relativeTo: .largeTitle))
+                        .font(SOOMFont.display(38, relativeTo: .title))
                         .foregroundStyle(SOOMColor.ink)
                 }
 
@@ -106,7 +106,7 @@ struct RecoveryRealDataPreviewView: View {
                         .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
                         .foregroundStyle(SOOMColor.recovery)
 
-                    Text("사용 운동 \(viewModel.usedWorkoutCount)개")
+                    Text("사용된 운동 \(viewModel.usedWorkoutCount)개")
                         .font(SOOMFont.body(11, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
@@ -121,7 +121,7 @@ struct RecoveryRealDataPreviewView: View {
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
                 previewBlock(
-                    title: "추천",
+                    title: "미리보기 추천",
                     message: summary.recommendation,
                     icon: SOOMIcon.checkCircle,
                     tint: SOOMColor.recovery
@@ -133,23 +133,44 @@ struct RecoveryRealDataPreviewView: View {
                     icon: SOOMIcon.chartLine,
                     tint: SOOMColor.bike
                 )
+
+                previewBlock(
+                    title: "계산 범위",
+                    message: "분석 제외한 운동은 포함하지 않았고, 중복 운동은 아직 자동으로 정리하지 않아요.",
+                    icon: SOOMIcon.sync,
+                    tint: SOOMColor.secondaryInk
+                )
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("실제 운동 기록 기반 Recovery 미리보기")
-        .accessibilityValue("점수 \(summary.score), 상태 \(summary.status), 사용 운동 \(viewModel.usedWorkoutCount)개, \(summary.recommendation)")
+        .accessibilityLabel("실제 운동 기록 기반 검증용 Recovery 미리보기")
+        .accessibilityValue("미리보기 점수 \(summary.score), 상태 \(summary.status), 사용된 운동 \(viewModel.usedWorkoutCount)개, 공식 Recovery에는 아직 반영되지 않음, \(summary.recommendation)")
     }
 
     private var boundaryCard: some View {
         SOOMCard {
-            SOOMActionRow(
-                icon: SOOMIcon.health,
-                title: "기본 Recovery에는 아직 반영하지 않아요",
-                subtitle: "이 화면은 가져온 운동 기록 기반 계산 흐름을 확인하는 검증용 영역입니다.",
-                tint: SOOMColor.secondaryInk
-            )
+            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
+                SOOMActionRow(
+                    icon: SOOMIcon.health,
+                    title: "아직 공식 Recovery에는 반영되지 않아요",
+                    subtitle: "가져온 운동 기록을 기준으로 회복 흐름을 미리 계산해보는 검증용 영역입니다.",
+                    tint: SOOMColor.secondaryInk
+                )
+
+                Divider()
+                    .overlay(SOOMColor.line)
+
+                previewBlock(
+                    title: "반영 기준",
+                    message: "분석 제외한 운동은 빼고 계산하며, 중복 운동은 아직 자동으로 정리되지 않을 수 있어요.",
+                    icon: SOOMIcon.sync,
+                    tint: SOOMColor.secondaryInk
+                )
+            }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("검증용 Recovery 미리보기 안내")
+        .accessibilityValue("가져온 운동 기록 기준이며, 공식 Recovery에는 아직 반영되지 않습니다. 분석 제외 운동은 포함하지 않고, 중복 운동은 자동 정리하지 않습니다.")
     }
 
     private func previewBlock(title: String, message: String, icon: String, tint: Color) -> some View {
