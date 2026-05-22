@@ -189,7 +189,7 @@ Phase 1: 설계 문서
 
 Phase 2: route/zone domain models - implemented in v1
 
-Phase 3: HealthKit route fetcher
+Phase 3: HealthKit route fetcher - implemented in v1
 
 Phase 4: Mapbox token/config
 
@@ -226,5 +226,30 @@ Route와 zone 분석을 위한 Swift domain model 1차 구현을 추가했다.
 
 - Mapbox SDK는 아직 설치하지 않는다.
 - 실제 지도 UI, route polyline rendering, map snapshot은 아직 구현하지 않는다.
-- HealthKit route/heart rate/cadence/power query는 아직 연결하지 않는다.
+- HealthKit route query는 `HealthKitWorkoutRouteFetcher`로 domain mapping까지 준비했다.
+- Heart rate/cadence/power stream query는 아직 연결하지 않는다.
 - Zone insight는 진단이나 훈련 강요가 아니라 리듬/흐름 중심의 coaching copy로 유지한다.
+
+## HealthKit WorkoutRoute Fetcher v1 Status
+
+`HKWorkoutRoute`를 `WorkoutRoute` domain model로 변환하는 read-only fetch 계층을 추가했다.
+
+구현된 구성:
+
+- `HealthKitWorkoutRouteFetcher`: `HKSampleQuery`로 workout에 연결된 `HKWorkoutRoute`를 찾고, `HKWorkoutRouteQuery`로 `CLLocation` stream을 읽는다.
+- `HealthKitWorkoutRouteMapper`: `HKWorkout`과 `CLLocation` 배열을 `WorkoutRoute`로 변환한다.
+- `WorkoutRouteStore`: workout id 기준 route 저장/조회가 가능한 가벼운 in-memory cache 프로토콜과 actor 구현이다.
+
+Route mapping 정책:
+
+- `CLLocation.coordinate`를 `WorkoutRouteCoordinate.latitude/longitude`로 보존한다.
+- altitude와 timestamp가 있으면 optional field로 보존한다.
+- workout distance가 있으면 우선 사용하고, 없으면 location 간 거리 합으로 fallback한다.
+- elevation gain은 상승 구간만 더하고, 음수 gain은 route model에서 0 이상으로 보정한다.
+- bounds는 route coordinates에서 자동 계산한다.
+
+현재 경계:
+
+- route가 없으면 `nil`로 안전하게 처리한다.
+- HealthKit route 권한이 없거나 fetch가 실패하면 caller가 앱 전체 실패로 전파하지 않고 fallback할 수 있어야 한다.
+- Mapbox SDK, 지도 UI, polyline rendering, route persistence는 아직 연결하지 않는다.

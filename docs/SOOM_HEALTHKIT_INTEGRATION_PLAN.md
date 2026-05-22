@@ -31,6 +31,7 @@ SOOM v1의 HealthKit 권한 전략은 최소 read-only 원칙을 따른다.
 요청 후보:
 
 - Workout
+- Workout Route
 - Heart Rate
 - Active Energy Burned
 - Walking + Running Distance
@@ -337,3 +338,29 @@ HealthKitWorkoutFetcher -> HealthKitWorkoutToUnifiedWorkoutMapper -> SwiftDataUn
 Imported workouts can support Growth analysis through UnifiedWorkout-based providers and can be used in Recovery preview screens. They are still not connected to the official Recovery provider, and DeduplicationEngine is not applied automatically.
 
 The app target includes the read-only HealthKit entitlement through `SOOM/SOOM.entitlements`. `NSHealthShareUsageDescription` remains in `SOOM/Info.plist`; no write permissions are requested.
+
+## HealthKit WorkoutRoute Fetch v1
+
+Workout map/detail 확장을 위해 HealthKit route read path를 domain mapping 단계까지 준비했다.
+
+구성:
+
+- `HealthKitManager.readTypes`에 `HKSeriesType.workoutRoute()`를 포함한다.
+- `HealthKitWorkoutRouteFetcher`는 특정 `HKWorkout`에 연결된 `HKWorkoutRoute` sample을 찾고 `HKWorkoutRouteQuery`로 `CLLocation` stream을 읽는다.
+- `HealthKitWorkoutRouteMapper`는 `HKWorkout + [CLLocation]`을 `WorkoutRoute`로 변환한다.
+- `WorkoutRouteStore`는 SwiftData persistence 전 단계의 가벼운 workout id 기반 route cache 후보로 둔다.
+
+Mapping policy:
+
+- route coordinate, altitude, timestamp를 가능한 한 보존한다.
+- workout total distance가 있으면 우선 사용하고, 없으면 location 간 거리 합으로 fallback한다.
+- elevation gain은 상승분만 더하며 음수 값은 domain model에서 0 이상으로 보정한다.
+- route가 없거나 권한이 부족하면 `nil` 또는 fetch failure로 안전하게 처리하고, 앱 전체 실패로 전파하지 않는다.
+
+현재 하지 않는 것:
+
+- Mapbox SDK 설치 또는 지도 UI 연결
+- route polyline rendering
+- route SwiftData persistence
+- background route fetch
+- RecoveryCalculator 또는 Growth 계산 로직 변경

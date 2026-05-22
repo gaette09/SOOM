@@ -17,6 +17,7 @@ final class HealthKitWorkoutTests: XCTestCase {
         let readTypes = HealthKitManager.readTypes
 
         XCTAssertTrue(readTypes.contains(HKWorkoutType.workoutType()))
+        XCTAssertTrue(readTypes.contains(HKSeriesType.workoutRoute()))
         XCTAssertTrue(readTypes.contains(HKQuantityType.quantityType(forIdentifier: .heartRate)!))
         XCTAssertTrue(readTypes.contains(HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!))
         XCTAssertTrue(readTypes.contains(HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!))

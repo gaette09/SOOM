@@ -54,7 +54,8 @@ final class HealthKitManager: HealthKitManaging {
 
     static var readTypes: Set<HKObjectType> {
         var types: Set<HKObjectType> = [
-            HKWorkoutType.workoutType()
+            HKWorkoutType.workoutType(),
+            HKSeriesType.workoutRoute()
         ]
 
         [
