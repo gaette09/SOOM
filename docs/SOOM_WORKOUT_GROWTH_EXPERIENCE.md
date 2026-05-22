@@ -541,3 +541,16 @@ Workout Detail Growth Metrics v1은 운동 상세에서 `WorkoutGrowthInput` 기
 이 레이어는 “잘함/못함” 평가가 아니라 변화, 리듬, 흐름을 설명한다. 예를 들어 최근 평균보다 더 길게 움직였는지, 비슷한 심박에서 움직임 효율이 안정적인지, 오늘은 시간보다 리듬 유지에 가까운 운동인지처럼 행동 가능한 문장으로 표현한다.
 
 배치 기준은 `WorkoutSessionSummaryCard` 아래, `WorkoutGrowthCard` 위다. 운동 기본 수치 이후 “오늘 운동 요약 -> 오늘 성장 데이터 -> 좋아진 점 -> 다음에 좋아질 점 -> 회복 영향” 흐름을 만든다.
+
+### Type-aware Growth Baseline v1
+
+Workout Detail Growth Metrics는 서로 다른 종목을 섞어 비교하지 않는다. 러닝은 러닝 기록과, 라이딩은 라이딩 기록과, 수영은 수영 기록과, 걷기/하이킹은 같은 걷기/하이킹 흐름과 비교한다. 같은 종목의 최근 기록이 부족하면 무리하게 다른 종목 평균을 끌어오지 않고 `insufficientData` 상태로 안내한다.
+
+종목별 우선 지표는 `WorkoutTypeMetricProfile`로 정의한다.
+
+- 러닝: 총거리, 총시간, 평균 페이스, 심박 효율 optional, 상승 고도 optional
+- 라이딩: 총거리, 총시간, 평균 속도, 상승 고도, 심박 효율 optional
+- 수영: 총거리, 총시간, 100m 페이스
+- 걷기/하이킹: 총거리, 총시간, 평균 페이스, 상승 고도 optional
+
+이 정책은 HealthKit/Garmin/Samsung/SOOM Local 데이터가 섞이더라도 Growth 비교의 기준을 “종목별 리듬”으로 유지하기 위한 v1 규칙이다.

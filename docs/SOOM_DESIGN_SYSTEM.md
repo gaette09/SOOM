@@ -465,3 +465,5 @@ The bottom tab bar should behave as a compact floating navigation surface above 
 `WorkoutGrowthMetricsCard`는 운동 상세의 상세 분석 카드다. Session Summary가 오늘 운동을 한 문단으로 요약한다면, Growth Metrics Card는 거리, 시간, 페이스/속도, 고도, 심박 효율 같은 세부 지표를 3~5개 row로 정리한다.
 
 디자인 톤은 판단보다 흐름 설명을 우선한다. `improved`, `steady`, `lighter`, `insufficientData` 상태는 강한 평가나 경고가 아니라 리듬 변화의 신호로 표현한다. 카드 위치는 `WorkoutSessionSummaryCard` 아래, `WorkoutGrowthCard` 위를 기본으로 하며 복잡한 차트 없이 value와 짧은 비교 문장 중심으로 유지한다.
+
+Workout detail metrics는 sport-specific hierarchy를 따른다. 러닝/걷기는 페이스 중심, 라이딩은 평균 속도와 상승 고도 중심, 수영은 100m 페이스 중심으로 보여준다. 서로 다른 종목의 기록을 한 baseline으로 섞지 않으며, 같은 종목 기록이 부족하면 다른 종목으로 보정하지 않고 부드러운 insufficient state를 보여준다.

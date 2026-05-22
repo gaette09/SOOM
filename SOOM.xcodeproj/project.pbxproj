@@ -234,6 +234,7 @@
 		010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020231 /* WorkoutSessionSummaryBuilderTests.swift */; };
 		010259 /* WorkoutGrowthMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020260 /* WorkoutGrowthMetric.swift */; };
 		010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020261 /* WorkoutGrowthMetricsBuilder.swift */; };
+		010263 /* WorkoutTypeMetricProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020264 /* WorkoutTypeMetricProfile.swift */; };
 		010261 /* WorkoutGrowthMetricsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020262 /* WorkoutGrowthMetricsCard.swift */; };
 		010262 /* WorkoutGrowthMetricsBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020263 /* WorkoutGrowthMetricsBuilderTests.swift */; };
 		010232 /* ShareableWorkoutCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020232 /* ShareableWorkoutCardModel.swift */; };
@@ -506,6 +507,7 @@
 		020231 /* WorkoutSessionSummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilderTests.swift; sourceTree = "<group>"; };
 		020260 /* WorkoutGrowthMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetric.swift; sourceTree = "<group>"; };
 		020261 /* WorkoutGrowthMetricsBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilder.swift; sourceTree = "<group>"; };
+		020264 /* WorkoutTypeMetricProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTypeMetricProfile.swift; sourceTree = "<group>"; };
 		020262 /* WorkoutGrowthMetricsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsCard.swift; sourceTree = "<group>"; };
 		020263 /* WorkoutGrowthMetricsBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilderTests.swift; sourceTree = "<group>"; };
 		020232 /* ShareableWorkoutCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardModel.swift; sourceTree = "<group>"; };
@@ -736,6 +738,7 @@
 				020161 /* WorkoutGrowthSummaryBuilder.swift */,
 				020180 /* WorkoutGrowthInput.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
+				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
 				020164 /* WorkoutWeaknessInsight.swift */,
 				020165 /* WorkoutWeaknessInsightBuilder.swift */,
@@ -1187,6 +1190,7 @@
 				010219 /* UnifiedWorkoutPersonalRecordProvider.swift in Sources */,
 				010179 /* WorkoutGrowthInput.swift in Sources */,
 				010259 /* WorkoutGrowthMetric.swift in Sources */,
+				010263 /* WorkoutTypeMetricProfile.swift in Sources */,
 				010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */,
 				010171 /* UnifiedDataSource.swift in Sources */,
 				010172 /* UnifiedWorkoutType.swift in Sources */,

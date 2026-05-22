@@ -437,3 +437,5 @@ UnifiedWorkout 기반 Recovery preview 흐름은 `UnifiedWorkoutStore` -> `Unifi
 `WorkoutGrowthInput`은 주간 성장 요약뿐 아니라 운동 상세 성장 지표의 공통 입력으로도 사용한다. HealthKit 또는 다른 source에서 들어온 `UnifiedWorkout`은 `UnifiedWorkoutToGrowthInputMapper`를 거쳐 거리, 시간, 페이스/속도, 심박, 상승 고도, 칼로리 요약을 보존하고, 이 값을 `WorkoutGrowthMetricsBuilder`가 상세 비교 지표로 해석할 수 있다.
 
 이 흐름은 Growth interpretation layer이며 Recovery 공식 점수나 RecoveryCalculator를 변경하지 않는다. Garmin/Samsung source가 추가되더라도 동일한 `WorkoutGrowthInput` 계약을 통해 상세 성장 지표로 확장한다.
+
+Type-aware analysis v1에서는 `WorkoutGrowthInput.workoutType`이 baseline 분리 기준이다. imported workout source가 달라도 running/cycling/swimming/walking 같은 종목 단위로 비교하고, 서로 다른 종목은 상세 성장 지표 baseline에서 제외한다. 이는 Unified source 확장 이후에도 Growth 해석이 종목별 리듬을 유지하게 하는 기본 계약이다.

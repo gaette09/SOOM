@@ -4,6 +4,7 @@ enum WorkoutGrowthMetricType: String, Equatable {
     case distance
     case duration
     case pace
+    case pace100m
     case speed
     case consistency
     case elevation
