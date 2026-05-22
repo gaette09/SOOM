@@ -480,6 +480,18 @@ Design 기준:
 - Zone cards는 하단 보조 분석으로 두고, 라이딩은 heart rate/cadence/power zone 확장을 우선 고려한다.
 - Route/location data는 민감 정보로 취급하며 share/feed에서는 기본 비공개다.
 
+### Static Route Preview Card v1
+
+Static route preview는 공유/피드 카드의 supporting visual layer다. 지도나 경로가 운동 기록의 분위기를 도와줄 수는 있지만, 거리/시간/성장 메시지보다 높은 시각 우선순위를 가져서는 안 된다.
+
+Design 기준:
+
+- 카드 상단에 작고 차분하게 배치한다.
+- route preview는 metrics와 coaching copy를 보조하는 배경/맥락 역할이다.
+- token이나 route가 없으면 sport-specific fallback을 보여주고, 오류처럼 보이게 하지 않는다.
+- 위치 데이터는 민감 정보이므로 기본 공유 모델에 자동 포함하지 않고, caller가 명시적으로 route preview를 넘긴 경우에만 표시한다.
+- v1은 Mapbox Static Images URL 준비와 local preview 구조까지만 다루며, 앱 내부 network fetch나 interactive map을 구현하지 않는다.
+
 세부 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.
 
 ### Workout Zone Cards

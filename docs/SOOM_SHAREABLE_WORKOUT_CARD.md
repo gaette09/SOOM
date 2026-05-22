@@ -464,3 +464,23 @@ Privacy 기준:
 - route가 포함되더라도 start/end 지점 마스킹 정책을 별도로 설계해야 한다.
 
 자세한 방향은 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.
+
+## Static Route Preview Card v1
+
+Shareable Workout Card는 이제 optional `StaticRoutePreview`를 받을 수 있다. Route가 있는 운동은 Mapbox Static Images API URL 후보를 생성하고, route나 token이 없으면 기존 sport-specific fallback 표현을 유지한다.
+
+구현 범위:
+
+- `StaticRoutePreview`는 `imageURL`, `bounds`, `routeExists`, `fallbackStyle`을 담는다.
+- `MapboxStaticRouteURLBuilder`는 `WorkoutRoute`를 GeoJSON overlay 기반 static image URL로 변환한다.
+- `StaticRoutePreviewBuilder`는 route 존재 여부와 workout type에 따라 image URL 또는 fallback을 만든다.
+- `ShareableWorkoutCardModel`은 optional `staticRoutePreview`를 보관한다.
+- `ShareableWorkoutCardView`는 route preview가 있으면 상단 supporting layer로 보여준다.
+- `FeedItemCard`는 기존처럼 `ShareableWorkoutCardView`를 재사용하므로 같은 preview 구조를 사용할 수 있다.
+
+Privacy / boundary:
+
+- route preview는 민감 위치 데이터로 취급한다.
+- 기본 builder 호출은 route를 자동 포함하지 않으며, caller가 명시적으로 `staticRoutePreview`를 전달해야 한다.
+- v1은 URL 생성과 preview model 연결만 준비하고, 앱 내부 network fetch, 서버 업로드, Feed 저장, SNS API 연동은 하지 않는다.
+- Recovery score, Growth logic, share visibility enforcement는 변경하지 않는다.

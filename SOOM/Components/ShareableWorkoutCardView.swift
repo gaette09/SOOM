@@ -8,6 +8,10 @@ struct ShareableWorkoutCardView: View {
         VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
             header
 
+            if let preview = card.staticRoutePreview, preview.routeExists {
+                StaticRoutePreviewSurface(preview: preview, tint: tint)
+            }
+
             Spacer(minLength: SOOMLayout.Card.contentSpacing)
 
             VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.messageSpacing) {
@@ -60,7 +64,12 @@ struct ShareableWorkoutCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("공유 카드 미리보기")
-        .accessibilityValue("\(card.title). \(card.distanceText), \(card.durationText). \(card.primaryMessage). \(card.growthMessage). \(card.recoveryMessage). \(card.visibility.title)")
+        .accessibilityValue("\(card.title). \(card.distanceText), \(card.durationText). \(routeAccessibilityText) \(card.primaryMessage). \(card.growthMessage). \(card.recoveryMessage). \(card.visibility.title)")
+    }
+
+    private var routeAccessibilityText: String {
+        guard card.staticRoutePreview?.routeExists == true else { return "" }
+        return "경로 미리보기 포함."
     }
 
     private var header: some View {
@@ -107,6 +116,44 @@ struct ShareableWorkoutCardView: View {
     }
 }
 
+private struct StaticRoutePreviewSurface: View {
+    let preview: StaticRoutePreview
+    let tint: Color
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
+                .fill(tint.opacity(0.10))
+
+            HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                Image(systemName: SOOMIcon.map)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(tint)
+
+                VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
+                    Text(preview.imageURL == nil ? preview.fallbackStyle.title : "Route preview")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.ink)
+
+                    Text(preview.imageURL == nil ? "지도 이미지는 토큰 연결 후 표시돼요" : "Mapbox static image 준비됨")
+                        .font(SOOMFont.body(10, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+            .padding(ShareableWorkoutCardLayout.routePreviewPadding)
+        }
+        .frame(height: ShareableWorkoutCardLayout.routePreviewHeight)
+        .overlay(
+            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
+                .stroke(tint.opacity(0.16), lineWidth: SOOMLayout.Card.borderWidth)
+        )
+        .accessibilityHidden(true)
+    }
+}
+
 struct ShareablePrivacyBadge: View {
     let title: String
     var tint: Color?
@@ -140,6 +187,25 @@ enum ShareableWorkoutCardLayout {
     static let primaryLineSpacing: CGFloat = 3
     static let accentCircleSize: CGFloat = 156
     static let accentCircleOffset: CGFloat = 58
+    static let routePreviewHeight: CGFloat = 58
+    static let routePreviewPadding: CGFloat = 12
+}
+
+private extension StaticRouteFallbackStyle {
+    var title: String {
+        switch self {
+        case .running:
+            return "러닝 경로 미리보기"
+        case .cycling:
+            return "라이딩 경로 미리보기"
+        case .swimming:
+            return "수영 기록 미리보기"
+        case .walking:
+            return "걷기 경로 미리보기"
+        case .generic:
+            return "운동 경로 미리보기"
+        }
+    }
 }
 
 private struct ShareableMetric: View {

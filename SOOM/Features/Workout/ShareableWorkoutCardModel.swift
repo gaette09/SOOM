@@ -28,4 +28,31 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
     let recoveryMessage: String
     let footerText: String
     let visibility: ShareableWorkoutVisibility
+    let staticRoutePreview: StaticRoutePreview?
+
+    init(
+        id: UUID,
+        workoutType: UnifiedWorkoutType,
+        title: String,
+        distanceText: String,
+        durationText: String,
+        primaryMessage: String,
+        growthMessage: String,
+        recoveryMessage: String,
+        footerText: String,
+        visibility: ShareableWorkoutVisibility,
+        staticRoutePreview: StaticRoutePreview? = nil
+    ) {
+        self.id = id
+        self.workoutType = workoutType
+        self.title = title
+        self.distanceText = distanceText
+        self.durationText = durationText
+        self.primaryMessage = primaryMessage
+        self.growthMessage = growthMessage
+        self.recoveryMessage = recoveryMessage
+        self.footerText = footerText
+        self.visibility = visibility
+        self.staticRoutePreview = staticRoutePreview
+    }
 }

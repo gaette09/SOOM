@@ -193,7 +193,7 @@ Phase 3: HealthKit route fetcher - implemented in v1
 
 Phase 4: Mapbox token/config
 
-Phase 5: summary static map card
+Phase 5: summary static map card - implemented as Static Route Preview Card v1 foundation
 
 Phase 6: detail interactive map page
 
@@ -253,3 +253,29 @@ Route mapping 정책:
 - route가 없으면 `nil`로 안전하게 처리한다.
 - HealthKit route 권한이 없거나 fetch가 실패하면 caller가 앱 전체 실패로 전파하지 않고 fallback할 수 있어야 한다.
 - Mapbox SDK, 지도 UI, polyline rendering, route persistence는 아직 연결하지 않는다.
+
+## Static Route Preview Card v1 Status
+
+WorkoutRoute가 있는 공유/요약 카드에서 Mapbox Static Images API 기반 preview를 준비하는 모델과 URL builder를 추가했다.
+
+구현된 구성:
+
+- `StaticRoutePreview`: static image URL, route bounds, route 존재 여부, sport fallback style을 담는 card-facing model
+- `MapboxStaticRouteURLBuilder`: `WorkoutRoute` coordinates를 GeoJSON overlay로 변환해 Mapbox Static Images API URL을 생성한다.
+- `StaticRoutePreviewBuilder`: route가 있으면 URL 후보를 만들고, route/token이 없으면 sport-specific fallback을 반환한다.
+- `ShareableWorkoutCardModel.staticRoutePreview`: 공유 카드가 route preview를 선택적으로 포함할 수 있는 확장 지점
+- `ShareableWorkoutCardView`: route preview가 있는 경우 상단 supporting layer로 표시한다.
+
+Token / network 정책:
+
+- access token은 `MBXAccessToken` 또는 주입된 token을 사용한다.
+- token은 하드코딩하지 않는다.
+- v1에서는 URL 생성과 card model 연결까지만 수행하며, 앱 내부에서 직접 network fetch를 구현하지 않는다.
+
+현재 경계:
+
+- Mapbox SDK 설치 없음
+- interactive map 없음
+- route polyline animation 없음
+- route privacy masking은 future work
+- RecoveryCalculator와 Growth 계산 로직 변경 없음

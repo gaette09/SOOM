@@ -105,6 +105,27 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertTrue(card.recoveryMessage.contains("좋은 강도"))
     }
 
+    func testBuildCanAttachStaticRoutePreviewWithoutChangingPrivacyDefaults() {
+        let preview = StaticRoutePreview(
+            imageURL: URL(string: "https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/sample"),
+            bounds: nil,
+            routeExists: true,
+            fallbackStyle: .running
+        )
+
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            input: growthInput,
+            staticRoutePreview: preview
+        )
+
+        XCTAssertEqual(card.staticRoutePreview, preview)
+        XCTAssertEqual(card.visibility, .privateOnly)
+        XCTAssertFalse(card.footerText.contains("위치"))
+    }
+
     private var sessionSummary: WorkoutSessionSummary {
         WorkoutSessionSummary(
             title: "오늘은 리듬을 잘 이어간 운동이에요",

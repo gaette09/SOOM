@@ -6,7 +6,8 @@ struct ShareableWorkoutCardBuilder {
         growthSummary: WorkoutGrowthSummary,
         recoveryImpact: WorkoutRecoveryImpact,
         input: WorkoutGrowthInput,
-        visibility: ShareableWorkoutVisibility = .privateOnly
+        visibility: ShareableWorkoutVisibility = .privateOnly,
+        staticRoutePreview: StaticRoutePreview? = nil
     ) -> ShareableWorkoutCardModel {
         ShareableWorkoutCardModel(
             id: input.id,
@@ -18,7 +19,8 @@ struct ShareableWorkoutCardBuilder {
             growthMessage: growthMessage(from: growthSummary),
             recoveryMessage: recoveryMessage(from: recoveryImpact),
             footerText: footerText(for: visibility),
-            visibility: visibility
+            visibility: visibility,
+            staticRoutePreview: staticRoutePreview
         )
     }
 
@@ -27,14 +29,16 @@ struct ShareableWorkoutCardBuilder {
         sessionSummary: WorkoutSessionSummary,
         growthSummary: WorkoutGrowthSummary,
         recoveryImpact: WorkoutRecoveryImpact,
-        visibility: ShareableWorkoutVisibility = .privateOnly
+        visibility: ShareableWorkoutVisibility = .privateOnly,
+        staticRoutePreview: StaticRoutePreview? = nil
     ) -> ShareableWorkoutCardModel {
         build(
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
             recoveryImpact: recoveryImpact,
             input: WorkoutGrowthInput(shareableWorkout: workout),
-            visibility: visibility
+            visibility: visibility,
+            staticRoutePreview: staticRoutePreview
         )
     }
 
