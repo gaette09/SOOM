@@ -481,6 +481,12 @@ Shareable Workout Card는 이제 optional `StaticRoutePreview`를 받을 수 있
 Privacy / boundary:
 
 - route preview는 민감 위치 데이터로 취급한다.
-- 기본 builder 호출은 route를 자동 포함하지 않으며, caller가 명시적으로 `staticRoutePreview`를 전달해야 한다.
+- share/feed route preview는 기본적으로 시작/종료 지점 주변을 숨기는 `RoutePrivacyMaskingPolicy.defaultShare`를 적용한다.
+- 기본 builder 호출은 route를 자동 포함하지 않으며, caller가 명시적으로 `staticRoutePreview`를 전달하거나 route 기반 builder를 사용해야 한다.
 - v1은 URL 생성과 preview model 연결만 준비하고, 앱 내부 network fetch, 서버 업로드, Feed 저장, SNS API 연동은 하지 않는다.
 - Recovery score, Growth logic, share visibility enforcement는 변경하지 않는다.
+
+
+### Route Privacy Masking v1
+
+Share/feed 카드에 route preview를 붙일 때는 `RoutePrivacyMasker`가 원본 route를 직접 수정하지 않고 preview용 파생 route를 만든다. 기본 정책은 start/end 200m masking이며, 경로가 너무 짧아 안전하게 표시하기 어렵다면 sport-specific fallback을 유지한다. 실제 public sharing 전에 사용자가 masking 여부를 이해하고 선택할 수 있는 privacy UI는 별도 단계로 둔다.

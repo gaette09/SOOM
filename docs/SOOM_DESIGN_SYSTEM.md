@@ -489,8 +489,10 @@ Design 기준:
 - 카드 상단에 작고 차분하게 배치한다.
 - route preview는 metrics와 coaching copy를 보조하는 배경/맥락 역할이다.
 - token이나 route가 없으면 sport-specific fallback을 보여주고, 오류처럼 보이게 하지 않는다.
-- 위치 데이터는 민감 정보이므로 기본 공유 모델에 자동 포함하지 않고, caller가 명시적으로 route preview를 넘긴 경우에만 표시한다.
+- 위치 데이터는 민감 정보이므로 route preview는 privacy-first layer로 취급한다. share/feed preview는 기본적으로 시작/종료 지점 masking을 적용하고, caller가 명시적으로 route preview를 넘긴 경우에만 표시한다.
 - v1은 Mapbox Static Images URL 준비와 local preview 구조까지만 다루며, 앱 내부 network fetch나 interactive map을 구현하지 않는다.
+
+Route privacy masking은 오류나 경고처럼 보이지 않게 조용히 적용한다. masking으로 인해 route preview가 부족하면 sport fallback을 보여주고, metrics와 coaching copy 흐름은 유지한다.
 
 세부 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.
 

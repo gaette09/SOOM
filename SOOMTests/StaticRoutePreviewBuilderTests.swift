@@ -2,17 +2,58 @@ import XCTest
 @testable import SOOM
 
 final class StaticRoutePreviewBuilderTests: XCTestCase {
-    func testRouteBuildsStaticPreviewWithImageURLAndBounds() {
+    func testRouteBuildsStaticPreviewWithImageURLAndBoundsWhenMaskingIsDisabled() {
         let builder = StaticRoutePreviewBuilder(
             urlBuilder: MapboxStaticRouteURLBuilder(accessToken: "test-token")
         )
 
-        let preview = builder.build(route: sampleRoute, workoutType: .running, width: 320, height: 400)
+        let preview = builder.build(
+            route: sampleRoute,
+            workoutType: .running,
+            width: 320,
+            height: 400,
+            privacyPolicy: .none
+        )
 
         XCTAssertTrue(preview.routeExists)
         XCTAssertNotNil(preview.imageURL)
         XCTAssertNotNil(preview.bounds)
         XCTAssertEqual(preview.fallbackStyle, .running)
+    }
+
+    func testDefaultPrivacyPolicyMasksRouteBeforeBuildingPreview() {
+        let builder = StaticRoutePreviewBuilder(
+            urlBuilder: MapboxStaticRouteURLBuilder(accessToken: "test-token")
+        )
+
+        let preview = builder.build(route: sampleRoute, workoutType: .running)
+
+        XCTAssertTrue(preview.routeExists)
+        XCTAssertNotNil(preview.imageURL)
+        XCTAssertGreaterThan(preview.bounds?.minLatitude ?? 0, sampleRoute.bounds?.minLatitude ?? 0)
+        XCTAssertLessThan(preview.bounds?.maxLatitude ?? 0, sampleRoute.bounds?.maxLatitude ?? 0)
+    }
+
+    func testPrivacyMaskingCanMakeShortRouteFallBack() {
+        let builder = StaticRoutePreviewBuilder(
+            urlBuilder: MapboxStaticRouteURLBuilder(accessToken: "test-token")
+        )
+        let route = WorkoutRoute(
+            workoutId: UUID(),
+            source: .appleHealthKit,
+            coordinates: [
+                coordinate(atMeters: 0),
+                coordinate(atMeters: 100)
+            ],
+            totalDistanceMeters: 100
+        )
+
+        let preview = builder.build(route: route, workoutType: .cycling)
+
+        XCTAssertFalse(preview.routeExists)
+        XCTAssertNil(preview.imageURL)
+        XCTAssertNil(preview.bounds)
+        XCTAssertEqual(preview.fallbackStyle, .cycling)
     }
 
     func testNilRouteReturnsSportFallback() {
@@ -63,10 +104,20 @@ final class StaticRoutePreviewBuilderTests: XCTestCase {
             workoutId: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
             source: .appleHealthKit,
             coordinates: [
-                WorkoutRouteCoordinate(latitude: 37.50, longitude: 127.00),
-                WorkoutRouteCoordinate(latitude: 37.55, longitude: 127.05)
+                coordinate(atMeters: 0),
+                coordinate(atMeters: 100),
+                coordinate(atMeters: 300),
+                coordinate(atMeters: 600),
+                coordinate(atMeters: 900)
             ],
-            totalDistanceMeters: 6_200
+            totalDistanceMeters: 900
+        )
+    }
+
+    private func coordinate(atMeters meters: Double) -> WorkoutRouteCoordinate {
+        WorkoutRouteCoordinate(
+            latitude: 37.50 + meters / 111_000,
+            longitude: 127.00
         )
     }
 }

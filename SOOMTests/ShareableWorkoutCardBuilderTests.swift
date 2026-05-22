@@ -126,6 +126,41 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertFalse(card.footerText.contains("위치"))
     }
 
+    func testBuildWithRouteAppliesPrivacyMaskingPolicy() {
+        let route = WorkoutRoute(
+            workoutId: growthInput.id,
+            source: .appleHealthKit,
+            coordinates: [
+                routeCoordinate(atMeters: 0),
+                routeCoordinate(atMeters: 100),
+                routeCoordinate(atMeters: 300),
+                routeCoordinate(atMeters: 600),
+                routeCoordinate(atMeters: 900)
+            ],
+            totalDistanceMeters: 900
+        )
+
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            input: growthInput,
+            route: route
+        )
+
+        XCTAssertTrue(card.staticRoutePreview?.routeExists == true)
+        XCTAssertGreaterThan(card.staticRoutePreview?.bounds?.minLatitude ?? 0, route.bounds?.minLatitude ?? 0)
+        XCTAssertLessThan(card.staticRoutePreview?.bounds?.maxLatitude ?? 0, route.bounds?.maxLatitude ?? 0)
+        XCTAssertEqual(card.visibility, .privateOnly)
+    }
+
+    private func routeCoordinate(atMeters meters: Double) -> WorkoutRouteCoordinate {
+        WorkoutRouteCoordinate(
+            latitude: 37.50 + meters / 111_000,
+            longitude: 127.00
+        )
+    }
+
     private var sessionSummary: WorkoutSessionSummary {
         WorkoutSessionSummary(
             title: "오늘은 리듬을 잘 이어간 운동이에요",

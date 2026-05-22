@@ -277,5 +277,23 @@ Token / network 정책:
 - Mapbox SDK 설치 없음
 - interactive map 없음
 - route polyline animation 없음
-- route privacy masking은 future work
+- route privacy masking v1 적용: static route preview 생성 전 start/end 주변 좌표를 기본 200m 기준으로 제거할 수 있다.
 - RecoveryCalculator와 Growth 계산 로직 변경 없음
+
+## Route Privacy Masking v1 Status
+
+Route preview가 feed/share/export 맥락에 노출되기 전에 시작/종료 지점 주변을 제거하는 privacy masking 구조를 추가했다.
+
+구현된 구성:
+
+- `RoutePrivacyMaskingPolicy`: `none`, `startAndEnd`, `startOnly`, `endOnly` mode와 masking distance를 정의한다.
+- `RoutePrivacyMasker`: 원본 `WorkoutRoute`를 변경하지 않고 preview/share용 파생 `WorkoutRoute`를 만든다.
+- 기본 share/static preview 정책은 `startAndEnd`, `200m` masking이다.
+- 내부 검증이나 비공개 preview에서는 `.none` policy를 명시적으로 사용할 수 있다.
+- masking 후 route가 너무 짧아져 2개 미만 coordinate만 남으면 static preview는 fallback으로 처리한다.
+
+현재 경계:
+
+- user privacy settings UI는 아직 없다.
+- blur/mosaic 같은 image-level masking은 아직 없다.
+- Mapbox SDK, 실제 image fetch, interactive map은 여전히 구현하지 않는다.

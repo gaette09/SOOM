@@ -251,6 +251,9 @@
 		010275 /* StaticRoutePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020276 /* StaticRoutePreview.swift */; };
 		010276 /* MapboxStaticRouteURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020277 /* MapboxStaticRouteURLBuilder.swift */; };
 		010277 /* StaticRoutePreviewBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020278 /* StaticRoutePreviewBuilder.swift */; };
+		010280 /* RoutePrivacyMaskingPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020281 /* RoutePrivacyMaskingPolicy.swift */; };
+		010281 /* RoutePrivacyMasker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020282 /* RoutePrivacyMasker.swift */; };
+		010282 /* RoutePrivacyMaskerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020283 /* RoutePrivacyMaskerTests.swift */; };
 		010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020279 /* MapboxStaticRouteURLBuilderTests.swift */; };
 		010279 /* StaticRoutePreviewBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020280 /* StaticRoutePreviewBuilderTests.swift */; };
 		010232 /* ShareableWorkoutCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020232 /* ShareableWorkoutCardModel.swift */; };
@@ -540,6 +543,9 @@
 		020276 /* StaticRoutePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreview.swift; sourceTree = "<group>"; };
 		020277 /* MapboxStaticRouteURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilder.swift; sourceTree = "<group>"; };
 		020278 /* StaticRoutePreviewBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilder.swift; sourceTree = "<group>"; };
+		020281 /* RoutePrivacyMaskingPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskingPolicy.swift; sourceTree = "<group>"; };
+		020282 /* RoutePrivacyMasker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMasker.swift; sourceTree = "<group>"; };
+		020283 /* RoutePrivacyMaskerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskerTests.swift; sourceTree = "<group>"; };
 		020279 /* MapboxStaticRouteURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilderTests.swift; sourceTree = "<group>"; };
 		020280 /* StaticRoutePreviewBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilderTests.swift; sourceTree = "<group>"; };
 		020232 /* ShareableWorkoutCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardModel.swift; sourceTree = "<group>"; };
@@ -777,6 +783,8 @@
 				020276 /* StaticRoutePreview.swift */,
 				020277 /* MapboxStaticRouteURLBuilder.swift */,
 				020278 /* StaticRoutePreviewBuilder.swift */,
+				020281 /* RoutePrivacyMaskingPolicy.swift */,
+				020282 /* RoutePrivacyMasker.swift */,
 				020266 /* WorkoutZone.swift */,
 				020267 /* WorkoutZoneSummary.swift */,
 				020268 /* WorkoutZoneBuilder.swift */,
@@ -1038,6 +1046,7 @@
 				020275 /* WorkoutRouteStoreTests.swift */,
 				020279 /* MapboxStaticRouteURLBuilderTests.swift */,
 				020280 /* StaticRoutePreviewBuilderTests.swift */,
+				020283 /* RoutePrivacyMaskerTests.swift */,
 				020235 /* ShareableWorkoutCardBuilderTests.swift */,
 				020238 /* ShareableWorkoutCardRendererTests.swift */,
 				020242 /* ShareableWeeklyProgressCardBuilderTests.swift */,
@@ -1245,6 +1254,8 @@
 				010275 /* StaticRoutePreview.swift in Sources */,
 				010276 /* MapboxStaticRouteURLBuilder.swift in Sources */,
 				010277 /* StaticRoutePreviewBuilder.swift in Sources */,
+				010280 /* RoutePrivacyMaskingPolicy.swift in Sources */,
+				010281 /* RoutePrivacyMasker.swift in Sources */,
 				010265 /* WorkoutZone.swift in Sources */,
 				010266 /* WorkoutZoneSummary.swift in Sources */,
 				010267 /* WorkoutZoneBuilder.swift in Sources */,
@@ -1416,6 +1427,7 @@
 				010274 /* WorkoutRouteStoreTests.swift in Sources */,
 				010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */,
 				010279 /* StaticRoutePreviewBuilderTests.swift in Sources */,
+				010282 /* RoutePrivacyMaskerTests.swift in Sources */,
 				010235 /* ShareableWorkoutCardBuilderTests.swift in Sources */,
 				010238 /* ShareableWorkoutCardRendererTests.swift in Sources */,
 				010242 /* ShareableWeeklyProgressCardBuilderTests.swift in Sources */,

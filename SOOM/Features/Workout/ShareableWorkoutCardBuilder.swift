@@ -1,6 +1,12 @@
 import Foundation
 
 struct ShareableWorkoutCardBuilder {
+    private let staticRoutePreviewBuilder: StaticRoutePreviewBuilder
+
+    init(staticRoutePreviewBuilder: StaticRoutePreviewBuilder = StaticRoutePreviewBuilder()) {
+        self.staticRoutePreviewBuilder = staticRoutePreviewBuilder
+    }
+
     func build(
         sessionSummary: WorkoutSessionSummary,
         growthSummary: WorkoutGrowthSummary,
@@ -21,6 +27,33 @@ struct ShareableWorkoutCardBuilder {
             footerText: footerText(for: visibility),
             visibility: visibility,
             staticRoutePreview: staticRoutePreview
+        )
+    }
+
+    func build(
+        sessionSummary: WorkoutSessionSummary,
+        growthSummary: WorkoutGrowthSummary,
+        recoveryImpact: WorkoutRecoveryImpact,
+        input: WorkoutGrowthInput,
+        route: WorkoutRoute?,
+        visibility: ShareableWorkoutVisibility = .privateOnly,
+        routePrivacyPolicy: RoutePrivacyMaskingPolicy = .defaultShare
+    ) -> ShareableWorkoutCardModel {
+        let preview = route.map {
+            staticRoutePreviewBuilder.build(
+                route: $0,
+                workoutType: input.workoutType,
+                privacyPolicy: routePrivacyPolicy
+            )
+        }
+
+        return build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            input: input,
+            visibility: visibility,
+            staticRoutePreview: preview
         )
     }
 
