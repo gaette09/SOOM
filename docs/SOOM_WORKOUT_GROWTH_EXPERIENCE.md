@@ -554,3 +554,11 @@ Workout Detail Growth Metrics는 서로 다른 종목을 섞어 비교하지 않
 - 걷기/하이킹: 총거리, 총시간, 평균 페이스, 상승 고도 optional
 
 이 정책은 HealthKit/Garmin/Samsung/SOOM Local 데이터가 섞이더라도 Growth 비교의 기준을 “종목별 리듬”으로 유지하기 위한 v1 규칙이다.
+
+## Workout Map Detail Expansion
+
+Workout Detail은 장기적으로 Mapbox route map, sport-specific metrics, zone analysis를 결합한 상세 경험으로 확장한다. 요약 카드는 기록 리스트와 Feed에서 재사용하고, 상세 페이지는 interactive route map과 종목별 핵심 지표를 보여준다.
+
+Route/Zone Domain Model v1에서는 `WorkoutRoute`, `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`를 추가해 route stream과 heart rate/cadence/power zone 분석을 수용할 기반을 만들었다. 아직 실제 Mapbox UI, HealthKit route query, zone card UI에는 연결하지 않는다.
+
+자세한 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다. 이 확장은 Growth interpretation layer이며 RecoveryCalculator나 공식 Recovery score를 변경하지 않는다.

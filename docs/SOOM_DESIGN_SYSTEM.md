@@ -467,3 +467,29 @@ The bottom tab bar should behave as a compact floating navigation surface above 
 디자인 톤은 판단보다 흐름 설명을 우선한다. `improved`, `steady`, `lighter`, `insufficientData` 상태는 강한 평가나 경고가 아니라 리듬 변화의 신호로 표현한다. 카드 위치는 `WorkoutSessionSummaryCard` 아래, `WorkoutGrowthCard` 위를 기본으로 하며 복잡한 차트 없이 value와 짧은 비교 문장 중심으로 유지한다.
 
 Workout detail metrics는 sport-specific hierarchy를 따른다. 러닝/걷기는 페이스 중심, 라이딩은 평균 속도와 상승 고도 중심, 수영은 100m 페이스 중심으로 보여준다. 서로 다른 종목의 기록을 한 baseline으로 섞지 않으며, 같은 종목 기록이 부족하면 다른 종목으로 보정하지 않고 부드러운 insufficient state를 보여준다.
+
+## Workout Map Detail Direction
+
+Workout detail map은 운동 상세의 상단 핵심 visual layer다. Mapbox interactive map은 route shape와 이동 리듬을 보여주고, floating overlay는 거리, 시간, pace/speed, elevation처럼 가장 중요한 2~4개 지표만 담는다.
+
+Design 기준:
+
+- 지도는 운동 기록의 맥락을 보여주되 숫자 카드보다 과하게 무겁지 않아야 한다.
+- Summary/feed card는 static route preview 또는 sport-specific fallback을 사용한다.
+- Detail page는 interactive map + 아래 metric sections 구조를 따른다.
+- Zone cards는 하단 보조 분석으로 두고, 라이딩은 heart rate/cadence/power zone 확장을 우선 고려한다.
+- Route/location data는 민감 정보로 취급하며 share/feed에서는 기본 비공개다.
+
+세부 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.
+
+### Workout Zone Cards
+
+Zone card는 correction이나 diagnosis가 아니라 coaching layer다. Heart rate, cadence, power zone은 사용자의 운동 리듬을 이해시키는 보조 정보로 표시하며, 강한 warning color나 “해야 한다”는 명령형 표현을 피한다.
+
+Design 기준:
+
+- Dominant zone과 duration/percentage를 짧게 보여준다.
+- 데이터가 없을 때는 unavailable을 부드럽게 표현하고, card 전체를 error처럼 보이게 하지 않는다.
+- Power zone은 FTP가 없으면 숨기거나 unavailable로 둔다.
+- Zone insight는 “오늘은 Zone 2 유지 시간이 길었어요”처럼 흐름을 설명하는 문장으로 유지한다.
+- Recovery score나 Growth score처럼 보이지 않게 보조 분석 위계에 둔다.

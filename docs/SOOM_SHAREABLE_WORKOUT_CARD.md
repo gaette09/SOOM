@@ -452,3 +452,15 @@ Principles:
 - Card contents should not animate independently during image rendering.
 - Press feedback should stay subtle, with scale no smaller than `0.98`.
 - Reduce Motion should fall back to opacity-only or immediate state changes.
+
+## Static Route Map Candidate
+
+Workout summary/share card는 장기적으로 static route map preview를 포함할 수 있다. 경로 데이터가 있으면 Mapbox SDK `Snapshotter` 또는 Mapbox Static Images API로 route preview를 만들고, 경로가 없으면 sport-specific visual fallback을 사용한다.
+
+Privacy 기준:
+
+- 위치/route는 민감 정보로 취급한다.
+- Feed와 share card에서는 route map을 기본 포함하지 않고, 명시적 공유 옵션이 생긴 뒤에만 노출한다.
+- route가 포함되더라도 start/end 지점 마스킹 정책을 별도로 설계해야 한다.
+
+자세한 방향은 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.

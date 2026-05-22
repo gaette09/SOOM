@@ -439,3 +439,27 @@ UnifiedWorkout 기반 Recovery preview 흐름은 `UnifiedWorkoutStore` -> `Unifi
 이 흐름은 Growth interpretation layer이며 Recovery 공식 점수나 RecoveryCalculator를 변경하지 않는다. Garmin/Samsung source가 추가되더라도 동일한 `WorkoutGrowthInput` 계약을 통해 상세 성장 지표로 확장한다.
 
 Type-aware analysis v1에서는 `WorkoutGrowthInput.workoutType`이 baseline 분리 기준이다. imported workout source가 달라도 running/cycling/swimming/walking 같은 종목 단위로 비교하고, 서로 다른 종목은 상세 성장 지표 baseline에서 제외한다. 이는 Unified source 확장 이후에도 Growth 해석이 종목별 리듬을 유지하게 하는 기본 계약이다.
+
+## Route and Zone Streams
+
+Workout Map Detail 확장을 위해 Unified source는 summary data뿐 아니라 stream data도 수용할 준비가 필요하다.
+
+후보 stream:
+
+- route coordinates / polyline
+- altitude and elevation profile
+- heart rate samples
+- cycling cadence samples
+- cycling power samples
+- pace / speed samples
+- split or lap summaries
+
+HealthKit에서는 `HKWorkoutRoute`, heart rate, cycling cadence, cycling power가 주요 source 후보이며, Garmin/Samsung/Health Connect도 장기적으로 같은 UnifiedWorkout stream 계약으로 정규화한다. 자세한 지도/zone 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다.
+
+Route/Zone Domain Model v1 구현 상태:
+
+- `WorkoutRoute`는 Unified source에서 들어올 route stream을 workout 단위 domain model로 담는 후보다.
+- `WorkoutRouteCoordinate`는 route point의 latitude/longitude와 optional altitude/timestamp를 보존한다.
+- `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`는 heart rate, cadence, power stream을 zone duration/percentage 중심으로 정리하기 위한 순수 모델 계층이다.
+- 현재는 stream query와 persistence에 연결하지 않고, HealthKit/Garmin/Samsung route/zone 데이터를 수용하기 위한 공통 계약으로만 둔다.
+- RecoveryCalculator와 Workout Growth 계산 로직은 이 모델 추가로 변경되지 않는다.
