@@ -6,6 +6,7 @@ struct WorkoutDetailContent: View {
     let showsHeader: Bool
     var sessionSummary: WorkoutSessionSummary?
     var growthSummary: WorkoutGrowthSummary?
+    var growthMetrics: [WorkoutGrowthMetric]?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
@@ -32,6 +33,9 @@ struct WorkoutDetailContent: View {
             WorkoutMetricsSection(workout: workout)
             if let sessionSummary {
                 WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
+            }
+            if let metrics = growthMetrics, !metrics.isEmpty {
+                WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
             }
             if let growthSummary {
                 WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)

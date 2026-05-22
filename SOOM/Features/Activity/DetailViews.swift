@@ -13,6 +13,7 @@ struct WorkoutDetailView: View {
                         showsHeader: true,
                         sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
+                        growthMetrics: growthMetrics,
                         weaknessInsight: weaknessInsight,
                         recoveryImpact: recoveryImpact,
                         shareableCard: shareableCard
@@ -27,6 +28,7 @@ struct WorkoutDetailView: View {
                         showsHeader: true,
                         sessionSummary: sessionSummary,
                         growthSummary: growthSummary,
+                        growthMetrics: growthMetrics,
                         weaknessInsight: weaknessInsight,
                         recoveryImpact: recoveryImpact,
                         shareableCard: shareableCard
@@ -53,6 +55,14 @@ struct WorkoutDetailView: View {
             growthSummary: growthSummary,
             weaknessInsight: weaknessInsight,
             recoveryImpact: recoveryImpact
+        )
+    }
+
+    private var growthMetrics: [WorkoutGrowthMetric] {
+        let recentInputs = (comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts).map { WorkoutGrowthInput(detailWorkout: $0) }
+        return WorkoutGrowthMetricsBuilder().build(
+            current: WorkoutGrowthInput(detailWorkout: workout),
+            recent: recentInputs
         )
     }
 
@@ -116,5 +126,36 @@ struct ClubDetailView: View {
         .navigationTitle("클럽 상세")
         .navigationBarTitleDisplayMode(.inline)
         .hidesSOOMTabBar()
+    }
+}
+
+private extension WorkoutGrowthInput {
+    init(detailWorkout workout: Workout) {
+        self.init(
+            id: workout.id,
+            source: .soomLocal,
+            workoutType: UnifiedWorkoutType(detailSport: workout.sport),
+            startDate: workout.date,
+            durationMinutes: Int(workout.duration / 60),
+            distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
+            averagePaceText: workout.sport == .run ? workout.formattedPace : nil,
+            averageSpeedKmh: workout.duration > 0 ? (workout.distanceMeters / 1_000) / (workout.duration / 3_600) : nil,
+            averageHeartRate: Double(workout.avgHeartRate),
+            elevationGainMeters: Double(workout.elevationGain),
+            activeEnergyKcal: Double(workout.activeCalories)
+        )
+    }
+}
+
+private extension UnifiedWorkoutType {
+    init(detailSport sport: WorkoutSport) {
+        switch sport {
+        case .swim:
+            self = .swimming
+        case .bike, .brick:
+            self = .cycling
+        case .run:
+            self = .running
+        }
     }
 }

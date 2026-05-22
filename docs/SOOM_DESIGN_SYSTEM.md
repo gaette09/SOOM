@@ -459,3 +459,9 @@ The CTA copy must keep the boundary clear: imported workouts can support Growth 
 ### Liquid Glass Tab Bar v1
 
 The bottom tab bar should behave as a compact floating navigation surface above content. It uses a lighter material, smaller selected pill, softer shadow, and reduced vertical height while keeping comfortable tap targets. The center Record tab can stay visually useful, but it should not become a heavy action button.
+
+## Workout Growth Metrics Card
+
+`WorkoutGrowthMetricsCard`는 운동 상세의 상세 분석 카드다. Session Summary가 오늘 운동을 한 문단으로 요약한다면, Growth Metrics Card는 거리, 시간, 페이스/속도, 고도, 심박 효율 같은 세부 지표를 3~5개 row로 정리한다.
+
+디자인 톤은 판단보다 흐름 설명을 우선한다. `improved`, `steady`, `lighter`, `insufficientData` 상태는 강한 평가나 경고가 아니라 리듬 변화의 신호로 표현한다. 카드 위치는 `WorkoutSessionSummaryCard` 아래, `WorkoutGrowthCard` 위를 기본으로 하며 복잡한 차트 없이 value와 짧은 비교 문장 중심으로 유지한다.

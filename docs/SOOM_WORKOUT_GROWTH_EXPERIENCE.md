@@ -534,3 +534,10 @@ Workout Session Summary, Personal Record, Weekly Progress는 장기적으로 공
 
 공유 카드 상세 기준은 [SOOM_SHAREABLE_WORKOUT_CARD.md](SOOM_SHAREABLE_WORKOUT_CARD.md)를 따른다.
 
+## Workout Detail Growth Metrics v1
+
+Workout Detail Growth Metrics v1은 운동 상세에서 `WorkoutGrowthInput` 기반의 세부 성장 지표를 보여주는 해석 레이어다. `WorkoutGrowthMetricsBuilder`는 현재 운동과 최근 운동 흐름을 비교해 거리, 운동 시간, 페이스 또는 평균 속도, 상승 고도, 심박 효율 후보를 3~5개 지표로 정리한다.
+
+이 레이어는 “잘함/못함” 평가가 아니라 변화, 리듬, 흐름을 설명한다. 예를 들어 최근 평균보다 더 길게 움직였는지, 비슷한 심박에서 움직임 효율이 안정적인지, 오늘은 시간보다 리듬 유지에 가까운 운동인지처럼 행동 가능한 문장으로 표현한다.
+
+배치 기준은 `WorkoutSessionSummaryCard` 아래, `WorkoutGrowthCard` 위다. 운동 기본 수치 이후 “오늘 운동 요약 -> 오늘 성장 데이터 -> 좋아진 점 -> 다음에 좋아질 점 -> 회복 영향” 흐름을 만든다.
