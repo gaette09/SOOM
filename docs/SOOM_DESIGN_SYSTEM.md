@@ -490,7 +490,10 @@ Design 기준:
 - route preview는 metrics와 coaching copy를 보조하는 배경/맥락 역할이다.
 - token이나 route가 없으면 sport-specific fallback을 보여주고, 오류처럼 보이게 하지 않는다.
 - 위치 데이터는 민감 정보이므로 route preview는 privacy-first layer로 취급한다. share/feed preview는 기본적으로 시작/종료 지점 masking을 적용하고, caller가 명시적으로 route preview를 넘긴 경우에만 표시한다.
-- v1은 Mapbox Static Images URL 준비와 local preview 구조까지만 다루며, 앱 내부 network fetch나 interactive map을 구현하지 않는다.
+- Actual Static Map Image Loading v1은 `AsyncImage`로 static route image를 표시할 수 있다. 이미지는 낮은 대비 supporting layer로 유지하고, interactive map은 구현하지 않는다.
+
+
+Actual static route image를 표시할 때는 metrics/message hierarchy를 넘지 않도록 opacity overlay와 작은 높이를 유지한다. Loading과 failure는 오류처럼 보이지 않게 sport fallback으로 조용히 처리한다.
 
 Route privacy masking은 오류나 경고처럼 보이지 않게 조용히 적용한다. masking으로 인해 route preview가 부족하면 sport fallback을 보여주고, metrics와 coaching copy 흐름은 유지한다.
 

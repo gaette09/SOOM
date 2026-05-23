@@ -122,8 +122,7 @@ private struct StaticRoutePreviewSurface: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
-                .fill(tint.opacity(0.10))
+            routeVisual
 
             HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 Image(systemName: SOOMIcon.map)
@@ -131,11 +130,11 @@ private struct StaticRoutePreviewSurface: View {
                     .foregroundStyle(tint)
 
                 VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-                    Text(preview.imageURL == nil ? preview.fallbackStyle.title : "Route preview")
+                    Text(preview.imageURL == nil ? preview.fallbackStyle.title : "경로 미리보기")
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.ink)
 
-                    Text(preview.imageURL == nil ? "지도 이미지는 토큰 연결 후 표시돼요" : "Mapbox static image 준비됨")
+                    Text(preview.imageURL == nil ? "경로 이미지는 연결 후 표시돼요" : "시작과 끝 지점은 조심스럽게 가렸어요")
                         .font(SOOMFont.body(10, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .lineLimit(1)
@@ -150,7 +149,51 @@ private struct StaticRoutePreviewSurface: View {
             RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
                 .stroke(tint.opacity(0.16), lineWidth: SOOMLayout.Card.borderWidth)
         )
+        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous))
         .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var routeVisual: some View {
+        if let imageURL = preview.imageURL {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .empty:
+                    placeholderVisual
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .overlay(SOOMColor.surface.opacity(0.18))
+                        .overlay(tint.opacity(0.08))
+                case .failure:
+                    fallbackVisual
+                @unknown default:
+                    fallbackVisual
+                }
+            }
+        } else {
+            fallbackVisual
+        }
+    }
+
+    private var placeholderVisual: some View {
+        fallbackVisual
+            .overlay(
+                RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
+                    .fill(SOOMColor.surface.opacity(0.18))
+            )
+    }
+
+    private var fallbackVisual: some View {
+        RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
+            .fill(tint.opacity(0.10))
+            .overlay(alignment: .trailing) {
+                Image(systemName: SOOMIcon.map)
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(tint.opacity(0.18))
+                    .padding(.trailing, ShareableWorkoutCardLayout.routePreviewPadding)
+            }
     }
 }
 

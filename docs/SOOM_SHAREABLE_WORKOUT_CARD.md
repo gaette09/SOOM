@@ -483,8 +483,12 @@ Privacy / boundary:
 - route preview는 민감 위치 데이터로 취급한다.
 - share/feed route preview는 기본적으로 시작/종료 지점 주변을 숨기는 `RoutePrivacyMaskingPolicy.defaultShare`를 적용한다.
 - 기본 builder 호출은 route를 자동 포함하지 않으며, caller가 명시적으로 `staticRoutePreview`를 전달하거나 route 기반 builder를 사용해야 한다.
-- v1은 URL 생성과 preview model 연결만 준비하고, 앱 내부 network fetch, 서버 업로드, Feed 저장, SNS API 연동은 하지 않는다.
+- Actual Static Map Image Loading v1부터 `ShareableWorkoutCardView`는 `imageURL`이 있으면 `AsyncImage`로 실제 static route image를 로드할 수 있다. 서버 업로드, Feed 저장, SNS API 연동은 하지 않는다.
 - Recovery score, Growth logic, share visibility enforcement는 변경하지 않는다.
+
+### Actual Static Map Image Loading v1
+
+Share/feed 카드의 route preview는 `StaticRoutePreview.imageURL`이 있을 때 실제 static map 이미지를 표시한다. 이미지는 운동 메시지를 보조하는 낮은 시각 우선순위 layer이며, loading/failure/token 없음 상태에서는 기존 sport fallback을 유지한다. Route URL은 기본적으로 `RoutePrivacyMaskingPolicy.defaultShare`가 적용된 masked route를 기준으로 생성한다.
 
 
 ### Route Privacy Masking v1
