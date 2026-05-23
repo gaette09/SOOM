@@ -5,37 +5,21 @@ struct WorkoutDetailView: View {
     var comparisonWorkouts: [Workout] = []
 
     var body: some View {
-        Group {
-            if workout.route.isEmpty {
-                SOOMScreen {
-                    WorkoutDetailContent(
-                        workout: workout,
-                        showsHeader: true,
-                        sessionSummary: sessionSummary,
-                        growthSummary: growthSummary,
-                        growthMetrics: growthMetrics,
-                        weaknessInsight: weaknessInsight,
-                        recoveryImpact: recoveryImpact,
-                        shareableCard: shareableCard
-                    )
-                }
-                .navigationTitle("운동 상세")
-                .navigationBarTitleDisplayMode(.inline)
-            } else {
-                WorkoutMapSheetScaffold(workout: workout, navigationTitle: "운동 상세") {
-                    WorkoutDetailContent(
-                        workout: workout,
-                        showsHeader: true,
-                        sessionSummary: sessionSummary,
-                        growthSummary: growthSummary,
-                        growthMetrics: growthMetrics,
-                        weaknessInsight: weaknessInsight,
-                        recoveryImpact: recoveryImpact,
-                        shareableCard: shareableCard
-                    )
-                }
-            }
+        SOOMScreen {
+            WorkoutDetailContent(
+                workout: workout,
+                showsHeader: true,
+                sessionSummary: sessionSummary,
+                growthSummary: growthSummary,
+                growthMetrics: growthMetrics,
+                weaknessInsight: weaknessInsight,
+                recoveryImpact: recoveryImpact,
+                shareableCard: shareableCard,
+                mapRoute: detailMapRoute
+            )
         }
+        .navigationTitle("운동 상세")
+        .navigationBarTitleDisplayMode(.inline)
         .hidesSOOMTabBar()
     }
 
@@ -82,6 +66,23 @@ struct WorkoutDetailView: View {
 
     private var recoveryImpact: WorkoutRecoveryImpact {
         WorkoutRecoveryImpactBuilder().build(workout: workout)
+    }
+
+    private var detailMapRoute: WorkoutRoute? {
+        guard !workout.route.isEmpty else { return nil }
+
+        let coordinates = workout.route.map { point in
+            WorkoutRouteCoordinate(latitude: point.latitude, longitude: point.longitude)
+        }
+
+        return WorkoutRoute(
+            workoutId: workout.id,
+            source: .soomLocal,
+            coordinates: coordinates,
+            totalDistanceMeters: workout.distanceMeters,
+            totalElevationGain: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
+            createdAt: workout.date
+        )
     }
 }
 

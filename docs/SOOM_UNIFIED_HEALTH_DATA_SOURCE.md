@@ -465,3 +465,12 @@ Route/Zone Domain Model v1 구현 상태:
 - `WorkoutRouteStore`는 route를 workout id 기준으로 저장/조회하는 가벼운 in-memory cache 후보이며, SwiftData route persistence는 아직 연결하지 않는다.
 - Heart rate/cadence/power stream query와 Garmin/Samsung route import는 아직 연결하지 않고, 공통 계약만 유지한다.
 - RecoveryCalculator와 Workout Growth 계산 로직은 이 모델 추가로 변경되지 않는다.
+
+## WorkoutRoute to Detail Map Overlay
+
+`WorkoutRoute`는 Workout Detail Map Overlay v1에서 route polyline source로 사용된다. Unified route stream이나 HealthKit `HKWorkoutRoute`에서 들어온 좌표는 `WorkoutRoute`로 정규화된 뒤 detail hero map에 표시될 수 있다.
+
+- Detail map은 `WorkoutRoute.coordinates`를 polyline으로 표시한다.
+- `WorkoutRoute.bounds`는 route 중심과 camera fitting 후보로 사용한다.
+- route가 없거나 token이 없으면 SOOM sport-specific fallback visual을 사용한다.
+- Recovery/Growth 계산 입력은 변경하지 않고, map overlay는 visual interpretation layer로만 동작한다.

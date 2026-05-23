@@ -510,3 +510,12 @@ Design 기준:
 - Power zone은 FTP가 없으면 숨기거나 unavailable로 둔다.
 - Zone insight는 “오늘은 Zone 2 유지 시간이 길었어요”처럼 흐름을 설명하는 문장으로 유지한다.
 - Recovery score나 Growth score처럼 보이지 않게 보조 분석 위계에 둔다.
+
+## Workout Detail Map Overlay
+
+Workout Detail의 map overlay는 운동 상세의 첫 hero layer다. 지도는 운동 흐름을 빠르게 인식시키는 supporting visual이며, floating metric overlay가 거리/시간/종목별 핵심 지표를 먼저 읽히게 한다.
+
+- 지도는 카드보다 넓은 hero surface로 배치하되 Growth/Recovery cards보다 과하게 튀지 않게 한다.
+- Floating metrics는 2~4개로 제한하고 running은 pace, cycling은 speed/elevation, swimming은 route fallback과 100m pace 중심으로 둔다.
+- token 없음, route 없음, map load 실패에서는 sport-specific fallback을 사용한다.
+- 복잡한 route animation이나 replay는 SOOM v1의 차분한 데이터 리듬과 맞지 않으므로 보류한다.

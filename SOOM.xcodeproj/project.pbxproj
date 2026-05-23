@@ -253,6 +253,9 @@
 		010277 /* StaticRoutePreviewBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020278 /* StaticRoutePreviewBuilder.swift */; };
 		010280 /* RoutePrivacyMaskingPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020281 /* RoutePrivacyMaskingPolicy.swift */; };
 		010281 /* RoutePrivacyMasker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020282 /* RoutePrivacyMasker.swift */; };
+		010284 /* WorkoutDetailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020284 /* WorkoutDetailMapView.swift */; };
+		010285 /* WorkoutDetailMapOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020285 /* WorkoutDetailMapOverlay.swift */; };
+		010286 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0002 /* MapboxMaps */; };
 		010282 /* RoutePrivacyMaskerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020283 /* RoutePrivacyMaskerTests.swift */; };
 		010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020279 /* MapboxStaticRouteURLBuilderTests.swift */; };
 		010279 /* StaticRoutePreviewBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020280 /* StaticRoutePreviewBuilderTests.swift */; };
@@ -545,6 +548,8 @@
 		020278 /* StaticRoutePreviewBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilder.swift; sourceTree = "<group>"; };
 		020281 /* RoutePrivacyMaskingPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskingPolicy.swift; sourceTree = "<group>"; };
 		020282 /* RoutePrivacyMasker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMasker.swift; sourceTree = "<group>"; };
+		020284 /* WorkoutDetailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapView.swift; sourceTree = "<group>"; };
+		020285 /* WorkoutDetailMapOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapOverlay.swift; sourceTree = "<group>"; };
 		020283 /* RoutePrivacyMaskerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskerTests.swift; sourceTree = "<group>"; };
 		020279 /* MapboxStaticRouteURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilderTests.swift; sourceTree = "<group>"; };
 		020280 /* StaticRoutePreviewBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilderTests.swift; sourceTree = "<group>"; };
@@ -581,6 +586,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				010286 /* MapboxMaps in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -785,6 +791,8 @@
 				020278 /* StaticRoutePreviewBuilder.swift */,
 				020281 /* RoutePrivacyMaskingPolicy.swift */,
 				020282 /* RoutePrivacyMasker.swift */,
+				020284 /* WorkoutDetailMapView.swift */,
+				020285 /* WorkoutDetailMapOverlay.swift */,
 				020266 /* WorkoutZone.swift */,
 				020267 /* WorkoutZoneSummary.swift */,
 				020268 /* WorkoutZoneBuilder.swift */,
@@ -1079,6 +1087,9 @@
 			dependencies = (
 			);
 			name = SOOM;
+			packageProductDependencies = (
+				0D0002 /* MapboxMaps */,
+			);
 			productName = SOOM;
 			productReference = 020017 /* SOOM.app */;
 			productType = "com.apple.product-type.application";
@@ -1133,6 +1144,9 @@
 				Base,
 			);
 			mainGroup = 040001;
+			packageReferences = (
+				0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
+			);
 			productRefGroup = 040002 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1256,6 +1270,8 @@
 				010277 /* StaticRoutePreviewBuilder.swift in Sources */,
 				010280 /* RoutePrivacyMaskingPolicy.swift in Sources */,
 				010281 /* RoutePrivacyMasker.swift in Sources */,
+				010284 /* WorkoutDetailMapView.swift in Sources */,
+				010285 /* WorkoutDetailMapOverlay.swift in Sources */,
 				010265 /* WorkoutZone.swift in Sources */,
 				010266 /* WorkoutZoneSummary.swift in Sources */,
 				010267 /* WorkoutZoneBuilder.swift in Sources */,
@@ -1452,6 +1468,25 @@
 			targetProxy = 0C0101 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0D0002 /* MapboxMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
+			productName = MapboxMaps;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		080001 /* Debug */ = {

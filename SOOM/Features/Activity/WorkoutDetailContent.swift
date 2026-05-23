@@ -10,6 +10,7 @@ struct WorkoutDetailContent: View {
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
+    var mapRoute: WorkoutRoute?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
@@ -30,6 +31,7 @@ struct WorkoutDetailContent: View {
                 )
             }
 
+            WorkoutDetailMapOverlay(workout: workout, route: mapRoute)
             WorkoutMetricsSection(workout: workout)
             if let sessionSummary {
                 WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)

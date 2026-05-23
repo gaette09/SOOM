@@ -46,5 +46,7 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>MBXAccessToken</key>
+	<string>$(MBX_ACCESS_TOKEN)</string>
 </dict>
 </plist>
