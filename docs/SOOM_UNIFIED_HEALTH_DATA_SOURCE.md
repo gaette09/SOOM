@@ -474,3 +474,10 @@ Route/Zone Domain Model v1 구현 상태:
 - `WorkoutRoute.bounds`는 route 중심과 camera fitting 후보로 사용한다.
 - route가 없거나 token이 없으면 SOOM sport-specific fallback visual을 사용한다.
 - Recovery/Growth 계산 입력은 변경하지 않고, map overlay는 visual interpretation layer로만 동작한다.
+
+
+## Zone Card Connection v1
+
+Heart-rate, cadence, and power stream candidates now have a first UI destination through Workout Detail Zone Cards. v1 uses `WorkoutZoneSummary` and simple distribution bars; future HealthKit/Garmin/Samsung streams can fill the same model once sample-level import is expanded.
+
+The connection is intentionally read-only and interpretive. It does not change RecoveryCalculator, Workout Growth scoring, or UnifiedWorkout import policy.

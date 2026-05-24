@@ -39,6 +39,7 @@ struct WorkoutDetailContent: View {
             if let metrics = growthMetrics, !metrics.isEmpty {
                 WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
             }
+            WorkoutZoneSection(workout: workout)
             if let growthSummary {
                 WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
             }
@@ -50,7 +51,6 @@ struct WorkoutDetailContent: View {
             }
             WorkoutChartStack(workout: workout)
             WorkoutSplitsCard(workout: workout)
-            WorkoutZonesCard(workout: workout)
 
             SOOMCard {
                 SOOMSectionHeader("AI 해석")
