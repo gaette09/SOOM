@@ -309,6 +309,7 @@
 		010308 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020307 /* SettingsView.swift */; };
 		010309 /* TrainingSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020308 /* TrainingSettingsStoreTests.swift */; };
 		010310 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020309 /* SettingsViewModelTests.swift */; };
+		010311 /* PersonalizedZoneBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020310 /* PersonalizedZoneBaseline.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -626,6 +627,7 @@
 		020307 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		020308 /* TrainingSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsStoreTests.swift; sourceTree = "<group>"; };
 		020309 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
+		020310 /* PersonalizedZoneBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalizedZoneBaseline.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1004,6 +1006,7 @@
 				020284 /* WorkoutDetailMapView.swift */,
 				020285 /* WorkoutDetailMapOverlay.swift */,
 				020266 /* WorkoutZone.swift */,
+				020310 /* PersonalizedZoneBaseline.swift */,
 				020302 /* WorkoutZoneDataSource.swift */,
 				020267 /* WorkoutZoneSummary.swift */,
 				020268 /* WorkoutZoneBuilder.swift */,
@@ -1360,6 +1363,7 @@
 				010267 /* WorkoutZoneBuilder.swift in Sources */,
 				010288 /* WorkoutZoneSection.swift in Sources */,
 				010297 /* WorkoutZoneDataProvider.swift in Sources */,
+				010311 /* PersonalizedZoneBaseline.swift in Sources */,
 				010300 /* WorkoutDetailZoneContextProvider.swift in Sources */,
 				010171 /* UnifiedDataSource.swift in Sources */,
 				010172 /* UnifiedWorkoutType.swift in Sources */,

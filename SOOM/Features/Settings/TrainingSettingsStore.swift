@@ -32,6 +32,13 @@ final class TrainingSettingsStore {
         userDefaults.set(settings.privacyDefault.rawValue, forKey: Key.privacyDefault)
     }
 
+    func loadZoneBaseline() -> PersonalizedZoneBaseline {
+        PersonalizedZoneBaseline(
+            maxHeartRate: optionalInt(forKey: Key.maxHeartRate),
+            cyclingFTP: optionalInt(forKey: Key.cyclingFTP)
+        )
+    }
+
     func saveMaxHeartRate(_ value: Int?) {
         saveOptionalInt(value, forKey: Key.maxHeartRate)
     }

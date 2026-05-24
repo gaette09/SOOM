@@ -43,6 +43,10 @@ struct WorkoutZoneCard: View {
 
                     dataSourceBadge
 
+                    if summary.isPersonalized {
+                        personalizedBadge
+                    }
+
                     Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
 
                     Text(dominantText)
@@ -70,6 +74,17 @@ struct WorkoutZoneCard: View {
             .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             .accessibilityLabel(summary.dataSource.label)
             .accessibilityValue(summary.dataSource.description)
+    }
+
+    private var personalizedBadge: some View {
+        Text(summary.baselineDescription ?? "개인 기준")
+            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(summary.type.accentColor(tint: tint))
+            .padding(.horizontal, SOOMLayout.Metrics.actionTextSpacing + 2)
+            .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing - 1)
+            .background(summary.type.accentColor(tint: tint).opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+            .accessibilityLabel(summary.baselineDescription ?? "개인 기준")
     }
 
     private var unavailableView: some View {
@@ -135,14 +150,15 @@ struct WorkoutZoneCard: View {
 
     private var accessibilityValue: String {
         guard summary.isAvailable else {
-            return [summary.dataSource.description, summary.insightText ?? summary.type.unavailableCopy]
+            return [summary.dataSource.description, summary.baselineDescription, summary.insightText ?? summary.type.unavailableCopy]
+                .compactMap { $0 }
                 .joined(separator: ". ")
         }
 
         let zones = summary.zones.map { zone in
             "Zone \(zone.zoneIndex) \(durationText(zone.durationSeconds)), \(percentageText(zone.percentage))"
         }.joined(separator: ". ")
-        return [summary.dataSource.description, summary.insightText, zones].compactMap { $0 }.joined(separator: ". ")
+        return [summary.dataSource.description, summary.baselineDescription, summary.insightText, zones].compactMap { $0 }.joined(separator: ". ")
     }
 
     private func durationText(_ seconds: TimeInterval) -> String {

@@ -392,11 +392,22 @@ The indicator is a trust cue, not a warning. Missing cadence, heart-rate, or pow
 
 ## Training Baseline Settings v1
 
-Settings/My Page now has a lightweight place for user training baseline values such as max heart rate and cycling FTP. These values are stored locally as future inputs for better zone analysis, but v1 does not apply them to zone calculation yet.
+Settings/My Page now has a lightweight place for user training baseline values such as max heart rate and cycling FTP. These values are stored locally and are used by Workout Detail Zone Cards to personalize heart-rate and cycling power zone calculation.
 
 Policy:
 
 - max heart rate is validated as 80...230 bpm.
 - cycling FTP is validated as 50...500 W.
-- FTP-based power zones, personalized HR zones, and advanced cycling metrics remain deferred.
+- max heart rate personalizes heart-rate zones, and cycling FTP personalizes power zones when available.
+- FTP auto-estimation, NP/TSS/IF, and advanced cycling metrics remain deferred.
 - RecoveryCalculator and Growth calculations are not changed by these settings.
+
+## Personalized Zone Baseline v1
+
+Settings/My Page에 저장한 max heart rate와 cycling FTP가 Workout Detail Zone Cards의 zone calculation에 연결되었다.
+
+- Heart Rate Zone은 max heart rate가 있으면 사용자 기준 비율로 계산한다: Zone 1 <60%, Zone 2 60~70%, Zone 3 70~80%, Zone 4 80~90%, Zone 5 90%+.
+- Power Zone은 cycling FTP가 있으면 FTP 비율 기반 Zone 1~7로 계산한다: Z1 <55%, Z2 56~75%, Z3 76~90%, Z4 91~105%, Z5 106~120%, Z6 121~150%, Z7 sprint.
+- FTP가 없으면 기존처럼 power zone은 unavailable로 남긴다.
+- Zone Cards에는 `최대심박 기준` 또는 `FTP 기준` 같은 작은 trust cue를 표시한다.
+- NP, TSS, IF, FTP auto-estimation, RecoveryCalculator 변경, Growth calculation 변경은 포함하지 않는다.

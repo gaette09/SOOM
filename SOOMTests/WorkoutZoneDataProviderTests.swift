@@ -10,7 +10,7 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
                 makeSample(.heartRate, value: 132, start: 120, end: 300)
             ]
         ]))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .run)
 
@@ -32,7 +32,7 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
                 makeSample(.cyclingPower, value: 220, start: 0, end: 240)
             ]
         ]))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
 
@@ -48,7 +48,7 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
             .heartRate: [makeSample(.heartRate, value: 125, start: 0, end: 180)],
             .cyclingCadence: [makeSample(.cyclingCadence, value: 88, start: 0, end: 180)]
         ]))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
         let power = summaries.first { $0.type == .power }
@@ -58,9 +58,32 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
         XCTAssertTrue(power?.insightText?.contains("파워존") == true || power?.insightText?.contains("FTP") == true)
     }
 
+    func testCyclingUsesSettingsBaselineForPowerZones() async throws {
+        let fetcher = FakeMetricStreamFetcher(result: .success([
+            .heartRate: [makeSample(.heartRate, value: 145, start: 0, end: 180)],
+            .cyclingPower: [
+                makeSample(.cyclingPower, value: 120, start: 0, end: 60),
+                makeSample(.cyclingPower, value: 240, start: 60, end: 180)
+            ]
+        ]))
+        let provider = WorkoutZoneDataProvider(
+            fetcher: fetcher,
+            baselineProvider: { PersonalizedZoneBaseline(maxHeartRate: 200, cyclingFTP: 250) }
+        )
+
+        let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
+        let heartRate = summaries.first { $0.type == .heartRate }
+        let power = summaries.first { $0.type == .power }
+
+        XCTAssertEqual(heartRate?.baselineDescription, "최대심박 기준")
+        XCTAssertEqual(power?.dominantZone?.zoneIndex, 4)
+        XCTAssertEqual(power?.baselineDescription, "FTP 기준")
+        XCTAssertTrue(power?.isPersonalized == true)
+    }
+
     func testEmptySamplesReturnEmptyToKeepFallbackFlow() async throws {
         let fetcher = FakeMetricStreamFetcher(result: .success([:]))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
 
@@ -69,7 +92,7 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
 
     func testFetchFailureReturnsEmptySafely() async throws {
         let fetcher = FakeMetricStreamFetcher(result: .failure(TestError.fetchFailed))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
 
@@ -80,7 +103,7 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
         let fetcher = FakeMetricStreamFetcher(result: .success([
             .heartRate: [makeSample(.heartRate, value: 130, start: 0, end: 120)]
         ]))
-        let provider = WorkoutZoneDataProvider(fetcher: fetcher)
+        let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
         let summaries = try await provider.summaries(for: makeWorkout(), sport: .run)
 

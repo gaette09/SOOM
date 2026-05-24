@@ -43,6 +43,18 @@ final class TrainingSettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.loadSettings().preferredUnit, .imperial)
     }
 
+    func testLoadZoneBaselineUsesSavedMaxHeartRateAndFTP() {
+        store.saveMaxHeartRate(188)
+        store.saveCyclingFTP(260)
+
+        let baseline = store.loadZoneBaseline()
+
+        XCTAssertEqual(baseline.maxHeartRate, 188)
+        XCTAssertEqual(baseline.cyclingFTP, 260)
+        XCTAssertTrue(baseline.hasPersonalizedHeartRate)
+        XCTAssertTrue(baseline.hasPersonalizedPower)
+    }
+
     func testSaveSettingsRoundTripsAllValues() {
         let settings = TrainingSettings(
             maxHeartRate: 192,

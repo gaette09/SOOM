@@ -8,13 +8,16 @@ protocol WorkoutZoneDataProviding {
 struct WorkoutZoneDataProvider: WorkoutZoneDataProviding {
     private let fetcher: HealthKitWorkoutMetricStreamFetching
     private let zoneBuilder: HealthKitMetricZoneBuilder
+    private let baselineProvider: () -> PersonalizedZoneBaseline
 
     init(
         fetcher: HealthKitWorkoutMetricStreamFetching = HealthKitWorkoutMetricStreamFetcher(),
-        zoneBuilder: HealthKitMetricZoneBuilder = HealthKitMetricZoneBuilder()
+        zoneBuilder: HealthKitMetricZoneBuilder = HealthKitMetricZoneBuilder(),
+        baselineProvider: @escaping () -> PersonalizedZoneBaseline = { TrainingSettingsStore.shared.loadZoneBaseline() }
     ) {
         self.fetcher = fetcher
         self.zoneBuilder = zoneBuilder
+        self.baselineProvider = baselineProvider
     }
 
     func summaries(for workout: HKWorkout, sport: WorkoutSport) async throws -> [WorkoutZoneSummary] {
@@ -30,6 +33,7 @@ struct WorkoutZoneDataProvider: WorkoutZoneDataProviding {
         from samplesByType: [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]],
         sport: WorkoutSport
     ) -> [WorkoutZoneSummary] {
+        let baseline = baselineProvider()
         var summaries: [WorkoutZoneSummary] = []
         var hasAvailableStreamSummary = false
 
@@ -42,7 +46,7 @@ struct WorkoutZoneDataProvider: WorkoutZoneDataProviding {
             }
         }
 
-        let heartRate = zoneBuilder.buildHeartRateSummary(from: samplesByType[.heartRate] ?? [])
+        let heartRate = zoneBuilder.buildHeartRateSummary(from: samplesByType[.heartRate] ?? [], baseline: baseline)
         append(heartRate, includeUnavailable: WorkoutZoneSection.shouldShowUnavailable(.heartRate, for: sport))
 
         switch sport {
@@ -53,7 +57,7 @@ struct WorkoutZoneDataProvider: WorkoutZoneDataProviding {
             let cadence = zoneBuilder.buildCyclingCadenceSummary(from: samplesByType[.cyclingCadence] ?? [])
             append(cadence)
 
-            let power = zoneBuilder.buildCyclingPowerSummary(from: samplesByType[.cyclingPower] ?? [])
+            let power = zoneBuilder.buildCyclingPowerSummary(from: samplesByType[.cyclingPower] ?? [], baseline: baseline)
             append(power, includeUnavailable: true)
         case .swim:
             break

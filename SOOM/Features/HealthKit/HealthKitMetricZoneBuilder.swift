@@ -14,9 +14,12 @@ struct HealthKitMetricZoneBuilder {
 
     func buildHeartRateSummary(
         from samples: [HealthKitWorkoutMetricSample],
-        maxHeartRate: Double? = nil
+        maxHeartRate: Double? = nil,
+        baseline: PersonalizedZoneBaseline = .empty
     ) -> WorkoutZoneSummary {
-        let maximumHeartRate = maxHeartRate ?? fallbackMaxHeartRate
+        let personalizedMaxHeartRate = baseline.maxHeartRate.map { Double($0) }
+        let maximumHeartRate = personalizedMaxHeartRate ?? maxHeartRate ?? fallbackMaxHeartRate
+        let isPersonalized = personalizedMaxHeartRate != nil
         let durations = aggregateDurations(
             samples: samples.filter { $0.sampleType == .heartRate },
             type: .heartRate
@@ -28,7 +31,13 @@ struct HealthKitMetricZoneBuilder {
             return zoneBuilder.unavailableSummary(type: .heartRate)
         }
 
-        return zoneBuilder.buildSummary(type: .heartRate, durations: durations, dataSource: .healthKitStream)
+        return zoneBuilder.buildSummary(
+            type: .heartRate,
+            durations: durations,
+            dataSource: .healthKitStream,
+            isPersonalized: isPersonalized,
+            baselineDescription: isPersonalized ? "최대심박 기준" : nil
+        )
     }
 
     func buildCyclingCadenceSummary(
@@ -50,9 +59,14 @@ struct HealthKitMetricZoneBuilder {
 
     func buildCyclingPowerSummary(
         from samples: [HealthKitWorkoutMetricSample],
-        ftp: Double? = nil
+        ftp: Double? = nil,
+        baseline: PersonalizedZoneBaseline = .empty
     ) -> WorkoutZoneSummary {
-        guard let ftp, ftp > 0 else {
+        let personalizedFTP = baseline.cyclingFTP.map { Double($0) }
+        let effectiveFTP = personalizedFTP ?? ftp
+        let isPersonalized = personalizedFTP != nil
+
+        guard let effectiveFTP, effectiveFTP > 0 else {
             return zoneBuilder.unavailableSummary(type: .power)
         }
 
@@ -60,25 +74,32 @@ struct HealthKitMetricZoneBuilder {
             samples: samples.filter { $0.sampleType == .cyclingPower },
             type: .power
         ) { sample in
-            cyclingPowerZoneIndex(value: sample.value, ftp: ftp)
+            cyclingPowerZoneIndex(value: sample.value, ftp: effectiveFTP)
         }
 
         guard !durations.isEmpty else {
             return zoneBuilder.unavailableSummary(type: .power)
         }
 
-        return zoneBuilder.buildSummary(type: .power, durations: durations, dataSource: .healthKitStream)
+        return zoneBuilder.buildSummary(
+            type: .power,
+            durations: durations,
+            dataSource: .healthKitStream,
+            isPersonalized: isPersonalized,
+            baselineDescription: isPersonalized ? "FTP 기준" : nil
+        )
     }
 
     func buildSummaries(
         from samplesByType: [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]],
         maxHeartRate: Double? = nil,
-        ftp: Double? = nil
+        ftp: Double? = nil,
+        baseline: PersonalizedZoneBaseline = .empty
     ) -> [WorkoutZoneSummary] {
         [
-            buildHeartRateSummary(from: samplesByType[.heartRate] ?? [], maxHeartRate: maxHeartRate),
+            buildHeartRateSummary(from: samplesByType[.heartRate] ?? [], maxHeartRate: maxHeartRate, baseline: baseline),
             buildCyclingCadenceSummary(from: samplesByType[.cyclingCadence] ?? []),
-            buildCyclingPowerSummary(from: samplesByType[.cyclingPower] ?? [], ftp: ftp)
+            buildCyclingPowerSummary(from: samplesByType[.cyclingPower] ?? [], ftp: ftp, baseline: baseline)
         ]
     }
 
@@ -139,15 +160,15 @@ struct HealthKitMetricZoneBuilder {
         switch ratio {
         case ..<0.55:
             return 1
-        case ..<0.75:
+        case ..<0.76:
             return 2
-        case ..<0.90:
+        case ..<0.91:
             return 3
-        case ..<1.05:
+        case ..<1.06:
             return 4
-        case ..<1.20:
+        case ..<1.21:
             return 5
-        case ..<1.50:
+        case ..<1.51:
             return 6
         default:
             return 7

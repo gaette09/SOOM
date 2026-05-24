@@ -402,3 +402,12 @@ If permission is missing, the workout cannot be found, or the imported workout i
 HealthKit connection management should be reachable from both the Record data-connection flow and Settings/My Page. Settings provides a stable management home for permission state, manual import, workout library review, and future privacy/training baseline controls.
 
 This does not introduce automatic HealthKit sync. Manual import remains explicit, and imported workouts can support Growth analysis and Recovery preview without replacing the official Recovery provider.
+
+## Personalized Zone Baseline v1
+
+Settings/My Page의 max heart rate와 cycling FTP가 HealthKit metric stream 기반 zone summaries에 연결되었다. `WorkoutZoneDataProvider`는 detail-time stream fetch 후 `TrainingSettingsStore.loadZoneBaseline()` 값을 읽고, `HealthKitMetricZoneBuilder`에 전달한다.
+
+- Heart rate samples can use maxHR-based personalized zones.
+- Cycling power samples can use FTP-based power zones.
+- FTP가 없으면 power zone은 unavailable 상태를 유지한다.
+- This does not change RecoveryCalculator, Growth calculations, HealthKit automatic sync, or server/Auth behavior.

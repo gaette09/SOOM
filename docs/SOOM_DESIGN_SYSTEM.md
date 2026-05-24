@@ -531,5 +531,13 @@ Design 기준:
 
 - Profile summary는 로그인 전에도 placeholder로 안정적으로 보여준다.
 - HealthKit import/connection은 Settings에서도 접근 가능해야 하며, 공식 Recovery 자동 반영처럼 보이면 안 된다.
-- FTP, 최대 심박 같은 training baseline은 zone 분석 고도화를 위한 기준값으로 설명하되, 아직 계산식에 자동 적용하지 않는다고 명확히 말한다.
+- FTP, 최대 심박 같은 training baseline은 Workout Detail Zone Cards의 개인화 기준값으로 설명하되, Recovery/Growth 핵심 계산에는 적용되지 않는다고 명확히 말한다.
 - 공개 범위 설정은 privacy-first 기본값을 유지하고 위치, 심박, 체크인 메모가 자동 공유되지 않는다는 신뢰 문구를 포함한다.
+
+### Personalized Zone Baseline
+
+Personalized zone은 training dashboard가 아니라 trust/personalization layer다. `최대심박 기준`, `FTP 기준` 같은 작은 badge로 사용자가 zone 계산 기준을 이해하게 하되, 경고나 의료적 판단처럼 보이면 안 된다.
+
+- Badge는 zone bar보다 낮은 시각 우선순위를 가진다.
+- FTP/maxHR 기준은 Workout Detail Zone Cards에만 적용하며 Recovery/Growth 핵심 계산과 섞지 않는다.
+- 기준값이 없으면 기존 fallback/unavailable copy를 유지한다.

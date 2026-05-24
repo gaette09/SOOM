@@ -4,7 +4,9 @@ struct WorkoutZoneBuilder {
     func buildSummary(
         type: WorkoutZoneType,
         durations: [WorkoutZoneDurationInput],
-        dataSource: WorkoutZoneDataSource = .fallbackEstimate
+        dataSource: WorkoutZoneDataSource = .fallbackEstimate,
+        isPersonalized: Bool = false,
+        baselineDescription: String? = nil
     ) -> WorkoutZoneSummary {
         let validDurations = durations.filter { $0.durationSeconds > 0 }
         let totalDuration = validDurations.reduce(0) { $0 + $1.durationSeconds }
@@ -32,7 +34,9 @@ struct WorkoutZoneBuilder {
             zones: zones,
             dominantZone: dominantZone,
             insightText: insightText(type: type, dominantZone: dominantZone),
-            dataSource: dataSource
+            dataSource: dataSource,
+            isPersonalized: isPersonalized,
+            baselineDescription: baselineDescription
         )
     }
 

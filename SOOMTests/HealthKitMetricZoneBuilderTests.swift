@@ -18,6 +18,34 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
         XCTAssertTrue(summary.insightText?.contains("Zone 2") == true)
         XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
+        XCTAssertFalse(summary.isPersonalized)
+        XCTAssertNil(summary.baselineDescription)
+    }
+
+    func testPersonalizedHeartRateZoneUsesMaxHeartRateBaseline() {
+        let samples = [
+            makeSample(.heartRate, value: 118, start: 0, end: 60),
+            makeSample(.heartRate, value: 130, start: 60, end: 180),
+            makeSample(.heartRate, value: 185, start: 180, end: 240)
+        ]
+        let baseline = PersonalizedZoneBaseline(maxHeartRate: 200)
+
+        let summary = builder.buildHeartRateSummary(from: samples, baseline: baseline)
+
+        XCTAssertEqual(summary.zones.map(\.zoneIndex), [1, 2, 5])
+        XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
+        XCTAssertTrue(summary.isPersonalized)
+        XCTAssertEqual(summary.baselineDescription, "최대심박 기준")
+    }
+
+    func testFallbackHeartRateZoneUsesGenericBaselineWithoutPersonalizedBadge() {
+        let samples = [makeSample(.heartRate, value: 130, start: 0, end: 120)]
+
+        let summary = builder.buildHeartRateSummary(from: samples)
+
+        XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
+        XCTAssertFalse(summary.isPersonalized)
+        XCTAssertNil(summary.baselineDescription)
     }
 
     func testBuildsCadenceZoneSummary() {
@@ -46,6 +74,7 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertTrue(summary.zones.isEmpty)
         XCTAssertTrue(summary.insightText?.contains("FTP") == true)
         XCTAssertEqual(summary.dataSource.sourceType, .unavailable)
+        XCTAssertFalse(summary.isPersonalized)
     }
 
     func testPowerWithFTPBuildsFutureReadySummary() {
@@ -61,6 +90,24 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertTrue(summary.isAvailable)
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 4)
         XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
+        XCTAssertFalse(summary.isPersonalized)
+    }
+
+    func testPersonalizedPowerZoneUsesFTPBaseline() {
+        let samples = [
+            makeSample(.cyclingPower, value: 120, start: 0, end: 60),
+            makeSample(.cyclingPower, value: 240, start: 60, end: 180),
+            makeSample(.cyclingPower, value: 330, start: 180, end: 240)
+        ]
+        let baseline = PersonalizedZoneBaseline(cyclingFTP: 250)
+
+        let summary = builder.buildCyclingPowerSummary(from: samples, baseline: baseline)
+
+        XCTAssertEqual(summary.zones.map(\.zoneIndex), [1, 4, 6])
+        XCTAssertEqual(summary.dominantZone?.zoneIndex, 4)
+        XCTAssertTrue(summary.isPersonalized)
+        XCTAssertEqual(summary.baselineDescription, "FTP 기준")
+        XCTAssertEqual(summary.zones[1].percentage, 50, accuracy: 0.001)
     }
 
     func testEmptySamplesReturnUnavailableSafely() {
