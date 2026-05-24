@@ -6,7 +6,7 @@ struct WorkoutMetricsSection: View {
 
     var body: some View {
         SOOMCard {
-            SOOMSectionHeader("운동 요약", caption: "\(workout.source)에서 가져온 더미 운동 데이터입니다.")
+            SOOMSectionHeader("운동 요약", caption: "\(workout.source)에서 가져온 운동 데이터입니다.")
             LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.gridSpacing) {
                 SOOMMetricPill("거리", workout.formattedDistance, tint: workout.sport.tint)
                 SOOMMetricPill("시간", workout.formattedDuration, tint: SOOMColor.ink)

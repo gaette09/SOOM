@@ -388,3 +388,11 @@ Current boundary:
 HealthKit metric streams can now feed Workout Detail Zone Cards through `WorkoutZoneDataProvider`. The flow is manual/detail-time only: `HKWorkout` -> `HealthKitWorkoutMetricStreamFetcher` -> `HealthKitMetricZoneBuilder` -> `WorkoutZoneSummary` -> `WorkoutZoneSection`.
 
 This is not background sync and does not change RecoveryCalculator or Growth calculations. Missing HR, cadence, or power data falls back to existing summary/unavailable UI so sensor-dependent gaps do not look like app errors.
+
+## Imported Workout Detail Zone Context v1
+
+HealthKit imported workout detail can now reconnect to real HealthKit context at detail time. `UnifiedWorkout.externalId` is treated as the HealthKit workout UUID when `source == .appleHealthKit`. The detail context flow is:
+
+`UnifiedWorkout.externalId -> HealthKitWorkoutLookupProvider -> HKWorkout -> WorkoutZoneDataProvider -> WorkoutZoneSection`.
+
+If permission is missing, the workout cannot be found, or the imported workout is not from Apple HealthKit, SOOM keeps the existing fallback zone summary. This is a manual/detail-time lookup only; it does not enable automatic HealthKit sync and does not change RecoveryCalculator or Growth calculations.

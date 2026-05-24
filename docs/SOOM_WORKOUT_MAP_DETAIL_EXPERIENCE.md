@@ -366,3 +366,14 @@ Deferred:
 Workout Detail Zone Cards now have a real-data injection path for HealthKit metric streams. When an `HKWorkout` and `WorkoutZoneDataProvider` are available, SOOM fetches heart-rate, cycling cadence, and cycling power samples, maps them into `HealthKitWorkoutMetricSample`, and builds `WorkoutZoneSummary` values for the detail page.
 
 The UI still keeps the existing fallback summaries when stream data is empty or unavailable. Power remains FTP-gated in v1: without FTP, cycling power appears as a gentle unavailable state rather than a training-dashboard calculation.
+
+## Imported HealthKit Workout Detail Context v1
+
+Real Zone Stream Injection is now connected to imported Apple HealthKit workout detail entry. When a stored `UnifiedWorkout` comes from Apple HealthKit and keeps the original workout UUID in `externalId`, SOOM can look up the `HKWorkout` at detail time and pass it with `WorkoutZoneDataProvider` into `WorkoutDetailContent`.
+
+Behavior:
+
+- Apple HealthKit + valid `externalId`: try `HKWorkout` lookup and prefer real HR/cadence/power stream summaries.
+- Non-HealthKit source: do not query HealthKit and keep fallback summaries.
+- Missing id, permission issue, or lookup failure: keep fallback summaries with no crash.
+- This remains detail-time only and does not change RecoveryCalculator, Growth calculations, FTP policy, or Garmin/Samsung support.

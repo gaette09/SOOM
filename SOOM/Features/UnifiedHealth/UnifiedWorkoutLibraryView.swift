@@ -173,52 +173,14 @@ private struct UnifiedWorkoutLibraryRow: View {
     var body: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
-                HStack(alignment: .top, spacing: SOOMLayout.Card.contentSpacing) {
-                    Image(systemName: workout.workoutType.iconName)
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(workout.workoutType.tint)
-                        .frame(width: 44, height: 44)
-                        .background(workout.workoutType.tint.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                        HStack(alignment: .firstTextBaseline, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                            Text(workout.workoutType.displayName)
-                                .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
-                                .foregroundStyle(SOOMColor.ink)
-
-                            Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
-
-                            Text(workout.source.displayName)
-                                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                                .foregroundStyle(SOOMColor.secondaryInk)
-                                .padding(.horizontal, SOOMLayout.Metrics.actionTextSpacing + 2)
-                                .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
-                                .background(SOOMColor.surfaceMuted)
-                                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                        }
-
-                        Text("\(dateText) · \(timeText)")
-                            .font(SOOMFont.body(13, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-
-                        HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
-                            LibraryMetricPill(title: "거리", value: distanceText)
-                            LibraryMetricPill(title: "시간", value: durationText)
-                        }
-
-                        HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                            statusPill(title: workout.dataQuality.displayName, tint: SOOMColor.recovery)
-
-                            if workout.isExcludedFromAnalysis {
-                                statusPill(title: "분석 제외", tint: SOOMColor.warning)
-                            } else {
-                                statusPill(title: "분석 후보", tint: SOOMColor.secondaryInk)
-                            }
-                        }
-                    }
+                NavigationLink {
+                    UnifiedWorkoutDetailDestination(unifiedWorkout: workout)
+                } label: {
+                    rowSummary
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(workout.workoutType.displayName) 상세 보기")
+                .accessibilityHint("가져온 운동 기록의 상세 화면으로 이동합니다.")
 
                 Button(action: onToggleExcluded) {
                     HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
@@ -244,6 +206,60 @@ private struct UnifiedWorkoutLibraryRow: View {
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var rowSummary: some View {
+        HStack(alignment: .top, spacing: SOOMLayout.Card.contentSpacing) {
+            Image(systemName: workout.workoutType.iconName)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(workout.workoutType.tint)
+                .frame(width: 44, height: 44)
+                .background(workout.workoutType.tint.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                    Text(workout.workoutType.displayName)
+                        .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
+                        .foregroundStyle(SOOMColor.ink)
+
+                    Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
+
+                    Text(workout.source.displayName)
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .padding(.horizontal, SOOMLayout.Metrics.actionTextSpacing + 2)
+                        .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
+                        .background(SOOMColor.surfaceMuted)
+                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                }
+
+                Text("\(dateText) · \(timeText)")
+                    .font(SOOMFont.body(13, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+
+                HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
+                    LibraryMetricPill(title: "거리", value: distanceText)
+                    LibraryMetricPill(title: "시간", value: durationText)
+                }
+
+                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                    statusPill(title: workout.dataQuality.displayName, tint: SOOMColor.recovery)
+
+                    if workout.isExcludedFromAnalysis {
+                        statusPill(title: "분석 제외", tint: SOOMColor.warning)
+                    } else {
+                        statusPill(title: "분석 후보", tint: SOOMColor.secondaryInk)
+                    }
+                }
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(SOOMColor.secondaryInk.opacity(0.7))
+                .accessibilityHidden(true)
+        }
     }
 
     private var dateText: String {
@@ -298,6 +314,87 @@ private struct UnifiedWorkoutLibraryRow: View {
         formatter.dateFormat = "a h:mm"
         return formatter
     }()
+}
+
+private struct UnifiedWorkoutDetailDestination: View {
+    let unifiedWorkout: UnifiedWorkout
+    var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
+
+    @State private var zoneContext = WorkoutDetailZoneContext.fallback
+
+    var body: some View {
+        WorkoutDetailView(
+            workout: Workout(unifiedWorkout: unifiedWorkout),
+            healthKitWorkout: zoneContext.healthKitWorkout,
+            zoneDataProvider: zoneContext.zoneDataProvider
+        )
+        .task(id: unifiedWorkout.id) {
+            zoneContext = await contextProvider.context(for: unifiedWorkout)
+        }
+    }
+}
+
+private extension Workout {
+    init(unifiedWorkout workout: UnifiedWorkout) {
+        let sport = WorkoutSport(unifiedWorkoutType: workout.workoutType)
+        let distanceMeters = workout.distanceMeters ?? 0
+        let averageHeartRate = Int((workout.averageHeartRate ?? 0).rounded())
+        let maxHeartRate = Int((workout.maxHeartRate ?? workout.averageHeartRate ?? 0).rounded())
+
+        self.init(
+            id: workout.id,
+            sport: sport,
+            title: "\(workout.source.displayName) \(sport.title)",
+            date: workout.startDate,
+            distanceMeters: distanceMeters,
+            duration: workout.durationSeconds,
+            activeCalories: Int((workout.activeEnergyKcal ?? 0).rounded()),
+            avgHeartRate: averageHeartRate,
+            maxHeartRate: maxHeartRate,
+            avgPower: nil,
+            elevationGain: Int((workout.elevationGainMeters ?? 0).rounded()),
+            cadence: nil,
+            effort: Self.estimatedEffort(durationSeconds: workout.durationSeconds, averageHeartRate: workout.averageHeartRate),
+            source: workout.source.displayName,
+            route: [],
+            splits: [],
+            samples: [],
+            zones: [],
+            achievements: [],
+            aiSummary: "가져온 운동 기록을 기준으로 상세 흐름을 확인합니다. HealthKit stream이 있으면 존 분석에 우선 반영돼요."
+        )
+    }
+
+    private static func estimatedEffort(durationSeconds: TimeInterval, averageHeartRate: Double?) -> Int {
+        let durationScore = min(max(Int(durationSeconds / 1_800), 1), 4)
+        let heartRateScore: Int
+
+        switch averageHeartRate ?? 0 {
+        case 160...:
+            heartRateScore = 4
+        case 140..<160:
+            heartRateScore = 3
+        case 120..<140:
+            heartRateScore = 2
+        default:
+            heartRateScore = 1
+        }
+
+        return min(max(durationScore + heartRateScore, 1), 10)
+    }
+}
+
+private extension WorkoutSport {
+    init(unifiedWorkoutType type: UnifiedWorkoutType) {
+        switch type {
+        case .cycling:
+            self = .bike
+        case .swimming:
+            self = .swim
+        case .running, .walking, .hiking, .strength, .yoga, .other:
+            self = .run
+        }
+    }
 }
 
 private struct LibraryMetricPill: View {

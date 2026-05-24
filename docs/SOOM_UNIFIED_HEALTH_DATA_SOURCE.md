@@ -502,3 +502,9 @@ This stream path is read-only and interpretive. It prepares Workout Detail Zone 
 Metric streams now have a direct interpretation path for workout detail zones. HealthKit samples are mapped into SOOM metric samples, then converted into sport-specific `WorkoutZoneSummary` values. Running prioritizes heart-rate zones, cycling can show heart-rate, cadence, and power, swimming keeps heart-rate optional.
 
 The stream path is an interpretation layer for detail UI. It does not modify Recovery score inputs, Growth calculations, import deduplication, or feed sharing behavior.
+
+## UnifiedWorkout externalId as HealthKit Lookup Key
+
+For Apple HealthKit imports, `UnifiedWorkout.externalId` can represent the original `HKWorkout.uuid.uuidString`. Workout detail can use that value to look up the original `HKWorkout` and attach HealthKit metric streams to Zone Cards. Non-HealthKit sources, missing external ids, and lookup failures stay on the existing fallback detail experience.
+
+This keeps `UnifiedWorkout` as the stored summary source while allowing sample-level HealthKit context to be resolved only when the user opens an imported workout detail. RecoveryCalculator, Growth inputs, and deduplication policy are unchanged.

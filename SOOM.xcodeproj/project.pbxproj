@@ -297,6 +297,10 @@
 		010296 /* HealthKitMetricZoneBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020295 /* HealthKitMetricZoneBuilderTests.swift */; };
 		010297 /* WorkoutZoneDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020296 /* WorkoutZoneDataProvider.swift */; };
 		010298 /* WorkoutZoneDataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020297 /* WorkoutZoneDataProviderTests.swift */; };
+		010299 /* HealthKitWorkoutLookupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020298 /* HealthKitWorkoutLookupProvider.swift */; };
+		010300 /* WorkoutDetailZoneContextProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020299 /* WorkoutDetailZoneContextProvider.swift */; };
+		010301 /* HealthKitWorkoutLookupProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020300 /* HealthKitWorkoutLookupProviderTests.swift */; };
+		010302 /* WorkoutDetailZoneContextProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020301 /* WorkoutDetailZoneContextProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -602,6 +606,10 @@
 		020295 /* HealthKitMetricZoneBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMetricZoneBuilderTests.swift; sourceTree = "<group>"; };
 		020296 /* WorkoutZoneDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneDataProvider.swift; sourceTree = "<group>"; };
 		020297 /* WorkoutZoneDataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneDataProviderTests.swift; sourceTree = "<group>"; };
+		020298 /* HealthKitWorkoutLookupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutLookupProvider.swift; sourceTree = "<group>"; };
+		020299 /* WorkoutDetailZoneContextProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailZoneContextProvider.swift; sourceTree = "<group>"; };
+		020300 /* HealthKitWorkoutLookupProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutLookupProviderTests.swift; sourceTree = "<group>"; };
+		020301 /* WorkoutDetailZoneContextProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailZoneContextProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -925,6 +933,7 @@
 				020291 /* HealthKitWorkoutMetricStreamFetcher.swift */,
 				020292 /* HealthKitWorkoutMetricMapper.swift */,
 				020293 /* HealthKitMetricZoneBuilder.swift */,
+				020298 /* HealthKitWorkoutLookupProvider.swift */,
 				020130 /* HealthKitRecoveryActivityMapper.swift */,
 				020176 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift */,
 				020190 /* HealthKitWorkoutImportResult.swift */,
@@ -970,6 +979,7 @@
 				020268 /* WorkoutZoneBuilder.swift */,
 				020288 /* WorkoutZoneSection.swift */,
 				020296 /* WorkoutZoneDataProvider.swift */,
+				020299 /* WorkoutDetailZoneContextProvider.swift */,
 				020164 /* WorkoutWeaknessInsight.swift */,
 				020165 /* WorkoutWeaknessInsightBuilder.swift */,
 				020224 /* WorkoutRecoveryImpact.swift */,
@@ -1087,6 +1097,8 @@
 				020294 /* HealthKitWorkoutMetricMapperTests.swift */,
 				020295 /* HealthKitMetricZoneBuilderTests.swift */,
 				020297 /* WorkoutZoneDataProviderTests.swift */,
+				020300 /* HealthKitWorkoutLookupProviderTests.swift */,
+				020301 /* WorkoutDetailZoneContextProviderTests.swift */,
 				020279 /* MapboxStaticRouteURLBuilderTests.swift */,
 				020280 /* StaticRoutePreviewBuilderTests.swift */,
 				020283 /* RoutePrivacyMaskerTests.swift */,
@@ -1315,6 +1327,7 @@
 				010267 /* WorkoutZoneBuilder.swift in Sources */,
 				010288 /* WorkoutZoneSection.swift in Sources */,
 				010297 /* WorkoutZoneDataProvider.swift in Sources */,
+				010300 /* WorkoutDetailZoneContextProvider.swift in Sources */,
 				010171 /* UnifiedDataSource.swift in Sources */,
 				010172 /* UnifiedWorkoutType.swift in Sources */,
 				010174 /* UnifiedDataQuality.swift in Sources */,
@@ -1403,6 +1416,7 @@
 				010292 /* HealthKitWorkoutMetricStreamFetcher.swift in Sources */,
 				010293 /* HealthKitWorkoutMetricMapper.swift in Sources */,
 				010294 /* HealthKitMetricZoneBuilder.swift in Sources */,
+				010299 /* HealthKitWorkoutLookupProvider.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1489,6 +1503,8 @@
 				010295 /* HealthKitWorkoutMetricMapperTests.swift in Sources */,
 				010296 /* HealthKitMetricZoneBuilderTests.swift in Sources */,
 				010298 /* WorkoutZoneDataProviderTests.swift in Sources */,
+				010301 /* HealthKitWorkoutLookupProviderTests.swift in Sources */,
+				010302 /* WorkoutDetailZoneContextProviderTests.swift in Sources */,
 				010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */,
 				010279 /* StaticRoutePreviewBuilderTests.swift in Sources */,
 				010282 /* RoutePrivacyMaskerTests.swift in Sources */,
