@@ -541,3 +541,16 @@ Personalized zone은 training dashboard가 아니라 trust/personalization layer
 - Badge는 zone bar보다 낮은 시각 우선순위를 가진다.
 - FTP/maxHR 기준은 Workout Detail Zone Cards에만 적용하며 Recovery/Growth 핵심 계산과 섞지 않는다.
 - 기준값이 없으면 기존 fallback/unavailable copy를 유지한다.
+
+
+### Route Comparison Insight Card
+
+Comparison cards are “previous me” coaching cards, not ranking or judgement cards. They should sit after Growth Metrics and before Zone Analysis so the flow reads as: what happened today, what changed compared with my recent similar effort, then how the intensity was distributed.
+
+Design 기준:
+
+- Use calm metric rows, not leaderboard or trophy language.
+- `insufficientData` should feel like a gentle future promise: “비슷한 기록이 쌓이면 비교해볼게요.”
+- Route similarity is a trust cue, not a precision claim. Avoid implying exact segment matching in v1.
+- Negative evaluation words such as failure/poor performance should not appear.
+- RecoveryCalculator and Growth score policy are not visually or conceptually mixed into this card.

@@ -555,10 +555,23 @@ Workout Detail Growth Metrics는 서로 다른 종목을 섞어 비교하지 않
 
 이 정책은 HealthKit/Garmin/Samsung/SOOM Local 데이터가 섞이더라도 Growth 비교의 기준을 “종목별 리듬”으로 유지하기 위한 v1 규칙이다.
 
+
+## Route Comparison Insight v1
+
+Route Comparison Insight adds a first “previous me” comparison layer to Workout Detail. It compares today’s workout with a previous similar route or similar-distance workout, then explains the difference with a few sport-specific metric rows.
+
+Principles:
+
+- Compare against the user’s own previous workouts, not a leaderboard.
+- Keep route similarity simple in v1: distance tolerance, bounds overlap, and start/end proximity.
+- Running emphasizes pace and distance, cycling emphasizes average speed/elevation, and swimming emphasizes 100m pace.
+- If there is no useful baseline, show an insufficient-data state instead of forcing a judgement.
+- RecoveryCalculator and existing Growth calculation policy remain unchanged.
+
 ## Workout Map Detail Expansion
 
 Workout Detail은 장기적으로 Mapbox route map, sport-specific metrics, zone analysis를 결합한 상세 경험으로 확장한다. 요약 카드는 기록 리스트와 Feed에서 재사용하고, 상세 페이지는 interactive route map과 종목별 핵심 지표를 보여준다.
 
-Route/Zone Domain Model v1에서는 `WorkoutRoute`, `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`를 추가해 route stream과 heart rate/cadence/power zone 분석을 수용할 기반을 만들었다. 아직 실제 Mapbox UI, HealthKit route query, zone card UI에는 연결하지 않는다.
+Route/Zone/Map/Zone Card 흐름은 `WorkoutRoute`, `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`, HealthKit route/metric stream fetchers, Mapbox detail overlay, static route preview, and Zone Cards로 확장되었다. Route Comparison Insight v1은 이 route/growth 기반 위에서 같은 코스 또는 유사 운동 비교를 설명하는 첫 해석 레이어다.
 
 자세한 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다. 이 확장은 Growth interpretation layer이며 RecoveryCalculator나 공식 Recovery score를 변경하지 않는다.

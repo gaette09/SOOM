@@ -15,6 +15,7 @@ struct WorkoutDetailView: View {
                 sessionSummary: sessionSummary,
                 growthSummary: growthSummary,
                 growthMetrics: growthMetrics,
+                comparisonInsight: comparisonInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
                 shareableCard: shareableCard,
@@ -55,6 +56,33 @@ struct WorkoutDetailView: View {
         )
     }
 
+    private var comparisonInsight: WorkoutComparisonInsight {
+        let currentInput = WorkoutGrowthInput(detailWorkout: workout)
+        let comparableWorkouts = comparisonWorkouts
+            .filter { $0.id != workout.id }
+            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.date <= workout.date }
+
+        let currentRoute = route(for: workout)
+        let candidateRoutes = comparableWorkouts.compactMap(route(for:))
+        let routeCandidate = currentRoute.flatMap {
+            RouteSimilarityBuilder().findCandidates(current: $0, candidates: candidateRoutes).first
+        }
+
+        let baselineWorkout: Workout?
+        if let routeCandidate {
+            baselineWorkout = comparableWorkouts.first { $0.id == routeCandidate.candidateWorkoutId }
+        } else {
+            baselineWorkout = comparableWorkouts.sorted { $0.date > $1.date }.first
+        }
+
+        return WorkoutComparisonInsightBuilder().build(
+            current: currentInput,
+            baseline: baselineWorkout.map { WorkoutGrowthInput(detailWorkout: $0) },
+            routeCandidate: routeCandidate
+        )
+    }
+
     private var growthSummary: WorkoutGrowthSummary {
         WorkoutGrowthSummaryBuilder().build(
             current: workout,
@@ -74,6 +102,10 @@ struct WorkoutDetailView: View {
     }
 
     private var detailMapRoute: WorkoutRoute? {
+        route(for: workout)
+    }
+
+    private func route(for workout: Workout) -> WorkoutRoute? {
         guard !workout.route.isEmpty else { return nil }
 
         let coordinates = workout.route.map { point in

@@ -411,3 +411,21 @@ Settings/My Page에 저장한 max heart rate와 cycling FTP가 Workout Detail Zo
 - FTP가 없으면 기존처럼 power zone은 unavailable로 남긴다.
 - Zone Cards에는 `최대심박 기준` 또는 `FTP 기준` 같은 작은 trust cue를 표시한다.
 - NP, TSS, IF, FTP auto-estimation, RecoveryCalculator 변경, Growth calculation 변경은 포함하지 않는다.
+
+
+## Route Comparison Insight v1
+
+Workout Detail now has a lightweight comparison layer for the current workout and a previous similar route or similar-distance workout. v1 intentionally avoids complex map matching, segment replay, and ML prediction.
+
+Implemented pieces:
+
+- `RouteComparisonCandidate` stores a candidate workout id, similarity score, reason, and matched distance metadata.
+- `RouteSimilarityBuilder` finds candidate routes using distance tolerance, route bounds overlap, and start/end proximity.
+- `WorkoutComparisonInsightBuilder` compares the current `WorkoutGrowthInput` with a baseline workout and creates sport-specific rows such as running pace, cycling average speed/elevation, or swimming 100m pace.
+- `WorkoutComparisonInsightCard` is placed after Growth Metrics and before Zone Analysis in Workout Detail.
+
+Boundary:
+
+- This is a candidate/insight layer, not Strava-style segment matching.
+- Route matching is approximate and explanation-first.
+- RecoveryCalculator, official Recovery score, existing Growth calculations, Feed/SNS, server/Auth, and Garmin/Samsung connectors are not changed.

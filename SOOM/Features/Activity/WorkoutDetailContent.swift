@@ -8,6 +8,7 @@ struct WorkoutDetailContent: View {
     var sessionSummary: WorkoutSessionSummary?
     var growthSummary: WorkoutGrowthSummary?
     var growthMetrics: [WorkoutGrowthMetric]?
+    var comparisonInsight: WorkoutComparisonInsight?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
@@ -44,6 +45,9 @@ struct WorkoutDetailContent: View {
             }
             if let metrics = growthMetrics, !metrics.isEmpty {
                 WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
+            }
+            if let comparisonInsight {
+                WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
             }
             WorkoutZoneSection(
                 workout: workout,

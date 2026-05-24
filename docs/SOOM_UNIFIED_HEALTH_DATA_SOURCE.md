@@ -519,3 +519,14 @@ Workout Detail Zone Cards distinguish the source state of each `WorkoutZoneSumma
 - `manualFuture`: reserved for future user-entered or manually corrected zone data.
 
 This source state helps explain HealthKit stream, fallback, and unavailable behavior without changing the `UnifiedWorkout` import contract, RecoveryCalculator input, or Growth calculations.
+
+
+## Route / Growth Comparison Inputs
+
+Route Comparison Insight v1 uses existing local domain inputs rather than adding a new external connector.
+
+Flow:
+
+`WorkoutRoute + WorkoutGrowthInput -> RouteSimilarityBuilder -> RouteComparisonCandidate -> WorkoutComparisonInsightBuilder -> WorkoutComparisonInsightCard`
+
+This keeps comparison as an interpretation layer. `WorkoutRoute` supplies approximate route similarity signals such as distance, bounds, and start/end proximity, while `WorkoutGrowthInput` supplies sport-specific metric comparison. UnifiedWorkout, HealthKit, Garmin, Samsung, and SOOM local records can later feed the same route/growth inputs once their route streams are normalized. RecoveryCalculator and Growth calculation logic are not changed by this comparison layer.
