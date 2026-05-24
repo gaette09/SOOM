@@ -3,6 +3,8 @@ import UIKit
 import HealthKit
 
 struct WorkoutDetailContent: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let workout: Workout
     let showsHeader: Bool
     var sessionSummary: WorkoutSessionSummary?
@@ -40,58 +42,75 @@ struct WorkoutDetailContent: View {
             }
 
             WorkoutDetailMapOverlay(workout: workout, route: mapRoute)
-            WorkoutMetricsSection(workout: workout)
-            if let sessionSummary {
-                WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
-            }
-            if let metrics = growthMetrics, !metrics.isEmpty {
-                WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
-            }
-            if let comparisonInsight {
-                WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
-            }
-            if let splitInsight {
-                WorkoutSplitInsightCard(insight: splitInsight, tint: workout.sport.tint)
-            }
-            WorkoutZoneSection(
-                workout: workout,
-                streamSummaries: streamZoneSummaries,
-                isLoadingStream: isLoadingZoneSummaries,
-                didFailLoadingStream: didFailLoadingZoneSummaries
-            )
-            if let growthSummary {
-                WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
-            }
-            if let weaknessInsight {
-                WorkoutWeaknessCard(insight: weaknessInsight, tint: workout.sport.tint)
-            }
-            if let recoveryImpact {
-                WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
-            }
-            WorkoutChartStack(workout: workout)
-            WorkoutSplitsCard(workout: workout)
 
-            SOOMCard {
-                SOOMSectionHeader("AI 해석")
-                Text(workout.aiSummary)
-                    .font(SOOMFont.body(15, relativeTo: .subheadline))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("AI 해석")
-            .accessibilityValue(workout.aiSummary)
+            detailSection(.core) {
+                WorkoutMetricsSection(workout: workout)
 
-            SOOMCard {
-                SOOMSectionHeader("다음 액션")
-                Label("회복 상태를 확인하고 다음 세션 강도를 조절하세요.", systemImage: SOOMIcon.checkCircle)
-                Label("같은 종목의 최근 4주 추세와 비교하세요.", systemImage: SOOMIcon.trend)
-                Label("피드에 공유할 때는 운동 목적을 함께 남기세요.", systemImage: SOOMIcon.feed)
+                if let sessionSummary {
+                    WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
+                }
             }
-            .font(SOOMFont.body(15, relativeTo: .subheadline))
-            .foregroundStyle(SOOMColor.ink)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("다음 액션")
+
+            detailSection(.growth) {
+                if let metrics = growthMetrics, !metrics.isEmpty {
+                    WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
+                }
+
+                if let growthSummary {
+                    WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
+                }
+
+                if let comparisonInsight {
+                    WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
+                }
+
+                if let splitInsight {
+                    WorkoutSplitInsightCard(insight: splitInsight, tint: workout.sport.tint)
+                }
+            }
+
+            detailSection(.sensorData) {
+                WorkoutZoneSection(
+                    workout: workout,
+                    streamSummaries: streamZoneSummaries,
+                    isLoadingStream: isLoadingZoneSummaries,
+                    didFailLoadingStream: didFailLoadingZoneSummaries
+                )
+                WorkoutChartStack(workout: workout)
+                WorkoutSplitsCard(workout: workout)
+            }
+
+            detailSection(.recovery) {
+                if let recoveryImpact {
+                    WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
+                }
+
+                if let weaknessInsight {
+                    WorkoutWeaknessCard(insight: weaknessInsight, tint: workout.sport.tint)
+                }
+
+                SOOMCard {
+                    SOOMSectionHeader("AI 해석")
+                    Text(workout.aiSummary)
+                        .font(SOOMFont.body(15, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("AI 해석")
+                .accessibilityValue(workout.aiSummary)
+
+                SOOMCard {
+                    SOOMSectionHeader("다음 액션")
+                    Label("회복 상태를 확인하고 다음 세션 강도를 조절하세요.", systemImage: SOOMIcon.checkCircle)
+                    Label("같은 종목의 최근 4주 추세와 비교하세요.", systemImage: SOOMIcon.trend)
+                    Label("피드에 공유할 때는 운동 목적을 함께 남기세요.", systemImage: SOOMIcon.feed)
+                }
+                .font(SOOMFont.body(15, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("다음 액션")
+            }
 
             if let shareableCard {
                 VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
@@ -130,6 +149,16 @@ struct WorkoutDetailContent: View {
         }
     }
 
+
+    @ViewBuilder
+    private func detailSection<Content: View>(
+        _ group: WorkoutDetailSectionGroup,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        WorkoutDetailSectionContainer(group: group, reduceMotion: reduceMotion) {
+            content()
+        }
+    }
 
     @MainActor
     private func loadStreamZoneSummaries() async {
@@ -219,5 +248,48 @@ struct DetailHeader: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
         .accessibilityValue(subtitle)
+    }
+}
+
+private struct WorkoutDetailSectionContainer<Content: View>: View {
+    let group: WorkoutDetailSectionGroup
+    let reduceMotion: Bool
+    @ViewBuilder let content: Content
+    @State private var didAppear = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.WorkoutDetail.groupContentSpacing) {
+            header
+            content
+        }
+        .padding(.top, SOOMLayout.WorkoutDetail.groupTopPadding)
+        .opacity(shouldAnimate ? (didAppear ? SOOMMotion.Opacity.visible : SOOMMotion.Opacity.muted) : SOOMMotion.Opacity.visible)
+        .offset(y: shouldAnimate ? (didAppear ? 0 : SOOMMotion.Offset.subtleRevealY) : 0)
+        .animation(SOOMMotion.normalEaseOut.delay(Double(group.priority) * 0.03), value: didAppear)
+        .onAppear {
+            didAppear = true
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var shouldAnimate: Bool {
+        !reduceMotion
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.WorkoutDetail.groupHeaderSpacing) {
+            Text(group.title)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+                .textCase(.none)
+
+            Text(group.caption)
+                .font(SOOMFont.body(12, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(group.title)
+        .accessibilityValue(group.caption)
     }
 }

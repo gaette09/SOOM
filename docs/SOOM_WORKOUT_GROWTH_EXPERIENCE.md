@@ -587,3 +587,14 @@ For v1, route ranking is optional. If current and candidate routes are available
 Workout Detail now includes a lightweight split interpretation layer focused on pacing rhythm rather than segment competition. `WorkoutSplitInsightBuilder` reads the current `WorkoutGrowthInput` and creates a simple “운동 흐름” insight from duration, distance, pace, or speed.
 
 This is intentionally not GPS segment replay or Strava-style segment matching. v1 explains stable pace, stable speed, or a softer late-session rhythm check with coaching copy. RecoveryCalculator and existing Growth calculation logic remain unchanged.
+
+## Workout Detail Growth Flow Grouping v1
+
+Workout Detail now treats growth interpretation as a grouped reading flow rather than separate cards competing for attention. The `성장 흐름` group collects:
+
+- `WorkoutGrowthMetricsCard`: concrete sport-specific metric changes.
+- `WorkoutGrowthCard`: the single positive growth signal.
+- `WorkoutComparisonInsightCard`: previous-me comparison.
+- `WorkoutSplitInsightCard`: today’s internal pacing/rhythm cue.
+
+This preserves the existing rule-based builders and keeps Growth interpretation separate from Recovery scoring. Zone data remains a supporting evidence layer after the growth group.

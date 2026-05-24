@@ -558,3 +558,14 @@ Design 기준:
 ## Split Insight Layer
 
 Split Insight is a pacing/rhythm interpretation layer in Workout Detail. It should read as a calm coaching cue about “후반 흐름” or “리듬 유지,” not as a competitive segment result or performance judgment. Place it after comparison and before zone analysis so the user moves from previous-me comparison into today’s internal workout rhythm.
+
+## Workout Detail Information Hierarchy v1
+
+Workout Detail은 기능 카드를 단순 나열하지 않고 네 개의 읽기 그룹으로 묶는다. 목표는 사용자가 “오늘 운동의 핵심”을 먼저 이해하고, 이후 성장 흐름, 센서 데이터, 회복 해석을 차분히 내려 읽게 하는 것이다.
+
+- `오늘 핵심`: map hero 다음에 기본 metrics와 session summary를 배치한다.
+- `성장 흐름`: Growth Metrics, Growth Summary, Comparison Insight, Split Insight를 한 흐름으로 둔다.
+- `운동 데이터`: Zone Analysis, chart, split table처럼 근거 데이터를 확인하는 supporting layer다.
+- `회복 해석`: Recovery Impact, Weakness/Coaching, AI interpretation, next action을 마지막 해석 layer로 둔다.
+
+Section header는 divider나 강한 card shell이 아니라 작은 title/caption으로 처리한다. Motion은 fade와 아주 작은 upward reveal 정도만 허용하고, Reduce Motion에서는 정보 전달이 animation에 의존하지 않아야 한다.

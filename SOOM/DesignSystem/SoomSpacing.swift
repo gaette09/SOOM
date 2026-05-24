@@ -153,6 +153,13 @@ enum SOOMLayout {
         static let footnoteTopPadding: CGFloat = 2
     }
 
+    enum WorkoutDetail {
+        static let groupSpacing: CGFloat = 22
+        static let groupContentSpacing: CGFloat = 12
+        static let groupHeaderSpacing: CGFloat = 4
+        static let groupTopPadding: CGFloat = 2
+    }
+
     enum CheckIn {
         static let optionSpacing: CGFloat = 8
         static let optionMinHeight: CGFloat = 46

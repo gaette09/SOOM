@@ -446,3 +446,15 @@ Route handling remains intentionally lightweight:
 Workout Detail adds an “운동 흐름” card between Comparison Insight and Zone Analysis. The card summarizes simple split/rhythm signals such as stable pace, stable speed, or a late-session rhythm check using current workout growth input.
 
 This keeps segment work lightweight: no GPS replay, no segment leaderboard, no ML prediction, and no complex chart. Future route or stream summaries can enrich the same model later.
+
+## Detail Information Hierarchy v1
+
+Workout Detail now groups the route/map experience and interpretation cards into a clearer reading order:
+
+1. Map hero stays at the top as the visual context.
+2. `오늘 핵심` contains the core metrics and session summary.
+3. `성장 흐름` contains Growth Metrics, Growth Summary, Comparison Insight, and Split Insight.
+4. `운동 데이터` contains Zone Analysis, charts, and splits as supporting evidence.
+5. `회복 해석` contains Recovery Impact, Weakness/Coaching, AI interpretation, and next actions.
+
+The grouping is visual hierarchy only. It does not change route rendering, zone calculations, Growth builders, or RecoveryCalculator behavior. Collapse/expand interactions remain future-ready and are not enabled in v1.
