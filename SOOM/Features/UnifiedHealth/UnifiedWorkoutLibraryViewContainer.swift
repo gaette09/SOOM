@@ -5,10 +5,10 @@ struct UnifiedWorkoutLibraryViewContainer: View {
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
         UnifiedWorkoutLibraryView(
-            viewModel: UnifiedWorkoutLibraryViewModel(
-                store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-            )
+            viewModel: UnifiedWorkoutLibraryViewModel(store: store),
+            similarCandidateProvider: SimilarWorkoutCandidateProvider(store: store)
         )
     }
 }

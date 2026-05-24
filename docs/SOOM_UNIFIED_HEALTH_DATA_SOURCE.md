@@ -530,3 +530,11 @@ Flow:
 `WorkoutRoute + WorkoutGrowthInput -> RouteSimilarityBuilder -> RouteComparisonCandidate -> WorkoutComparisonInsightBuilder -> WorkoutComparisonInsightCard`
 
 This keeps comparison as an interpretation layer. `WorkoutRoute` supplies approximate route similarity signals such as distance, bounds, and start/end proximity, while `WorkoutGrowthInput` supplies sport-specific metric comparison. UnifiedWorkout, HealthKit, Garmin, Samsung, and SOOM local records can later feed the same route/growth inputs once their route streams are normalized. RecoveryCalculator and Growth calculation logic are not changed by this comparison layer.
+
+## UnifiedWorkoutStore to Comparison Insight
+
+Imported workout detail can now use stored UnifiedWorkout history for comparison candidates:
+
+`UnifiedWorkoutStore -> SimilarWorkoutCandidateProvider -> WorkoutGrowthInput baseline -> WorkoutComparisonInsightBuilder -> WorkoutComparisonInsightCard`
+
+The provider keeps the analysis input boundary clear: it filters out `isExcludedFromAnalysis` workouts, keeps only the same `workoutType`, excludes the current workout, and uses recent records only. Route-based ranking remains optional until route persistence is broader; distance/recency fallback is used when route data is missing. This does not change RecoveryCalculator, Growth builders, deduplication, or import policy.

@@ -575,3 +575,9 @@ Workout Detail은 장기적으로 Mapbox route map, sport-specific metrics, zone
 Route/Zone/Map/Zone Card 흐름은 `WorkoutRoute`, `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`, HealthKit route/metric stream fetchers, Mapbox detail overlay, static route preview, and Zone Cards로 확장되었다. Route Comparison Insight v1은 이 route/growth 기반 위에서 같은 코스 또는 유사 운동 비교를 설명하는 첫 해석 레이어다.
 
 자세한 설계는 [SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md](SOOM_WORKOUT_MAP_DETAIL_EXPERIENCE.md)를 따른다. 이 확장은 Growth interpretation layer이며 RecoveryCalculator나 공식 Recovery score를 변경하지 않는다.
+
+## Similar Workout Candidate Provider v1
+
+Comparison Insight now has a store-backed candidate path for imported `UnifiedWorkout` detail. `SimilarWorkoutCandidateProvider` reads recent workouts from `UnifiedWorkoutStore`, excludes the current workout and any `isExcludedFromAnalysis` records, filters to the same workout type, and returns `WorkoutGrowthInput` candidates for comparison.
+
+For v1, route ranking is optional. If current and candidate routes are available, `RouteSimilarityBuilder` can rank by route similarity. When route persistence is not available, the provider falls back to similar distance and recency. Mock/local workout detail continues to use the existing in-memory comparison flow. RecoveryCalculator and existing Growth calculation logic are unchanged.

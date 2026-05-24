@@ -429,3 +429,14 @@ Boundary:
 - This is a candidate/insight layer, not Strava-style segment matching.
 - Route matching is approximate and explanation-first.
 - RecoveryCalculator, official Recovery score, existing Growth calculations, Feed/SNS, server/Auth, and Garmin/Samsung connectors are not changed.
+
+## Similar Workout Candidate Provider v1
+
+Route Comparison Insight can now receive comparison baselines from stored UnifiedWorkout history. In imported workout detail, `SimilarWorkoutCandidateProvider` fetches recent same-sport workouts from `UnifiedWorkoutStore`, removes analysis-excluded records, and returns the best baseline for `WorkoutComparisonInsightBuilder`.
+
+Route handling remains intentionally lightweight:
+
+- If current and candidate `WorkoutRoute` values are available, route similarity can rank candidates.
+- If routes are unavailable, similar-distance fallback selects a comparable baseline.
+- Complex map matching, segment replay, server sync, and ML prediction remain deferred.
+- RecoveryCalculator and Growth calculation logic remain unchanged.

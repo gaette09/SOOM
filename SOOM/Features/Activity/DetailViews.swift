@@ -6,6 +6,7 @@ struct WorkoutDetailView: View {
     var comparisonWorkouts: [Workout] = []
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
+    var comparisonInsightOverride: WorkoutComparisonInsight?
 
     var body: some View {
         SOOMScreen {
@@ -15,7 +16,7 @@ struct WorkoutDetailView: View {
                 sessionSummary: sessionSummary,
                 growthSummary: growthSummary,
                 growthMetrics: growthMetrics,
-                comparisonInsight: comparisonInsight,
+                comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
                 shareableCard: shareableCard,

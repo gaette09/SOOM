@@ -2,9 +2,14 @@ import SwiftUI
 
 struct UnifiedWorkoutLibraryView: View {
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
+    private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
 
-    init(viewModel: UnifiedWorkoutLibraryViewModel) {
+    init(
+        viewModel: UnifiedWorkoutLibraryViewModel,
+        similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.similarCandidateProvider = similarCandidateProvider
     }
 
     var body: some View {
@@ -150,6 +155,7 @@ struct UnifiedWorkoutLibraryView: View {
                 UnifiedWorkoutLibraryRow(
                     workout: workout,
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
+                    similarCandidateProvider: similarCandidateProvider,
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -168,13 +174,17 @@ struct UnifiedWorkoutLibraryView: View {
 private struct UnifiedWorkoutLibraryRow: View {
     let workout: UnifiedWorkout
     let isUpdating: Bool
+    let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     let onToggleExcluded: () -> Void
 
     var body: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
                 NavigationLink {
-                    UnifiedWorkoutDetailDestination(unifiedWorkout: workout)
+                    UnifiedWorkoutDetailDestination(
+                        unifiedWorkout: workout,
+                        similarCandidateProvider: similarCandidateProvider
+                    )
                 } label: {
                     rowSummary
                 }
@@ -319,17 +329,45 @@ private struct UnifiedWorkoutLibraryRow: View {
 private struct UnifiedWorkoutDetailDestination: View {
     let unifiedWorkout: UnifiedWorkout
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
+    var similarCandidateProvider: SimilarWorkoutCandidateProviding?
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
+    @State private var comparisonInsight: WorkoutComparisonInsight?
 
     var body: some View {
         WorkoutDetailView(
             workout: Workout(unifiedWorkout: unifiedWorkout),
             healthKitWorkout: zoneContext.healthKitWorkout,
-            zoneDataProvider: zoneContext.zoneDataProvider
+            zoneDataProvider: zoneContext.zoneDataProvider,
+            comparisonInsightOverride: comparisonInsight
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
+            comparisonInsight = await loadComparisonInsight()
+        }
+    }
+
+    private func loadComparisonInsight() async -> WorkoutComparisonInsight? {
+        guard let similarCandidateProvider else {
+            return nil
+        }
+
+        do {
+            guard let result = try await similarCandidateProvider.bestCandidate(
+                for: unifiedWorkout,
+                currentRoute: nil,
+                candidateRoutesByWorkoutId: [:]
+            ) else {
+                return .insufficientData
+            }
+
+            return WorkoutComparisonInsightBuilder().build(
+                current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
+                baseline: result.baseline,
+                routeCandidate: result.routeCandidate
+            )
+        } catch {
+            return nil
         }
     }
 }
@@ -513,6 +551,9 @@ private extension UnifiedDataQuality {
     NavigationStack {
         UnifiedWorkoutLibraryView(
             viewModel: UnifiedWorkoutLibraryViewModel(
+                store: PreviewUnifiedWorkoutLibraryStore()
+            ),
+            similarCandidateProvider: SimilarWorkoutCandidateProvider(
                 store: PreviewUnifiedWorkoutLibraryStore()
             )
         )
