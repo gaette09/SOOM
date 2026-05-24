@@ -325,6 +325,11 @@
 		010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020324 /* WorkoutSplitInsightBuilderTests.swift */; };
 		010325 /* WorkoutDetailSectionGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020325 /* WorkoutDetailSectionGroup.swift */; };
 		010326 /* WorkoutDetailSectionGroupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020326 /* WorkoutDetailSectionGroupTests.swift */; };
+		010327 /* WorkoutSplitMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020327 /* WorkoutSplitMetric.swift */; };
+		010328 /* WorkoutSplitStreamBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020328 /* WorkoutSplitStreamBuilder.swift */; };
+		010329 /* WorkoutSplitDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020329 /* WorkoutSplitDataProvider.swift */; };
+		010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020330 /* WorkoutSplitStreamBuilderTests.swift */; };
+		010331 /* WorkoutSplitDataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020331 /* WorkoutSplitDataProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -658,6 +663,11 @@
 		020324 /* WorkoutSplitInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsightBuilderTests.swift; sourceTree = "<group>"; };
 		020325 /* WorkoutDetailSectionGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailSectionGroup.swift; sourceTree = "<group>"; };
 		020326 /* WorkoutDetailSectionGroupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailSectionGroupTests.swift; sourceTree = "<group>"; };
+		020327 /* WorkoutSplitMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitMetric.swift; sourceTree = "<group>"; };
+		020328 /* WorkoutSplitStreamBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilder.swift; sourceTree = "<group>"; };
+		020329 /* WorkoutSplitDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProvider.swift; sourceTree = "<group>"; };
+		020330 /* WorkoutSplitStreamBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilderTests.swift; sourceTree = "<group>"; };
+		020331 /* WorkoutSplitDataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1034,7 +1044,10 @@
 				020315 /* WorkoutComparisonInsightBuilder.swift */,
 				020319 /* SimilarWorkoutCandidateProvider.swift */,
 				020321 /* WorkoutSplitInsight.swift */,
+				020327 /* WorkoutSplitMetric.swift */,
+				020328 /* WorkoutSplitStreamBuilder.swift */,
 				020322 /* WorkoutSplitInsightBuilder.swift */,
+				020329 /* WorkoutSplitDataProvider.swift */,
 				020325 /* WorkoutDetailSectionGroup.swift */,
 				020265 /* WorkoutRoute.swift */,
 				020273 /* WorkoutRouteStore.swift */,
@@ -1166,6 +1179,8 @@
 				020318 /* WorkoutComparisonInsightBuilderTests.swift */,
 				020320 /* SimilarWorkoutCandidateProviderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
+				020330 /* WorkoutSplitStreamBuilderTests.swift */,
+				020331 /* WorkoutSplitDataProviderTests.swift */,
 				020326 /* WorkoutDetailSectionGroupTests.swift */,
 				020269 /* WorkoutRouteTests.swift */,
 				020270 /* WorkoutZoneBuilderTests.swift */,
@@ -1401,7 +1416,10 @@
 				010315 /* WorkoutComparisonInsightBuilder.swift in Sources */,
 				010319 /* SimilarWorkoutCandidateProvider.swift in Sources */,
 				010321 /* WorkoutSplitInsight.swift in Sources */,
+				010327 /* WorkoutSplitMetric.swift in Sources */,
+				010328 /* WorkoutSplitStreamBuilder.swift in Sources */,
 				010322 /* WorkoutSplitInsightBuilder.swift in Sources */,
+				010329 /* WorkoutSplitDataProvider.swift in Sources */,
 				010325 /* WorkoutDetailSectionGroup.swift in Sources */,
 				010264 /* WorkoutRoute.swift in Sources */,
 				010272 /* WorkoutRouteStore.swift in Sources */,
@@ -1596,6 +1614,8 @@
 				010318 /* WorkoutComparisonInsightBuilderTests.swift in Sources */,
 				010320 /* SimilarWorkoutCandidateProviderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
+				010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */,
+				010331 /* WorkoutSplitDataProviderTests.swift in Sources */,
 				010326 /* WorkoutDetailSectionGroupTests.swift in Sources */,
 				010268 /* WorkoutRouteTests.swift in Sources */,
 				010269 /* WorkoutZoneBuilderTests.swift in Sources */,

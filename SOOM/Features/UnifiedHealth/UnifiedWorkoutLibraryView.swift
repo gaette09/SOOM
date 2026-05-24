@@ -339,6 +339,7 @@ private struct UnifiedWorkoutDetailDestination: View {
             workout: Workout(unifiedWorkout: unifiedWorkout),
             healthKitWorkout: zoneContext.healthKitWorkout,
             zoneDataProvider: zoneContext.zoneDataProvider,
+            splitDataProvider: zoneContext.splitDataProvider,
             comparisonInsightOverride: comparisonInsight
         )
         .task(id: unifiedWorkout.id) {
@@ -399,7 +400,7 @@ private extension Workout {
             samples: [],
             zones: [],
             achievements: [],
-            aiSummary: "가져온 운동 기록을 기준으로 상세 흐름을 확인합니다. HealthKit stream이 있으면 존 분석에 우선 반영돼요."
+            aiSummary: "가져온 운동 기록을 기준으로 상세 흐름을 확인합니다. HealthKit stream이 있으면 존과 운동 흐름 분석에 우선 반영돼요."
         )
     }
 

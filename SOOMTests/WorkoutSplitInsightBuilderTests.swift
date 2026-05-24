@@ -86,6 +86,58 @@ final class WorkoutSplitInsightBuilderTests: XCTestCase {
         XCTAssertNotEqual(insight.splitType, .insufficientData)
     }
 
+    func testStreamCadenceStabilityUsesSplitMetricsFirst() {
+        let input = makeInput(
+            type: .cycling,
+            durationMinutes: 60,
+            distanceKm: 30,
+            averageSpeedKmh: 30
+        )
+        let metrics = [
+            makeSplitMetric(index: 0, cadence: 86),
+            makeSplitMetric(index: 1, cadence: 84)
+        ]
+
+        let insight = WorkoutSplitInsightBuilder().build(current: input, splitMetrics: metrics)
+
+        XCTAssertEqual(insight.splitType, .stableSpeed)
+        XCTAssertTrue(insight.metricRows.contains { $0.title == "전반 cadence" })
+        assertNoNegativeTone(in: insight)
+    }
+
+    func testStreamSpeedDropUsesLighterRhythmTone() {
+        let input = makeInput(
+            type: .cycling,
+            durationMinutes: 60,
+            distanceKm: 30,
+            averageSpeedKmh: 30
+        )
+        let metrics = [
+            makeSplitMetric(index: 0, speed: 30),
+            makeSplitMetric(index: 1, speed: 26)
+        ]
+
+        let insight = WorkoutSplitInsightBuilder().build(current: input, splitMetrics: metrics)
+
+        XCTAssertEqual(insight.splitType, .fatigueDrop)
+        XCTAssertEqual(insight.trend, .lighter)
+        assertNoNegativeTone(in: insight)
+    }
+
+    func testStreamlessMetricsFallBackToHeuristic() {
+        let input = makeInput(
+            type: .running,
+            durationMinutes: 45,
+            distanceKm: 10,
+            averageHeartRate: 142
+        )
+
+        let insight = WorkoutSplitInsightBuilder().build(current: input, splitMetrics: [])
+
+        XCTAssertEqual(insight.splitType, .stablePace)
+        XCTAssertTrue(insight.metricRows.contains { $0.title == "평균 페이스" })
+    }
+
     private func makeInput(
         type: UnifiedWorkoutType,
         durationMinutes: Int,
@@ -105,6 +157,28 @@ final class WorkoutSplitInsightBuilderTests: XCTestCase {
             averageHeartRate: averageHeartRate,
             elevationGainMeters: nil,
             activeEnergyKcal: nil
+        )
+    }
+
+
+    private func makeSplitMetric(
+        index: Int,
+        pace: TimeInterval? = nil,
+        speed: Double? = nil,
+        cadence: Double? = nil,
+        heartRate: Double? = nil
+    ) -> WorkoutSplitMetric {
+        let start = Date(timeIntervalSince1970: 1_800_000_000 + Double(index * 1_800))
+        return WorkoutSplitMetric(
+            splitIndex: index,
+            startTime: start,
+            endTime: start.addingTimeInterval(1_800),
+            averagePace: pace,
+            averageSpeed: speed,
+            averageCadence: cadence,
+            averageHeartRate: heartRate,
+            averagePower: nil,
+            distanceMeters: nil
         )
     }
 

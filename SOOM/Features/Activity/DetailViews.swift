@@ -6,6 +6,7 @@ struct WorkoutDetailView: View {
     var comparisonWorkouts: [Workout] = []
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
+    var splitDataProvider: WorkoutSplitDataProviding?
     var comparisonInsightOverride: WorkoutComparisonInsight?
 
     var body: some View {
@@ -23,7 +24,8 @@ struct WorkoutDetailView: View {
                 shareableCard: shareableCard,
                 mapRoute: detailMapRoute,
                 healthKitWorkout: healthKitWorkout,
-                zoneDataProvider: zoneDataProvider
+                zoneDataProvider: zoneDataProvider,
+                splitDataProvider: splitDataProvider
             )
         }
         .navigationTitle("운동 상세")

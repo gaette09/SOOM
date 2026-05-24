@@ -458,3 +458,10 @@ Workout Detail now groups the route/map experience and interpretation cards into
 5. `회복 해석` contains Recovery Impact, Weakness/Coaching, AI interpretation, and next actions.
 
 The grouping is visual hierarchy only. It does not change route rendering, zone calculations, Growth builders, or RecoveryCalculator behavior. Collapse/expand interactions remain future-ready and are not enabled in v1.
+
+## Real Split Stream Analysis v1
+
+- HealthKit imported workout detail에서는 metric stream을 time-based split으로 나누어 운동 내부 리듬을 해석할 수 있다.
+- cadence/speed/pace 흐름은 Split Insight Card의 metric rows로 요약되며, 복잡한 chart나 route replay 없이 읽기 쉬운 coaching layer로 유지한다.
+- stream 데이터가 없거나 권한/조회가 실패하면 기존 fallback Split Insight를 유지한다.
+- GPS segment replay, interactive segment analysis, ML 예측은 future scope다.

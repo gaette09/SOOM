@@ -18,6 +18,7 @@ struct WorkoutDetailContent: View {
     var mapRoute: WorkoutRoute?
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
+    var splitDataProvider: WorkoutSplitDataProviding?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
@@ -25,6 +26,7 @@ struct WorkoutDetailContent: View {
     @State private var isShareSheetPresented = false
     @State private var shareErrorMessage: String?
     @State private var streamZoneSummaries: [WorkoutZoneSummary]?
+    @State private var streamSplitInsight: WorkoutSplitInsight?
     @State private var isLoadingZoneSummaries = false
     @State private var didFailLoadingZoneSummaries = false
 
@@ -64,8 +66,8 @@ struct WorkoutDetailContent: View {
                     WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
                 }
 
-                if let splitInsight {
-                    WorkoutSplitInsightCard(insight: splitInsight, tint: workout.sport.tint)
+                if let displayedSplitInsight {
+                    WorkoutSplitInsightCard(insight: displayedSplitInsight, tint: workout.sport.tint)
                 }
             }
 
@@ -131,6 +133,7 @@ struct WorkoutDetailContent: View {
         }
         .task(id: healthKitWorkout?.uuid) {
             await loadStreamZoneSummaries()
+            await loadStreamSplitInsight()
         }
         .alert(
             "공유 카드를 만들지 못했어요",
@@ -181,6 +184,43 @@ struct WorkoutDetailContent: View {
         }
 
         isLoadingZoneSummaries = false
+    }
+
+    @MainActor
+    private func loadStreamSplitInsight() async {
+        guard let healthKitWorkout, let splitDataProvider else {
+            streamSplitInsight = nil
+            return
+        }
+
+        do {
+            streamSplitInsight = try await splitDataProvider.insight(
+                for: healthKitWorkout,
+                current: workoutGrowthInput
+            )
+        } catch {
+            streamSplitInsight = nil
+        }
+    }
+
+    private var displayedSplitInsight: WorkoutSplitInsight? {
+        streamSplitInsight ?? splitInsight
+    }
+
+    private var workoutGrowthInput: WorkoutGrowthInput {
+        WorkoutGrowthInput(
+            id: workout.id,
+            source: .soomLocal,
+            workoutType: UnifiedWorkoutType(workoutSport: workout.sport),
+            startDate: workout.date,
+            durationMinutes: Int(workout.duration / 60),
+            distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
+            averagePaceText: workout.sport == .run ? workout.formattedPace : nil,
+            averageSpeedKmh: workout.duration > 0 ? (workout.distanceMeters / 1_000) / (workout.duration / 3_600) : nil,
+            averageHeartRate: Double(workout.avgHeartRate),
+            elevationGainMeters: Double(workout.elevationGain),
+            activeEnergyKcal: Double(workout.activeCalories)
+        )
     }
 
     private func shareButton(for card: ShareableWorkoutCardModel) -> some View {
@@ -291,5 +331,19 @@ private struct WorkoutDetailSectionContainer<Content: View>: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(group.title)
         .accessibilityValue(group.caption)
+    }
+}
+
+
+private extension UnifiedWorkoutType {
+    init(workoutSport sport: WorkoutSport) {
+        switch sport {
+        case .swim:
+            self = .swimming
+        case .bike, .brick:
+            self = .cycling
+        case .run:
+            self = .running
+        }
     }
 }

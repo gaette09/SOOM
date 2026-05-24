@@ -598,3 +598,11 @@ Workout Detail now treats growth interpretation as a grouped reading flow rather
 - `WorkoutSplitInsightCard`: today’s internal pacing/rhythm cue.
 
 This preserves the existing rule-based builders and keeps Growth interpretation separate from Recovery scoring. Zone data remains a supporting evidence layer after the growth group.
+
+## Real Split Stream Analysis v1
+
+- Workout Detail의 Split Insight는 HealthKit metric stream이 있는 경우 실제 전후반 stream summary를 우선 사용한다.
+- v1은 time-based split으로 cadence, heart rate, power 흐름을 요약하고, stream이 없거나 실패하면 기존 heuristic insight로 안전하게 fallback한다.
+- 해석 톤은 pace/speed/cadence의 리듬 변화 중심이며, 잘함/못함 평가나 진단 표현을 사용하지 않는다.
+- GPS segment replay, Strava segment clone, ML prediction은 아직 구현하지 않는다.
+- RecoveryCalculator와 기존 Growth 계산 로직은 변경하지 않는다.
