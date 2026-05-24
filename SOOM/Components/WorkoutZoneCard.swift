@@ -158,11 +158,11 @@ extension WorkoutZoneType {
     var unavailableCopy: String {
         switch self {
         case .heartRate:
-            return "심박 데이터가 쌓이면 강도 흐름을 보여드릴게요."
+            return "심박 데이터를 아직 찾지 못했어요. 기록이 있으면 강도 흐름을 보여드릴게요."
         case .cadence:
-            return "케이던스 데이터가 있으면 리듬 변화를 보여드릴게요."
+            return "케이던스 데이터가 없는 운동이에요. 센서 기록이 있으면 리듬 변화를 보여드릴게요."
         case .power:
-            return "파워 데이터 없음. 파워 기록과 FTP가 준비되면 존 흐름을 보여드릴게요."
+            return "파워 데이터를 아직 찾지 못했어요. 파워 기록과 FTP가 준비되면 존 흐름을 보여드릴게요."
         }
     }
 

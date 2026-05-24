@@ -1,8 +1,11 @@
 import SwiftUI
+import HealthKit
 
 struct WorkoutDetailView: View {
     let workout: Workout
     var comparisonWorkouts: [Workout] = []
+    var healthKitWorkout: HKWorkout?
+    var zoneDataProvider: WorkoutZoneDataProviding?
 
     var body: some View {
         SOOMScreen {
@@ -15,7 +18,9 @@ struct WorkoutDetailView: View {
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
                 shareableCard: shareableCard,
-                mapRoute: detailMapRoute
+                mapRoute: detailMapRoute,
+                healthKitWorkout: healthKitWorkout,
+                zoneDataProvider: zoneDataProvider
             )
         }
         .navigationTitle("운동 상세")

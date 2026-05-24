@@ -364,3 +364,27 @@ Mapping policy:
 - route SwiftData persistence
 - background route fetch
 - RecoveryCalculator 또는 Growth 계산 로직 변경
+
+## HR / Cadence / Power Stream Fetch v1
+
+HealthKit stream read path now includes a first implementation for workout-attached heart rate, cycling cadence, and cycling power samples.
+
+Implemented structure:
+
+- `HealthKitWorkoutMetricSample` stores a normalized sample type, value, unit, start date, and end date.
+- `HealthKitWorkoutMetricStreamFetcher` uses `HKSampleQuery` with `HKQuery.predicateForObjects(from:)` to fetch samples linked to a specific `HKWorkout`.
+- `HealthKitWorkoutMetricMapper` maps `HKQuantitySample` values into SOOM metric samples with read-only units: heart rate `count/min`, cycling cadence `rpm`, and power `watt`.
+- `HealthKitMetricZoneBuilder` converts metric samples into `WorkoutZoneSummary` for Zone Cards.
+- `HealthKitManager.readTypes` includes heart rate and, on iOS 17+, cycling cadence and cycling power. No write permission is requested.
+
+Current boundary:
+
+- This prepares real stream data for Workout Detail Zone Cards, but does not change RecoveryCalculator, Growth analysis, or official Recovery score behavior.
+- FTP settings, NP/TSS/IF, automatic HealthKit sync, and Garmin/Samsung streams remain deferred.
+
+
+## Stream Fetch to Zone Cards v1
+
+HealthKit metric streams can now feed Workout Detail Zone Cards through `WorkoutZoneDataProvider`. The flow is manual/detail-time only: `HKWorkout` -> `HealthKitWorkoutMetricStreamFetcher` -> `HealthKitMetricZoneBuilder` -> `WorkoutZoneSummary` -> `WorkoutZoneSection`.
+
+This is not background sync and does not change RecoveryCalculator or Growth calculations. Missing HR, cadence, or power data falls back to existing summary/unavailable UI so sensor-dependent gaps do not look like app errors.

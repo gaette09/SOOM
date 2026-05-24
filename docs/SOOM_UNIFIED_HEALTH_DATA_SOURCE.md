@@ -481,3 +481,24 @@ Route/Zone Domain Model v1 구현 상태:
 Heart-rate, cadence, and power stream candidates now have a first UI destination through Workout Detail Zone Cards. v1 uses `WorkoutZoneSummary` and simple distribution bars; future HealthKit/Garmin/Samsung streams can fill the same model once sample-level import is expanded.
 
 The connection is intentionally read-only and interpretive. It does not change RecoveryCalculator, Workout Growth scoring, or UnifiedWorkout import policy.
+
+## Metric Stream to Zone Summary Flow
+
+HealthKit metric streams now have a first domain bridge into SOOM zone summaries:
+
+`HKQuantitySample -> HealthKitWorkoutMetricSample -> HealthKitMetricZoneBuilder -> WorkoutZoneSummary`.
+
+Supported v1 stream candidates:
+
+- heart rate samples for Zone 1-5 distribution using a fallback max-heart-rate threshold when no user max HR exists
+- cycling cadence samples for low / optimal / high rhythm zones
+- cycling power samples as future-ready power zones, with FTP missing represented as unavailable rather than as an error
+
+This stream path is read-only and interpretive. It prepares Workout Detail Zone Cards for real HealthKit data, but does not alter `UnifiedWorkout`, RecoveryCalculator, or Growth score inputs. Garmin/Samsung streams can later normalize into the same metric sample and zone summary contract.
+
+
+## HR / Cadence / Power Stream to WorkoutZoneSummary
+
+Metric streams now have a direct interpretation path for workout detail zones. HealthKit samples are mapped into SOOM metric samples, then converted into sport-specific `WorkoutZoneSummary` values. Running prioritizes heart-rate zones, cycling can show heart-rate, cadence, and power, swimming keeps heart-rate optional.
+
+The stream path is an interpretation layer for detail UI. It does not modify Recovery score inputs, Growth calculations, import deduplication, or feed sharing behavior.

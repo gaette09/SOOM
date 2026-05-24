@@ -334,3 +334,35 @@ Sport-specific handling is intentionally lightweight:
 - Walking/Hiking future: heart-rate-centered zone cards can reuse the same summary model.
 
 This remains a coaching layer, not a training dashboard. FTP, NP, TSS, IF, advanced power modeling, and chart-heavy analysis are deferred.
+
+## HealthKit Metric Stream Zone Expansion v1
+
+Zone Cards can now be backed by a HealthKit stream fetch/mapping layer. v1 adds the domain path for workout-linked heart rate, cycling cadence, and cycling power samples without changing the Workout Detail visual hierarchy.
+
+Flow:
+
+1. `HealthKitWorkoutMetricStreamFetcher` fetches samples attached to a selected `HKWorkout`.
+2. `HealthKitWorkoutMetricMapper` normalizes sample values and units.
+3. `HealthKitMetricZoneBuilder` groups sample durations into `WorkoutZoneSummary`.
+4. `WorkoutZoneCard` and `WorkoutZoneSection` can display the resulting summaries when the detail flow connects real stream data.
+
+Zone policy:
+
+- Heart rate uses simple Zone 1-5 thresholds with a fallback max HR until user-specific settings exist.
+- Cycling cadence uses low / optimal / high rhythm buckets.
+- Cycling power returns an unavailable summary when FTP is missing; FTP-based Zone 1-7 support is kept future-ready but not exposed as a full training model.
+
+Deferred:
+
+- FTP settings UI
+- advanced cycling metrics such as NP, TSS, IF
+- complex charting
+- automatic HealthKit stream sync
+- Garmin/Samsung stream import
+
+
+## Real Zone Stream Injection v1
+
+Workout Detail Zone Cards now have a real-data injection path for HealthKit metric streams. When an `HKWorkout` and `WorkoutZoneDataProvider` are available, SOOM fetches heart-rate, cycling cadence, and cycling power samples, maps them into `HealthKitWorkoutMetricSample`, and builds `WorkoutZoneSummary` values for the detail page.
+
+The UI still keeps the existing fallback summaries when stream data is empty or unavailable. Power remains FTP-gated in v1: without FTP, cycling power appears as a gentle unavailable state rather than a training-dashboard calculation.

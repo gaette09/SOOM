@@ -67,6 +67,15 @@ final class HealthKitManager: HealthKitManaging {
             .compactMap { $0 }
             .forEach { types.insert($0) }
 
+        if #available(iOS 17.0, *) {
+            [
+                HKQuantityType.quantityType(forIdentifier: .cyclingCadence),
+                HKQuantityType.quantityType(forIdentifier: .cyclingPower)
+            ]
+                .compactMap { $0 }
+                .forEach { types.insert($0) }
+        }
+
         return types
     }
 }

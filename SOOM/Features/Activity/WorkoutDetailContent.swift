@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import HealthKit
 
 struct WorkoutDetailContent: View {
     let workout: Workout
@@ -11,12 +12,17 @@ struct WorkoutDetailContent: View {
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
     var mapRoute: WorkoutRoute?
+    var healthKitWorkout: HKWorkout?
+    var zoneDataProvider: WorkoutZoneDataProviding?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
     @State private var shareImage: UIImage?
     @State private var isShareSheetPresented = false
     @State private var shareErrorMessage: String?
+    @State private var streamZoneSummaries: [WorkoutZoneSummary]?
+    @State private var isLoadingZoneSummaries = false
+    @State private var didFailLoadingZoneSummaries = false
 
     static let sharePrivacyCopy = "4:5 이미지로 저장돼요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
 
@@ -39,7 +45,12 @@ struct WorkoutDetailContent: View {
             if let metrics = growthMetrics, !metrics.isEmpty {
                 WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
             }
-            WorkoutZoneSection(workout: workout)
+            WorkoutZoneSection(
+                workout: workout,
+                streamSummaries: streamZoneSummaries,
+                isLoadingStream: isLoadingZoneSummaries,
+                didFailLoadingStream: didFailLoadingZoneSummaries
+            )
             if let growthSummary {
                 WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
             }
@@ -91,6 +102,9 @@ struct WorkoutDetailContent: View {
                 WorkoutShareSheet(activityItems: [shareImage])
             }
         }
+        .task(id: healthKitWorkout?.uuid) {
+            await loadStreamZoneSummaries()
+        }
         .alert(
             "공유 카드를 만들지 못했어요",
             isPresented: Binding(
@@ -106,6 +120,30 @@ struct WorkoutDetailContent: View {
         } message: {
             Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
         }
+    }
+
+
+    @MainActor
+    private func loadStreamZoneSummaries() async {
+        guard let healthKitWorkout, let zoneDataProvider else {
+            streamZoneSummaries = nil
+            isLoadingZoneSummaries = false
+            didFailLoadingZoneSummaries = false
+            return
+        }
+
+        isLoadingZoneSummaries = true
+        didFailLoadingZoneSummaries = false
+
+        do {
+            let summaries = try await zoneDataProvider.summaries(for: healthKitWorkout, sport: workout.sport)
+            streamZoneSummaries = summaries.contains { $0.isAvailable } ? summaries : nil
+        } catch {
+            streamZoneSummaries = nil
+            didFailLoadingZoneSummaries = true
+        }
+
+        isLoadingZoneSummaries = false
     }
 
     private func shareButton(for card: ShareableWorkoutCardModel) -> some View {

@@ -3,21 +3,43 @@ import SwiftUI
 struct WorkoutZoneSection: View {
     let sport: WorkoutSport
     let summaries: [WorkoutZoneSummary]
+    let isLoadingStream: Bool
+    let didFailLoadingStream: Bool
 
-    init(workout: Workout) {
+    init(
+        workout: Workout,
+        streamSummaries: [WorkoutZoneSummary]? = nil,
+        isLoadingStream: Bool = false,
+        didFailLoadingStream: Bool = false
+    ) {
         self.sport = workout.sport
-        self.summaries = Self.makeSummaries(for: workout)
+        self.summaries = streamSummaries ?? Self.makeSummaries(for: workout)
+        self.isLoadingStream = isLoadingStream
+        self.didFailLoadingStream = didFailLoadingStream
     }
 
-    init(sport: WorkoutSport, summaries: [WorkoutZoneSummary]) {
+    init(
+        sport: WorkoutSport,
+        summaries: [WorkoutZoneSummary],
+        isLoadingStream: Bool = false,
+        didFailLoadingStream: Bool = false
+    ) {
         self.sport = sport
         self.summaries = summaries
+        self.isLoadingStream = isLoadingStream
+        self.didFailLoadingStream = didFailLoadingStream
     }
 
     var body: some View {
         if !visibleSummaries.isEmpty {
             VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-                SOOMSectionHeader("존 분석", caption: "강도와 리듬을 가볍게 확인해요")
+                SOOMSectionHeader("존 분석", caption: sectionCaption)
+
+                if isLoadingStream {
+                    streamStatusRow("HealthKit 강도 데이터를 확인하고 있어요.")
+                } else if didFailLoadingStream {
+                    streamStatusRow("실제 강도 데이터를 찾지 못해 기존 요약으로 보여드려요.")
+                }
 
                 VStack(spacing: SOOMLayout.stackSpacing) {
                     ForEach(visibleSummaries, id: \.type.rawValue) { summary in
@@ -33,6 +55,26 @@ struct WorkoutZoneSection: View {
         summaries.filter { summary in
             summary.isAvailable || Self.shouldShowUnavailable(summary.type, for: sport)
         }
+    }
+
+    private var sectionCaption: String {
+        if isLoadingStream {
+            return "실제 HealthKit stream을 우선 확인해요"
+        }
+        if didFailLoadingStream {
+            return "데이터가 없으면 기존 요약을 안전하게 사용해요"
+        }
+        return "강도와 리듬을 가볍게 확인해요"
+    }
+
+    private func streamStatusRow(_ text: String) -> some View {
+        Text(text)
+            .font(SOOMFont.body(12, relativeTo: .caption))
+            .foregroundStyle(SOOMColor.secondaryInk)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(SOOMLayout.Metrics.actionTextSpacing)
+            .background(SOOMColor.surfaceMuted)
+            .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
     }
 
     static func makeSummaries(for workout: Workout) -> [WorkoutZoneSummary] {
