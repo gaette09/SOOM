@@ -581,3 +581,8 @@ Design 기준:
 - Improvement copy should be subtle: “조금 더 가벼운 리듬”, “이전보다 빠른 흐름”.
 - `insufficientData` should feel like a future promise, not an error.
 - Recovery score, Growth score, and social ranking should not be visually mixed into this card.
+
+
+## Course Identity and Same-route Records
+
+Course identity is a supporting interpretation layer, not a competitive ranking system. Same-route records should be framed as “이전 나와의 코스 흐름” and use cautious copy such as “비슷한 코스” when the app relies on heuristic route matching. Reverse-direction matches are allowed when the route signals are close enough, but UI should avoid claiming exact segment identity until a stronger map-matching layer exists.

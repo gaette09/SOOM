@@ -83,6 +83,28 @@ final class CourseRecordBuilderTests: XCTestCase {
         XCTAssertFalse(copy.contains("나쁨"))
     }
 
+
+    func testCourseIdentityIsUsedWhenProvided() {
+        let current = input(type: .running, distance: 10, duration: 48)
+        let previous = input(type: .running, distance: 10, duration: 52, daysAgo: 7)
+        let identity = CourseIdentity(
+            courseId: "course-v1-stable-test",
+            identityVersion: 1,
+            estimatedCenter: WorkoutRouteCoordinate(latitude: 37.5, longitude: 127.0),
+            estimatedDistance: 10_000,
+            estimatedDirection: .northbound,
+            source: .generated
+        )
+
+        let record = builder.build(
+            current: current,
+            candidateWorkouts: [previous],
+            courseIdentity: identity
+        )
+
+        XCTAssertEqual(record.courseId, identity.courseId)
+    }
+
     private func input(
         type: UnifiedWorkoutType,
         distance: Double,

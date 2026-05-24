@@ -60,6 +60,46 @@ final class CourseSimilarityBuilderTests: XCTestCase {
         XCTAssertNil(builder.compare(current: current, candidate: candidate))
     }
 
+
+    func testReverseDirectionRouteBuildsCourseCandidate() {
+        let currentCoordinates = [
+            coordinate(37.5000, 127.0000),
+            coordinate(37.5100, 127.0100),
+            coordinate(37.5200, 127.0200)
+        ]
+        let candidateCoordinates = Array(currentCoordinates.reversed())
+        let current = route(id: UUID(), distance: 10_000, coordinates: currentCoordinates)
+        let candidate = route(id: UUID(), distance: 10_100, coordinates: candidateCoordinates)
+
+        let result = builder.compare(current: current, candidate: candidate)
+
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.reason, .similarRoute)
+        XCTAssertEqual(result?.isReverseDirection, true)
+        XCTAssertEqual(result?.confidenceLevel, .high)
+    }
+
+    func testSimilarDistanceInDifferentAreaIsExcluded() {
+        let current = route(
+            id: UUID(),
+            distance: 10_000,
+            coordinates: [
+                coordinate(37.5000, 127.0000),
+                coordinate(37.5200, 127.0200)
+            ]
+        )
+        let candidate = route(
+            id: UUID(),
+            distance: 10_100,
+            coordinates: [
+                coordinate(35.5000, 129.0000),
+                coordinate(35.5200, 129.0200)
+            ]
+        )
+
+        XCTAssertNil(builder.compare(current: current, candidate: candidate))
+    }
+
     private func route(
         id: UUID,
         distance: Double,

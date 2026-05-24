@@ -618,3 +618,10 @@ Sport policy:
 - Swimming: best 100m pace when comparable workouts exist.
 
 This is not a leaderboard or segment clone. Copy should stay focused on “이전 나보다 조금 좋아진 흐름” rather than trophy language. RecoveryCalculator and existing Growth calculation logic remain unchanged.
+
+
+## Course Identity Foundation v1
+
+Same-route growth comparison now has a foundation layer. `CourseIdentity` and `CourseIdentityBuilder` provide a stable-ish local course id based on route bounds, center, and distance bucket. Course Record can use this identity when route context is available, while continuing to fall back to similar workout candidates when route data is missing.
+
+Reverse-direction routes can be treated as similar course candidates. The user-facing copy remains “비슷한 코스” so SOOM avoids overclaiming exact map matching.

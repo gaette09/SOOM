@@ -478,3 +478,12 @@ Implementation status:
 - If route persistence is unavailable, imported workout detail can still use the stored same-type/similar-distance baseline from `SimilarWorkoutCandidateProvider`.
 
 Deferred: GPS segment replay, Strava-style segment clone, ML prediction, advanced climb analysis, and server/Auth syncing.
+
+
+## Course Identity Foundation v1
+
+Course Identity Foundation v1 adds a lightweight, local route identity layer for same-course comparison. `CourseIdentityBuilder` generates a stable-ish course identity from normalized route bounds, approximate center coordinate, and distance bucket. The identity is heuristic rather than cryptographic and does not perform GPS map matching.
+
+`CourseSimilarityBuilder` now keeps reverse-direction routes in the same-course candidate set when bounds overlap, distance is similar, and start/end proximity matches in reverse. This supports A-to-B and B-to-A route comparisons while keeping the UX copy at the safer “비슷한 코스” level.
+
+Deferred: complex map matching, segment replay, server-backed course ids, and Strava-style segment cloning remain out of scope.

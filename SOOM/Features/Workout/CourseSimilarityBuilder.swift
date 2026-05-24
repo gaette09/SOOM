@@ -4,6 +4,7 @@ struct CourseSimilarityBuilder {
     private let distanceToleranceRatio = 0.12
     private let endpointNearMeters: Double = 350
     private let minimumSimilarityScore = 0.72
+    private let identityBuilder = CourseIdentityBuilder()
 
     func isSameCourse(current: WorkoutRoute, candidate: WorkoutRoute) -> Bool {
         compare(current: current, candidate: candidate) != nil
@@ -38,17 +39,20 @@ struct CourseSimilarityBuilder {
                 Self.boundsOverlap(currentBounds, candidateBounds)
             }
         } ?? false
-        let endpointsNear = Self.endpointsNear(
+        let endpointMatch = Self.endpointMatch(
             current.coordinates,
             candidate.coordinates,
             thresholdMeters: endpointNearMeters
         )
+        let endpointsNear = endpointMatch.isNear
+        let identityMatch = identityBuilder.build(from: current)?.courseId == identityBuilder.build(from: candidate)?.courseId
 
         guard boundsOverlap || endpointsNear else { return nil }
 
         var score = 0.70 + (1 - distanceRatio / distanceToleranceRatio) * 0.18
         if boundsOverlap { score += 0.06 }
         if endpointsNear { score += 0.06 }
+        if identityMatch { score += 0.04 }
 
         guard score >= minimumSimilarityScore else { return nil }
 
@@ -58,7 +62,8 @@ struct CourseSimilarityBuilder {
             similarityScore: score,
             reason: .similarRoute,
             matchedDistanceMeters: min(current.totalDistanceMeters, candidate.totalDistanceMeters),
-            matchedDurationSeconds: nil
+            matchedDurationSeconds: nil,
+            isReverseDirection: endpointMatch.isReverseDirection
         )
     }
 
@@ -69,21 +74,21 @@ struct CourseSimilarityBuilder {
         lhs.maxLongitude >= rhs.minLongitude
     }
 
-    private static func endpointsNear(
+    private static func endpointMatch(
         _ lhs: [WorkoutRouteCoordinate],
         _ rhs: [WorkoutRouteCoordinate],
         thresholdMeters: Double
-    ) -> Bool {
+    ) -> (isNear: Bool, isReverseDirection: Bool) {
         guard let lhsStart = lhs.first,
               let lhsEnd = lhs.last,
               let rhsStart = rhs.first,
               let rhsEnd = rhs.last else {
-            return false
+            return (false, false)
         }
 
         let sameDirection = distance(lhsStart, rhsStart) <= thresholdMeters && distance(lhsEnd, rhsEnd) <= thresholdMeters
         let reverseDirection = distance(lhsStart, rhsEnd) <= thresholdMeters && distance(lhsEnd, rhsStart) <= thresholdMeters
-        return sameDirection || reverseDirection
+        return (sameDirection || reverseDirection, !sameDirection && reverseDirection)
     }
 
     private static func distance(_ lhs: WorkoutRouteCoordinate, _ rhs: WorkoutRouteCoordinate) -> Double {

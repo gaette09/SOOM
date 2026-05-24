@@ -554,3 +554,10 @@ Same-course records use the same normalized route/growth boundary as comparison 
 `WorkoutRoute` provides approximate same-course signals such as bounds overlap, start/end proximity, and distance tolerance. `WorkoutGrowthInput` supplies sport-specific metrics such as running pace, cycling speed, swimming 100m pace, distance, and duration. Imported UnifiedWorkout detail can use stored same-type candidates through `SimilarWorkoutCandidateProvider` when route persistence is not available.
 
 This remains an interpretation layer. It does not change RecoveryCalculator, Growth builders, import policy, deduplication, or Feed/SNS behavior.
+
+
+## Course Identity Foundation v1
+
+`WorkoutRoute` can now be interpreted through `CourseIdentityBuilder` before course record comparison. The generated identity uses normalized bounds, estimated center, distance bucket, and optional direction estimate. Reverse-direction routes are allowed as similar course candidates through `CourseSimilarityBuilder` metadata, but no server identity, GPS map matching, or segment replay is introduced.
+
+This keeps course grouping local-first and future-ready for HealthKit, Garmin, Samsung, and SOOM local routes once their route streams are normalized.

@@ -336,6 +336,9 @@
 		010335 /* CourseRecordCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020335 /* CourseRecordCard.swift */; };
 		010336 /* CourseSimilarityBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020336 /* CourseSimilarityBuilderTests.swift */; };
 		010337 /* CourseRecordBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020337 /* CourseRecordBuilderTests.swift */; };
+		010338 /* CourseIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020338 /* CourseIdentity.swift */; };
+		010339 /* CourseIdentityBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020339 /* CourseIdentityBuilder.swift */; };
+		010340 /* CourseIdentityBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020340 /* CourseIdentityBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -680,6 +683,9 @@
 		020335 /* CourseRecordCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecordCard.swift; sourceTree = "<group>"; };
 		020336 /* CourseSimilarityBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseSimilarityBuilderTests.swift; sourceTree = "<group>"; };
 		020337 /* CourseRecordBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecordBuilderTests.swift; sourceTree = "<group>"; };
+		020338 /* CourseIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentity.swift; sourceTree = "<group>"; };
+		020339 /* CourseIdentityBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentityBuilder.swift; sourceTree = "<group>"; };
+		020340 /* CourseIdentityBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentityBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1056,6 +1062,8 @@
 				020314 /* WorkoutComparisonInsight.swift */,
 				020315 /* WorkoutComparisonInsightBuilder.swift */,
 				020319 /* SimilarWorkoutCandidateProvider.swift */,
+				020338 /* CourseIdentity.swift */,
+				020339 /* CourseIdentityBuilder.swift */,
 				020332 /* CourseRecord.swift */,
 				020333 /* CourseSimilarityBuilder.swift */,
 				020334 /* CourseRecordBuilder.swift */,
@@ -1196,6 +1204,7 @@
 				020320 /* SimilarWorkoutCandidateProviderTests.swift */,
 				020336 /* CourseSimilarityBuilderTests.swift */,
 				020337 /* CourseRecordBuilderTests.swift */,
+				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
 				020330 /* WorkoutSplitStreamBuilderTests.swift */,
 				020331 /* WorkoutSplitDataProviderTests.swift */,
@@ -1434,6 +1443,8 @@
 				010314 /* WorkoutComparisonInsight.swift in Sources */,
 				010315 /* WorkoutComparisonInsightBuilder.swift in Sources */,
 				010319 /* SimilarWorkoutCandidateProvider.swift in Sources */,
+				010338 /* CourseIdentity.swift in Sources */,
+				010339 /* CourseIdentityBuilder.swift in Sources */,
 				010332 /* CourseRecord.swift in Sources */,
 				010333 /* CourseSimilarityBuilder.swift in Sources */,
 				010334 /* CourseRecordBuilder.swift in Sources */,
@@ -1637,6 +1648,7 @@
 				010320 /* SimilarWorkoutCandidateProviderTests.swift in Sources */,
 				010336 /* CourseSimilarityBuilderTests.swift in Sources */,
 				010337 /* CourseRecordBuilderTests.swift in Sources */,
+				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
 				010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */,
 				010331 /* WorkoutSplitDataProviderTests.swift in Sources */,

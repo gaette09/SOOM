@@ -96,8 +96,9 @@ struct WorkoutDetailView: View {
             .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
             .filter { $0.date <= workout.date }
 
+        let currentRoute = route(for: workout)
         let routeCandidates: [RouteComparisonCandidate]
-        if let currentRoute = route(for: workout) {
+        if let currentRoute {
             routeCandidates = CourseSimilarityBuilder().findCandidates(
                 current: currentRoute,
                 candidates: comparableWorkouts.compactMap(route(for:))
@@ -109,7 +110,8 @@ struct WorkoutDetailView: View {
         return CourseRecordBuilder().build(
             current: currentInput,
             candidateWorkouts: comparableWorkouts.map { WorkoutGrowthInput(detailWorkout: $0) },
-            routeCandidates: routeCandidates
+            routeCandidates: routeCandidates,
+            courseIdentity: currentRoute.flatMap { CourseIdentityBuilder().build(from: $0) }
         )
     }
 

@@ -4,7 +4,8 @@ struct CourseRecordBuilder {
     func build(
         current: WorkoutGrowthInput,
         candidateWorkouts: [WorkoutGrowthInput],
-        routeCandidates: [RouteComparisonCandidate] = []
+        routeCandidates: [RouteComparisonCandidate] = [],
+        courseIdentity: CourseIdentity? = nil
     ) -> CourseRecord {
         let candidates = candidateWorkouts
             .filter { $0.id != current.id }
@@ -24,10 +25,11 @@ struct CourseRecordBuilder {
                 candidates: courseCandidates,
                 comparisonType: .bestPace,
                 metricTitle: "페이스",
-                suffix: "/km"
+                suffix: "/km",
+                courseIdentity: courseIdentity
             )
         case .cycling:
-            return speedRecord(current: current, candidates: courseCandidates)
+            return speedRecord(current: current, candidates: courseCandidates, courseIdentity: courseIdentity)
         case .swimming:
             return paceRecord(
                 current: current,
@@ -35,10 +37,11 @@ struct CourseRecordBuilder {
                 comparisonType: .bestPace,
                 metricTitle: "100m 페이스",
                 suffix: "/100m",
-                paceScale: 10
+                paceScale: 10,
+                courseIdentity: courseIdentity
             )
         case .strength, .yoga, .other:
-            return durationRecord(current: current, candidates: courseCandidates)
+            return durationRecord(current: current, candidates: courseCandidates, courseIdentity: courseIdentity)
         }
     }
 
@@ -77,10 +80,11 @@ struct CourseRecordBuilder {
         comparisonType: CourseRecordComparisonType,
         metricTitle: String,
         suffix: String,
-        paceScale: Double = 1
+        paceScale: Double = 1,
+        courseIdentity: CourseIdentity?
     ) -> CourseRecord {
         guard let currentPace = paceSeconds(for: current) else {
-            return distanceRecord(current: current, candidates: candidates)
+            return distanceRecord(current: current, candidates: candidates, courseIdentity: courseIdentity)
         }
 
         let baseline = candidates
@@ -91,7 +95,7 @@ struct CourseRecordBuilder {
             .min { $0.pace < $1.pace }
 
         guard let baseline else {
-            return distanceRecord(current: current, candidates: candidates)
+            return distanceRecord(current: current, candidates: candidates, courseIdentity: courseIdentity)
         }
 
         let improvementSeconds = baseline.pace - currentPace
@@ -110,7 +114,7 @@ struct CourseRecordBuilder {
         )
 
         return CourseRecord(
-            courseId: courseId(for: current, baseline: baseline.input),
+            courseId: courseId(for: current, baseline: baseline.input, courseIdentity: courseIdentity),
             workoutId: current.id,
             comparisonType: improvementSeconds >= 0 ? comparisonType : .stableRhythm,
             bestMetric: bestMetric,
@@ -122,10 +126,11 @@ struct CourseRecordBuilder {
 
     private func speedRecord(
         current: WorkoutGrowthInput,
-        candidates: [WorkoutGrowthInput]
+        candidates: [WorkoutGrowthInput],
+        courseIdentity: CourseIdentity?
     ) -> CourseRecord {
         guard let currentSpeed = speedKmh(for: current) else {
-            return distanceRecord(current: current, candidates: candidates)
+            return distanceRecord(current: current, candidates: candidates, courseIdentity: courseIdentity)
         }
 
         let baseline = candidates
@@ -136,12 +141,12 @@ struct CourseRecordBuilder {
             .max { $0.speed < $1.speed }
 
         guard let baseline else {
-            return distanceRecord(current: current, candidates: candidates)
+            return distanceRecord(current: current, candidates: candidates, courseIdentity: courseIdentity)
         }
 
         let delta = currentSpeed - baseline.speed
         return CourseRecord(
-            courseId: courseId(for: current, baseline: baseline.input),
+            courseId: courseId(for: current, baseline: baseline.input, courseIdentity: courseIdentity),
             workoutId: current.id,
             comparisonType: delta >= 0 ? .bestSpeed : .stableRhythm,
             bestMetric: CourseRecordMetric(
@@ -163,7 +168,8 @@ struct CourseRecordBuilder {
 
     private func durationRecord(
         current: WorkoutGrowthInput,
-        candidates: [WorkoutGrowthInput]
+        candidates: [WorkoutGrowthInput],
+        courseIdentity: CourseIdentity?
     ) -> CourseRecord {
         guard let baseline = candidates.sorted(by: { $0.startDate > $1.startDate }).first else {
             return .insufficientData
@@ -171,7 +177,7 @@ struct CourseRecordBuilder {
 
         let delta = baseline.durationMinutes - current.durationMinutes
         return CourseRecord(
-            courseId: courseId(for: current, baseline: baseline),
+            courseId: courseId(for: current, baseline: baseline, courseIdentity: courseIdentity),
             workoutId: current.id,
             comparisonType: delta >= 0 ? .fastestCompletion : .recentImprovement,
             bestMetric: CourseRecordMetric(
@@ -193,7 +199,8 @@ struct CourseRecordBuilder {
 
     private func distanceRecord(
         current: WorkoutGrowthInput,
-        candidates: [WorkoutGrowthInput]
+        candidates: [WorkoutGrowthInput],
+        courseIdentity: CourseIdentity?
     ) -> CourseRecord {
         guard let currentDistance = current.distanceKm,
               let baseline = candidates
@@ -207,7 +214,7 @@ struct CourseRecordBuilder {
 
         let delta = currentDistance - baseline.distance
         return CourseRecord(
-            courseId: courseId(for: current, baseline: baseline.input),
+            courseId: courseId(for: current, baseline: baseline.input, courseIdentity: courseIdentity),
             workoutId: current.id,
             comparisonType: delta >= 0 ? .longestDistance : .recentImprovement,
             bestMetric: CourseRecordMetric(
@@ -227,8 +234,10 @@ struct CourseRecordBuilder {
         )
     }
 
-    private func courseId(for current: WorkoutGrowthInput, baseline: WorkoutGrowthInput) -> String {
-        "course-\(current.workoutType.rawValue)-\(baseline.id.uuidString)"
+    private func courseId(for current: WorkoutGrowthInput, baseline: WorkoutGrowthInput, courseIdentity: CourseIdentity?) -> String {
+        if let courseIdentity { return courseIdentity.courseId }
+        let fallbackDistanceBucket = Int(((current.distanceKm ?? 0) * 1_000 / 250).rounded() * 250)
+        return "course-\(current.workoutType.rawValue)-\(fallbackDistanceBucket)-\(baseline.id.uuidString)"
     }
 
     private func paceSeconds(for input: WorkoutGrowthInput) -> Double? {
