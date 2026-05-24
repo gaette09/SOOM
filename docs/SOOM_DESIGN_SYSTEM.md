@@ -569,3 +569,15 @@ Workout Detail은 기능 카드를 단순 나열하지 않고 네 개의 읽기 
 - `회복 해석`: Recovery Impact, Weakness/Coaching, AI interpretation, next action을 마지막 해석 layer로 둔다.
 
 Section header는 divider나 강한 card shell이 아니라 작은 title/caption으로 처리한다. Motion은 fade와 아주 작은 upward reveal 정도만 허용하고, Reduce Motion에서는 정보 전달이 animation에 의존하지 않아야 한다.
+
+## Course Record Card
+
+Course Record is a personal growth cue, not a competitive achievement badge. The card should say “비슷한 코스에서 이전 나와 비교” and avoid leaderboard, ranking, or loud trophy language.
+
+Design 기준:
+
+- Place it inside the Workout Detail `성장 흐름` group after Comparison Insight and before Split Insight.
+- Use one primary metric and one previous-baseline row rather than a dense table.
+- Improvement copy should be subtle: “조금 더 가벼운 리듬”, “이전보다 빠른 흐름”.
+- `insufficientData` should feel like a future promise, not an error.
+- Recovery score, Growth score, and social ranking should not be visually mixed into this card.

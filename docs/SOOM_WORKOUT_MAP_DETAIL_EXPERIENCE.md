@@ -465,3 +465,16 @@ The grouping is visual hierarchy only. It does not change route rendering, zone 
 - cadence/speed/pace 흐름은 Split Insight Card의 metric rows로 요약되며, 복잡한 chart나 route replay 없이 읽기 쉬운 coaching layer로 유지한다.
 - stream 데이터가 없거나 권한/조회가 실패하면 기존 fallback Split Insight를 유지한다.
 - GPS segment replay, interactive segment analysis, ML 예측은 future scope다.
+
+## Course PR / Same Route Record v1
+
+Course Record v1 adds a same-route record card to Workout Detail. It sits after Comparison Insight and before Split Insight so the flow reads as: similar workout comparison -> same/similar course record -> today’s internal rhythm.
+
+Implementation status:
+
+- `CourseSimilarityBuilder` checks route bounds overlap, start/end proximity, and distance tolerance.
+- `CourseRecordBuilder` creates sport-specific same-course records such as running pace, cycling speed, and swimming 100m pace.
+- `CourseRecordCard` displays current vs previous values with a subtle improvement cue.
+- If route persistence is unavailable, imported workout detail can still use the stored same-type/similar-distance baseline from `SimilarWorkoutCandidateProvider`.
+
+Deferred: GPS segment replay, Strava-style segment clone, ML prediction, advanced climb analysis, and server/Auth syncing.

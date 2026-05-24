@@ -606,3 +606,15 @@ This preserves the existing rule-based builders and keeps Growth interpretation 
 - 해석 톤은 pace/speed/cadence의 리듬 변화 중심이며, 잘함/못함 평가나 진단 표현을 사용하지 않는다.
 - GPS segment replay, Strava segment clone, ML prediction은 아직 구현하지 않는다.
 - RecoveryCalculator와 기존 Growth 계산 로직은 변경하지 않는다.
+
+## Course PR / Same Route Record v1
+
+Workout Detail now includes a lightweight Course Record layer for “previous me on a similar course” comparison. `CourseSimilarityBuilder` uses route bounds overlap, start/end proximity, and distance tolerance to identify same-course candidates without complex map matching. `CourseRecordBuilder` then compares the current workout against same-type candidate workouts and creates a calm PR/record interpretation.
+
+Sport policy:
+
+- Running/walking/hiking: best pace and stable rhythm on a similar course.
+- Cycling: best average speed on a similar course, with climb/elevation improvement left future-ready.
+- Swimming: best 100m pace when comparable workouts exist.
+
+This is not a leaderboard or segment clone. Copy should stay focused on “이전 나보다 조금 좋아진 흐름” rather than trophy language. RecoveryCalculator and existing Growth calculation logic remain unchanged.

@@ -330,6 +330,12 @@
 		010329 /* WorkoutSplitDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020329 /* WorkoutSplitDataProvider.swift */; };
 		010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020330 /* WorkoutSplitStreamBuilderTests.swift */; };
 		010331 /* WorkoutSplitDataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020331 /* WorkoutSplitDataProviderTests.swift */; };
+		010332 /* CourseRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020332 /* CourseRecord.swift */; };
+		010333 /* CourseSimilarityBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020333 /* CourseSimilarityBuilder.swift */; };
+		010334 /* CourseRecordBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020334 /* CourseRecordBuilder.swift */; };
+		010335 /* CourseRecordCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020335 /* CourseRecordCard.swift */; };
+		010336 /* CourseSimilarityBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020336 /* CourseSimilarityBuilderTests.swift */; };
+		010337 /* CourseRecordBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020337 /* CourseRecordBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -668,6 +674,12 @@
 		020329 /* WorkoutSplitDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProvider.swift; sourceTree = "<group>"; };
 		020330 /* WorkoutSplitStreamBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilderTests.swift; sourceTree = "<group>"; };
 		020331 /* WorkoutSplitDataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProviderTests.swift; sourceTree = "<group>"; };
+		020332 /* CourseRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecord.swift; sourceTree = "<group>"; };
+		020333 /* CourseSimilarityBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseSimilarityBuilder.swift; sourceTree = "<group>"; };
+		020334 /* CourseRecordBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecordBuilder.swift; sourceTree = "<group>"; };
+		020335 /* CourseRecordCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecordCard.swift; sourceTree = "<group>"; };
+		020336 /* CourseSimilarityBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseSimilarityBuilderTests.swift; sourceTree = "<group>"; };
+		020337 /* CourseRecordBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecordBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -809,6 +821,7 @@
 				020262 /* WorkoutGrowthMetricsCard.swift */,
 				020287 /* WorkoutZoneCard.swift */,
 				020316 /* WorkoutComparisonInsightCard.swift */,
+				020335 /* CourseRecordCard.swift */,
 				020323 /* WorkoutSplitInsightCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
@@ -1043,6 +1056,9 @@
 				020314 /* WorkoutComparisonInsight.swift */,
 				020315 /* WorkoutComparisonInsightBuilder.swift */,
 				020319 /* SimilarWorkoutCandidateProvider.swift */,
+				020332 /* CourseRecord.swift */,
+				020333 /* CourseSimilarityBuilder.swift */,
+				020334 /* CourseRecordBuilder.swift */,
 				020321 /* WorkoutSplitInsight.swift */,
 				020327 /* WorkoutSplitMetric.swift */,
 				020328 /* WorkoutSplitStreamBuilder.swift */,
@@ -1178,6 +1194,8 @@
 				020317 /* RouteSimilarityBuilderTests.swift */,
 				020318 /* WorkoutComparisonInsightBuilderTests.swift */,
 				020320 /* SimilarWorkoutCandidateProviderTests.swift */,
+				020336 /* CourseSimilarityBuilderTests.swift */,
+				020337 /* CourseRecordBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
 				020330 /* WorkoutSplitStreamBuilderTests.swift */,
 				020331 /* WorkoutSplitDataProviderTests.swift */,
@@ -1356,6 +1374,7 @@
 				010261 /* WorkoutGrowthMetricsCard.swift in Sources */,
 				010287 /* WorkoutZoneCard.swift in Sources */,
 				010316 /* WorkoutComparisonInsightCard.swift in Sources */,
+				010335 /* CourseRecordCard.swift in Sources */,
 				010323 /* WorkoutSplitInsightCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
@@ -1415,6 +1434,9 @@
 				010314 /* WorkoutComparisonInsight.swift in Sources */,
 				010315 /* WorkoutComparisonInsightBuilder.swift in Sources */,
 				010319 /* SimilarWorkoutCandidateProvider.swift in Sources */,
+				010332 /* CourseRecord.swift in Sources */,
+				010333 /* CourseSimilarityBuilder.swift in Sources */,
+				010334 /* CourseRecordBuilder.swift in Sources */,
 				010321 /* WorkoutSplitInsight.swift in Sources */,
 				010327 /* WorkoutSplitMetric.swift in Sources */,
 				010328 /* WorkoutSplitStreamBuilder.swift in Sources */,
@@ -1613,6 +1635,8 @@
 				010317 /* RouteSimilarityBuilderTests.swift in Sources */,
 				010318 /* WorkoutComparisonInsightBuilderTests.swift in Sources */,
 				010320 /* SimilarWorkoutCandidateProviderTests.swift in Sources */,
+				010336 /* CourseSimilarityBuilderTests.swift in Sources */,
+				010337 /* CourseRecordBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
 				010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */,
 				010331 /* WorkoutSplitDataProviderTests.swift in Sources */,

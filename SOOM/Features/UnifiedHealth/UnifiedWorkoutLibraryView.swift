@@ -333,6 +333,7 @@ private struct UnifiedWorkoutDetailDestination: View {
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var comparisonInsight: WorkoutComparisonInsight?
+    @State private var courseRecord: CourseRecord?
 
     var body: some View {
         WorkoutDetailView(
@@ -340,36 +341,55 @@ private struct UnifiedWorkoutDetailDestination: View {
             healthKitWorkout: zoneContext.healthKitWorkout,
             zoneDataProvider: zoneContext.zoneDataProvider,
             splitDataProvider: zoneContext.splitDataProvider,
-            comparisonInsightOverride: comparisonInsight
+            comparisonInsightOverride: comparisonInsight,
+            courseRecordOverride: courseRecord
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
-            comparisonInsight = await loadComparisonInsight()
+            let candidateResult = await loadSimilarCandidateResult()
+            comparisonInsight = buildComparisonInsight(from: candidateResult)
+            courseRecord = buildCourseRecord(from: candidateResult)
         }
     }
 
-    private func loadComparisonInsight() async -> WorkoutComparisonInsight? {
+    private func loadSimilarCandidateResult() async -> SimilarWorkoutCandidateResult? {
         guard let similarCandidateProvider else {
             return nil
         }
 
         do {
-            guard let result = try await similarCandidateProvider.bestCandidate(
+            return try await similarCandidateProvider.bestCandidate(
                 for: unifiedWorkout,
                 currentRoute: nil,
                 candidateRoutesByWorkoutId: [:]
-            ) else {
-                return .insufficientData
-            }
-
-            return WorkoutComparisonInsightBuilder().build(
-                current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
-                baseline: result.baseline,
-                routeCandidate: result.routeCandidate
             )
         } catch {
             return nil
         }
+    }
+
+    private func buildComparisonInsight(from result: SimilarWorkoutCandidateResult?) -> WorkoutComparisonInsight? {
+        guard let result else {
+            return similarCandidateProvider == nil ? nil : .insufficientData
+        }
+
+        return WorkoutComparisonInsightBuilder().build(
+            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
+            baseline: result.baseline,
+            routeCandidate: result.routeCandidate
+        )
+    }
+
+    private func buildCourseRecord(from result: SimilarWorkoutCandidateResult?) -> CourseRecord? {
+        guard let result else {
+            return similarCandidateProvider == nil ? nil : .insufficientData
+        }
+
+        return CourseRecordBuilder().build(
+            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
+            candidateWorkouts: [result.baseline],
+            routeCandidates: result.routeCandidate.map { [$0] } ?? []
+        )
     }
 }
 

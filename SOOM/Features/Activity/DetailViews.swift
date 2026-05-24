@@ -8,6 +8,7 @@ struct WorkoutDetailView: View {
     var zoneDataProvider: WorkoutZoneDataProviding?
     var splitDataProvider: WorkoutSplitDataProviding?
     var comparisonInsightOverride: WorkoutComparisonInsight?
+    var courseRecordOverride: CourseRecord?
 
     var body: some View {
         SOOMScreen {
@@ -18,6 +19,7 @@ struct WorkoutDetailView: View {
                 growthSummary: growthSummary,
                 growthMetrics: growthMetrics,
                 comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
+                courseRecord: courseRecordOverride ?? courseRecord,
                 splitInsight: splitInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
@@ -84,6 +86,30 @@ struct WorkoutDetailView: View {
             current: currentInput,
             baseline: baselineWorkout.map { WorkoutGrowthInput(detailWorkout: $0) },
             routeCandidate: routeCandidate
+        )
+    }
+
+    private var courseRecord: CourseRecord {
+        let currentInput = WorkoutGrowthInput(detailWorkout: workout)
+        let comparableWorkouts = comparisonWorkouts
+            .filter { $0.id != workout.id }
+            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.date <= workout.date }
+
+        let routeCandidates: [RouteComparisonCandidate]
+        if let currentRoute = route(for: workout) {
+            routeCandidates = CourseSimilarityBuilder().findCandidates(
+                current: currentRoute,
+                candidates: comparableWorkouts.compactMap(route(for:))
+            )
+        } else {
+            routeCandidates = []
+        }
+
+        return CourseRecordBuilder().build(
+            current: currentInput,
+            candidateWorkouts: comparableWorkouts.map { WorkoutGrowthInput(detailWorkout: $0) },
+            routeCandidates: routeCandidates
         )
     }
 

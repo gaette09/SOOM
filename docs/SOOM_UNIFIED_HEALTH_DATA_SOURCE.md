@@ -544,3 +544,13 @@ The provider keeps the analysis input boundary clear: it filters out `isExcluded
 - HealthKit HR/Cadence/Power metric stream은 `WorkoutSplitStreamBuilder`를 통해 time-based split metric으로 변환될 수 있다.
 - `WorkoutSplitDataProvider`는 imported workout detail에서 stream 기반 Split Insight를 생성하며, 실패하거나 데이터가 부족하면 기존 heuristic/fallback insight를 유지한다.
 - 이 흐름은 운동 상세 해석용이며 RecoveryCalculator, Recovery score, 기존 Growth 계산에는 영향을 주지 않는다.
+
+## Route Similarity to Course Record
+
+Same-course records use the same normalized route/growth boundary as comparison insight:
+
+`WorkoutRoute + WorkoutGrowthInput -> CourseSimilarityBuilder -> CourseRecordBuilder -> CourseRecordCard`
+
+`WorkoutRoute` provides approximate same-course signals such as bounds overlap, start/end proximity, and distance tolerance. `WorkoutGrowthInput` supplies sport-specific metrics such as running pace, cycling speed, swimming 100m pace, distance, and duration. Imported UnifiedWorkout detail can use stored same-type candidates through `SimilarWorkoutCandidateProvider` when route persistence is not available.
+
+This remains an interpretation layer. It does not change RecoveryCalculator, Growth builders, import policy, deduplication, or Feed/SNS behavior.
