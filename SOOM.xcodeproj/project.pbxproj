@@ -319,6 +319,10 @@
 		010318 /* WorkoutComparisonInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020318 /* WorkoutComparisonInsightBuilderTests.swift */; };
 		010319 /* SimilarWorkoutCandidateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020319 /* SimilarWorkoutCandidateProvider.swift */; };
 		010320 /* SimilarWorkoutCandidateProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020320 /* SimilarWorkoutCandidateProviderTests.swift */; };
+		010321 /* WorkoutSplitInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020321 /* WorkoutSplitInsight.swift */; };
+		010322 /* WorkoutSplitInsightBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020322 /* WorkoutSplitInsightBuilder.swift */; };
+		010323 /* WorkoutSplitInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020323 /* WorkoutSplitInsightCard.swift */; };
+		010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020324 /* WorkoutSplitInsightBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -646,6 +650,10 @@
 		020318 /* WorkoutComparisonInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutComparisonInsightBuilderTests.swift; sourceTree = "<group>"; };
 		020319 /* SimilarWorkoutCandidateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimilarWorkoutCandidateProvider.swift; sourceTree = "<group>"; };
 		020320 /* SimilarWorkoutCandidateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimilarWorkoutCandidateProviderTests.swift; sourceTree = "<group>"; };
+		020321 /* WorkoutSplitInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsight.swift; sourceTree = "<group>"; };
+		020322 /* WorkoutSplitInsightBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsightBuilder.swift; sourceTree = "<group>"; };
+		020323 /* WorkoutSplitInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsightCard.swift; sourceTree = "<group>"; };
+		020324 /* WorkoutSplitInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsightBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -787,6 +795,7 @@
 				020262 /* WorkoutGrowthMetricsCard.swift */,
 				020287 /* WorkoutZoneCard.swift */,
 				020316 /* WorkoutComparisonInsightCard.swift */,
+				020323 /* WorkoutSplitInsightCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
 				020255 /* FeedItemCard.swift */,
@@ -1020,6 +1029,8 @@
 				020314 /* WorkoutComparisonInsight.swift */,
 				020315 /* WorkoutComparisonInsightBuilder.swift */,
 				020319 /* SimilarWorkoutCandidateProvider.swift */,
+				020321 /* WorkoutSplitInsight.swift */,
+				020322 /* WorkoutSplitInsightBuilder.swift */,
 				020265 /* WorkoutRoute.swift */,
 				020273 /* WorkoutRouteStore.swift */,
 				020276 /* StaticRoutePreview.swift */,
@@ -1149,6 +1160,7 @@
 				020317 /* RouteSimilarityBuilderTests.swift */,
 				020318 /* WorkoutComparisonInsightBuilderTests.swift */,
 				020320 /* SimilarWorkoutCandidateProviderTests.swift */,
+				020324 /* WorkoutSplitInsightBuilderTests.swift */,
 				020269 /* WorkoutRouteTests.swift */,
 				020270 /* WorkoutZoneBuilderTests.swift */,
 				020289 /* WorkoutZoneSectionTests.swift */,
@@ -1323,6 +1335,7 @@
 				010261 /* WorkoutGrowthMetricsCard.swift in Sources */,
 				010287 /* WorkoutZoneCard.swift in Sources */,
 				010316 /* WorkoutComparisonInsightCard.swift in Sources */,
+				010323 /* WorkoutSplitInsightCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
 				010255 /* FeedItemCard.swift in Sources */,
@@ -1381,6 +1394,8 @@
 				010314 /* WorkoutComparisonInsight.swift in Sources */,
 				010315 /* WorkoutComparisonInsightBuilder.swift in Sources */,
 				010319 /* SimilarWorkoutCandidateProvider.swift in Sources */,
+				010321 /* WorkoutSplitInsight.swift in Sources */,
+				010322 /* WorkoutSplitInsightBuilder.swift in Sources */,
 				010264 /* WorkoutRoute.swift in Sources */,
 				010272 /* WorkoutRouteStore.swift in Sources */,
 				010275 /* StaticRoutePreview.swift in Sources */,
@@ -1573,6 +1588,7 @@
 				010317 /* RouteSimilarityBuilderTests.swift in Sources */,
 				010318 /* WorkoutComparisonInsightBuilderTests.swift in Sources */,
 				010320 /* SimilarWorkoutCandidateProviderTests.swift in Sources */,
+				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
 				010268 /* WorkoutRouteTests.swift in Sources */,
 				010269 /* WorkoutZoneBuilderTests.swift in Sources */,
 				010289 /* WorkoutZoneSectionTests.swift in Sources */,

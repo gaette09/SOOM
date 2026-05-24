@@ -17,6 +17,7 @@ struct WorkoutDetailView: View {
                 growthSummary: growthSummary,
                 growthMetrics: growthMetrics,
                 comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
+                splitInsight: splitInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
                 shareableCard: shareableCard,
@@ -82,6 +83,10 @@ struct WorkoutDetailView: View {
             baseline: baselineWorkout.map { WorkoutGrowthInput(detailWorkout: $0) },
             routeCandidate: routeCandidate
         )
+    }
+
+    private var splitInsight: WorkoutSplitInsight {
+        WorkoutSplitInsightBuilder().build(current: WorkoutGrowthInput(detailWorkout: workout))
     }
 
     private var growthSummary: WorkoutGrowthSummary {

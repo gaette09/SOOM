@@ -554,3 +554,7 @@ Design 기준:
 - Route similarity is a trust cue, not a precision claim. Avoid implying exact segment matching in v1.
 - Negative evaluation words such as failure/poor performance should not appear.
 - RecoveryCalculator and Growth score policy are not visually or conceptually mixed into this card.
+
+## Split Insight Layer
+
+Split Insight is a pacing/rhythm interpretation layer in Workout Detail. It should read as a calm coaching cue about “후반 흐름” or “리듬 유지,” not as a competitive segment result or performance judgment. Place it after comparison and before zone analysis so the user moves from previous-me comparison into today’s internal workout rhythm.

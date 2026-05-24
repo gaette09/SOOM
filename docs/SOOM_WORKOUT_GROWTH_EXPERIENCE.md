@@ -581,3 +581,9 @@ Route/Zone/Map/Zone Card 흐름은 `WorkoutRoute`, `WorkoutZone`, `WorkoutZoneSu
 Comparison Insight now has a store-backed candidate path for imported `UnifiedWorkout` detail. `SimilarWorkoutCandidateProvider` reads recent workouts from `UnifiedWorkoutStore`, excludes the current workout and any `isExcludedFromAnalysis` records, filters to the same workout type, and returns `WorkoutGrowthInput` candidates for comparison.
 
 For v1, route ranking is optional. If current and candidate routes are available, `RouteSimilarityBuilder` can rank by route similarity. When route persistence is not available, the provider falls back to similar distance and recency. Mock/local workout detail continues to use the existing in-memory comparison flow. RecoveryCalculator and existing Growth calculation logic are unchanged.
+
+## Split / Segment Insight v1
+
+Workout Detail now includes a lightweight split interpretation layer focused on pacing rhythm rather than segment competition. `WorkoutSplitInsightBuilder` reads the current `WorkoutGrowthInput` and creates a simple “운동 흐름” insight from duration, distance, pace, or speed.
+
+This is intentionally not GPS segment replay or Strava-style segment matching. v1 explains stable pace, stable speed, or a softer late-session rhythm check with coaching copy. RecoveryCalculator and existing Growth calculation logic remain unchanged.

@@ -440,3 +440,9 @@ Route handling remains intentionally lightweight:
 - If routes are unavailable, similar-distance fallback selects a comparable baseline.
 - Complex map matching, segment replay, server sync, and ML prediction remain deferred.
 - RecoveryCalculator and Growth calculation logic remain unchanged.
+
+## Split / Segment Insight v1
+
+Workout Detail adds an “운동 흐름” card between Comparison Insight and Zone Analysis. The card summarizes simple split/rhythm signals such as stable pace, stable speed, or a late-session rhythm check using current workout growth input.
+
+This keeps segment work lightweight: no GPS replay, no segment leaderboard, no ML prediction, and no complex chart. Future route or stream summaries can enrich the same model later.
