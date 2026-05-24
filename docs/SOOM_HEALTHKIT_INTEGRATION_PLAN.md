@@ -396,3 +396,9 @@ HealthKit imported workout detail can now reconnect to real HealthKit context at
 `UnifiedWorkout.externalId -> HealthKitWorkoutLookupProvider -> HKWorkout -> WorkoutZoneDataProvider -> WorkoutZoneSection`.
 
 If permission is missing, the workout cannot be found, or the imported workout is not from Apple HealthKit, SOOM keeps the existing fallback zone summary. This is a manual/detail-time lookup only; it does not enable automatic HealthKit sync and does not change RecoveryCalculator or Growth calculations.
+
+## Settings / My Page Access
+
+HealthKit connection management should be reachable from both the Record data-connection flow and Settings/My Page. Settings provides a stable management home for permission state, manual import, workout library review, and future privacy/training baseline controls.
+
+This does not introduce automatic HealthKit sync. Manual import remains explicit, and imported workouts can support Growth analysis and Recovery preview without replacing the official Recovery provider.

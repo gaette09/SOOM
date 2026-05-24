@@ -67,6 +67,27 @@ struct RecordView: View {
                 SOOMSectionHeader("수동 입력")
                 SOOMActionRow(icon: SOOMIcon.edit, title: "운동 직접 추가", subtitle: "종목, 거리, 시간, 강도, 메모를 입력합니다.", tint: SOOMColor.recovery)
             }
+
+            SOOMCard {
+                SOOMSectionHeader(
+                    "마이 / 설정",
+                    caption: "프로필, 공개 범위, 운동 기준값을 관리합니다."
+                )
+
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    SOOMActionRow(
+                        icon: "person.crop.circle",
+                        title: "마이페이지 열기",
+                        subtitle: "HealthKit 관리, FTP, 최대 심박, 공개 범위 설정을 확인합니다.",
+                        tint: SOOMColor.secondaryInk
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("마이페이지 열기")
+                .accessibilityHint("프로필과 설정 화면으로 이동합니다.")
+            }
         }
         .navigationTitle("기록")
         .navigationBarTitleDisplayMode(.inline)

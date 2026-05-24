@@ -389,3 +389,14 @@ Source states:
 - `데이터 없음`: shown when a sport-specific sensor stream, such as cycling power, is not present or cannot be used yet.
 
 The indicator is a trust cue, not a warning. Missing cadence, heart-rate, or power streams should feel like normal device/sensor coverage limits, not an app error. RecoveryCalculator, Growth calculations, FTP policy, and stream fetch behavior remain unchanged.
+
+## Training Baseline Settings v1
+
+Settings/My Page now has a lightweight place for user training baseline values such as max heart rate and cycling FTP. These values are stored locally as future inputs for better zone analysis, but v1 does not apply them to zone calculation yet.
+
+Policy:
+
+- max heart rate is validated as 80...230 bpm.
+- cycling FTP is validated as 50...500 W.
+- FTP-based power zones, personalized HR zones, and advanced cycling metrics remain deferred.
+- RecoveryCalculator and Growth calculations are not changed by these settings.

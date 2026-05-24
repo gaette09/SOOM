@@ -302,6 +302,13 @@
 		010300 /* WorkoutDetailZoneContextProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020299 /* WorkoutDetailZoneContextProvider.swift */; };
 		010301 /* HealthKitWorkoutLookupProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020300 /* HealthKitWorkoutLookupProviderTests.swift */; };
 		010302 /* WorkoutDetailZoneContextProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020301 /* WorkoutDetailZoneContextProviderTests.swift */; };
+		010304 /* TrainingSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020303 /* TrainingSettings.swift */; };
+		010305 /* TrainingSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020304 /* TrainingSettingsStore.swift */; };
+		010306 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020305 /* SettingsViewModel.swift */; };
+		010307 /* ProfileSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020306 /* ProfileSummaryCard.swift */; };
+		010308 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020307 /* SettingsView.swift */; };
+		010309 /* TrainingSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020308 /* TrainingSettingsStoreTests.swift */; };
+		010310 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020309 /* SettingsViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -612,6 +619,13 @@
 		020299 /* WorkoutDetailZoneContextProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailZoneContextProvider.swift; sourceTree = "<group>"; };
 		020300 /* HealthKitWorkoutLookupProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutLookupProviderTests.swift; sourceTree = "<group>"; };
 		020301 /* WorkoutDetailZoneContextProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailZoneContextProviderTests.swift; sourceTree = "<group>"; };
+		020303 /* TrainingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettings.swift; sourceTree = "<group>"; };
+		020304 /* TrainingSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsStore.swift; sourceTree = "<group>"; };
+		020305 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		020306 /* ProfileSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSummaryCard.swift; sourceTree = "<group>"; };
+		020307 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		020308 /* TrainingSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsStoreTests.swift; sourceTree = "<group>"; };
+		020309 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -796,6 +810,7 @@
 				040017 /* Recovery */,
 				040023 /* UnifiedHealth */,
 				040021 /* HealthKit */,
+				040025 /* Settings */,
 				040018 /* Profile */,
 			);
 			path = Features;
@@ -908,6 +923,18 @@
 				020026 /* FeedPostDetailContent.swift */,
 			);
 			path = Feed;
+			sourceTree = "<group>";
+		};
+		040025 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				020303 /* TrainingSettings.swift */,
+				020304 /* TrainingSettingsStore.swift */,
+				020305 /* SettingsViewModel.swift */,
+				020306 /* ProfileSummaryCard.swift */,
+				020307 /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		040020 /* Persistence */ = {
@@ -1117,6 +1144,8 @@
 				020211 /* AnalysisViewModelTests.swift */,
 				020256 /* FeedItemTests.swift */,
 				020257 /* FeedMockDataTests.swift */,
+				020308 /* TrainingSettingsStoreTests.swift */,
+				020309 /* SettingsViewModelTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -1421,6 +1450,11 @@
 				010293 /* HealthKitWorkoutMetricMapper.swift in Sources */,
 				010294 /* HealthKitMetricZoneBuilder.swift in Sources */,
 				010299 /* HealthKitWorkoutLookupProvider.swift in Sources */,
+				010304 /* TrainingSettings.swift in Sources */,
+				010305 /* TrainingSettingsStore.swift in Sources */,
+				010306 /* SettingsViewModel.swift in Sources */,
+				010307 /* ProfileSummaryCard.swift in Sources */,
+				010308 /* SettingsView.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1524,6 +1558,8 @@
 				010210 /* AnalysisViewModelTests.swift in Sources */,
 				010256 /* FeedItemTests.swift in Sources */,
 				010257 /* FeedMockDataTests.swift in Sources */,
+				010309 /* TrainingSettingsStoreTests.swift in Sources */,
+				010310 /* SettingsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
