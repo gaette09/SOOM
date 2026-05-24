@@ -380,7 +380,7 @@ Implemented structure:
 Current boundary:
 
 - This prepares real stream data for Workout Detail Zone Cards, but does not change RecoveryCalculator, Growth analysis, or official Recovery score behavior.
-- FTP settings, NP/TSS/IF, automatic HealthKit sync, and Garmin/Samsung streams remain deferred.
+- FTP auto-estimation, NP/TSS/IF, automatic HealthKit sync, and Garmin/Samsung streams remain deferred.
 
 
 ## Stream Fetch to Zone Cards v1

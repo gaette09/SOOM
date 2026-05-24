@@ -155,7 +155,7 @@ Token 정책:
 - local xcconfig 또는 CI secret 후보
 - token 없는 상태에서는 map UI를 fallback visual로 대체
 
-이번 설계 단계에서는 Mapbox SDK 설치, Info.plist token 추가, access token 커밋을 하지 않는다.
+현재 구현에서는 Mapbox SDK가 Swift Package Manager로 추가되었고, `Info.plist`의 `MBXAccessToken`은 `$(MBX_ACCESS_TOKEN)` placeholder를 사용한다. 실제 token 값과 secret token은 repo에 커밋하지 않는다.
 
 ## HealthKit Data Requirements
 
@@ -191,20 +191,20 @@ Phase 2: route/zone domain models - implemented in v1
 
 Phase 3: HealthKit route fetcher - implemented in v1
 
-Phase 4: Mapbox token/config
+Phase 4: Mapbox token/config - implemented with `MBXAccessToken` placeholder, no real token committed
 
-Phase 5: summary static map card - implemented as Static Route Preview Card v1 foundation
+Phase 5: summary static map card - implemented as Static Route Preview Card v1 foundation and AsyncImage loading
 
-Phase 6: detail interactive map page
+Phase 6: detail interactive map page - implemented as Workout Detail Map Overlay Page v1
 
-Phase 7: sport-specific zone cards
+Phase 7: sport-specific zone cards - implemented with fallback, HealthKit stream, source indicators, and personalized baselines
 
-Phase 8: feed reuse
+Phase 8: feed/share reuse - implemented for static route preview with privacy masking; server Feed remains deferred
 
 ## Boundaries
 
-- Mapbox SDK 실제 설치는 하지 않는다.
-- Info.plist에 token을 추가하지 않는다.
+- Mapbox SDK는 SPM으로 추가되었지만 실제 Mapbox token 값은 커밋하지 않는다.
+- `MBXAccessToken`은 `$(MBX_ACCESS_TOKEN)` placeholder로 유지한다.
 - RecoveryCalculator와 Growth 계산 로직을 변경하지 않는다.
 - Feed 서버, SNS API, route sharing upload는 구현하지 않는다.
 - 위치 데이터는 민감 정보로 취급하며 공유 카드에서는 기본 비공개로 둔다.
@@ -224,10 +224,10 @@ Route와 zone 분석을 위한 Swift domain model 1차 구현을 추가했다.
 
 현재 v1 경계:
 
-- Mapbox SDK는 아직 설치하지 않는다.
-- 실제 지도 UI, route polyline rendering, map snapshot은 아직 구현하지 않는다.
-- HealthKit route query는 `HealthKitWorkoutRouteFetcher`로 domain mapping까지 준비했다.
-- Heart rate/cadence/power stream query는 아직 연결하지 않는다.
+- Mapbox SDK는 SPM으로 추가되었고 Workout Detail 상단 route hero에서 사용한다.
+- Detail map은 `WorkoutRoute` polyline과 floating metrics를 표시하며, token/route가 없으면 fallback visual을 사용한다.
+- HealthKit route query는 `HealthKitWorkoutRouteFetcher`로 domain mapping까지 구현되었다.
+- Heart rate/cadence/power stream query는 HealthKit metric stream fetcher와 detail-time zone provider로 연결되었다.
 - Zone insight는 진단이나 훈련 강요가 아니라 리듬/흐름 중심의 coaching copy로 유지한다.
 
 ## HealthKit WorkoutRoute Fetcher v1 Status
@@ -252,7 +252,7 @@ Route mapping 정책:
 
 - route가 없으면 `nil`로 안전하게 처리한다.
 - HealthKit route 권한이 없거나 fetch가 실패하면 caller가 앱 전체 실패로 전파하지 않고 fallback할 수 있어야 한다.
-- Mapbox SDK, 지도 UI, polyline rendering, route persistence는 아직 연결하지 않는다.
+- Detail map은 Mapbox polyline rendering까지 연결되었고, route persistence는 아직 lightweight/in-memory 후보에 머문다.
 
 ## Static Route Preview Card v1 Status
 
@@ -275,8 +275,8 @@ Token / loading 정책:
 
 현재 경계:
 
-- Mapbox SDK 설치 없음
-- interactive map 없음
+- Static share/feed card는 Mapbox SDK interactive view를 사용하지 않고 URL/AsyncImage 기반으로 동작한다.
+- Detail interactive map과 share/feed static preview는 분리한다.
 - route polyline animation 없음
 - route privacy masking v1 적용: static route preview 생성 전 start/end 주변 좌표를 기본 200m 기준으로 제거할 수 있다.
 - RecoveryCalculator와 Growth 계산 로직 변경 없음
@@ -290,7 +290,7 @@ UX 정책:
 - loading 상태는 subtle placeholder로 유지한다.
 - image load 실패, token 없음, route 없음, masking 후 route 부족 상태는 sport-specific fallback으로 전환한다.
 - route image는 `StaticRoutePreviewBuilder`가 만든 masked route URL만 사용한다. 원본 route를 view에서 직접 노출하지 않는다.
-- interactive map, Mapbox SDK, image-level animation, server upload는 아직 구현하지 않는다.
+- share/feed static preview는 detail interactive Mapbox view와 분리되어 있으며, image-level animation과 server upload는 아직 구현하지 않는다.
 
 ## Route Privacy Masking v1 Status
 
@@ -348,13 +348,13 @@ Flow:
 
 Zone policy:
 
-- Heart rate uses simple Zone 1-5 thresholds with a fallback max HR until user-specific settings exist.
+- Heart rate uses user maxHR-based personalized Zone 1-5 thresholds when Settings has maxHR; otherwise it falls back to a generic max HR.
 - Cycling cadence uses low / optimal / high rhythm buckets.
-- Cycling power returns an unavailable summary when FTP is missing; FTP-based Zone 1-7 support is kept future-ready but not exposed as a full training model.
+- Cycling power uses Settings cycling FTP for Zone 1-7 when available; when FTP is missing, power remains a gentle unavailable summary rather than a training-dashboard calculation.
 
 Deferred:
 
-- FTP settings UI
+- FTP auto-estimation
 - advanced cycling metrics such as NP, TSS, IF
 - complex charting
 - automatic HealthKit stream sync
@@ -376,7 +376,7 @@ Behavior:
 - Apple HealthKit + valid `externalId`: try `HKWorkout` lookup and prefer real HR/cadence/power stream summaries.
 - Non-HealthKit source: do not query HealthKit and keep fallback summaries.
 - Missing id, permission issue, or lookup failure: keep fallback summaries with no crash.
-- This remains detail-time only and does not change RecoveryCalculator, Growth calculations, FTP policy, or Garmin/Samsung support.
+- This remains detail-time only and does not change RecoveryCalculator, Growth calculations, automatic sync, or Garmin/Samsung support.
 
 ## Zone Source Indicator v1
 

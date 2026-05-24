@@ -455,7 +455,7 @@ Principles:
 
 ## Static Route Map Candidate
 
-Workout summary/share card는 장기적으로 static route map preview를 포함할 수 있다. 경로 데이터가 있으면 Mapbox SDK `Snapshotter` 또는 Mapbox Static Images API로 route preview를 만들고, 경로가 없으면 sport-specific visual fallback을 사용한다.
+Workout summary/share card는 static route map preview를 포함할 수 있다. 경로 데이터가 있으면 Mapbox Static Images API URL과 `AsyncImage` 기반 route preview를 만들고, 경로가 없거나 token/image loading이 실패하면 sport-specific visual fallback을 사용한다. share/feed route preview는 기본적으로 start/end privacy masking을 적용한다.
 
 Privacy 기준:
 

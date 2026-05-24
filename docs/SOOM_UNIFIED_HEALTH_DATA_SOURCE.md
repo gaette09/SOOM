@@ -461,9 +461,9 @@ Route/Zone Domain Model v1 구현 상태:
 - `WorkoutRoute`는 Unified source에서 들어올 route stream을 workout 단위 domain model로 담는 후보다.
 - `WorkoutRouteCoordinate`는 route point의 latitude/longitude와 optional altitude/timestamp를 보존한다.
 - `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`는 heart rate, cadence, power stream을 zone duration/percentage 중심으로 정리하기 위한 순수 모델 계층이다.
-- `HealthKitWorkoutRouteFetcher`와 `HealthKitWorkoutRouteMapper`는 `HKWorkoutRoute -> CLLocation stream -> WorkoutRoute` 변환을 준비한다.
+- `HealthKitWorkoutRouteFetcher`와 `HealthKitWorkoutRouteMapper`는 `HKWorkoutRoute -> CLLocation stream -> WorkoutRoute` 변환을 구현한다.
 - `WorkoutRouteStore`는 route를 workout id 기준으로 저장/조회하는 가벼운 in-memory cache 후보이며, SwiftData route persistence는 아직 연결하지 않는다.
-- Heart rate/cadence/power stream query와 Garmin/Samsung route import는 아직 연결하지 않고, 공통 계약만 유지한다.
+- HealthKit heart rate/cadence/power stream query는 `HealthKitWorkoutMetricStreamFetcher`와 `WorkoutZoneDataProvider`를 통해 Workout Detail Zone Cards에 연결되었다. Garmin/Samsung route/stream import는 아직 연결하지 않고 공통 계약만 유지한다.
 - RecoveryCalculator와 Workout Growth 계산 로직은 이 모델 추가로 변경되지 않는다.
 
 ## WorkoutRoute to Detail Map Overlay
@@ -478,7 +478,7 @@ Route/Zone Domain Model v1 구현 상태:
 
 ## Zone Card Connection v1
 
-Heart-rate, cadence, and power stream candidates now have a first UI destination through Workout Detail Zone Cards. v1 uses `WorkoutZoneSummary` and simple distribution bars; future HealthKit/Garmin/Samsung streams can fill the same model once sample-level import is expanded.
+Heart-rate, cadence, and power streams now have a first UI destination through Workout Detail Zone Cards. v1 uses `WorkoutZoneSummary` and simple distribution bars; HealthKit streams can fill the model at detail time, and future Garmin/Samsung streams can normalize into the same contract once connectors are added.
 
 The connection is intentionally read-only and interpretive. It does not change RecoveryCalculator, Workout Growth scoring, or UnifiedWorkout import policy.
 
@@ -490,11 +490,11 @@ HealthKit metric streams now have a first domain bridge into SOOM zone summaries
 
 Supported v1 stream candidates:
 
-- heart rate samples for Zone 1-5 distribution using a fallback max-heart-rate threshold when no user max HR exists
+- heart rate samples for Zone 1-5 distribution using Settings maxHR when available, with a fallback max-heart-rate threshold when no user maxHR exists
 - cycling cadence samples for low / optimal / high rhythm zones
-- cycling power samples as future-ready power zones, with FTP missing represented as unavailable rather than as an error
+- cycling power samples using Settings cycling FTP for Zone 1-7 when available, with FTP missing represented as unavailable rather than as an error
 
-This stream path is read-only and interpretive. It prepares Workout Detail Zone Cards for real HealthKit data, but does not alter `UnifiedWorkout`, RecoveryCalculator, or Growth score inputs. Garmin/Samsung streams can later normalize into the same metric sample and zone summary contract.
+This stream path is read-only and interpretive. It connects real HealthKit data to Workout Detail Zone Cards, but does not alter `UnifiedWorkout`, RecoveryCalculator, or Growth score inputs. Garmin/Samsung streams can later normalize into the same metric sample and zone summary contract.
 
 
 ## HR / Cadence / Power Stream to WorkoutZoneSummary
@@ -515,7 +515,7 @@ Workout Detail Zone Cards distinguish the source state of each `WorkoutZoneSumma
 
 - `healthKitStream`: zone distribution came from real HealthKit metric samples.
 - `fallbackEstimate`: zone distribution came from existing workout summary/fallback fields.
-- `unavailable`: the expected sensor stream is not available for this workout or needs future settings such as FTP.
+- `unavailable`: the expected sensor stream is not available for this workout, or cycling FTP is not configured for power zones.
 - `manualFuture`: reserved for future user-entered or manually corrected zone data.
 
 This source state helps explain HealthKit stream, fallback, and unavailable behavior without changing the `UnifiedWorkout` import contract, RecoveryCalculator input, or Growth calculations.
