@@ -5,6 +5,21 @@ struct WorkoutZoneSummary: Equatable {
     let zones: [WorkoutZone]
     let dominantZone: WorkoutZone?
     let insightText: String?
+    let dataSource: WorkoutZoneDataSource
+
+    init(
+        type: WorkoutZoneType,
+        zones: [WorkoutZone],
+        dominantZone: WorkoutZone?,
+        insightText: String?,
+        dataSource: WorkoutZoneDataSource = .fallbackEstimate
+    ) {
+        self.type = type
+        self.zones = zones
+        self.dominantZone = dominantZone
+        self.insightText = insightText
+        self.dataSource = dataSource
+    }
 
     var isAvailable: Bool {
         !zones.isEmpty

@@ -512,6 +512,7 @@ Design 기준:
 - Power zone은 FTP가 없으면 숨기거나 unavailable로 둔다.
 - Zone insight는 “오늘은 Zone 2 유지 시간이 길었어요”처럼 흐름을 설명하는 문장으로 유지한다.
 - Recovery score나 Growth score처럼 보이지 않게 보조 분석 위계에 둔다.
+- Data source badge는 trust cue다. `HealthKit 데이터`, `기본 추정`, `데이터 없음`처럼 작고 낮은 우선순위로 표시하며, warning/error UI처럼 보이게 하지 않는다.
 
 ## Workout Detail Map Overlay
 

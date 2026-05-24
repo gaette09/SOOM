@@ -17,6 +17,7 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertEqual(summary.zones.count, 3)
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
         XCTAssertTrue(summary.insightText?.contains("Zone 2") == true)
+        XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
     }
 
     func testBuildsCadenceZoneSummary() {
@@ -32,6 +33,7 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertEqual(summary.zones.count, 3)
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
         XCTAssertTrue(summary.insightText?.contains("안정적인 케이던스") == true)
+        XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
     }
 
     func testPowerWithoutFTPReturnsUnavailableSummary() {
@@ -43,6 +45,7 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertFalse(summary.isAvailable)
         XCTAssertTrue(summary.zones.isEmpty)
         XCTAssertTrue(summary.insightText?.contains("FTP") == true)
+        XCTAssertEqual(summary.dataSource.sourceType, .unavailable)
     }
 
     func testPowerWithFTPBuildsFutureReadySummary() {
@@ -57,6 +60,7 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertEqual(summary.type, .power)
         XCTAssertTrue(summary.isAvailable)
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 4)
+        XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
     }
 
     func testEmptySamplesReturnUnavailableSafely() {
@@ -67,6 +71,9 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         XCTAssertFalse(heartRate.isAvailable)
         XCTAssertFalse(cadence.isAvailable)
         XCTAssertFalse(power.isAvailable)
+        XCTAssertEqual(heartRate.dataSource.sourceType, .unavailable)
+        XCTAssertEqual(cadence.dataSource.sourceType, .unavailable)
+        XCTAssertEqual(power.dataSource.sourceType, .unavailable)
     }
 
     func testZoneCopyAvoidsNegativeTone() {
@@ -79,6 +86,15 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
 
         ["못", "나쁨", "실패", "위험", "부족"].forEach { word in
             XCTAssertFalse(copy.contains(word), "Unexpected negative wording: \(word)")
+        }
+    }
+
+    func testSourceIndicatorCopyAvoidsAlarmTone() {
+        let sources: [WorkoutZoneDataSource] = [.healthKitStream, .fallbackEstimate, .unavailable]
+        let copy = sources.map { "\($0.label) \($0.description)" }.joined(separator: " ")
+
+        ["위험", "오류", "실패", "문제"].forEach { word in
+            XCTAssertFalse(copy.contains(word), "Unexpected source wording: \(word)")
         }
     }
 

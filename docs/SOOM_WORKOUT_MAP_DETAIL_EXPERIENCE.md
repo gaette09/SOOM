@@ -377,3 +377,15 @@ Behavior:
 - Non-HealthKit source: do not query HealthKit and keep fallback summaries.
 - Missing id, permission issue, or lookup failure: keep fallback summaries with no crash.
 - This remains detail-time only and does not change RecoveryCalculator, Growth calculations, FTP policy, or Garmin/Samsung support.
+
+## Zone Source Indicator v1
+
+Zone Cards now include a small source indicator so users can understand whether the card is based on real stream data, a safe fallback estimate, or an unavailable sensor stream.
+
+Source states:
+
+- `HealthKit 데이터`: built from workout-linked HealthKit sensor samples.
+- `기본 추정`: built from existing workout summary fields when stream data is not available.
+- `데이터 없음`: shown when a sport-specific sensor stream, such as cycling power, is not present or cannot be used yet.
+
+The indicator is a trust cue, not a warning. Missing cadence, heart-rate, or power streams should feel like normal device/sensor coverage limits, not an app error. RecoveryCalculator, Growth calculations, FTP policy, and stream fetch behavior remain unchanged.

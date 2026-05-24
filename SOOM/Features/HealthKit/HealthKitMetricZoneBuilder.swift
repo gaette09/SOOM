@@ -24,7 +24,11 @@ struct HealthKitMetricZoneBuilder {
             heartRateZoneIndex(value: sample.value, maxHeartRate: maximumHeartRate)
         }
 
-        return zoneBuilder.buildSummary(type: .heartRate, durations: durations)
+        guard !durations.isEmpty else {
+            return zoneBuilder.unavailableSummary(type: .heartRate)
+        }
+
+        return zoneBuilder.buildSummary(type: .heartRate, durations: durations, dataSource: .healthKitStream)
     }
 
     func buildCyclingCadenceSummary(
@@ -37,7 +41,11 @@ struct HealthKitMetricZoneBuilder {
             cyclingCadenceZoneIndex(value: sample.value)
         }
 
-        return zoneBuilder.buildSummary(type: .cadence, durations: durations)
+        guard !durations.isEmpty else {
+            return zoneBuilder.unavailableSummary(type: .cadence)
+        }
+
+        return zoneBuilder.buildSummary(type: .cadence, durations: durations, dataSource: .healthKitStream)
     }
 
     func buildCyclingPowerSummary(
@@ -55,7 +63,11 @@ struct HealthKitMetricZoneBuilder {
             cyclingPowerZoneIndex(value: sample.value, ftp: ftp)
         }
 
-        return zoneBuilder.buildSummary(type: .power, durations: durations)
+        guard !durations.isEmpty else {
+            return zoneBuilder.unavailableSummary(type: .power)
+        }
+
+        return zoneBuilder.buildSummary(type: .power, durations: durations, dataSource: .healthKitStream)
     }
 
     func buildSummaries(

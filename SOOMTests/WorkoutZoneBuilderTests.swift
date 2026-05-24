@@ -18,6 +18,7 @@ final class WorkoutZoneBuilderTests: XCTestCase {
         XCTAssertEqual(summary.zones[0].percentage, 20, accuracy: 0.001)
         XCTAssertEqual(summary.zones[1].percentage, 60, accuracy: 0.001)
         XCTAssertEqual(summary.zones[2].percentage, 20, accuracy: 0.001)
+        XCTAssertEqual(summary.dataSource.sourceType, .fallbackEstimate)
     }
 
     func testBuildSummaryFindsDominantZone() {
@@ -69,5 +70,18 @@ final class WorkoutZoneBuilderTests: XCTestCase {
         XCTAssertTrue(summary.zones.isEmpty)
         XCTAssertNil(summary.dominantZone)
         XCTAssertTrue(summary.insightText?.contains("FTP") == true)
+        XCTAssertEqual(summary.dataSource.sourceType, .unavailable)
+    }
+
+    func testExplicitDataSourceIsPreserved() {
+        let summary = builder.buildSummary(
+            type: .heartRate,
+            durations: [WorkoutZoneDurationInput(zoneIndex: 2, durationSeconds: 120)],
+            dataSource: .healthKitStream
+        )
+
+        XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
+        XCTAssertEqual(summary.dataSource.label, "HealthKit 데이터")
+        XCTAssertFalse(summary.dataSource.description.contains("위험"))
     }
 }

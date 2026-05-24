@@ -508,3 +508,14 @@ The stream path is an interpretation layer for detail UI. It does not modify Rec
 For Apple HealthKit imports, `UnifiedWorkout.externalId` can represent the original `HKWorkout.uuid.uuidString`. Workout detail can use that value to look up the original `HKWorkout` and attach HealthKit metric streams to Zone Cards. Non-HealthKit sources, missing external ids, and lookup failures stay on the existing fallback detail experience.
 
 This keeps `UnifiedWorkout` as the stored summary source while allowing sample-level HealthKit context to be resolved only when the user opens an imported workout detail. RecoveryCalculator, Growth inputs, and deduplication policy are unchanged.
+
+## Zone Source State
+
+Workout Detail Zone Cards distinguish the source state of each `WorkoutZoneSummary`:
+
+- `healthKitStream`: zone distribution came from real HealthKit metric samples.
+- `fallbackEstimate`: zone distribution came from existing workout summary/fallback fields.
+- `unavailable`: the expected sensor stream is not available for this workout or needs future settings such as FTP.
+- `manualFuture`: reserved for future user-entered or manually corrected zone data.
+
+This source state helps explain HealthKit stream, fallback, and unavailable behavior without changing the `UnifiedWorkout` import contract, RecoveryCalculator input, or Growth calculations.

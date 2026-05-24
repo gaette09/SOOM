@@ -11,6 +11,7 @@ final class WorkoutZoneSectionTests: XCTestCase {
         XCTAssertEqual(summaries.map(\.type), [.heartRate, .cadence])
         XCTAssertTrue(summaries.first(where: { $0.type == .heartRate })?.isAvailable == true)
         XCTAssertTrue(summaries.first(where: { $0.type == .cadence })?.isAvailable == true)
+        XCTAssertTrue(summaries.allSatisfy { $0.dataSource.sourceType == .fallbackEstimate })
         XCTAssertFalse(summaries.contains { $0.type == .power })
     }
 
@@ -33,7 +34,16 @@ final class WorkoutZoneSectionTests: XCTestCase {
 
         XCTAssertNotNil(power)
         XCTAssertFalse(power?.isAvailable == true)
+        XCTAssertEqual(power?.dataSource.sourceType, .unavailable)
         XCTAssertTrue(power?.insightText?.contains("파워존") == true || power?.insightText?.contains("FTP") == true)
+    }
+
+    func testFallbackSummaryUsesFallbackEstimateSource() {
+        let workout = harnessWorkout(.run)
+
+        let summaries = WorkoutZoneSection.makeSummaries(for: workout)
+
+        XCTAssertTrue(summaries.filter(\.isAvailable).allSatisfy { $0.dataSource.sourceType == .fallbackEstimate })
     }
 
     func testSwimmingUsesHeartRateOnlyWhenAvailable() {
