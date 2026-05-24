@@ -19,8 +19,6 @@
 		010010 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020010 /* RootTabView.swift */; };
 		010011 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020011 /* HomeView.swift */; };
 		010012 /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020012 /* AnalysisView.swift */; };
-		010208 /* AnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020209 /* AnalysisViewModel.swift */; };
-		010209 /* AnalysisViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020210 /* AnalysisViewContainer.swift */; };
 		010013 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020013 /* RecordView.swift */; };
 		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
@@ -37,7 +35,6 @@
 		010026 /* SoomSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020028 /* SoomSpacing.swift */; };
 		010027 /* SoomRadius.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020029 /* SoomRadius.swift */; };
 		010028 /* SoomIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020030 /* SoomIcon.swift */; };
-		010258 /* SoomMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020258 /* SoomMotion.swift */; };
 		010029 /* SoomCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020031 /* SoomCard.swift */; };
 		010030 /* SoomButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020032 /* SoomButton.swift */; };
 		010032 /* SoomSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020034 /* SoomSectionHeader.swift */; };
@@ -211,6 +208,8 @@
 		010205 /* UnifiedWorkoutAnalysisInputSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */; };
 		010206 /* UnifiedWorkoutWeeklyProgressProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */; };
 		010207 /* UnifiedWorkoutWeeklyProgressProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */; };
+		010208 /* AnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020209 /* AnalysisViewModel.swift */; };
+		010209 /* AnalysisViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020210 /* AnalysisViewContainer.swift */; };
 		010210 /* AnalysisViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020211 /* AnalysisViewModelTests.swift */; };
 		010211 /* FourWeekWorkoutTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020212 /* FourWeekWorkoutTrend.swift */; };
 		010212 /* FourWeekWorkoutTrendBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020213 /* FourWeekWorkoutTrendBuilder.swift */; };
@@ -232,33 +231,6 @@
 		010229 /* WorkoutSessionSummaryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020229 /* WorkoutSessionSummaryBuilder.swift */; };
 		010230 /* WorkoutSessionSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020230 /* WorkoutSessionSummaryCard.swift */; };
 		010231 /* WorkoutSessionSummaryBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020231 /* WorkoutSessionSummaryBuilderTests.swift */; };
-		010259 /* WorkoutGrowthMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020260 /* WorkoutGrowthMetric.swift */; };
-		010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020261 /* WorkoutGrowthMetricsBuilder.swift */; };
-		010263 /* WorkoutTypeMetricProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020264 /* WorkoutTypeMetricProfile.swift */; };
-		010261 /* WorkoutGrowthMetricsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020262 /* WorkoutGrowthMetricsCard.swift */; };
-		010262 /* WorkoutGrowthMetricsBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020263 /* WorkoutGrowthMetricsBuilderTests.swift */; };
-		010264 /* WorkoutRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020265 /* WorkoutRoute.swift */; };
-		010265 /* WorkoutZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020266 /* WorkoutZone.swift */; };
-		010266 /* WorkoutZoneSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020267 /* WorkoutZoneSummary.swift */; };
-		010267 /* WorkoutZoneBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020268 /* WorkoutZoneBuilder.swift */; };
-		010268 /* WorkoutRouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020269 /* WorkoutRouteTests.swift */; };
-		010269 /* WorkoutZoneBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020270 /* WorkoutZoneBuilderTests.swift */; };
-		010270 /* HealthKitWorkoutRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020271 /* HealthKitWorkoutRouteFetcher.swift */; };
-		010271 /* HealthKitWorkoutRouteMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020272 /* HealthKitWorkoutRouteMapper.swift */; };
-		010272 /* WorkoutRouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020273 /* WorkoutRouteStore.swift */; };
-		010273 /* HealthKitWorkoutRouteMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020274 /* HealthKitWorkoutRouteMapperTests.swift */; };
-		010274 /* WorkoutRouteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020275 /* WorkoutRouteStoreTests.swift */; };
-		010275 /* StaticRoutePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020276 /* StaticRoutePreview.swift */; };
-		010276 /* MapboxStaticRouteURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020277 /* MapboxStaticRouteURLBuilder.swift */; };
-		010277 /* StaticRoutePreviewBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020278 /* StaticRoutePreviewBuilder.swift */; };
-		010280 /* RoutePrivacyMaskingPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020281 /* RoutePrivacyMaskingPolicy.swift */; };
-		010281 /* RoutePrivacyMasker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020282 /* RoutePrivacyMasker.swift */; };
-		010284 /* WorkoutDetailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020284 /* WorkoutDetailMapView.swift */; };
-		010285 /* WorkoutDetailMapOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020285 /* WorkoutDetailMapOverlay.swift */; };
-		010286 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0002 /* MapboxMaps */; };
-		010282 /* RoutePrivacyMaskerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020283 /* RoutePrivacyMaskerTests.swift */; };
-		010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020279 /* MapboxStaticRouteURLBuilderTests.swift */; };
-		010279 /* StaticRoutePreviewBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020280 /* StaticRoutePreviewBuilderTests.swift */; };
 		010232 /* ShareableWorkoutCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020232 /* ShareableWorkoutCardModel.swift */; };
 		010233 /* ShareableWorkoutCardBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020233 /* ShareableWorkoutCardBuilder.swift */; };
 		010234 /* ShareableWorkoutCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020234 /* ShareableWorkoutCardView.swift */; };
@@ -285,6 +257,38 @@
 		010255 /* FeedItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020255 /* FeedItemCard.swift */; };
 		010256 /* FeedItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020256 /* FeedItemTests.swift */; };
 		010257 /* FeedMockDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020257 /* FeedMockDataTests.swift */; };
+		010258 /* SoomMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020258 /* SoomMotion.swift */; };
+		010259 /* WorkoutGrowthMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020260 /* WorkoutGrowthMetric.swift */; };
+		010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020261 /* WorkoutGrowthMetricsBuilder.swift */; };
+		010261 /* WorkoutGrowthMetricsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020262 /* WorkoutGrowthMetricsCard.swift */; };
+		010262 /* WorkoutGrowthMetricsBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020263 /* WorkoutGrowthMetricsBuilderTests.swift */; };
+		010263 /* WorkoutTypeMetricProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020264 /* WorkoutTypeMetricProfile.swift */; };
+		010264 /* WorkoutRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020265 /* WorkoutRoute.swift */; };
+		010265 /* WorkoutZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020266 /* WorkoutZone.swift */; };
+		010266 /* WorkoutZoneSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020267 /* WorkoutZoneSummary.swift */; };
+		010267 /* WorkoutZoneBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020268 /* WorkoutZoneBuilder.swift */; };
+		010268 /* WorkoutRouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020269 /* WorkoutRouteTests.swift */; };
+		010269 /* WorkoutZoneBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020270 /* WorkoutZoneBuilderTests.swift */; };
+		010270 /* HealthKitWorkoutRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020271 /* HealthKitWorkoutRouteFetcher.swift */; };
+		010271 /* HealthKitWorkoutRouteMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020272 /* HealthKitWorkoutRouteMapper.swift */; };
+		010272 /* WorkoutRouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020273 /* WorkoutRouteStore.swift */; };
+		010273 /* HealthKitWorkoutRouteMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020274 /* HealthKitWorkoutRouteMapperTests.swift */; };
+		010274 /* WorkoutRouteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020275 /* WorkoutRouteStoreTests.swift */; };
+		010275 /* StaticRoutePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020276 /* StaticRoutePreview.swift */; };
+		010276 /* MapboxStaticRouteURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020277 /* MapboxStaticRouteURLBuilder.swift */; };
+		010277 /* StaticRoutePreviewBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020278 /* StaticRoutePreviewBuilder.swift */; };
+		010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020279 /* MapboxStaticRouteURLBuilderTests.swift */; };
+		010279 /* StaticRoutePreviewBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020280 /* StaticRoutePreviewBuilderTests.swift */; };
+		010280 /* RoutePrivacyMaskingPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020281 /* RoutePrivacyMaskingPolicy.swift */; };
+		010281 /* RoutePrivacyMasker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020282 /* RoutePrivacyMasker.swift */; };
+		010282 /* RoutePrivacyMaskerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020283 /* RoutePrivacyMaskerTests.swift */; };
+		010284 /* WorkoutDetailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020284 /* WorkoutDetailMapView.swift */; };
+		010285 /* WorkoutDetailMapOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020285 /* WorkoutDetailMapOverlay.swift */; };
+		010286 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0002 /* MapboxMaps */; };
+		010287 /* WorkoutZoneCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020287 /* WorkoutZoneCard.swift */; };
+		010288 /* WorkoutZoneSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020288 /* WorkoutZoneSection.swift */; };
+		010289 /* WorkoutZoneSectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020289 /* WorkoutZoneSectionTests.swift */; };
+		010290 /* Turf in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0004 /* Turf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -310,15 +314,12 @@
 		020010 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		020011 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		020012 /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
-		020209 /* AnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewModel.swift; sourceTree = "<group>"; };
-		020210 /* AnalysisViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewContainer.swift; sourceTree = "<group>"; };
 		020013 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
 		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
 		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
 		020017 /* SOOM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SOOM.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		020018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		020259 /* SOOM.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SOOM.entitlements; sourceTree = "<group>"; };
 		020019 /* GmarketSansTTFMedium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GmarketSansTTFMedium.ttf; sourceTree = "<group>"; };
 		020020 /* GmarketSansTTFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GmarketSansTTFBold.ttf; sourceTree = "<group>"; };
 		020021 /* NanumSquareNeo-bRg.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NanumSquareNeo-bRg.ttf"; sourceTree = "<group>"; };
@@ -331,7 +332,6 @@
 		020028 /* SoomSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSpacing.swift; sourceTree = "<group>"; };
 		020029 /* SoomRadius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomRadius.swift; sourceTree = "<group>"; };
 		020030 /* SoomIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomIcon.swift; sourceTree = "<group>"; };
-		020258 /* SoomMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMotion.swift; sourceTree = "<group>"; };
 		020031 /* SoomCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomCard.swift; sourceTree = "<group>"; };
 		020032 /* SoomButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomButton.swift; sourceTree = "<group>"; };
 		020034 /* SoomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSectionHeader.swift; sourceTree = "<group>"; };
@@ -506,6 +506,8 @@
 		020206 /* UnifiedWorkoutAnalysisInputSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutAnalysisInputSelectorTests.swift; sourceTree = "<group>"; };
 		020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutWeeklyProgressProvider.swift; sourceTree = "<group>"; };
 		020208 /* UnifiedWorkoutWeeklyProgressProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutWeeklyProgressProviderTests.swift; sourceTree = "<group>"; };
+		020209 /* AnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewModel.swift; sourceTree = "<group>"; };
+		020210 /* AnalysisViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewContainer.swift; sourceTree = "<group>"; };
 		020211 /* AnalysisViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewModelTests.swift; sourceTree = "<group>"; };
 		020212 /* FourWeekWorkoutTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FourWeekWorkoutTrend.swift; sourceTree = "<group>"; };
 		020213 /* FourWeekWorkoutTrendBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FourWeekWorkoutTrendBuilder.swift; sourceTree = "<group>"; };
@@ -527,32 +529,6 @@
 		020229 /* WorkoutSessionSummaryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilder.swift; sourceTree = "<group>"; };
 		020230 /* WorkoutSessionSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryCard.swift; sourceTree = "<group>"; };
 		020231 /* WorkoutSessionSummaryBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionSummaryBuilderTests.swift; sourceTree = "<group>"; };
-		020260 /* WorkoutGrowthMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetric.swift; sourceTree = "<group>"; };
-		020261 /* WorkoutGrowthMetricsBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilder.swift; sourceTree = "<group>"; };
-		020264 /* WorkoutTypeMetricProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTypeMetricProfile.swift; sourceTree = "<group>"; };
-		020262 /* WorkoutGrowthMetricsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsCard.swift; sourceTree = "<group>"; };
-		020263 /* WorkoutGrowthMetricsBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilderTests.swift; sourceTree = "<group>"; };
-		020265 /* WorkoutRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoute.swift; sourceTree = "<group>"; };
-		020266 /* WorkoutZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZone.swift; sourceTree = "<group>"; };
-		020267 /* WorkoutZoneSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneSummary.swift; sourceTree = "<group>"; };
-		020268 /* WorkoutZoneBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneBuilder.swift; sourceTree = "<group>"; };
-		020269 /* WorkoutRouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteTests.swift; sourceTree = "<group>"; };
-		020270 /* WorkoutZoneBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneBuilderTests.swift; sourceTree = "<group>"; };
-		020271 /* HealthKitWorkoutRouteFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteFetcher.swift; sourceTree = "<group>"; };
-		020272 /* HealthKitWorkoutRouteMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteMapper.swift; sourceTree = "<group>"; };
-		020273 /* WorkoutRouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteStore.swift; sourceTree = "<group>"; };
-		020274 /* HealthKitWorkoutRouteMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteMapperTests.swift; sourceTree = "<group>"; };
-		020275 /* WorkoutRouteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteStoreTests.swift; sourceTree = "<group>"; };
-		020276 /* StaticRoutePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreview.swift; sourceTree = "<group>"; };
-		020277 /* MapboxStaticRouteURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilder.swift; sourceTree = "<group>"; };
-		020278 /* StaticRoutePreviewBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilder.swift; sourceTree = "<group>"; };
-		020281 /* RoutePrivacyMaskingPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskingPolicy.swift; sourceTree = "<group>"; };
-		020282 /* RoutePrivacyMasker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMasker.swift; sourceTree = "<group>"; };
-		020284 /* WorkoutDetailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapView.swift; sourceTree = "<group>"; };
-		020285 /* WorkoutDetailMapOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapOverlay.swift; sourceTree = "<group>"; };
-		020283 /* RoutePrivacyMaskerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskerTests.swift; sourceTree = "<group>"; };
-		020279 /* MapboxStaticRouteURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilderTests.swift; sourceTree = "<group>"; };
-		020280 /* StaticRoutePreviewBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilderTests.swift; sourceTree = "<group>"; };
 		020232 /* ShareableWorkoutCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardModel.swift; sourceTree = "<group>"; };
 		020233 /* ShareableWorkoutCardBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardBuilder.swift; sourceTree = "<group>"; };
 		020234 /* ShareableWorkoutCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableWorkoutCardView.swift; sourceTree = "<group>"; };
@@ -579,6 +555,37 @@
 		020255 /* FeedItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemCard.swift; sourceTree = "<group>"; };
 		020256 /* FeedItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemTests.swift; sourceTree = "<group>"; };
 		020257 /* FeedMockDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMockDataTests.swift; sourceTree = "<group>"; };
+		020258 /* SoomMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMotion.swift; sourceTree = "<group>"; };
+		020259 /* SOOM.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SOOM.entitlements; sourceTree = "<group>"; };
+		020260 /* WorkoutGrowthMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetric.swift; sourceTree = "<group>"; };
+		020261 /* WorkoutGrowthMetricsBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilder.swift; sourceTree = "<group>"; };
+		020262 /* WorkoutGrowthMetricsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsCard.swift; sourceTree = "<group>"; };
+		020263 /* WorkoutGrowthMetricsBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetricsBuilderTests.swift; sourceTree = "<group>"; };
+		020264 /* WorkoutTypeMetricProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTypeMetricProfile.swift; sourceTree = "<group>"; };
+		020265 /* WorkoutRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoute.swift; sourceTree = "<group>"; };
+		020266 /* WorkoutZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZone.swift; sourceTree = "<group>"; };
+		020267 /* WorkoutZoneSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneSummary.swift; sourceTree = "<group>"; };
+		020268 /* WorkoutZoneBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneBuilder.swift; sourceTree = "<group>"; };
+		020269 /* WorkoutRouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteTests.swift; sourceTree = "<group>"; };
+		020270 /* WorkoutZoneBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneBuilderTests.swift; sourceTree = "<group>"; };
+		020271 /* HealthKitWorkoutRouteFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteFetcher.swift; sourceTree = "<group>"; };
+		020272 /* HealthKitWorkoutRouteMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteMapper.swift; sourceTree = "<group>"; };
+		020273 /* WorkoutRouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteStore.swift; sourceTree = "<group>"; };
+		020274 /* HealthKitWorkoutRouteMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutRouteMapperTests.swift; sourceTree = "<group>"; };
+		020275 /* WorkoutRouteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteStoreTests.swift; sourceTree = "<group>"; };
+		020276 /* StaticRoutePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreview.swift; sourceTree = "<group>"; };
+		020277 /* MapboxStaticRouteURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilder.swift; sourceTree = "<group>"; };
+		020278 /* StaticRoutePreviewBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilder.swift; sourceTree = "<group>"; };
+		020279 /* MapboxStaticRouteURLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapboxStaticRouteURLBuilderTests.swift; sourceTree = "<group>"; };
+		020280 /* StaticRoutePreviewBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticRoutePreviewBuilderTests.swift; sourceTree = "<group>"; };
+		020281 /* RoutePrivacyMaskingPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskingPolicy.swift; sourceTree = "<group>"; };
+		020282 /* RoutePrivacyMasker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMasker.swift; sourceTree = "<group>"; };
+		020283 /* RoutePrivacyMaskerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskerTests.swift; sourceTree = "<group>"; };
+		020284 /* WorkoutDetailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapView.swift; sourceTree = "<group>"; };
+		020285 /* WorkoutDetailMapOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapOverlay.swift; sourceTree = "<group>"; };
+		020287 /* WorkoutZoneCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneCard.swift; sourceTree = "<group>"; };
+		020288 /* WorkoutZoneSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneSection.swift; sourceTree = "<group>"; };
+		020289 /* WorkoutZoneSectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneSectionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -587,6 +594,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				010286 /* MapboxMaps in Frameworks */,
+				010290 /* Turf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -717,6 +725,7 @@
 				020226 /* WorkoutRecoveryImpactCard.swift */,
 				020230 /* WorkoutSessionSummaryCard.swift */,
 				020262 /* WorkoutGrowthMetricsCard.swift */,
+				020287 /* WorkoutZoneCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
 				020255 /* FeedItemCard.swift */,
@@ -730,6 +739,25 @@
 				020067 /* CheckInSummaryCard.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		040012 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				040013 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		040013 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				020019 /* GmarketSansTTFMedium.ttf */,
+				020020 /* GmarketSansTTFBold.ttf */,
+				020021 /* NanumSquareNeo-bRg.ttf */,
+				020022 /* NanumSquareNeo-cBd.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		040014 /* Features */ = {
@@ -773,95 +801,6 @@
 				020025 /* WorkoutMetricCards.swift */,
 			);
 			path = Activity;
-			sourceTree = "<group>";
-		};
-		040022 /* Workout */ = {
-			isa = PBXGroup;
-			children = (
-				020160 /* WorkoutGrowthSummary.swift */,
-				020161 /* WorkoutGrowthSummaryBuilder.swift */,
-				020180 /* WorkoutGrowthInput.swift */,
-				020260 /* WorkoutGrowthMetric.swift */,
-				020264 /* WorkoutTypeMetricProfile.swift */,
-				020261 /* WorkoutGrowthMetricsBuilder.swift */,
-				020265 /* WorkoutRoute.swift */,
-				020273 /* WorkoutRouteStore.swift */,
-				020276 /* StaticRoutePreview.swift */,
-				020277 /* MapboxStaticRouteURLBuilder.swift */,
-				020278 /* StaticRoutePreviewBuilder.swift */,
-				020281 /* RoutePrivacyMaskingPolicy.swift */,
-				020282 /* RoutePrivacyMasker.swift */,
-				020284 /* WorkoutDetailMapView.swift */,
-				020285 /* WorkoutDetailMapOverlay.swift */,
-				020266 /* WorkoutZone.swift */,
-				020267 /* WorkoutZoneSummary.swift */,
-				020268 /* WorkoutZoneBuilder.swift */,
-				020164 /* WorkoutWeaknessInsight.swift */,
-				020165 /* WorkoutWeaknessInsightBuilder.swift */,
-				020224 /* WorkoutRecoveryImpact.swift */,
-				020225 /* WorkoutRecoveryImpactBuilder.swift */,
-				020228 /* WorkoutSessionSummary.swift */,
-				020229 /* WorkoutSessionSummaryBuilder.swift */,
-				020232 /* ShareableWorkoutCardModel.swift */,
-				020233 /* ShareableWorkoutCardBuilder.swift */,
-				020239 /* ShareableWeeklyProgressCardModel.swift */,
-				020240 /* ShareableWeeklyProgressCardBuilder.swift */,
-				020236 /* ShareableWorkoutCardRenderer.swift */,
-				020168 /* WeeklyWorkoutProgress.swift */,
-				020169 /* WeeklyWorkoutProgressBuilder.swift */,
-				020212 /* FourWeekWorkoutTrend.swift */,
-				020213 /* FourWeekWorkoutTrendBuilder.swift */,
-				020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */,
-				020215 /* UnifiedWorkoutGrowthTrendProvider.swift */,
-				020218 /* PersonalRecord.swift */,
-				020219 /* PersonalRecordBuilder.swift */,
-				020220 /* UnifiedWorkoutPersonalRecordProvider.swift */,
-			);
-			path = Workout;
-			sourceTree = "<group>";
-		};
-		040023 /* UnifiedHealth */ = {
-			isa = PBXGroup;
-			children = (
-				040024 /* Persistence */,
-				020172 /* UnifiedDataSource.swift */,
-				020173 /* UnifiedWorkoutType.swift */,
-				020175 /* UnifiedDataQuality.swift */,
-				020174 /* UnifiedWorkout.swift */,
-				020178 /* UnifiedWorkoutToRecoveryActivityMapper.swift */,
-				020181 /* UnifiedWorkoutToGrowthInputMapper.swift */,
-				020183 /* UnifiedWorkoutDuplicateCandidate.swift */,
-				020184 /* UnifiedWorkoutDeduplicationEngine.swift */,
-				020205 /* UnifiedWorkoutAnalysisInputSelector.swift */,
-				020197 /* UnifiedWorkoutLibraryViewModel.swift */,
-				020198 /* UnifiedWorkoutLibraryView.swift */,
-				020199 /* UnifiedWorkoutLibraryViewContainer.swift */,
-				020201 /* UnifiedWorkoutDuplicateReviewViewModel.swift */,
-				020202 /* UnifiedWorkoutDuplicateReviewView.swift */,
-				020203 /* UnifiedWorkoutDuplicateReviewViewContainer.swift */,
-			);
-			path = UnifiedHealth;
-			sourceTree = "<group>";
-		};
-		040024 /* Persistence */ = {
-			isa = PBXGroup;
-			children = (
-				020186 /* UnifiedWorkoutRecord.swift */,
-				020187 /* UnifiedWorkoutPersistenceMapper.swift */,
-				020188 /* UnifiedWorkoutStore.swift */,
-			);
-			path = Persistence;
-			sourceTree = "<group>";
-		};
-		040019 /* Feed */ = {
-			isa = PBXGroup;
-			children = (
-				020253 /* FeedItem.swift */,
-				020254 /* FeedMockData.swift */,
-				020014 /* FeedView.swift */,
-				020026 /* FeedPostDetailContent.swift */,
-			);
-			path = Feed;
 			sourceTree = "<group>";
 		};
 		040017 /* Recovery */ = {
@@ -926,6 +865,25 @@
 			path = Recovery;
 			sourceTree = "<group>";
 		};
+		040018 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				020015 /* ClubsView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		040019 /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				020253 /* FeedItem.swift */,
+				020254 /* FeedMockData.swift */,
+				020014 /* FeedView.swift */,
+				020026 /* FeedPostDetailContent.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
 		040020 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
@@ -969,31 +927,83 @@
 			path = HealthKit;
 			sourceTree = "<group>";
 		};
-		040018 /* Profile */ = {
+		040022 /* Workout */ = {
 			isa = PBXGroup;
 			children = (
-				020015 /* ClubsView.swift */,
+				020160 /* WorkoutGrowthSummary.swift */,
+				020161 /* WorkoutGrowthSummaryBuilder.swift */,
+				020180 /* WorkoutGrowthInput.swift */,
+				020260 /* WorkoutGrowthMetric.swift */,
+				020264 /* WorkoutTypeMetricProfile.swift */,
+				020261 /* WorkoutGrowthMetricsBuilder.swift */,
+				020265 /* WorkoutRoute.swift */,
+				020273 /* WorkoutRouteStore.swift */,
+				020276 /* StaticRoutePreview.swift */,
+				020277 /* MapboxStaticRouteURLBuilder.swift */,
+				020278 /* StaticRoutePreviewBuilder.swift */,
+				020281 /* RoutePrivacyMaskingPolicy.swift */,
+				020282 /* RoutePrivacyMasker.swift */,
+				020284 /* WorkoutDetailMapView.swift */,
+				020285 /* WorkoutDetailMapOverlay.swift */,
+				020266 /* WorkoutZone.swift */,
+				020267 /* WorkoutZoneSummary.swift */,
+				020268 /* WorkoutZoneBuilder.swift */,
+				020288 /* WorkoutZoneSection.swift */,
+				020164 /* WorkoutWeaknessInsight.swift */,
+				020165 /* WorkoutWeaknessInsightBuilder.swift */,
+				020224 /* WorkoutRecoveryImpact.swift */,
+				020225 /* WorkoutRecoveryImpactBuilder.swift */,
+				020228 /* WorkoutSessionSummary.swift */,
+				020229 /* WorkoutSessionSummaryBuilder.swift */,
+				020232 /* ShareableWorkoutCardModel.swift */,
+				020233 /* ShareableWorkoutCardBuilder.swift */,
+				020239 /* ShareableWeeklyProgressCardModel.swift */,
+				020240 /* ShareableWeeklyProgressCardBuilder.swift */,
+				020236 /* ShareableWorkoutCardRenderer.swift */,
+				020168 /* WeeklyWorkoutProgress.swift */,
+				020169 /* WeeklyWorkoutProgressBuilder.swift */,
+				020212 /* FourWeekWorkoutTrend.swift */,
+				020213 /* FourWeekWorkoutTrendBuilder.swift */,
+				020207 /* UnifiedWorkoutWeeklyProgressProvider.swift */,
+				020215 /* UnifiedWorkoutGrowthTrendProvider.swift */,
+				020218 /* PersonalRecord.swift */,
+				020219 /* PersonalRecordBuilder.swift */,
+				020220 /* UnifiedWorkoutPersonalRecordProvider.swift */,
 			);
-			path = Profile;
+			path = Workout;
 			sourceTree = "<group>";
 		};
-		040012 /* Resources */ = {
+		040023 /* UnifiedHealth */ = {
 			isa = PBXGroup;
 			children = (
-				040013 /* Fonts */,
+				040024 /* Persistence */,
+				020172 /* UnifiedDataSource.swift */,
+				020173 /* UnifiedWorkoutType.swift */,
+				020175 /* UnifiedDataQuality.swift */,
+				020174 /* UnifiedWorkout.swift */,
+				020178 /* UnifiedWorkoutToRecoveryActivityMapper.swift */,
+				020181 /* UnifiedWorkoutToGrowthInputMapper.swift */,
+				020183 /* UnifiedWorkoutDuplicateCandidate.swift */,
+				020184 /* UnifiedWorkoutDeduplicationEngine.swift */,
+				020205 /* UnifiedWorkoutAnalysisInputSelector.swift */,
+				020197 /* UnifiedWorkoutLibraryViewModel.swift */,
+				020198 /* UnifiedWorkoutLibraryView.swift */,
+				020199 /* UnifiedWorkoutLibraryViewContainer.swift */,
+				020201 /* UnifiedWorkoutDuplicateReviewViewModel.swift */,
+				020202 /* UnifiedWorkoutDuplicateReviewView.swift */,
+				020203 /* UnifiedWorkoutDuplicateReviewViewContainer.swift */,
 			);
-			path = Resources;
+			path = UnifiedHealth;
 			sourceTree = "<group>";
 		};
-		040013 /* Fonts */ = {
+		040024 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
-				020019 /* GmarketSansTTFMedium.ttf */,
-				020020 /* GmarketSansTTFBold.ttf */,
-				020021 /* NanumSquareNeo-bRg.ttf */,
-				020022 /* NanumSquareNeo-cBd.ttf */,
+				020186 /* UnifiedWorkoutRecord.swift */,
+				020187 /* UnifiedWorkoutPersistenceMapper.swift */,
+				020188 /* UnifiedWorkoutStore.swift */,
 			);
-			path = Fonts;
+			path = Persistence;
 			sourceTree = "<group>";
 		};
 		040101 /* SOOMTests */ = {
@@ -1050,6 +1060,7 @@
 				020263 /* WorkoutGrowthMetricsBuilderTests.swift */,
 				020269 /* WorkoutRouteTests.swift */,
 				020270 /* WorkoutZoneBuilderTests.swift */,
+				020289 /* WorkoutZoneSectionTests.swift */,
 				020274 /* HealthKitWorkoutRouteMapperTests.swift */,
 				020275 /* WorkoutRouteStoreTests.swift */,
 				020279 /* MapboxStaticRouteURLBuilderTests.swift */,
@@ -1089,6 +1100,7 @@
 			name = SOOM;
 			packageProductDependencies = (
 				0D0002 /* MapboxMaps */,
+				0D0004 /* Turf */,
 			);
 			productName = SOOM;
 			productReference = 020017 /* SOOM.app */;
@@ -1119,7 +1131,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					050001 = {
 						CreatedOnToolsVersion = 16.0;
@@ -1146,6 +1158,7 @@
 			mainGroup = 040001;
 			packageReferences = (
 				0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
+				0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */,
 			);
 			productRefGroup = 040002 /* Products */;
 			projectDirPath = "";
@@ -1210,6 +1223,7 @@
 				010225 /* WorkoutRecoveryImpactCard.swift in Sources */,
 				010230 /* WorkoutSessionSummaryCard.swift in Sources */,
 				010261 /* WorkoutGrowthMetricsCard.swift in Sources */,
+				010287 /* WorkoutZoneCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
 				010255 /* FeedItemCard.swift in Sources */,
@@ -1275,6 +1289,7 @@
 				010265 /* WorkoutZone.swift in Sources */,
 				010266 /* WorkoutZoneSummary.swift in Sources */,
 				010267 /* WorkoutZoneBuilder.swift in Sources */,
+				010288 /* WorkoutZoneSection.swift in Sources */,
 				010171 /* UnifiedDataSource.swift in Sources */,
 				010172 /* UnifiedWorkoutType.swift in Sources */,
 				010174 /* UnifiedDataQuality.swift in Sources */,
@@ -1439,6 +1454,7 @@
 				010262 /* WorkoutGrowthMetricsBuilderTests.swift in Sources */,
 				010268 /* WorkoutRouteTests.swift in Sources */,
 				010269 /* WorkoutZoneBuilderTests.swift in Sources */,
+				010289 /* WorkoutZoneSectionTests.swift in Sources */,
 				010273 /* HealthKitWorkoutRouteMapperTests.swift in Sources */,
 				010274 /* WorkoutRouteStoreTests.swift in Sources */,
 				010278 /* MapboxStaticRouteURLBuilderTests.swift in Sources */,
@@ -1469,30 +1485,12 @@
 		};
 /* End PBXTargetDependency section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 11.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		0D0002 /* MapboxMaps */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
-			productName = MapboxMaps;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin XCBuildConfiguration section */
 		080001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1556,6 +1554,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1615,9 +1614,15 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_DEBUG_DYLIB = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SOOM/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1639,6 +1644,11 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SOOM/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.soom.prototype;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1653,12 +1663,12 @@
 		080101 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				AD_HOC_CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGNING_REQUIRED = YES;
-				CODE_SIGN_STYLE = Automatic;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 82D59P8SDL;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1681,12 +1691,12 @@
 		080102 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				AD_HOC_CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGNING_REQUIRED = YES;
-				CODE_SIGN_STYLE = Automatic;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 82D59P8SDL;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1737,6 +1747,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+		0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mapbox/turf-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0D0002 /* MapboxMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
+			productName = MapboxMaps;
+		};
+		0D0004 /* Turf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */;
+			productName = Turf;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 070001 /* Project object */;
 }
