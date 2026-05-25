@@ -3,6 +3,17 @@ import Foundation
 struct SimilarWorkoutCandidateResult: Equatable {
     let baseline: WorkoutGrowthInput
     let routeCandidate: RouteComparisonCandidate?
+    let currentCourseIdentity: CourseIdentity?
+
+    init(
+        baseline: WorkoutGrowthInput,
+        routeCandidate: RouteComparisonCandidate? = nil,
+        currentCourseIdentity: CourseIdentity? = nil
+    ) {
+        self.baseline = baseline
+        self.routeCandidate = routeCandidate
+        self.currentCourseIdentity = currentCourseIdentity
+    }
 }
 
 protocol SimilarWorkoutCandidateProviding {
@@ -18,6 +29,7 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
     private let store: any UnifiedWorkoutStore
     private let mapper: UnifiedWorkoutToGrowthInputMapper
     private let routeSimilarityBuilder: RouteSimilarityBuilder
+    private let persistedRouteProvider: (any PersistedRouteCandidateProviding)?
     private let recentDays: Int
     private let maxCandidateCount: Int
     private let distanceToleranceRatio: Double
@@ -26,6 +38,7 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
         store: any UnifiedWorkoutStore,
         mapper: UnifiedWorkoutToGrowthInputMapper = UnifiedWorkoutToGrowthInputMapper(),
         routeSimilarityBuilder: RouteSimilarityBuilder = RouteSimilarityBuilder(),
+        persistedRouteProvider: (any PersistedRouteCandidateProviding)? = nil,
         recentDays: Int = 90,
         maxCandidateCount: Int = 20,
         distanceToleranceRatio: Double = 0.15
@@ -33,6 +46,7 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
         self.store = store
         self.mapper = mapper
         self.routeSimilarityBuilder = routeSimilarityBuilder
+        self.persistedRouteProvider = persistedRouteProvider
         self.recentDays = recentDays
         self.maxCandidateCount = maxCandidateCount
         self.distanceToleranceRatio = distanceToleranceRatio
@@ -51,9 +65,18 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
         let workouts = try await comparableWorkouts(for: current)
         guard !workouts.isEmpty else { return nil }
 
-        if let currentRoute {
+        let routeContext = await persistedRouteContextIfAvailable(
+            currentWorkoutId: current.id,
+            candidateWorkoutIds: workouts.map(\.id)
+        )
+        let resolvedCurrentRoute = currentRoute ?? routeContext?.currentRoute
+        let resolvedCandidateRoutesByWorkoutId = candidateRoutesByWorkoutId.merging(
+            routeContext?.candidateRoutesByWorkoutId ?? [:]
+        ) { explicit, _ in explicit }
+
+        if let currentRoute = resolvedCurrentRoute {
             let candidateRoutes = workouts.compactMap { candidate -> WorkoutRoute? in
-                candidateRoutesByWorkoutId[candidate.id]
+                resolvedCandidateRoutesByWorkoutId[candidate.id]
             }
             let routeCandidate = routeSimilarityBuilder.findCandidates(
                 current: currentRoute,
@@ -64,7 +87,8 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
                let matchedWorkout = workouts.first(where: { $0.id == routeCandidate.candidateWorkoutId }) {
                 return SimilarWorkoutCandidateResult(
                     baseline: mapper.map(matchedWorkout),
-                    routeCandidate: routeCandidate
+                    routeCandidate: routeCandidate,
+                    currentCourseIdentity: routeContext?.currentCourseIdentity
                 )
             }
         }
@@ -75,8 +99,25 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
 
         return SimilarWorkoutCandidateResult(
             baseline: mapper.map(fallback),
-            routeCandidate: nil
+            routeCandidate: nil,
+            currentCourseIdentity: routeContext?.currentCourseIdentity
         )
+    }
+
+    private func persistedRouteContextIfAvailable(
+        currentWorkoutId: UUID,
+        candidateWorkoutIds: [UUID]
+    ) async -> PersistedRouteCandidateSet? {
+        guard let persistedRouteProvider else { return nil }
+
+        do {
+            return try await persistedRouteProvider.routes(
+                currentWorkoutId: currentWorkoutId,
+                candidateWorkoutIds: candidateWorkoutIds
+            )
+        } catch {
+            return nil
+        }
     }
 
     private func comparableWorkouts(for current: UnifiedWorkout) async throws -> [UnifiedWorkout] {

@@ -388,7 +388,8 @@ private struct UnifiedWorkoutDetailDestination: View {
         return CourseRecordBuilder().build(
             current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
             candidateWorkouts: [result.baseline],
-            routeCandidates: result.routeCandidate.map { [$0] } ?? []
+            routeCandidates: result.routeCandidate.map { [$0] } ?? [],
+            courseIdentity: result.currentCourseIdentity
         )
     }
 }

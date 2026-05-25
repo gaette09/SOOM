@@ -500,3 +500,7 @@ Implementation status:
 - `SwiftDataWorkoutRoutePersistenceStore` upserts by `workoutId`, fetches single or multiple routes, and can delete a route without touching the workout summary.
 - Route fetch/persistence failure does not fail HealthKit workout import.
 - No server sync, Auth, Garmin/Samsung route import, complex GIS indexing, segment replay, or Recovery/Growth calculation changes are included.
+
+### Persisted Route Reuse v1
+
+Workout Detail comparison and course record flows can now reuse routes saved in `PersistedWorkoutRoute`. Imported UnifiedWorkout detail injects a persisted route candidate provider from the library container, ranks same-sport candidates with route similarity when route data exists, and keeps the existing distance/recency fallback when route data is missing. This keeps course identity local-first without adding GIS indexing, server grouping, or segment replay.

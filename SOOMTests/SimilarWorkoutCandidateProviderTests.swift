@@ -67,6 +67,48 @@ final class SimilarWorkoutCandidateProviderTests: XCTestCase {
         XCTAssertEqual(result?.routeCandidate?.reason, .similarRoute)
     }
 
+    func testPersistedRouteProviderCanRankCandidateWhenRoutesAreStored() async throws {
+        let current = makeWorkout(type: .running, daysAgo: 0, distanceMeters: 10_000)
+        let routeMatched = makeWorkout(type: .running, daysAgo: 6, distanceMeters: 10_100)
+        let distanceMatched = makeWorkout(type: .running, daysAgo: 2, distanceMeters: 10_050)
+        let routeProvider = FakePersistedRouteCandidateProvider(
+            result: PersistedRouteCandidateSet(
+                currentRoute: makeRoute(workoutId: current.id, distance: 10_000, offset: 0),
+                candidateRoutesByWorkoutId: [
+                    routeMatched.id: makeRoute(workoutId: routeMatched.id, distance: 10_100, offset: 0.0003)
+                ],
+                currentCourseIdentity: CourseIdentityBuilder().build(
+                    from: makeRoute(workoutId: current.id, distance: 10_000, offset: 0)
+                )
+            )
+        )
+        let provider = makeProvider(
+            workouts: [current, distanceMatched, routeMatched],
+            persistedRouteProvider: routeProvider
+        )
+
+        let result = try await provider.bestCandidate(for: current)
+
+        XCTAssertEqual(result?.baseline.id, routeMatched.id)
+        XCTAssertEqual(result?.routeCandidate?.reason, .similarRoute)
+        XCTAssertNotNil(result?.currentCourseIdentity)
+    }
+
+    func testPersistedRouteProviderFailureFallsBackToDistanceCandidate() async throws {
+        let current = makeWorkout(type: .cycling, daysAgo: 0, distanceMeters: 40_000)
+        let routeMatched = makeWorkout(type: .cycling, daysAgo: 7, distanceMeters: 44_000)
+        let closestDistance = makeWorkout(type: .cycling, daysAgo: 2, distanceMeters: 39_500)
+        let provider = makeProvider(
+            workouts: [current, routeMatched, closestDistance],
+            persistedRouteProvider: FakePersistedRouteCandidateProvider(error: SampleError.routeFailed)
+        )
+
+        let result = try await provider.bestCandidate(for: current)
+
+        XCTAssertEqual(result?.baseline.id, closestDistance.id)
+        XCTAssertNil(result?.routeCandidate)
+    }
+
     func testInsufficientDataReturnsNil() async throws {
         let current = makeWorkout(type: .swimming, daysAgo: 0, distanceMeters: 1_500)
         let provider = makeProvider(workouts: [current])
@@ -86,9 +128,13 @@ final class SimilarWorkoutCandidateProviderTests: XCTestCase {
         XCTAssertEqual(result?.baseline.id, previous.id)
     }
 
-    private func makeProvider(workouts: [UnifiedWorkout]) -> SimilarWorkoutCandidateProvider {
+    private func makeProvider(
+        workouts: [UnifiedWorkout],
+        persistedRouteProvider: (any PersistedRouteCandidateProviding)? = nil
+    ) -> SimilarWorkoutCandidateProvider {
         SimilarWorkoutCandidateProvider(
             store: SimilarWorkoutCandidateFakeStore(workouts: workouts),
+            persistedRouteProvider: persistedRouteProvider,
             recentDays: 90,
             maxCandidateCount: 20
         )
@@ -158,4 +204,31 @@ private final class SimilarWorkoutCandidateFakeStore: UnifiedWorkoutStore {
     func fetchByExternalId(_ externalId: String, source: UnifiedDataSource) async throws -> UnifiedWorkout? { nil }
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws {}
     func deleteWorkout(id: UUID) async throws {}
+}
+
+
+private enum SampleError: Error {
+    case routeFailed
+}
+
+private struct FakePersistedRouteCandidateProvider: PersistedRouteCandidateProviding {
+    let result: PersistedRouteCandidateSet?
+    let error: Error?
+
+    init(result: PersistedRouteCandidateSet? = nil, error: Error? = nil) {
+        self.result = result
+        self.error = error
+    }
+
+    func routes(
+        currentWorkoutId: UUID,
+        candidateWorkoutIds: [UUID]
+    ) async throws -> PersistedRouteCandidateSet {
+        if let error { throw error }
+        return result ?? PersistedRouteCandidateSet(
+            currentRoute: nil,
+            candidateRoutesByWorkoutId: [:],
+            currentCourseIdentity: nil
+        )
+    }
 }

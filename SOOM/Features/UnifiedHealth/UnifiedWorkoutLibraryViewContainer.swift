@@ -6,9 +6,14 @@ struct UnifiedWorkoutLibraryViewContainer: View {
 
     var body: some View {
         let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let routeStore = SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+        let routeCandidateProvider = PersistedRouteCandidateProvider(store: routeStore)
         UnifiedWorkoutLibraryView(
             viewModel: UnifiedWorkoutLibraryViewModel(store: store),
-            similarCandidateProvider: SimilarWorkoutCandidateProvider(store: store)
+            similarCandidateProvider: SimilarWorkoutCandidateProvider(
+                store: store,
+                persistedRouteProvider: routeCandidateProvider
+            )
         )
     }
 }

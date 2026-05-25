@@ -344,6 +344,8 @@
 		010343 /* WorkoutRoutePersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020343 /* WorkoutRoutePersistenceStore.swift */; };
 		010344 /* WorkoutRouteMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020344 /* WorkoutRouteMapperTests.swift */; };
 		010345 /* WorkoutRoutePersistenceStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020345 /* WorkoutRoutePersistenceStoreTests.swift */; };
+		010346 /* PersistedRouteCandidateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020346 /* PersistedRouteCandidateProvider.swift */; };
+		010347 /* PersistedRouteCandidateProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020347 /* PersistedRouteCandidateProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -696,6 +698,8 @@
 		020343 /* WorkoutRoutePersistenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoutePersistenceStore.swift; sourceTree = "<group>"; };
 		020344 /* WorkoutRouteMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteMapperTests.swift; sourceTree = "<group>"; };
 		020345 /* WorkoutRoutePersistenceStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoutePersistenceStoreTests.swift; sourceTree = "<group>"; };
+		020346 /* PersistedRouteCandidateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistedRouteCandidateProvider.swift; sourceTree = "<group>"; };
+		020347 /* PersistedRouteCandidateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistedRouteCandidateProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1072,6 +1076,7 @@
 				020314 /* WorkoutComparisonInsight.swift */,
 				020315 /* WorkoutComparisonInsightBuilder.swift */,
 				020319 /* SimilarWorkoutCandidateProvider.swift */,
+				020346 /* PersistedRouteCandidateProvider.swift */,
 				020338 /* CourseIdentity.swift */,
 				020339 /* CourseIdentityBuilder.swift */,
 				020332 /* CourseRecord.swift */,
@@ -1229,6 +1234,7 @@
 				020275 /* WorkoutRouteStoreTests.swift */,
 				020344 /* WorkoutRouteMapperTests.swift */,
 				020345 /* WorkoutRoutePersistenceStoreTests.swift */,
+				020347 /* PersistedRouteCandidateProviderTests.swift */,
 				020294 /* HealthKitWorkoutMetricMapperTests.swift */,
 				020295 /* HealthKitMetricZoneBuilderTests.swift */,
 				020297 /* WorkoutZoneDataProviderTests.swift */,
@@ -1458,6 +1464,7 @@
 				010314 /* WorkoutComparisonInsight.swift in Sources */,
 				010315 /* WorkoutComparisonInsightBuilder.swift in Sources */,
 				010319 /* SimilarWorkoutCandidateProvider.swift in Sources */,
+				010346 /* PersistedRouteCandidateProvider.swift in Sources */,
 				010338 /* CourseIdentity.swift in Sources */,
 				010339 /* CourseIdentityBuilder.swift in Sources */,
 				010332 /* CourseRecord.swift in Sources */,
@@ -1678,6 +1685,7 @@
 				010274 /* WorkoutRouteStoreTests.swift in Sources */,
 				010344 /* WorkoutRouteMapperTests.swift in Sources */,
 				010345 /* WorkoutRoutePersistenceStoreTests.swift in Sources */,
+				010347 /* PersistedRouteCandidateProviderTests.swift in Sources */,
 				010295 /* HealthKitWorkoutMetricMapperTests.swift in Sources */,
 				010296 /* HealthKitMetricZoneBuilderTests.swift in Sources */,
 				010298 /* WorkoutZoneDataProviderTests.swift in Sources */,

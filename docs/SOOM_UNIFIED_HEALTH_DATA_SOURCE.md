@@ -573,3 +573,7 @@ This keeps course grouping local-first and future-ready for HealthKit, Garmin, S
 - HealthKit import can persist a route after `HealthKitWorkout -> UnifiedWorkout -> UnifiedWorkoutStore` succeeds by looking up the original `HKWorkout`, fetching `HKWorkoutRoute`, and saving the mapped `WorkoutRoute`. Route failures are ignored so workout import remains safe.
 
 This gives CourseIdentity, CourseRecord, and Route Comparison a reusable local route source without changing RecoveryCalculator, Growth builders, Garmin/Samsung connectors, or server/Auth policy.
+
+### Persisted Route Reuse v1
+
+`PersistedRouteCandidateProvider` now reads the current workout route and recent candidate routes from `SwiftDataWorkoutRoutePersistenceStore` for comparison flows. `SimilarWorkoutCandidateProvider` can use those persisted routes with `RouteSimilarityBuilder` before falling back to distance/recency matching. Route lookup failures are treated as non-blocking so imported workout detail can still render comparison and course record fallback states.

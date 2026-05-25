@@ -632,3 +632,7 @@ Reverse-direction routes can be treated as similar course candidates. The user-f
 Same-route growth comparison now has a reusable local route foundation. `PersistedWorkoutRoute`, `WorkoutRouteMapper`, and `SwiftDataWorkoutRoutePersistenceStore` store HealthKit-imported route data by `workoutId` so Course Identity, Course Record, and Route Comparison can reuse route context beyond a single detail session.
 
 This persistence layer stores lightweight encoded coordinates and route metadata only. It does not add server sync, Auth, Garmin/Samsung import, complex GIS indexing, ML prediction, Strava-style segments, or changes to RecoveryCalculator / existing Growth calculation logic.
+
+### Persisted Route Reuse v1
+
+Same-route progression is now backed by stored route context when available. `SimilarWorkoutCandidateProvider` can reuse persisted routes to choose a more relevant previous workout for Comparison Insight and Course Record, while still falling back to same-type distance/recency candidates when route data is unavailable. RecoveryCalculator and existing Growth scoring logic remain unchanged.
