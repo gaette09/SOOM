@@ -615,3 +615,13 @@ Unified workout records can now feed long-term progression interpretation after 
 `UnifiedWorkoutStore -> UnifiedWorkoutAnalysisInputSelector -> WorkoutGrowthInput[] -> ProgressionIntelligenceBuilder -> ProgressionIntelligenceCard`
 
 The layer aggregates recent included workouts and interprets pace, speed, rhythm stability, and training frequency over weekly/monthly windows. It is local-first and does not change RecoveryCalculator, existing Growth builders, Feed/SNS, server/Auth, Garmin/Samsung, or ML policy.
+
+## Future User Ownership Boundary
+
+SOOM now has a local-first `AppUser` / `AuthSession` foundation. Current workout, route, settings, and HealthKit-derived records remain local to the device, but future persistence can migrate toward user-scoped ownership.
+
+Future direction:
+
+`AppUser.id -> user-scoped settings / workouts / routes / share defaults`
+
+The v1 foundation does not add `user_id` to existing SwiftData schemas, does not sync to a server, and does not change import, RecoveryCalculator, Growth builders, route persistence, or Feed/SNS behavior. `UserScopedStorageKey` exists only as a lightweight namespace helper for future migration.

@@ -635,3 +635,14 @@ Design 기준:
 - Avoid complex charts, prediction language, ranking, or weekly AI coach tone.
 - Treat fluctuating or rebuilding as neutral rhythm context, not failure.
 - Keep Recovery score and Feed/social comparison out of this card.
+
+## Auth / My Page Foundation
+
+My Page and Auth are part of SOOM's data trust foundation. v1 should make local ownership clear before adding server accounts, and it should explain whether the user is in local-only mode or a future signed-in state.
+
+Design 기준:
+
+- Show local-only status as a calm trust cue, not a warning.
+- Keep future Apple, Google, and Supabase login affordances disabled or clearly marked as 준비 중 until implemented.
+- Profile identity, HealthKit management, privacy defaults, and training baselines belong together because they shape user-owned data.
+- Do not imply cloud sync or account backup before server/Auth is actually connected.

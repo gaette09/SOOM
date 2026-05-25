@@ -371,6 +371,13 @@
 		010370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift */; };
 		010371 /* ProgressionIntelligenceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020371 /* ProgressionIntelligenceCard.swift */; };
 		010372 /* ProgressionIntelligenceBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020372 /* ProgressionIntelligenceBuilderTests.swift */; };
+		010373 /* AppUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020373 /* AppUser.swift */; };
+		010374 /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020374 /* AuthSession.swift */; };
+		010375 /* AuthSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020375 /* AuthSessionStore.swift */; };
+		010376 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020376 /* AuthViewModel.swift */; };
+		010377 /* UserScopedStorageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020377 /* UserScopedStorageKey.swift */; };
+		010378 /* AuthSessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020378 /* AuthSessionStoreTests.swift */; };
+		010379 /* AuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020379 /* AuthViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -750,6 +757,13 @@
 		020370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutProgressionIntelligenceProvider.swift; sourceTree = "<group>"; };
 		020371 /* ProgressionIntelligenceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligenceCard.swift; sourceTree = "<group>"; };
 		020372 /* ProgressionIntelligenceBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligenceBuilderTests.swift; sourceTree = "<group>"; };
+		020373 /* AppUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUser.swift; sourceTree = "<group>"; };
+		020374 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		020375 /* AuthSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionStore.swift; sourceTree = "<group>"; };
+		020376 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		020377 /* UserScopedStorageKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScopedStorageKey.swift; sourceTree = "<group>"; };
+		020378 /* AuthSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionStoreTests.swift; sourceTree = "<group>"; };
+		020379 /* AuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -941,10 +955,23 @@
 				040017 /* Recovery */,
 				040023 /* UnifiedHealth */,
 				040021 /* HealthKit */,
+				040026 /* Auth */,
 				040025 /* Settings */,
 				040018 /* Profile */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		040026 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				020373 /* AppUser.swift */,
+				020374 /* AuthSession.swift */,
+				020375 /* AuthSessionStore.swift */,
+				020376 /* AuthViewModel.swift */,
+				020377 /* UserScopedStorageKey.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		040015 /* Home */ = {
@@ -1296,6 +1323,8 @@
 				020364 /* TerrainTypeBuilderTests.swift */,
 				020365 /* TerrainInsightBuilderTests.swift */,
 				020372 /* ProgressionIntelligenceBuilderTests.swift */,
+				020378 /* AuthSessionStoreTests.swift */,
+				020379 /* AuthViewModelTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1684,6 +1713,11 @@
 				010306 /* SettingsViewModel.swift in Sources */,
 				010307 /* ProfileSummaryCard.swift in Sources */,
 				010308 /* SettingsView.swift in Sources */,
+				010373 /* AppUser.swift in Sources */,
+				010374 /* AuthSession.swift in Sources */,
+				010375 /* AuthSessionStore.swift in Sources */,
+				010376 /* AuthViewModel.swift in Sources */,
+				010377 /* UserScopedStorageKey.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1772,6 +1806,8 @@
 				010364 /* TerrainTypeBuilderTests.swift in Sources */,
 				010365 /* TerrainInsightBuilderTests.swift in Sources */,
 				010372 /* ProgressionIntelligenceBuilderTests.swift in Sources */,
+				010378 /* AuthSessionStoreTests.swift in Sources */,
+				010379 /* AuthViewModelTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

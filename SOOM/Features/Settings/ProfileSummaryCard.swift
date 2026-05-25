@@ -5,17 +5,20 @@ struct ProfileSummaryCard: View {
     let handle: String
     let totalWorkoutCount: String
     let weeklySummary: String
+    let authStatus: String
 
     init(
         name: String = "SOOM 사용자",
         handle: String = "@soom.local",
         totalWorkoutCount: String = "-",
-        weeklySummary: String = "이번 주 기록 준비 중"
+        weeklySummary: String = "이번 주 기록 준비 중",
+        authStatus: String = "로컬 사용자"
     ) {
         self.name = name
         self.handle = handle
         self.totalWorkoutCount = totalWorkoutCount
         self.weeklySummary = weeklySummary
+        self.authStatus = authStatus
     }
 
     var body: some View {
@@ -34,9 +37,19 @@ struct ProfileSummaryCard: View {
                         .font(SOOMFont.display(22, relativeTo: .title2))
                         .foregroundStyle(SOOMColor.ink)
 
-                    Text(handle)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
+                    HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                        Text(handle)
+                            .font(SOOMFont.body(13, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+
+                        Text(authStatus)
+                            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                            .foregroundStyle(SOOMColor.recovery)
+                            .padding(.horizontal, SOOMLayout.Metrics.tagSpacing)
+                            .padding(.vertical, 4)
+                            .background(SOOMColor.recovery.opacity(0.10))
+                            .clipShape(Capsule())
+                    }
 
                     HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                         metricPill(title: "총 운동", value: totalWorkoutCount)
@@ -48,7 +61,7 @@ struct ProfileSummaryCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("프로필 요약")
-        .accessibilityValue("\(name), \(handle), 총 운동 \(totalWorkoutCount), \(weeklySummary)")
+        .accessibilityValue("\(name), \(handle), \(authStatus), 총 운동 \(totalWorkoutCount), \(weeklySummary)")
     }
 
     private func metricPill(title: String, value: String) -> some View {

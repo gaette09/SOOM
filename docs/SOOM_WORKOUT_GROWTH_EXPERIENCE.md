@@ -669,3 +669,9 @@ This layer supports Climb Insight, Split Rhythm, and Course Progression as terra
 SOOM now includes a long-term progression interpretation layer for Analysis. `ProgressionIntelligenceBuilder` reads aggregated `WorkoutGrowthInput` records and explains recent weekly, monthly, rolling four-week, or rolling three-month flow through pace, speed, rhythm stability, and training frequency.
 
 This is not an ML coach, prediction engine, or complex chart. It is a calm interpretation layer that helps users understand whether their recent running pace, cycling speed, swimming 100m pace, or training consistency is improving, stable, fluctuating, rebuilding, or still insufficient. RecoveryCalculator and existing Growth calculation logic remain unchanged.
+
+## User-scoped Growth Future
+
+Progression Intelligence and long-term workout interpretation currently run local-first from included `WorkoutGrowthInput` records. With the Auth/User foundation, these records can later be grouped by `AppUser.id` for account backup or cross-device sync.
+
+No server sync, Supabase Auth, Apple Sign In, Google Sign In, or user-scoped Growth calculation migration is implemented in v1. RecoveryCalculator and existing Growth logic remain unchanged.

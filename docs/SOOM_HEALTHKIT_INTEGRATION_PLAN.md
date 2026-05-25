@@ -411,3 +411,9 @@ Settings/My Page의 max heart rate와 cycling FTP가 HealthKit metric stream 기
 - Cycling power samples can use FTP-based power zones.
 - FTP가 없으면 power zone은 unavailable 상태를 유지한다.
 - This does not change RecoveryCalculator, Growth calculations, HealthKit automatic sync, or server/Auth behavior.
+
+## Auth / User Ownership Boundary
+
+HealthKit data remains user-owned local data in v1. The Auth foundation can identify a local-only SOOM user, but HealthKit import, route persistence, and metric streams are not uploaded or linked to Supabase yet.
+
+Future Auth integration should keep HealthKit permissions read-only, preserve explicit user import actions, and make cloud sync boundaries visible before any server storage is enabled.

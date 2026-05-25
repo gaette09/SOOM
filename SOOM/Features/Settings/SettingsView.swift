@@ -1,17 +1,26 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @StateObject private var authViewModel: AuthViewModel
 
-    
-    init(viewModel: SettingsViewModel = SettingsViewModel()) {
+    init(
+        viewModel: SettingsViewModel = SettingsViewModel(),
+        authViewModel: AuthViewModel = AuthViewModel()
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _authViewModel = StateObject(wrappedValue: authViewModel)
     }
 
     var body: some View {
         SOOMScreen {
             header
-            ProfileSummaryCard()
+            ProfileSummaryCard(
+                name: authViewModel.session.currentUser?.displayName ?? "SOOM 사용자",
+                handle: authViewModel.session.currentUser?.handle ?? "@soom.local",
+                authStatus: authViewModel.session.isLocalOnly ? "로컬 사용자" : "로그인 준비 중"
+            )
             profileSection
             dataConnectionSection
             trainingBaselineSection
@@ -21,7 +30,10 @@ struct SettingsView: View {
         }
         .navigationTitle("마이")
         .navigationBarTitleDisplayMode(.inline)
-        .task { viewModel.load() }
+        .task {
+            viewModel.load()
+            authViewModel.load()
+        }
         .alert(
             "설정 값을 확인해주세요",
             isPresented: Binding(
@@ -52,8 +64,47 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         SOOMCard {
-            SOOMSectionHeader("프로필", caption: "로그인과 공개 프로필은 다음 단계에서 연결합니다.")
-            SOOMActionRow(icon: "person.crop.circle", title: "프로필 편집 준비 중", subtitle: "이름, 핸들, 운동 소개를 관리할 예정입니다.", tint: SOOMColor.recovery)
+            SOOMSectionHeader("프로필", caption: "현재는 로컬 사용자로 기록을 관리하고, 로그인 연결은 다음 단계에서 준비합니다.")
+
+            if authViewModel.session.currentUser == nil {
+                SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.recovery)
+
+                Button {
+                    authViewModel.continueAsLocalUser()
+                } label: {
+                    Text("로컬 사용자로 계속하기")
+                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, SOOMLayout.Card.padding)
+                        .background(SOOMColor.recovery)
+                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            } else {
+                settingInputRow(
+                    title: "표시 이름",
+                    suffix: "",
+                    text: $authViewModel.displayNameText,
+                    actionTitle: "저장",
+                    keyboardType: .default,
+                    action: { authViewModel.updateDisplayName() }
+                )
+
+                SOOMActionRow(icon: "lock", title: "로그인 연결 준비 중", subtitle: "Apple, Google, Supabase Auth는 아직 연결하지 않았습니다.", tint: SOOMColor.secondaryInk)
+
+                Button("로컬 세션 초기화") {
+                    authViewModel.signOut()
+                }
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+            }
+
+            if let error = authViewModel.errorMessage {
+                Text(error)
+                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.warning)
+            }
         }
     }
 
@@ -79,7 +130,7 @@ struct SettingsView: View {
 
     private var trainingBaselineSection: some View {
         SOOMCard {
-            SOOMSectionHeader("운동 기준값", caption: "존 분석 고도화를 위한 개인 기준값입니다. 아직 계산식에는 자동 적용하지 않아요.")
+            SOOMSectionHeader("운동 기준값", caption: "최대심박과 FTP는 Zone 분석 기준으로 사용돼요. Recovery/Growth 공식 계산에는 아직 자동 반영하지 않아요.")
 
             settingInputRow(
                 title: "최대 심박",
@@ -148,6 +199,7 @@ struct SettingsView: View {
         suffix: String,
         text: Binding<String>,
         actionTitle: String,
+        keyboardType: UIKeyboardType = .numberPad,
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
@@ -157,7 +209,7 @@ struct SettingsView: View {
                     .foregroundStyle(SOOMColor.ink)
                 HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
                     TextField("미설정", text: text)
-                        .keyboardType(.numberPad)
+                        .keyboardType(keyboardType)
                         .font(SOOMFont.body(15, relativeTo: .subheadline))
                     Text(suffix)
                         .font(SOOMFont.body(12, relativeTo: .caption))
