@@ -9,6 +9,7 @@ struct WorkoutDetailView: View {
     var splitDataProvider: WorkoutSplitDataProviding?
     var comparisonInsightOverride: WorkoutComparisonInsight?
     var courseRecordOverride: CourseRecord?
+    var courseProgressionOverride: CourseProgressionTimeline?
 
     var body: some View {
         SOOMScreen {
@@ -20,6 +21,7 @@ struct WorkoutDetailView: View {
                 growthMetrics: growthMetrics,
                 comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
                 courseRecord: courseRecordOverride ?? courseRecord,
+                courseProgression: courseProgressionOverride ?? courseProgression,
                 splitInsight: splitInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
@@ -108,6 +110,32 @@ struct WorkoutDetailView: View {
         }
 
         return CourseRecordBuilder().build(
+            current: currentInput,
+            candidateWorkouts: comparableWorkouts.map { WorkoutGrowthInput(detailWorkout: $0) },
+            routeCandidates: routeCandidates,
+            courseIdentity: currentRoute.flatMap { CourseIdentityBuilder().build(from: $0) }
+        )
+    }
+
+    private var courseProgression: CourseProgressionTimeline {
+        let currentInput = WorkoutGrowthInput(detailWorkout: workout)
+        let comparableWorkouts = comparisonWorkouts
+            .filter { $0.id != workout.id }
+            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.date <= workout.date }
+
+        let currentRoute = route(for: workout)
+        let routeCandidates: [RouteComparisonCandidate]
+        if let currentRoute {
+            routeCandidates = CourseSimilarityBuilder().findCandidates(
+                current: currentRoute,
+                candidates: comparableWorkouts.compactMap(route(for:))
+            )
+        } else {
+            routeCandidates = []
+        }
+
+        return CourseProgressionBuilder().build(
             current: currentInput,
             candidateWorkouts: comparableWorkouts.map { WorkoutGrowthInput(detailWorkout: $0) },
             routeCandidates: routeCandidates,

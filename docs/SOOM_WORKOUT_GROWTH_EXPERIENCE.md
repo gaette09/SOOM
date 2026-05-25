@@ -636,3 +636,16 @@ This persistence layer stores lightweight encoded coordinates and route metadata
 ### Persisted Route Reuse v1
 
 Same-route progression is now backed by stored route context when available. `SimilarWorkoutCandidateProvider` can reuse persisted routes to choose a more relevant previous workout for Comparison Insight and Course Record, while still falling back to same-type distance/recency candidates when route data is unavailable. RecoveryCalculator and existing Growth scoring logic remain unchanged.
+
+## Course Progression Timeline v1
+
+Course Progression Timeline adds a longer-view same/similar-course flow to Workout Detail. It uses the current workout, same-type candidate workouts, optional `CourseIdentity`, and route similarity candidates to build a calm timeline of how the user's own course rhythm has changed over time.
+
+Sport policy:
+
+- Running/walking/hiking: pace trend.
+- Cycling: average speed trend.
+- Swimming: 100m pace-style pace trend.
+- Other simple workouts: completion-time trend.
+
+The card is intentionally not a complex chart, segment replay, leaderboard, or prediction model. If data is limited, it shows an insufficient-data promise instead of forcing a trend. RecoveryCalculator and existing Growth calculation logic remain unchanged.

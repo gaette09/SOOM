@@ -334,6 +334,7 @@ private struct UnifiedWorkoutDetailDestination: View {
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var comparisonInsight: WorkoutComparisonInsight?
     @State private var courseRecord: CourseRecord?
+    @State private var courseProgression: CourseProgressionTimeline?
 
     var body: some View {
         WorkoutDetailView(
@@ -342,13 +343,15 @@ private struct UnifiedWorkoutDetailDestination: View {
             zoneDataProvider: zoneContext.zoneDataProvider,
             splitDataProvider: zoneContext.splitDataProvider,
             comparisonInsightOverride: comparisonInsight,
-            courseRecordOverride: courseRecord
+            courseRecordOverride: courseRecord,
+            courseProgressionOverride: courseProgression
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
             let candidateResult = await loadSimilarCandidateResult()
             comparisonInsight = buildComparisonInsight(from: candidateResult)
             courseRecord = buildCourseRecord(from: candidateResult)
+            courseProgression = buildCourseProgression(from: candidateResult)
         }
     }
 
@@ -387,8 +390,21 @@ private struct UnifiedWorkoutDetailDestination: View {
 
         return CourseRecordBuilder().build(
             current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
-            candidateWorkouts: [result.baseline],
-            routeCandidates: result.routeCandidate.map { [$0] } ?? [],
+            candidateWorkouts: result.candidateWorkouts.isEmpty ? [result.baseline] : result.candidateWorkouts,
+            routeCandidates: result.routeCandidates.isEmpty ? result.routeCandidate.map { [$0] } ?? [] : result.routeCandidates,
+            courseIdentity: result.currentCourseIdentity
+        )
+    }
+
+    private func buildCourseProgression(from result: SimilarWorkoutCandidateResult?) -> CourseProgressionTimeline? {
+        guard let result else {
+            return similarCandidateProvider == nil ? nil : .insufficientData
+        }
+
+        return CourseProgressionBuilder().build(
+            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
+            candidateWorkouts: result.candidateWorkouts.isEmpty ? [result.baseline] : result.candidateWorkouts,
+            routeCandidates: result.routeCandidates.isEmpty ? result.routeCandidate.map { [$0] } ?? [] : result.routeCandidates,
             courseIdentity: result.currentCourseIdentity
         )
     }

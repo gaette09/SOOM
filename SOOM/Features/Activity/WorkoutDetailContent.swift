@@ -12,6 +12,7 @@ struct WorkoutDetailContent: View {
     var growthMetrics: [WorkoutGrowthMetric]?
     var comparisonInsight: WorkoutComparisonInsight?
     var courseRecord: CourseRecord?
+    var courseProgression: CourseProgressionTimeline?
     var splitInsight: WorkoutSplitInsight?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
@@ -69,6 +70,10 @@ struct WorkoutDetailContent: View {
 
                 if let courseRecord {
                     CourseRecordCard(record: courseRecord, tint: workout.sport.tint)
+                }
+
+                if let courseProgression {
+                    CourseProgressionCard(timeline: courseProgression, tint: workout.sport.tint)
                 }
 
                 if let displayedSplitInsight {

@@ -4,15 +4,21 @@ struct SimilarWorkoutCandidateResult: Equatable {
     let baseline: WorkoutGrowthInput
     let routeCandidate: RouteComparisonCandidate?
     let currentCourseIdentity: CourseIdentity?
+    let candidateWorkouts: [WorkoutGrowthInput]
+    let routeCandidates: [RouteComparisonCandidate]
 
     init(
         baseline: WorkoutGrowthInput,
         routeCandidate: RouteComparisonCandidate? = nil,
-        currentCourseIdentity: CourseIdentity? = nil
+        currentCourseIdentity: CourseIdentity? = nil,
+        candidateWorkouts: [WorkoutGrowthInput] = [],
+        routeCandidates: [RouteComparisonCandidate] = []
     ) {
         self.baseline = baseline
         self.routeCandidate = routeCandidate
         self.currentCourseIdentity = currentCourseIdentity
+        self.candidateWorkouts = candidateWorkouts
+        self.routeCandidates = routeCandidates
     }
 }
 
@@ -78,17 +84,20 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
             let candidateRoutes = workouts.compactMap { candidate -> WorkoutRoute? in
                 resolvedCandidateRoutesByWorkoutId[candidate.id]
             }
-            let routeCandidate = routeSimilarityBuilder.findCandidates(
+            let routeCandidates = routeSimilarityBuilder.findCandidates(
                 current: currentRoute,
                 candidates: candidateRoutes
-            ).first
+            )
+            let routeCandidate = routeCandidates.first
 
             if let routeCandidate,
                let matchedWorkout = workouts.first(where: { $0.id == routeCandidate.candidateWorkoutId }) {
                 return SimilarWorkoutCandidateResult(
                     baseline: mapper.map(matchedWorkout),
                     routeCandidate: routeCandidate,
-                    currentCourseIdentity: routeContext?.currentCourseIdentity
+                    currentCourseIdentity: routeContext?.currentCourseIdentity,
+                    candidateWorkouts: orderedInputs(workouts, routeCandidates: routeCandidates),
+                    routeCandidates: routeCandidates
                 )
             }
         }
@@ -100,7 +109,9 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
         return SimilarWorkoutCandidateResult(
             baseline: mapper.map(fallback),
             routeCandidate: nil,
-            currentCourseIdentity: routeContext?.currentCourseIdentity
+            currentCourseIdentity: routeContext?.currentCourseIdentity,
+            candidateWorkouts: workouts.map(mapper.map),
+            routeCandidates: []
         )
     }
 
@@ -161,5 +172,21 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
             }
 
         return distanceMatched.first?.workout ?? candidates.first
+    }
+
+    private func orderedInputs(
+        _ workouts: [UnifiedWorkout],
+        routeCandidates: [RouteComparisonCandidate]
+    ) -> [WorkoutGrowthInput] {
+        let routeOrder = Dictionary(uniqueKeysWithValues: routeCandidates.enumerated().map { index, candidate in
+            (candidate.candidateWorkoutId, index)
+        })
+
+        return workouts
+            .filter { routeOrder[$0.id] != nil }
+            .sorted { lhs, rhs in
+                (routeOrder[lhs.id] ?? Int.max) < (routeOrder[rhs.id] ?? Int.max)
+            }
+            .map(mapper.map)
     }
 }

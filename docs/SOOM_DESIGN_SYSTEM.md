@@ -586,3 +586,15 @@ Design 기준:
 ## Course Identity and Same-route Records
 
 Course identity is a supporting interpretation layer, not a competitive ranking system. Same-route records should be framed as “이전 나와의 코스 흐름” and use cautious copy such as “비슷한 코스” when the app relies on heuristic route matching. Reverse-direction matches are allowed when the route signals are close enough, but UI should avoid claiming exact segment identity until a stronger map-matching layer exists.
+
+## Course Progression Card
+
+Course Progression is a long-term growth flow card. It should help the user understand “how this course has been changing for me over time” without feeling like a leaderboard or race result.
+
+Design 기준:
+
+- Place it in Workout Detail `성장 흐름` after Course Record and before Split Insight.
+- Show a short summary plus the latest 3-5 timeline rows; avoid dense charts.
+- Use calm direction cues: improving, stable, fluctuating, insufficient data.
+- Keep copy centered on “이전 나와의 흐름” and avoid hard claims when route matching is heuristic.
+- Recovery score, Growth score, Feed ranking, and social comparison should not be mixed into this card.

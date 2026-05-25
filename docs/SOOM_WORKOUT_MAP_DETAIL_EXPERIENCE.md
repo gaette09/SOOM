@@ -504,3 +504,14 @@ Implementation status:
 ### Persisted Route Reuse v1
 
 Workout Detail comparison and course record flows can now reuse routes saved in `PersistedWorkoutRoute`. Imported UnifiedWorkout detail injects a persisted route candidate provider from the library container, ranks same-sport candidates with route similarity when route data exists, and keeps the existing distance/recency fallback when route data is missing. This keeps course identity local-first without adding GIS indexing, server grouping, or segment replay.
+
+## Course Progression Timeline v1
+
+Workout Detail now includes a `CourseProgressionCard` after Course Record and before Split Insight. The flow reads: previous similar workout comparison -> same/similar course record -> course progression over time -> today's split rhythm.
+
+Implementation status:
+
+- `CourseProgressionPoint` stores dated course metric points with optional route similarity score.
+- `CourseProgressionTimeline` summarizes improving, stable, fluctuating, or insufficient-data direction.
+- `CourseProgressionBuilder` uses route candidates and optional Course Identity when available, and falls back to same-type distance/history candidates when route context is missing.
+- No complex chart library, GPS replay, map matching, ML prediction, server grouping, or Strava-style segment clone is included.

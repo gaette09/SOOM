@@ -577,3 +577,13 @@ This gives CourseIdentity, CourseRecord, and Route Comparison a reusable local r
 ### Persisted Route Reuse v1
 
 `PersistedRouteCandidateProvider` now reads the current workout route and recent candidate routes from `SwiftDataWorkoutRoutePersistenceStore` for comparison flows. `SimilarWorkoutCandidateProvider` can use those persisted routes with `RouteSimilarityBuilder` before falling back to distance/recency matching. Route lookup failures are treated as non-blocking so imported workout detail can still render comparison and course record fallback states.
+
+## Persisted Route / Course Identity to Progression
+
+Persisted route context can now support course progression in addition to comparison and course record. Imported workout detail can reuse `PersistedRouteCandidateProvider` output through `SimilarWorkoutCandidateProvider`, then pass candidate workouts, route candidates, and current Course Identity into `CourseProgressionBuilder`.
+
+Flow:
+
+`PersistedWorkoutRoute -> PersistedRouteCandidateProvider -> SimilarWorkoutCandidateResult -> CourseProgressionBuilder -> CourseProgressionCard`
+
+If persisted route data is unavailable or lookup fails, the progression layer falls back to same-type workout history and can show an insufficient-data state. This does not change RecoveryCalculator, Growth builders, import deduplication, Feed/SNS, or server/Auth policy.
