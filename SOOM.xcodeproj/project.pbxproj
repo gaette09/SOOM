@@ -378,6 +378,14 @@
 		010377 /* UserScopedStorageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020377 /* UserScopedStorageKey.swift */; };
 		010378 /* AuthSessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020378 /* AuthSessionStoreTests.swift */; };
 		010379 /* AuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020379 /* AuthViewModelTests.swift */; };
+		010380 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020380 /* AuthError.swift */; };
+		010381 /* AuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020381 /* AuthRepository.swift */; };
+		010382 /* LocalAuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020382 /* LocalAuthRepository.swift */; };
+		010383 /* SupabaseAuthConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020383 /* SupabaseAuthConfiguration.swift */; };
+		010384 /* SupabaseAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020384 /* SupabaseAuthProvider.swift */; };
+		010385 /* AuthRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020385 /* AuthRepositoryTests.swift */; };
+		010386 /* SupabaseAuthConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020386 /* SupabaseAuthConfigurationTests.swift */; };
+		010387 /* SupabaseAuthProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020387 /* SupabaseAuthProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -764,6 +772,14 @@
 		020377 /* UserScopedStorageKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScopedStorageKey.swift; sourceTree = "<group>"; };
 		020378 /* AuthSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionStoreTests.swift; sourceTree = "<group>"; };
 		020379 /* AuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelTests.swift; sourceTree = "<group>"; };
+		020380 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
+		020381 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
+		020382 /* LocalAuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAuthRepository.swift; sourceTree = "<group>"; };
+		020383 /* SupabaseAuthConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthConfiguration.swift; sourceTree = "<group>"; };
+		020384 /* SupabaseAuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthProvider.swift; sourceTree = "<group>"; };
+		020385 /* AuthRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepositoryTests.swift; sourceTree = "<group>"; };
+		020386 /* SupabaseAuthConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthConfigurationTests.swift; sourceTree = "<group>"; };
+		020387 /* SupabaseAuthProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -970,6 +986,11 @@
 				020375 /* AuthSessionStore.swift */,
 				020376 /* AuthViewModel.swift */,
 				020377 /* UserScopedStorageKey.swift */,
+				020380 /* AuthError.swift */,
+				020381 /* AuthRepository.swift */,
+				020382 /* LocalAuthRepository.swift */,
+				020383 /* SupabaseAuthConfiguration.swift */,
+				020384 /* SupabaseAuthProvider.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -1325,6 +1346,9 @@
 				020372 /* ProgressionIntelligenceBuilderTests.swift */,
 				020378 /* AuthSessionStoreTests.swift */,
 				020379 /* AuthViewModelTests.swift */,
+				020385 /* AuthRepositoryTests.swift */,
+				020386 /* SupabaseAuthConfigurationTests.swift */,
+				020387 /* SupabaseAuthProviderTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1718,6 +1742,11 @@
 				010375 /* AuthSessionStore.swift in Sources */,
 				010376 /* AuthViewModel.swift in Sources */,
 				010377 /* UserScopedStorageKey.swift in Sources */,
+				010380 /* AuthError.swift in Sources */,
+				010381 /* AuthRepository.swift in Sources */,
+				010382 /* LocalAuthRepository.swift in Sources */,
+				010383 /* SupabaseAuthConfiguration.swift in Sources */,
+				010384 /* SupabaseAuthProvider.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1808,6 +1837,9 @@
 				010372 /* ProgressionIntelligenceBuilderTests.swift in Sources */,
 				010378 /* AuthSessionStoreTests.swift in Sources */,
 				010379 /* AuthViewModelTests.swift in Sources */,
+				010385 /* AuthRepositoryTests.swift in Sources */,
+				010386 /* SupabaseAuthConfigurationTests.swift in Sources */,
+				010387 /* SupabaseAuthProviderTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

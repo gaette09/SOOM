@@ -5,36 +5,40 @@ final class AuthViewModel: ObservableObject {
     @Published var displayNameText: String
     @Published private(set) var errorMessage: String?
 
-    private let store: AuthSessionStore
+    private let repository: any AuthRepository
 
-    init(store: AuthSessionStore = .shared) {
-        let loadedSession = store.loadSession()
-        self.store = store
+    init(repository: any AuthRepository = LocalAuthRepository()) {
+        let loadedSession = repository.loadSession()
+        self.repository = repository
         self.session = loadedSession
         self.displayNameText = loadedSession.currentUser?.displayName ?? ""
         self.errorMessage = loadedSession.errorMessage
     }
 
+    convenience init(store: AuthSessionStore) {
+        self.init(repository: LocalAuthRepository(store: store))
+    }
+
     func load() {
-        session = store.loadSession()
+        session = repository.loadSession()
         displayNameText = session.currentUser?.displayName ?? ""
         errorMessage = session.errorMessage
     }
 
     func continueAsLocalUser() {
-        session = store.continueAsLocalUser(displayName: displayNameText.isEmpty ? "SOOM 사용자" : displayNameText)
+        session = repository.continueAsLocalUser(displayName: displayNameText.isEmpty ? "SOOM 사용자" : displayNameText)
         displayNameText = session.currentUser?.displayName ?? ""
         errorMessage = nil
     }
 
     func updateDisplayName() {
-        session = store.updateDisplayName(displayNameText)
+        session = repository.updateDisplayName(displayNameText)
         displayNameText = session.currentUser?.displayName ?? displayNameText
         errorMessage = session.errorMessage
     }
 
     func signOut() {
-        session = store.signOut()
+        session = repository.signOut()
         displayNameText = ""
         errorMessage = nil
     }

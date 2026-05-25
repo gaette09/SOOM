@@ -417,3 +417,8 @@ Settings/My Page의 max heart rate와 cycling FTP가 HealthKit metric stream 기
 HealthKit data remains user-owned local data in v1. The Auth foundation can identify a local-only SOOM user, but HealthKit import, route persistence, and metric streams are not uploaded or linked to Supabase yet.
 
 Future Auth integration should keep HealthKit permissions read-only, preserve explicit user import actions, and make cloud sync boundaries visible before any server storage is enabled.
+
+## Supabase Auth Preparation
+
+HealthKit import remains explicit, read-only, and local-first. The new Auth repository boundary can later associate imported HealthKit-derived workouts with a signed-in account, but v1 does not upload HealthKit data, does not enable automatic remote sync, and does not require Supabase, Apple, or Google login before importing workouts.
+

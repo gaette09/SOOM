@@ -675,3 +675,8 @@ This is not an ML coach, prediction engine, or complex chart. It is a calm inter
 Progression Intelligence and long-term workout interpretation currently run local-first from included `WorkoutGrowthInput` records. With the Auth/User foundation, these records can later be grouped by `AppUser.id` for account backup or cross-device sync.
 
 No server sync, Supabase Auth, Apple Sign In, Google Sign In, or user-scoped Growth calculation migration is implemented in v1. RecoveryCalculator and existing Growth logic remain unchanged.
+
+## Supabase Auth Preparation
+
+Workout growth, route comparison, course progression, and progression intelligence remain local-first. AuthRepository provides a future account boundary so these interpretations can later be scoped to a signed-in user, but v1 does not change Growth calculations, does not sync to Supabase, and does not require Apple or Google login.
+

@@ -646,3 +646,14 @@ Design 기준:
 - Keep future Apple, Google, and Supabase login affordances disabled or clearly marked as 준비 중 until implemented.
 - Profile identity, HealthKit management, privacy defaults, and training baselines belong together because they shape user-owned data.
 - Do not imply cloud sync or account backup before server/Auth is actually connected.
+
+## Supabase Auth Preparation
+
+Auth UI should stay calm and ownership-focused while remote account work is still future-ready. Local users remain the default v1 state, and Supabase, Apple, and Google login affordances should be described as account connection preparation rather than active cloud sync.
+
+Design 기준:
+
+- Use the AuthRepository boundary to keep local session behavior stable while future providers are introduced.
+- Show remote login placeholders as 준비 중, not broken or unavailable errors.
+- Avoid pressuring users to create an account before HealthKit, workout, route, and progression data have an explicit sync policy.
+

@@ -64,7 +64,7 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         SOOMCard {
-            SOOMSectionHeader("프로필", caption: "현재는 로컬 사용자로 기록을 관리하고, 로그인 연결은 다음 단계에서 준비합니다.")
+            SOOMSectionHeader("프로필", caption: "현재는 로컬 사용자로 기록을 관리하고, Supabase, Apple, Google 로그인 연결은 다음 단계에서 준비합니다.")
 
             if authViewModel.session.currentUser == nil {
                 SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.recovery)
@@ -91,7 +91,7 @@ struct SettingsView: View {
                     action: { authViewModel.updateDisplayName() }
                 )
 
-                SOOMActionRow(icon: "lock", title: "로그인 연결 준비 중", subtitle: "Apple, Google, Supabase Auth는 아직 연결하지 않았습니다.", tint: SOOMColor.secondaryInk)
+                SOOMActionRow(icon: "lock", title: "계정 연결 준비 중", subtitle: "Supabase, Apple, Google 로그인은 이후 단계에서 연결합니다.", tint: SOOMColor.secondaryInk)
 
                 Button("로컬 세션 초기화") {
                     authViewModel.signOut()

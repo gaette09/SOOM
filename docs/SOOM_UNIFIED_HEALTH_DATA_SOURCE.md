@@ -625,3 +625,12 @@ Future direction:
 `AppUser.id -> user-scoped settings / workouts / routes / share defaults`
 
 The v1 foundation does not add `user_id` to existing SwiftData schemas, does not sync to a server, and does not change import, RecoveryCalculator, Growth builders, route persistence, or Feed/SNS behavior. `UserScopedStorageKey` exists only as a lightweight namespace helper for future migration.
+
+## Supabase Auth Preparation Boundary
+
+Auth now has a repository boundary on top of the local session store:
+
+`AuthViewModel -> AuthRepository -> LocalAuthRepository -> AuthSessionStore`
+
+`SupabaseAuthConfiguration` and `SupabaseAuthProvider` exist only as non-network placeholders. They do not import the Supabase SDK, do not authenticate remotely, and do not move HealthKit, workout, route, or progression records to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
+

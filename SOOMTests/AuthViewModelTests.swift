@@ -13,6 +13,17 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.session.isLocalOnly)
     }
 
+    func testRepositoryBasedInitLoadsStoredLocalSession() {
+        let store = makeStore()
+        let repository = LocalAuthRepository(store: store)
+        _ = repository.continueAsLocalUser(displayName: "Repository User")
+
+        let viewModel = AuthViewModel(repository: repository)
+
+        XCTAssertEqual(viewModel.session.currentUser?.displayName, "Repository User")
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+    }
+
     func testContinueAsLocalUserCreatesSession() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.displayNameText = "지완"
