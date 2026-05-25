@@ -655,3 +655,9 @@ The card is intentionally not a complex chart, segment replay, leaderboard, or p
 Workout Detail now includes a lightweight climb/elevation interpretation layer for cycling and hiking. `ClimbInsightBuilder` reads `WorkoutGrowthInput`, optional `WorkoutRoute`, and optional split metrics to explain steady climbs, rolling terrain, strong finish signals, or a softer late-climb rhythm check.
 
 The card is intentionally terrain/rhythm coaching, not a climb segment leaderboard. For HealthKit imported UnifiedWorkout detail, persisted route context can now be injected into Climb Insight so route elevation/profile is preferred over summary elevation. Flat routes, route lookup failures, and workouts without enough elevation data stay hidden or fall back to insufficient data. RecoveryCalculator and existing Growth calculation logic remain unchanged.
+
+## Terrain Type Heuristic v1
+
+Workout Detail now has a lightweight terrain context layer. `TerrainTypeBuilder` reads `WorkoutGrowthInput`, optional persisted `WorkoutRoute`, and optional split metrics to classify terrain as flat, rolling, steady climb, long climb, urban stop-go, trail, mixed, or insufficient data. `TerrainInsightBuilder` turns that classification into calm context copy such as “평지 중심”, “롤링 지형”, or “긴 오르막”.
+
+This layer supports Climb Insight, Split Rhythm, and Course Progression as terrain-aware interpretation without changing RecoveryCalculator or existing Growth calculation logic. It does not add ML prediction, GPS replay, Strava-style segments, complex charts, Feed/SNS, server/Auth, or Garmin/Samsung connectors.

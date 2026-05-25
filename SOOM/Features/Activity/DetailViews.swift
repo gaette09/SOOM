@@ -11,6 +11,7 @@ struct WorkoutDetailView: View {
     var courseRecordOverride: CourseRecord?
     var courseProgressionOverride: CourseProgressionTimeline?
     var climbInsightOverride: ClimbInsight?
+    var terrainInsightOverride: TerrainInsight?
     var detailRouteOverride: WorkoutRoute?
 
     var body: some View {
@@ -24,6 +25,7 @@ struct WorkoutDetailView: View {
                 comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
                 courseRecord: courseRecordOverride ?? courseRecord,
                 courseProgression: courseProgressionOverride ?? courseProgression,
+                terrainInsight: terrainInsightOverride ?? terrainInsight,
                 splitInsight: splitInsight,
                 climbInsight: climbInsightOverride ?? climbInsight,
                 weaknessInsight: weaknessInsight,
@@ -152,6 +154,14 @@ struct WorkoutDetailView: View {
 
     private var climbInsight: ClimbInsight? {
         let insight = ClimbInsightBuilder().build(
+            current: WorkoutGrowthInput(detailWorkout: workout),
+            route: detailMapRoute
+        )
+        return insight.isVisible ? insight : nil
+    }
+
+    private var terrainInsight: TerrainInsight? {
+        let insight = TerrainInsightBuilder().build(
             current: WorkoutGrowthInput(detailWorkout: workout),
             route: detailMapRoute
         )

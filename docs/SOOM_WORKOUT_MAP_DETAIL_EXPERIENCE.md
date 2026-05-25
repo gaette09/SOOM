@@ -521,3 +521,16 @@ Implementation status:
 Workout Detail can now place a `ClimbInsightCard` after Split Insight and before Zone Analysis. The card interprets route elevation and workout summary data for cycling and hiking, with optional split metrics ready for future cadence/speed rhythm refinement.
 
 v1 uses simple thresholds such as elevation gain, distance-to-elevation ratio, and late-session rhythm cues. HealthKit imported UnifiedWorkout detail now resolves persisted WorkoutRoute context first, so Climb Insight can prefer stored route elevation/profile over summary elevation when route data exists. If route lookup fails or no route is saved, it keeps the existing summary-elevation fallback. It does not implement GPS climb replay, Strava-style climb segments, ML prediction, or complex charts. Flat routes remain quiet so the detail page does not become noisy.
+
+## Terrain Heuristic Layer v1
+
+Workout Detail can now show a small terrain context cue below the map hero. The cue is generated from route distance, route or summary elevation gain, elevation ratio, and optional split rhythm. It is intentionally a context layer, not a training verdict.
+
+Implementation status:
+
+- `TerrainTypeBuilder` classifies flat, rolling, steady climb, long climb, urban stop-go, trail, mixed, or insufficient-data terrain.
+- `TerrainInsightBuilder` creates user-facing terrain interpretation copy.
+- `TerrainInsightCue` is placed below the map hero when terrain confidence is sufficient.
+- Token/route/map fallback behavior is unchanged, and RecoveryCalculator/Growth calculation logic remain unchanged.
+
+Deferred: ML terrain prediction, GPS replay, Strava-style terrain segments, advanced stop detection, and complex charts.

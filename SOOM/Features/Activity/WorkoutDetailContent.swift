@@ -13,6 +13,7 @@ struct WorkoutDetailContent: View {
     var comparisonInsight: WorkoutComparisonInsight?
     var courseRecord: CourseRecord?
     var courseProgression: CourseProgressionTimeline?
+    var terrainInsight: TerrainInsight?
     var splitInsight: WorkoutSplitInsight?
     var climbInsight: ClimbInsight?
     var weaknessInsight: WorkoutWeaknessInsight?
@@ -47,6 +48,10 @@ struct WorkoutDetailContent: View {
             }
 
             WorkoutDetailMapOverlay(workout: workout, route: mapRoute)
+
+            if let terrainInsight, terrainInsight.isVisible {
+                TerrainInsightCue(insight: terrainInsight, tint: workout.sport.tint)
+            }
 
             detailSection(.core) {
                 WorkoutMetricsSection(workout: workout)

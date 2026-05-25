@@ -610,3 +610,15 @@ Design 기준:
 - Show only a few rows: elevation gain, average grade, and optional late-climb rhythm.
 - Hide flat or low-confidence routes rather than forcing an empty dashboard.
 - Keep Recovery score, Feed ranking, and complex climb charts out of this card.
+
+## Terrain Context Layer
+
+Terrain is an 운동 맥락 layer. It should explain the shape of the workout route before the user reads growth, split, climb, zone, and recovery cards. The visual treatment should stay smaller than primary metrics and avoid badge-heavy or competitive language.
+
+Design 기준:
+
+- Place the cue near the map hero as supporting context.
+- Use calm labels such as “평지 중심”, “롤링 지형”, “꾸준한 오르막”, and “트레일/하이킹”.
+- Difficulty labels are soft context only: 가벼운 난이도, 중간 난이도, 도전적인 흐름.
+- Avoid diagnostic or performance-judgement copy.
+- Keep Recovery score, Feed ranking, and complex terrain charts out of this cue.

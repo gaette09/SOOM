@@ -357,6 +357,13 @@
 		010356 /* ClimbInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020356 /* ClimbInsightBuilderTests.swift */; };
 		010357 /* WorkoutDetailRouteContextProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020357 /* WorkoutDetailRouteContextProvider.swift */; };
 		010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020358 /* WorkoutDetailRouteContextProviderTests.swift */; };
+		010359 /* TerrainType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020359 /* TerrainType.swift */; };
+		010360 /* TerrainTypeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020360 /* TerrainTypeBuilder.swift */; };
+		010361 /* TerrainInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020361 /* TerrainInsight.swift */; };
+		010362 /* TerrainInsightBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020362 /* TerrainInsightBuilder.swift */; };
+		010363 /* TerrainInsightCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020363 /* TerrainInsightCue.swift */; };
+		010364 /* TerrainTypeBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020364 /* TerrainTypeBuilderTests.swift */; };
+		010365 /* TerrainInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020365 /* TerrainInsightBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -722,6 +729,13 @@
 		020356 /* ClimbInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClimbInsightBuilderTests.swift; sourceTree = "<group>"; };
 		020357 /* WorkoutDetailRouteContextProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailRouteContextProvider.swift; sourceTree = "<group>"; };
 		020358 /* WorkoutDetailRouteContextProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailRouteContextProviderTests.swift; sourceTree = "<group>"; };
+		020359 /* TerrainType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainType.swift; sourceTree = "<group>"; };
+		020360 /* TerrainTypeBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainTypeBuilder.swift; sourceTree = "<group>"; };
+		020361 /* TerrainInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsight.swift; sourceTree = "<group>"; };
+		020362 /* TerrainInsightBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsightBuilder.swift; sourceTree = "<group>"; };
+		020363 /* TerrainInsightCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsightCue.swift; sourceTree = "<group>"; };
+		020364 /* TerrainTypeBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainTypeBuilderTests.swift; sourceTree = "<group>"; };
+		020365 /* TerrainInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsightBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -866,6 +880,7 @@
 				020335 /* CourseRecordCard.swift */,
 				020351 /* CourseProgressionCard.swift */,
 				020355 /* ClimbInsightCard.swift */,
+				020363 /* TerrainInsightCue.swift */,
 				020323 /* WorkoutSplitInsightCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
@@ -1109,6 +1124,10 @@
 				020348 /* CourseProgressionPoint.swift */,
 				020349 /* CourseProgressionTimeline.swift */,
 				020350 /* CourseProgressionBuilder.swift */,
+				020359 /* TerrainType.swift */,
+				020360 /* TerrainTypeBuilder.swift */,
+				020361 /* TerrainInsight.swift */,
+				020362 /* TerrainInsightBuilder.swift */,
 				020353 /* ClimbInsight.swift */,
 				020354 /* ClimbInsightBuilder.swift */,
 				020321 /* WorkoutSplitInsight.swift */,
@@ -1254,6 +1273,8 @@
 				020337 /* CourseRecordBuilderTests.swift */,
 				020352 /* CourseProgressionBuilderTests.swift */,
 				020356 /* ClimbInsightBuilderTests.swift */,
+				020364 /* TerrainTypeBuilderTests.swift */,
+				020365 /* TerrainInsightBuilderTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1440,6 +1461,7 @@
 				010335 /* CourseRecordCard.swift in Sources */,
 				010351 /* CourseProgressionCard.swift in Sources */,
 				010355 /* ClimbInsightCard.swift in Sources */,
+				010363 /* TerrainInsightCue.swift in Sources */,
 				010323 /* WorkoutSplitInsightCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
@@ -1508,6 +1530,10 @@
 				010348 /* CourseProgressionPoint.swift in Sources */,
 				010349 /* CourseProgressionTimeline.swift in Sources */,
 				010350 /* CourseProgressionBuilder.swift in Sources */,
+				010359 /* TerrainType.swift in Sources */,
+				010360 /* TerrainTypeBuilder.swift in Sources */,
+				010361 /* TerrainInsight.swift in Sources */,
+				010362 /* TerrainInsightBuilder.swift in Sources */,
 				010353 /* ClimbInsight.swift in Sources */,
 				010354 /* ClimbInsightBuilder.swift in Sources */,
 				010357 /* WorkoutDetailRouteContextProvider.swift in Sources */,
@@ -1716,6 +1742,8 @@
 				010337 /* CourseRecordBuilderTests.swift in Sources */,
 				010352 /* CourseProgressionBuilderTests.swift in Sources */,
 				010356 /* ClimbInsightBuilderTests.swift in Sources */,
+				010364 /* TerrainTypeBuilderTests.swift in Sources */,
+				010365 /* TerrainInsightBuilderTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

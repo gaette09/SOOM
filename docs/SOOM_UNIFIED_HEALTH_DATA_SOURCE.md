@@ -595,3 +595,13 @@ Route elevation and workout summary fields can now feed a terrain interpretation
 `WorkoutRoute + WorkoutGrowthInput + optional split metrics -> ClimbInsightBuilder -> ClimbInsightCard`
 
 This is used for cycling and hiking detail views when elevation gain is meaningful. Imported UnifiedWorkout detail can now read the persisted `WorkoutRoute` by `workoutId` through `WorkoutDetailRouteContextProvider` and pass that route into `ClimbInsightBuilder`, making stored route elevation/profile the preferred terrain source. If persisted route lookup fails or route elevation is unavailable, the builder falls back to `WorkoutGrowthInput.elevationGainMeters`; if elevation is too low or missing, the card stays hidden. This does not change RecoveryCalculator, Growth builders, import deduplication, Feed/SNS, or server/Auth policy.
+
+## Route / Elevation / Split to Terrain Context
+
+`WorkoutRoute`, `WorkoutGrowthInput`, and optional `WorkoutSplitMetric` can now feed terrain classification before detail interpretation cards are shown.
+
+Flow:
+
+`WorkoutRoute + WorkoutGrowthInput + optional split metrics -> TerrainTypeBuilder -> TerrainInsightBuilder -> TerrainInsightCue`
+
+Persisted route distance and elevation are preferred when available, while workout summary distance/elevation provides fallback. The resulting terrain context can help Climb Insight, Split Rhythm, and Course Progression read the workout as flat, rolling, climb-heavy, trail-like, or mixed without changing RecoveryCalculator, Growth builders, import policy, Feed/SNS, or server/Auth behavior.
