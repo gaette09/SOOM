@@ -13,7 +13,8 @@ struct UnifiedWorkoutLibraryViewContainer: View {
             similarCandidateProvider: SimilarWorkoutCandidateProvider(
                 store: store,
                 persistedRouteProvider: routeCandidateProvider
-            )
+            ),
+            detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore)
         )
     }
 }

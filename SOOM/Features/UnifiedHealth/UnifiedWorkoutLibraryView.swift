@@ -3,13 +3,16 @@ import SwiftUI
 struct UnifiedWorkoutLibraryView: View {
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
     private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
 
     init(
         viewModel: UnifiedWorkoutLibraryViewModel,
-        similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil
+        similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
+        detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.similarCandidateProvider = similarCandidateProvider
+        self.detailRouteContextProvider = detailRouteContextProvider
     }
 
     var body: some View {
@@ -156,6 +159,7 @@ struct UnifiedWorkoutLibraryView: View {
                     workout: workout,
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
                     similarCandidateProvider: similarCandidateProvider,
+                    detailRouteContextProvider: detailRouteContextProvider,
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -175,6 +179,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let workout: UnifiedWorkout
     let isUpdating: Bool
     let similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     let onToggleExcluded: () -> Void
 
     var body: some View {
@@ -183,7 +188,8 @@ private struct UnifiedWorkoutLibraryRow: View {
                 NavigationLink {
                     UnifiedWorkoutDetailDestination(
                         unifiedWorkout: workout,
-                        similarCandidateProvider: similarCandidateProvider
+                        similarCandidateProvider: similarCandidateProvider,
+                        detailRouteContextProvider: detailRouteContextProvider
                     )
                 } label: {
                     rowSummary
@@ -330,8 +336,10 @@ private struct UnifiedWorkoutDetailDestination: View {
     let unifiedWorkout: UnifiedWorkout
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
     var similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
+    @State private var persistedRoute: WorkoutRoute?
     @State private var comparisonInsight: WorkoutComparisonInsight?
     @State private var courseRecord: CourseRecord?
     @State private var courseProgression: CourseProgressionTimeline?
@@ -346,16 +354,22 @@ private struct UnifiedWorkoutDetailDestination: View {
             comparisonInsightOverride: comparisonInsight,
             courseRecordOverride: courseRecord,
             courseProgressionOverride: courseProgression,
-            climbInsightOverride: climbInsight
+            climbInsightOverride: climbInsight,
+            detailRouteOverride: persistedRoute
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
+            persistedRoute = await loadPersistedRoute()
             let candidateResult = await loadSimilarCandidateResult()
             comparisonInsight = buildComparisonInsight(from: candidateResult)
             courseRecord = buildCourseRecord(from: candidateResult)
             courseProgression = buildCourseProgression(from: candidateResult)
             climbInsight = buildClimbInsight()
         }
+    }
+
+    private func loadPersistedRoute() async -> WorkoutRoute? {
+        await detailRouteContextProvider?.route(for: unifiedWorkout.id)
     }
 
     private func loadSimilarCandidateResult() async -> SimilarWorkoutCandidateResult? {
@@ -366,7 +380,7 @@ private struct UnifiedWorkoutDetailDestination: View {
         do {
             return try await similarCandidateProvider.bestCandidate(
                 for: unifiedWorkout,
-                currentRoute: nil,
+                currentRoute: persistedRoute,
                 candidateRoutesByWorkoutId: [:]
             )
         } catch {
@@ -414,7 +428,8 @@ private struct UnifiedWorkoutDetailDestination: View {
 
     private func buildClimbInsight() -> ClimbInsight? {
         let insight = ClimbInsightBuilder().build(
-            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout)
+            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout),
+            route: persistedRoute
         )
         return insight.isVisible ? insight : nil
     }

@@ -520,4 +520,4 @@ Implementation status:
 
 Workout Detail can now place a `ClimbInsightCard` after Split Insight and before Zone Analysis. The card interprets route elevation and workout summary data for cycling and hiking, with optional split metrics ready for future cadence/speed rhythm refinement.
 
-v1 uses simple thresholds such as elevation gain, distance-to-elevation ratio, and late-session rhythm cues. It does not implement GPS climb replay, Strava-style climb segments, ML prediction, or complex charts. Flat routes remain quiet so the detail page does not become noisy.
+v1 uses simple thresholds such as elevation gain, distance-to-elevation ratio, and late-session rhythm cues. HealthKit imported UnifiedWorkout detail now resolves persisted WorkoutRoute context first, so Climb Insight can prefer stored route elevation/profile over summary elevation when route data exists. If route lookup fails or no route is saved, it keeps the existing summary-elevation fallback. It does not implement GPS climb replay, Strava-style climb segments, ML prediction, or complex charts. Flat routes remain quiet so the detail page does not become noisy.

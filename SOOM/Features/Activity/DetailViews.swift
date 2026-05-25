@@ -11,6 +11,7 @@ struct WorkoutDetailView: View {
     var courseRecordOverride: CourseRecord?
     var courseProgressionOverride: CourseProgressionTimeline?
     var climbInsightOverride: ClimbInsight?
+    var detailRouteOverride: WorkoutRoute?
 
     var body: some View {
         SOOMScreen {
@@ -176,7 +177,7 @@ struct WorkoutDetailView: View {
     }
 
     private var detailMapRoute: WorkoutRoute? {
-        route(for: workout)
+        detailRouteOverride ?? route(for: workout)
     }
 
     private func route(for workout: Workout) -> WorkoutRoute? {
