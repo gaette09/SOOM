@@ -660,4 +660,12 @@ The card is intentionally terrain/rhythm coaching, not a climb segment leaderboa
 
 Workout Detail now has a lightweight terrain context layer. `TerrainTypeBuilder` reads `WorkoutGrowthInput`, optional persisted `WorkoutRoute`, and optional split metrics to classify terrain as flat, rolling, steady climb, long climb, urban stop-go, trail, mixed, or insufficient data. `TerrainInsightBuilder` turns that classification into calm context copy such as “평지 중심”, “롤링 지형”, or “긴 오르막”.
 
+`mixed` and `urban stop-go` are v1 heuristic/future-ready labels. They help the app describe route context when elevation and split rhythm suggest a less clean flat/climb pattern, but they are not precision terrain detection. Advanced stop detection and GPS segment-level classification are still deferred.
+
 This layer supports Climb Insight, Split Rhythm, and Course Progression as terrain-aware interpretation without changing RecoveryCalculator or existing Growth calculation logic. It does not add ML prediction, GPS replay, Strava-style segments, complex charts, Feed/SNS, server/Auth, or Garmin/Samsung connectors.
+
+## Weekly / Monthly Progression Intelligence v1
+
+SOOM now includes a long-term progression interpretation layer for Analysis. `ProgressionIntelligenceBuilder` reads aggregated `WorkoutGrowthInput` records and explains recent weekly, monthly, rolling four-week, or rolling three-month flow through pace, speed, rhythm stability, and training frequency.
+
+This is not an ML coach, prediction engine, or complex chart. It is a calm interpretation layer that helps users understand whether their recent running pace, cycling speed, swimming 100m pace, or training consistency is improving, stable, fluctuating, rebuilding, or still insufficient. RecoveryCalculator and existing Growth calculation logic remain unchanged.

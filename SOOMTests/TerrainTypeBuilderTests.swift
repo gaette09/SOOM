@@ -36,6 +36,52 @@ final class TerrainTypeBuilderTests: XCTestCase {
         XCTAssertEqual(terrain.terrainType, .trail)
     }
 
+    func testMixedTerrain() {
+        let terrain = TerrainTypeBuilder().build(current: input(type: .running, distanceKm: 4, elevation: 40))
+
+        XCTAssertEqual(terrain.terrainType, .mixed)
+        XCTAssertEqual(terrain.difficulty, .moderate)
+    }
+
+    func testUrbanStopGoTerrainFromSplitMetrics() {
+        let terrain = TerrainTypeBuilder().build(
+            current: input(type: .cycling, distanceKm: 10, elevation: 20),
+            splitMetrics: splitMetrics(speeds: [4, 13, 5, 14])
+        )
+
+        XCTAssertEqual(terrain.terrainType, .urbanStopGo)
+        XCTAssertEqual(terrain.difficulty, .moderate)
+    }
+
+    func testStableSplitMetricsDoNotForceUrbanStopGo() {
+        let terrain = TerrainTypeBuilder().build(
+            current: input(type: .cycling, distanceKm: 4, elevation: 40),
+            splitMetrics: splitMetrics(speeds: [10, 11, 10.5, 11.2])
+        )
+
+        XCTAssertEqual(terrain.terrainType, .mixed)
+    }
+
+    func testRouteElevationTakesPriorityOverSummaryElevation() {
+        let flatRoute = route(distanceMeters: 10_000, elevation: 20, altitudes: [10, 12, 11, 13])
+        let terrain = TerrainTypeBuilder().build(
+            current: input(type: .cycling, distanceKm: 10, elevation: 420),
+            route: flatRoute
+        )
+
+        XCTAssertEqual(terrain.terrainType, .flat)
+    }
+
+    func testSummaryElevationFallbackWhenRouteElevationIsMissing() {
+        let routeWithoutElevation = route(distanceMeters: 10_000, elevation: nil, altitudes: [10, 12, 11, 13])
+        let terrain = TerrainTypeBuilder().build(
+            current: input(type: .cycling, distanceKm: 8, elevation: 260),
+            route: routeWithoutElevation
+        )
+
+        XCTAssertEqual(terrain.terrainType, .steadyClimb)
+    }
+
     func testInsufficientData() {
         let terrain = TerrainTypeBuilder().build(current: input(type: .running, distanceKm: nil, elevation: nil))
 
@@ -85,7 +131,7 @@ final class TerrainTypeBuilderTests: XCTestCase {
         )
     }
 
-    private func route(distanceMeters: Double, elevation: Double, altitudes: [Double]) -> WorkoutRoute {
+    private func route(distanceMeters: Double, elevation: Double?, altitudes: [Double]) -> WorkoutRoute {
         WorkoutRoute(
             workoutId: UUID(),
             source: .soomLocal,
@@ -99,5 +145,17 @@ final class TerrainTypeBuilderTests: XCTestCase {
             totalDistanceMeters: distanceMeters,
             totalElevationGain: elevation
         )
+    }
+
+    private func splitMetrics(speeds: [Double]) -> [WorkoutSplitMetric] {
+        let start = Date()
+        return speeds.enumerated().map { index, speed in
+            WorkoutSplitMetric(
+                splitIndex: index,
+                startTime: start.addingTimeInterval(Double(index) * 300),
+                endTime: start.addingTimeInterval(Double(index + 1) * 300),
+                averageSpeed: speed
+            )
+        }
     }
 }

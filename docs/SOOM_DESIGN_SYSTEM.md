@@ -619,6 +619,19 @@ Design 기준:
 
 - Place the cue near the map hero as supporting context.
 - Use calm labels such as “평지 중심”, “롤링 지형”, “꾸준한 오르막”, and “트레일/하이킹”.
+- Treat mixed and urban stop-go labels as route context, not diagnostic or performance labels.
 - Difficulty labels are soft context only: 가벼운 난이도, 중간 난이도, 도전적인 흐름.
 - Avoid diagnostic or performance-judgement copy.
 - Keep Recovery score, Feed ranking, and complex terrain charts out of this cue.
+
+## Progression Intelligence Card
+
+Progression Intelligence is a 장기 흐름 해석 card. It belongs in Analysis or Home-level progression sections, not Workout Detail, because it summarizes repeated workouts over time rather than one workout session.
+
+Design 기준:
+
+- Use calm labels such as “최근 흐름”, “안정적으로 이어지는 흐름”, and “다시 리듬을 쌓는 흐름”.
+- Keep rows simple: primary pace/speed, workout frequency, and rhythm stability.
+- Avoid complex charts, prediction language, ranking, or weekly AI coach tone.
+- Treat fluctuating or rebuilding as neutral rhythm context, not failure.
+- Keep Recovery score and Feed/social comparison out of this card.

@@ -27,6 +27,25 @@ final class TerrainInsightBuilderTests: XCTestCase {
         XCTAssertFalse(insight.interpretation.contains("실패"))
     }
 
+    func testBuildsMixedInterpretationWithContextTone() {
+        let terrain = TerrainType(terrainType: .mixed, summary: "평지와 완만한 지형 변화가 섞인 코스였어요.", difficulty: .moderate)
+        let insight = TerrainInsightBuilder().build(from: terrain)
+
+        XCTAssertEqual(insight.terrainDescription, "혼합 지형")
+        XCTAssertTrue(insight.interpretation.contains("리듬"))
+        assertNoJudgementTone(in: insight)
+    }
+
+    func testBuildsUrbanStopGoInterpretationWithoutOverstatingPrecision() {
+        let terrain = TerrainType(terrainType: .urbanStopGo, summary: "멈춤과 재가속이 섞인 도시형 리듬에 가까워요.", difficulty: .moderate)
+        let insight = TerrainInsightBuilder().build(from: terrain)
+
+        XCTAssertEqual(insight.terrainDescription, "도시형 리듬")
+        XCTAssertTrue(insight.interpretation.contains("흐름"))
+        XCTAssertFalse(insight.interpretation.contains("정확"))
+        assertNoJudgementTone(in: insight)
+    }
+
     func testInsufficientDataIsHidden() {
         let insight = TerrainInsightBuilder().build(from: .insufficientData)
 
@@ -36,5 +55,14 @@ final class TerrainInsightBuilderTests: XCTestCase {
     func testRecoveryCalculatorIsNotUsed() {
         _ = TerrainInsightBuilder().build(from: TerrainType(terrainType: .mixed, summary: "혼합 지형", difficulty: .moderate))
         XCTAssertTrue(true)
+    }
+
+    private func assertNoJudgementTone(in insight: TerrainInsight, file: StaticString = #filePath, line: UInt = #line) {
+        let text = "\(insight.terrainDescription) \(insight.interpretation)"
+        let bannedWords = ["진단", "위험", "실패", "랭킹", "정확", "나쁨", "못"]
+
+        for word in bannedWords {
+            XCTAssertFalse(text.contains(word), file: file, line: line)
+        }
     }
 }

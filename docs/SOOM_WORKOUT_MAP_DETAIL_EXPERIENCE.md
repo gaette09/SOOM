@@ -526,6 +526,8 @@ v1 uses simple thresholds such as elevation gain, distance-to-elevation ratio, a
 
 Workout Detail can now show a small terrain context cue below the map hero. The cue is generated from route distance, route or summary elevation gain, elevation ratio, and optional split rhythm. It is intentionally a context layer, not a training verdict.
 
+The cue is not a precision terrain classifier. `mixed` and `urban stop-go` are conservative heuristic labels used to keep the interpretation calm when route/elevation/split signals are incomplete or future-ready.
+
 Implementation status:
 
 - `TerrainTypeBuilder` classifies flat, rolling, steady climb, long climb, urban stop-go, trail, mixed, or insufficient-data terrain.

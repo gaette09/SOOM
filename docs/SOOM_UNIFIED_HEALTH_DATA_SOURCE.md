@@ -605,3 +605,13 @@ Flow:
 `WorkoutRoute + WorkoutGrowthInput + optional split metrics -> TerrainTypeBuilder -> TerrainInsightBuilder -> TerrainInsightCue`
 
 Persisted route distance and elevation are preferred when available, while workout summary distance/elevation provides fallback. The resulting terrain context can help Climb Insight, Split Rhythm, and Course Progression read the workout as flat, rolling, climb-heavy, trail-like, or mixed without changing RecoveryCalculator, Growth builders, import policy, Feed/SNS, or server/Auth behavior.
+
+Split-metric based terrain classification is currently a future-ready foundation. It can identify conservative urban stop-go style rhythm when enough split speed variation exists, but advanced stop detection, GPS replay, and precision terrain classification are still deferred.
+
+## Aggregated Workout Interpretation Layer
+
+Unified workout records can now feed long-term progression interpretation after they are converted into `WorkoutGrowthInput`:
+
+`UnifiedWorkoutStore -> UnifiedWorkoutAnalysisInputSelector -> WorkoutGrowthInput[] -> ProgressionIntelligenceBuilder -> ProgressionIntelligenceCard`
+
+The layer aggregates recent included workouts and interprets pace, speed, rhythm stability, and training frequency over weekly/monthly windows. It is local-first and does not change RecoveryCalculator, existing Growth builders, Feed/SNS, server/Auth, Garmin/Samsung, or ML policy.
