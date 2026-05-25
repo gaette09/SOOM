@@ -656,4 +656,13 @@ Design 기준:
 - Use the AuthRepository boundary to keep local session behavior stable while future providers are introduced.
 - Show remote login placeholders as 준비 중, not broken or unavailable errors.
 - Avoid pressuring users to create an account before HealthKit, workout, route, and progression data have an explicit sync policy.
+## Auth Environment Configuration
+
+Auth environment status is a small trust cue, not a user-facing login prompt. Settings may show whether Supabase and redirect placeholders are configured, but the copy must stay low-priority and avoid implying that cloud login or sync is live.
+
+Design 기준:
+
+- Use “미설정/준비됨” as environment status language, not error language.
+- Keep real URL/key values out of visible UI.
+- Do not add OAuth-styled buttons until Apple, Google, or Supabase flows are actually implemented.
 

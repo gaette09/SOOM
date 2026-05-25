@@ -386,6 +386,10 @@
 		010385 /* AuthRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020385 /* AuthRepositoryTests.swift */; };
 		010386 /* SupabaseAuthConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020386 /* SupabaseAuthConfigurationTests.swift */; };
 		010387 /* SupabaseAuthProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020387 /* SupabaseAuthProviderTests.swift */; };
+		010388 /* AuthEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020388 /* AuthEnvironment.swift */; };
+		010389 /* AuthEnvironmentLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020389 /* AuthEnvironmentLoader.swift */; };
+		010390 /* AuthEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020390 /* AuthEnvironmentTests.swift */; };
+		010391 /* AuthEnvironmentLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020391 /* AuthEnvironmentLoaderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -780,6 +784,10 @@
 		020385 /* AuthRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepositoryTests.swift; sourceTree = "<group>"; };
 		020386 /* SupabaseAuthConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthConfigurationTests.swift; sourceTree = "<group>"; };
 		020387 /* SupabaseAuthProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthProviderTests.swift; sourceTree = "<group>"; };
+		020388 /* AuthEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironment.swift; sourceTree = "<group>"; };
+		020389 /* AuthEnvironmentLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentLoader.swift; sourceTree = "<group>"; };
+		020390 /* AuthEnvironmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentTests.swift; sourceTree = "<group>"; };
+		020391 /* AuthEnvironmentLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentLoaderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -991,6 +999,8 @@
 				020382 /* LocalAuthRepository.swift */,
 				020383 /* SupabaseAuthConfiguration.swift */,
 				020384 /* SupabaseAuthProvider.swift */,
+				020388 /* AuthEnvironment.swift */,
+				020389 /* AuthEnvironmentLoader.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -1349,6 +1359,8 @@
 				020385 /* AuthRepositoryTests.swift */,
 				020386 /* SupabaseAuthConfigurationTests.swift */,
 				020387 /* SupabaseAuthProviderTests.swift */,
+				020390 /* AuthEnvironmentTests.swift */,
+				020391 /* AuthEnvironmentLoaderTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1747,6 +1759,8 @@
 				010382 /* LocalAuthRepository.swift in Sources */,
 				010383 /* SupabaseAuthConfiguration.swift in Sources */,
 				010384 /* SupabaseAuthProvider.swift in Sources */,
+				010388 /* AuthEnvironment.swift in Sources */,
+				010389 /* AuthEnvironmentLoader.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1840,6 +1854,8 @@
 				010385 /* AuthRepositoryTests.swift in Sources */,
 				010386 /* SupabaseAuthConfigurationTests.swift in Sources */,
 				010387 /* SupabaseAuthProviderTests.swift in Sources */,
+				010390 /* AuthEnvironmentTests.swift in Sources */,
+				010391 /* AuthEnvironmentLoaderTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

@@ -25,4 +25,34 @@ final class SupabaseAuthConfigurationTests: XCTestCase {
 
         XCTAssertTrue(configuration.isConfigured)
     }
+    func testBuildsFromConfiguredAuthEnvironment() {
+        let environment = AuthEnvironment(
+            environment: .development,
+            supabaseURL: URL(string: "https://example.supabase.co"),
+            supabaseAnonKey: "anon-test-key",
+            redirectScheme: "soom-dev"
+        )
+
+        let configuration = SupabaseAuthConfiguration.from(environment: environment)
+
+        XCTAssertTrue(configuration.isConfigured)
+        XCTAssertEqual(configuration.projectURL?.absoluteString, "https://example.supabase.co")
+        XCTAssertEqual(configuration.anonKey, "anon-test-key")
+    }
+
+    func testPlaceholderEnvironmentBuildsEmptyConfiguration() {
+        let environment = AuthEnvironment(
+            environment: .development,
+            supabaseURL: URL(string: "https://example.supabase.co"),
+            supabaseAnonKey: "$(SOOM_SUPABASE_ANON_KEY)",
+            redirectScheme: "$(SOOM_AUTH_REDIRECT_SCHEME)"
+        )
+
+        let configuration = SupabaseAuthConfiguration.from(environment: environment)
+
+        XCTAssertFalse(configuration.isConfigured)
+        XCTAssertNil(configuration.projectURL)
+        XCTAssertNil(configuration.anonKey)
+    }
+
 }

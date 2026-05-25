@@ -18,4 +18,12 @@ struct SupabaseAuthConfiguration: Equatable {
         self.projectURL = projectURL
         self.anonKey = anonKey
     }
+
+    static func from(environment: AuthEnvironment) -> SupabaseAuthConfiguration {
+        guard environment.isSupabaseConfigured else { return .empty }
+        return SupabaseAuthConfiguration(
+            projectURL: environment.supabaseURL,
+            anonKey: environment.supabaseAnonKey
+        )
+    }
 }

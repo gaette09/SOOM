@@ -633,4 +633,9 @@ Auth now has a repository boundary on top of the local session store:
 `AuthViewModel -> AuthRepository -> LocalAuthRepository -> AuthSessionStore`
 
 `SupabaseAuthConfiguration` and `SupabaseAuthProvider` exist only as non-network placeholders. They do not import the Supabase SDK, do not authenticate remotely, and do not move HealthKit, workout, route, or progression records to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
+## Auth Environment Foundation
+
+`AuthEnvironmentLoader` can read Supabase and redirect placeholders from Info.plist, but placeholder values are treated as unconfigured. This prepares future user ownership without changing local-first HealthKit import, route persistence, workout analysis, RecoveryCalculator, Growth builders, or Feed/SNS behavior.
+
+Secrets must come from Xcode build settings, ignored `.xcconfig` files, or CI secret injection in a later phase. No real Supabase URL, anon key, or OAuth redirect value should be committed.
 

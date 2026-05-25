@@ -421,4 +421,7 @@ Future Auth integration should keep HealthKit permissions read-only, preserve ex
 ## Supabase Auth Preparation
 
 HealthKit import remains explicit, read-only, and local-first. The new Auth repository boundary can later associate imported HealthKit-derived workouts with a signed-in account, but v1 does not upload HealthKit data, does not enable automatic remote sync, and does not require Supabase, Apple, or Google login before importing workouts.
+## Auth Environment / HealthKit Boundary
+
+Supabase Auth environment placeholders do not change HealthKit behavior. HealthKit permissions remain read-only and manual import remains explicit. Future account linking may attach local HealthKit-derived records to a user-owned remote account only after a separate sync and consent design.
 

@@ -48,5 +48,11 @@
 	</array>
 	<key>MBXAccessToken</key>
 	<string>$(MBX_ACCESS_TOKEN)</string>
+	<key>SOOMSupabaseURL</key>
+	<string>$(SOOM_SUPABASE_URL)</string>
+	<key>SOOMSupabaseAnonKey</key>
+	<string>$(SOOM_SUPABASE_ANON_KEY)</string>
+	<key>SOOMAuthRedirectScheme</key>
+	<string>$(SOOM_AUTH_REDIRECT_SCHEME)</string>
 </dict>
 </plist>

@@ -4,13 +4,16 @@ import UIKit
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @StateObject private var authViewModel: AuthViewModel
+    private let authEnvironment: AuthEnvironment
 
     init(
         viewModel: SettingsViewModel = SettingsViewModel(),
-        authViewModel: AuthViewModel = AuthViewModel()
+        authViewModel: AuthViewModel = AuthViewModel(),
+        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _authViewModel = StateObject(wrappedValue: authViewModel)
+        self.authEnvironment = authEnvironment
     }
 
     var body: some View {
@@ -191,7 +194,14 @@ struct SettingsView: View {
         SOOMCard {
             SOOMSectionHeader("앱 정보")
             SOOMActionRow(icon: "info.circle", title: "SOOM Foundation", subtitle: "Recovery, Growth, HealthKit 데이터 신뢰 구조를 실험 중입니다.", tint: SOOMColor.secondaryInk)
+            SOOMActionRow(icon: "lock.shield", title: "계정 환경", subtitle: authEnvironmentStatusText, tint: SOOMColor.secondaryInk)
         }
+    }
+
+    private var authEnvironmentStatusText: String {
+        let supabaseStatus = authEnvironment.isSupabaseConfigured ? "Supabase 준비됨" : "Supabase 미설정"
+        let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
+        return "\(authEnvironment.environment.title) · \(supabaseStatus) · \(redirectStatus)"
     }
 
     private func settingInputRow(
