@@ -8,3 +8,6 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# Local automation secrets
+automation/telegram/.env
