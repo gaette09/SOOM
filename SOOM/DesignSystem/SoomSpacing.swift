@@ -134,8 +134,8 @@ enum SOOMLayout {
         static let iconTextSpacing: CGFloat = 12
         static let textSpacing: CGFloat = 6
         static let scoreHeaderSpacing: CGFloat = 16
-        static let trendLineHeight: CGFloat = 34
-        static let trendLineWidth: CGFloat = 3
+        static let trendLineHeight: CGFloat = 28
+        static let trendLineWidth: CGFloat = 2
         static let ctaVerticalPadding: CGFloat = 12
         static let ctaCornerRadius: CGFloat = SOOMRadius.compactControl
         static let messageLineSpacing: CGFloat = 3
@@ -148,8 +148,8 @@ enum SOOMLayout {
     enum RecoveryScreen {
         static let focusCardSpacing: CGFloat = 16
         static let supportingCardSpacing: CGFloat = 12
-        static let sectionGroupSpacing: CGFloat = 18
-        static let compactSectionSpacing: CGFloat = 8
+        static let sectionGroupSpacing: CGFloat = 14
+        static let compactSectionSpacing: CGFloat = 6
         static let footnoteTopPadding: CGFloat = 2
     }
 
