@@ -19,38 +19,52 @@ protocol PersonalRecordProviding {
 
 extension UnifiedWorkoutPersonalRecordProvider: PersonalRecordProviding {}
 
+protocol ProgressionIntelligenceProviding {
+    func fetchProgressionIntelligence(referenceDate: Date) async throws -> ProgressionIntelligence
+}
+
+extension UnifiedWorkoutProgressionIntelligenceProvider: ProgressionIntelligenceProviding {}
+
 @MainActor
 final class AnalysisViewModel: ObservableObject {
     @Published private(set) var progress: WeeklyWorkoutProgress
     @Published private(set) var fourWeekTrend: FourWeekWorkoutTrend
     @Published private(set) var personalRecords: [PersonalRecord]
+    @Published private(set) var progressionIntelligence: ProgressionIntelligence
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
 
     private let provider: WeeklyWorkoutProgressProviding
     private let fourWeekTrendProvider: FourWeekWorkoutTrendProviding?
     private let personalRecordProvider: PersonalRecordProviding?
+    private let progressionIntelligenceProvider: ProgressionIntelligenceProviding?
     private let builder: WeeklyWorkoutProgressBuilder
     private let fourWeekTrendBuilder: FourWeekWorkoutTrendBuilder
     private let personalRecordBuilder: PersonalRecordBuilder
+    private let progressionIntelligenceBuilder: ProgressionIntelligenceBuilder
 
     init(
         provider: WeeklyWorkoutProgressProviding,
         fourWeekTrendProvider: FourWeekWorkoutTrendProviding? = nil,
         personalRecordProvider: PersonalRecordProviding? = nil,
+        progressionIntelligenceProvider: ProgressionIntelligenceProviding? = nil,
         builder: WeeklyWorkoutProgressBuilder = WeeklyWorkoutProgressBuilder(),
         fourWeekTrendBuilder: FourWeekWorkoutTrendBuilder = FourWeekWorkoutTrendBuilder(),
-        personalRecordBuilder: PersonalRecordBuilder = PersonalRecordBuilder()
+        personalRecordBuilder: PersonalRecordBuilder = PersonalRecordBuilder(),
+        progressionIntelligenceBuilder: ProgressionIntelligenceBuilder = ProgressionIntelligenceBuilder()
     ) {
         self.provider = provider
         self.fourWeekTrendProvider = fourWeekTrendProvider
         self.personalRecordProvider = personalRecordProvider
+        self.progressionIntelligenceProvider = progressionIntelligenceProvider
         self.builder = builder
         self.fourWeekTrendBuilder = fourWeekTrendBuilder
         self.personalRecordBuilder = personalRecordBuilder
+        self.progressionIntelligenceBuilder = progressionIntelligenceBuilder
         self.progress = builder.build(inputs: [])
         self.fourWeekTrend = fourWeekTrendBuilder.build(inputs: [])
         self.personalRecords = []
+        self.progressionIntelligence = ProgressionIntelligence.insufficientData(period: .rollingFourWeeks)
     }
 
     func load(
@@ -72,11 +86,30 @@ final class AnalysisViewModel: ObservableObject {
         }
 
         await loadFourWeekTrend(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
+        await loadProgressionIntelligence(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
         await loadPersonalRecords(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
 
         isLoading = false
     }
 
+    private func loadProgressionIntelligence(
+        fallbackWorkouts: [Workout],
+        referenceDate: Date
+    ) async {
+        guard let progressionIntelligenceProvider else {
+            progressionIntelligence = progressionIntelligenceBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            return
+        }
+
+        do {
+            progressionIntelligence = try await progressionIntelligenceProvider.fetchProgressionIntelligence(referenceDate: referenceDate)
+        } catch {
+            progressionIntelligence = progressionIntelligenceBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            if errorMessage == nil {
+                errorMessage = "장기 운동 흐름을 불러오지 못해 기존 운동 데이터로 표시하고 있어요."
+            }
+        }
+    }
 
     private func loadPersonalRecords(
         fallbackWorkouts: [Workout],

@@ -364,6 +364,13 @@
 		010363 /* TerrainInsightCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020363 /* TerrainInsightCue.swift */; };
 		010364 /* TerrainTypeBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020364 /* TerrainTypeBuilderTests.swift */; };
 		010365 /* TerrainInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020365 /* TerrainInsightBuilderTests.swift */; };
+		010366 /* ProgressionPeriod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020366 /* ProgressionPeriod.swift */; };
+		010367 /* ProgressionTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020367 /* ProgressionTrend.swift */; };
+		010368 /* ProgressionIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020368 /* ProgressionIntelligence.swift */; };
+		010369 /* ProgressionIntelligenceBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020369 /* ProgressionIntelligenceBuilder.swift */; };
+		010370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift */; };
+		010371 /* ProgressionIntelligenceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020371 /* ProgressionIntelligenceCard.swift */; };
+		010372 /* ProgressionIntelligenceBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020372 /* ProgressionIntelligenceBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -736,6 +743,13 @@
 		020363 /* TerrainInsightCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsightCue.swift; sourceTree = "<group>"; };
 		020364 /* TerrainTypeBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainTypeBuilderTests.swift; sourceTree = "<group>"; };
 		020365 /* TerrainInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainInsightBuilderTests.swift; sourceTree = "<group>"; };
+		020366 /* ProgressionPeriod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionPeriod.swift; sourceTree = "<group>"; };
+		020367 /* ProgressionTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTrend.swift; sourceTree = "<group>"; };
+		020368 /* ProgressionIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligence.swift; sourceTree = "<group>"; };
+		020369 /* ProgressionIntelligenceBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligenceBuilder.swift; sourceTree = "<group>"; };
+		020370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutProgressionIntelligenceProvider.swift; sourceTree = "<group>"; };
+		020371 /* ProgressionIntelligenceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligenceCard.swift; sourceTree = "<group>"; };
+		020372 /* ProgressionIntelligenceBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionIntelligenceBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -881,6 +895,7 @@
 				020351 /* CourseProgressionCard.swift */,
 				020355 /* ClimbInsightCard.swift */,
 				020363 /* TerrainInsightCue.swift */,
+				020371 /* ProgressionIntelligenceCard.swift */,
 				020323 /* WorkoutSplitInsightCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
 				020241 /* ShareableWeeklyProgressCardView.swift */,
@@ -1124,6 +1139,11 @@
 				020348 /* CourseProgressionPoint.swift */,
 				020349 /* CourseProgressionTimeline.swift */,
 				020350 /* CourseProgressionBuilder.swift */,
+				020366 /* ProgressionPeriod.swift */,
+				020367 /* ProgressionTrend.swift */,
+				020368 /* ProgressionIntelligence.swift */,
+				020369 /* ProgressionIntelligenceBuilder.swift */,
+				020370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift */,
 				020359 /* TerrainType.swift */,
 				020360 /* TerrainTypeBuilder.swift */,
 				020361 /* TerrainInsight.swift */,
@@ -1275,6 +1295,7 @@
 				020356 /* ClimbInsightBuilderTests.swift */,
 				020364 /* TerrainTypeBuilderTests.swift */,
 				020365 /* TerrainInsightBuilderTests.swift */,
+				020372 /* ProgressionIntelligenceBuilderTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1460,6 +1481,7 @@
 				010316 /* WorkoutComparisonInsightCard.swift in Sources */,
 				010335 /* CourseRecordCard.swift in Sources */,
 				010351 /* CourseProgressionCard.swift in Sources */,
+				010371 /* ProgressionIntelligenceCard.swift in Sources */,
 				010355 /* ClimbInsightCard.swift in Sources */,
 				010363 /* TerrainInsightCue.swift in Sources */,
 				010323 /* WorkoutSplitInsightCard.swift in Sources */,
@@ -1530,6 +1552,11 @@
 				010348 /* CourseProgressionPoint.swift in Sources */,
 				010349 /* CourseProgressionTimeline.swift in Sources */,
 				010350 /* CourseProgressionBuilder.swift in Sources */,
+				010366 /* ProgressionPeriod.swift in Sources */,
+				010367 /* ProgressionTrend.swift in Sources */,
+				010368 /* ProgressionIntelligence.swift in Sources */,
+				010369 /* ProgressionIntelligenceBuilder.swift in Sources */,
+				010370 /* UnifiedWorkoutProgressionIntelligenceProvider.swift in Sources */,
 				010359 /* TerrainType.swift in Sources */,
 				010360 /* TerrainTypeBuilder.swift in Sources */,
 				010361 /* TerrainInsight.swift in Sources */,
@@ -1744,6 +1771,7 @@
 				010356 /* ClimbInsightBuilderTests.swift in Sources */,
 				010364 /* TerrainTypeBuilderTests.swift in Sources */,
 				010365 /* TerrainInsightBuilderTests.swift in Sources */,
+				010372 /* ProgressionIntelligenceBuilderTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

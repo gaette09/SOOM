@@ -9,12 +9,14 @@ struct AnalysisViewContainer: View {
         let provider = UnifiedWorkoutWeeklyProgressProvider(store: store)
         let trendProvider = UnifiedWorkoutGrowthTrendProvider(store: store)
         let personalRecordProvider = UnifiedWorkoutPersonalRecordProvider(store: store)
+        let progressionProvider = UnifiedWorkoutProgressionIntelligenceProvider(store: store)
 
         AnalysisView(
             viewModel: AnalysisViewModel(
                 provider: provider,
                 fourWeekTrendProvider: trendProvider,
-                personalRecordProvider: personalRecordProvider
+                personalRecordProvider: personalRecordProvider,
+                progressionIntelligenceProvider: progressionProvider
             )
         )
     }

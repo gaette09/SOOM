@@ -43,6 +43,11 @@ struct AnalysisView: View {
                 tint: SOOMColor.bike
             )
 
+            ProgressionIntelligenceCard(
+                intelligence: analysisViewModel.progressionIntelligence,
+                tint: SOOMColor.bike
+            )
+
             PersonalRecordCard(
                 records: analysisViewModel.personalRecords,
                 tint: SOOMColor.warning
