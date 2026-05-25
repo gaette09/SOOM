@@ -339,6 +339,11 @@
 		010338 /* CourseIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020338 /* CourseIdentity.swift */; };
 		010339 /* CourseIdentityBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020339 /* CourseIdentityBuilder.swift */; };
 		010340 /* CourseIdentityBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020340 /* CourseIdentityBuilderTests.swift */; };
+		010341 /* PersistedWorkoutRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020341 /* PersistedWorkoutRoute.swift */; };
+		010342 /* WorkoutRouteMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020342 /* WorkoutRouteMapper.swift */; };
+		010343 /* WorkoutRoutePersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020343 /* WorkoutRoutePersistenceStore.swift */; };
+		010344 /* WorkoutRouteMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020344 /* WorkoutRouteMapperTests.swift */; };
+		010345 /* WorkoutRoutePersistenceStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020345 /* WorkoutRoutePersistenceStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -686,6 +691,11 @@
 		020338 /* CourseIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentity.swift; sourceTree = "<group>"; };
 		020339 /* CourseIdentityBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentityBuilder.swift; sourceTree = "<group>"; };
 		020340 /* CourseIdentityBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseIdentityBuilderTests.swift; sourceTree = "<group>"; };
+		020341 /* PersistedWorkoutRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistedWorkoutRoute.swift; sourceTree = "<group>"; };
+		020342 /* WorkoutRouteMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteMapper.swift; sourceTree = "<group>"; };
+		020343 /* WorkoutRoutePersistenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoutePersistenceStore.swift; sourceTree = "<group>"; };
+		020344 /* WorkoutRouteMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteMapperTests.swift; sourceTree = "<group>"; };
+		020345 /* WorkoutRoutePersistenceStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoutePersistenceStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1074,7 +1084,10 @@
 				020329 /* WorkoutSplitDataProvider.swift */,
 				020325 /* WorkoutDetailSectionGroup.swift */,
 				020265 /* WorkoutRoute.swift */,
+				020341 /* PersistedWorkoutRoute.swift */,
+				020342 /* WorkoutRouteMapper.swift */,
 				020273 /* WorkoutRouteStore.swift */,
+				020343 /* WorkoutRoutePersistenceStore.swift */,
 				020276 /* StaticRoutePreview.swift */,
 				020277 /* MapboxStaticRouteURLBuilder.swift */,
 				020278 /* StaticRoutePreviewBuilder.swift */,
@@ -1214,6 +1227,8 @@
 				020289 /* WorkoutZoneSectionTests.swift */,
 				020274 /* HealthKitWorkoutRouteMapperTests.swift */,
 				020275 /* WorkoutRouteStoreTests.swift */,
+				020344 /* WorkoutRouteMapperTests.swift */,
+				020345 /* WorkoutRoutePersistenceStoreTests.swift */,
 				020294 /* HealthKitWorkoutMetricMapperTests.swift */,
 				020295 /* HealthKitMetricZoneBuilderTests.swift */,
 				020297 /* WorkoutZoneDataProviderTests.swift */,
@@ -1455,7 +1470,10 @@
 				010329 /* WorkoutSplitDataProvider.swift in Sources */,
 				010325 /* WorkoutDetailSectionGroup.swift in Sources */,
 				010264 /* WorkoutRoute.swift in Sources */,
+				010341 /* PersistedWorkoutRoute.swift in Sources */,
+				010342 /* WorkoutRouteMapper.swift in Sources */,
 				010272 /* WorkoutRouteStore.swift in Sources */,
+				010343 /* WorkoutRoutePersistenceStore.swift in Sources */,
 				010275 /* StaticRoutePreview.swift in Sources */,
 				010276 /* MapboxStaticRouteURLBuilder.swift in Sources */,
 				010277 /* StaticRoutePreviewBuilder.swift in Sources */,
@@ -1658,6 +1676,8 @@
 				010289 /* WorkoutZoneSectionTests.swift in Sources */,
 				010273 /* HealthKitWorkoutRouteMapperTests.swift in Sources */,
 				010274 /* WorkoutRouteStoreTests.swift in Sources */,
+				010344 /* WorkoutRouteMapperTests.swift in Sources */,
+				010345 /* WorkoutRoutePersistenceStoreTests.swift in Sources */,
 				010295 /* HealthKitWorkoutMetricMapperTests.swift in Sources */,
 				010296 /* HealthKitMetricZoneBuilderTests.swift in Sources */,
 				010298 /* WorkoutZoneDataProviderTests.swift in Sources */,

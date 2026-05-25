@@ -239,6 +239,7 @@ Route와 zone 분석을 위한 Swift domain model 1차 구현을 추가했다.
 - `HealthKitWorkoutRouteFetcher`: `HKSampleQuery`로 workout에 연결된 `HKWorkoutRoute`를 찾고, `HKWorkoutRouteQuery`로 `CLLocation` stream을 읽는다.
 - `HealthKitWorkoutRouteMapper`: `HKWorkout`과 `CLLocation` 배열을 `WorkoutRoute`로 변환한다.
 - `WorkoutRouteStore`: workout id 기준 route 저장/조회가 가능한 가벼운 in-memory cache 프로토콜과 actor 구현이다.
+- `PersistedWorkoutRoute` / `WorkoutRouteMapper` / `SwiftDataWorkoutRoutePersistenceStore`: WorkoutRoute를 SwiftData에 local-first로 저장하고 다시 domain model로 복원하는 persistence foundation이다.
 
 Route mapping 정책:
 
@@ -252,7 +253,7 @@ Route mapping 정책:
 
 - route가 없으면 `nil`로 안전하게 처리한다.
 - HealthKit route 권한이 없거나 fetch가 실패하면 caller가 앱 전체 실패로 전파하지 않고 fallback할 수 있어야 한다.
-- Detail map은 Mapbox polyline rendering까지 연결되었고, route persistence는 아직 lightweight/in-memory 후보에 머문다.
+- Detail map은 Mapbox polyline rendering까지 연결되었고, route persistence는 SwiftData 기반 local-first foundation으로 확장되었다. 서버 sync나 복잡한 GIS indexing은 아직 구현하지 않는다.
 
 ## Static Route Preview Card v1 Status
 
@@ -475,7 +476,7 @@ Implementation status:
 - `CourseSimilarityBuilder` checks route bounds overlap, start/end proximity, and distance tolerance.
 - `CourseRecordBuilder` creates sport-specific same-course records such as running pace, cycling speed, and swimming 100m pace.
 - `CourseRecordCard` displays current vs previous values with a subtle improvement cue.
-- If route persistence is unavailable, imported workout detail can still use the stored same-type/similar-distance baseline from `SimilarWorkoutCandidateProvider`.
+- Persisted WorkoutRoute values can be reused for Course Identity and Route Comparison. If route data is still unavailable, imported workout detail can use the stored same-type/similar-distance baseline from `SimilarWorkoutCandidateProvider`.
 
 Deferred: GPS segment replay, Strava-style segment clone, ML prediction, advanced climb analysis, and server/Auth syncing.
 
@@ -487,3 +488,15 @@ Course Identity Foundation v1 adds a lightweight, local route identity layer for
 `CourseSimilarityBuilder` now keeps reverse-direction routes in the same-course candidate set when bounds overlap, distance is similar, and start/end proximity matches in reverse. This supports A-to-B and B-to-A route comparisons while keeping the UX copy at the safer “비슷한 코스” level.
 
 Deferred: complex map matching, segment replay, server-backed course ids, and Strava-style segment cloning remain out of scope.
+
+
+## WorkoutRoute Persistence v1
+
+WorkoutRoute persistence is now available as a local-first foundation for map/detail/course reuse. HealthKit route fetch can save a mapped `WorkoutRoute` after workout import succeeds, and the stored route can later support Course Identity, Course Record, and Route Comparison.
+
+Implementation status:
+
+- `PersistedWorkoutRoute` stores route coordinates as lightweight encoded JSON plus distance/elevation/source metadata.
+- `SwiftDataWorkoutRoutePersistenceStore` upserts by `workoutId`, fetches single or multiple routes, and can delete a route without touching the workout summary.
+- Route fetch/persistence failure does not fail HealthKit workout import.
+- No server sync, Auth, Garmin/Samsung route import, complex GIS indexing, segment replay, or Recovery/Growth calculation changes are included.

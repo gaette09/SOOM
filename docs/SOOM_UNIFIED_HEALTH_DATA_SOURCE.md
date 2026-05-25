@@ -462,7 +462,7 @@ Route/Zone Domain Model v1 구현 상태:
 - `WorkoutRouteCoordinate`는 route point의 latitude/longitude와 optional altitude/timestamp를 보존한다.
 - `WorkoutZone`, `WorkoutZoneSummary`, `WorkoutZoneBuilder`는 heart rate, cadence, power stream을 zone duration/percentage 중심으로 정리하기 위한 순수 모델 계층이다.
 - `HealthKitWorkoutRouteFetcher`와 `HealthKitWorkoutRouteMapper`는 `HKWorkoutRoute -> CLLocation stream -> WorkoutRoute` 변환을 구현한다.
-- `WorkoutRouteStore`는 route를 workout id 기준으로 저장/조회하는 가벼운 in-memory cache 후보이며, SwiftData route persistence는 아직 연결하지 않는다.
+- `WorkoutRouteStore`는 route를 workout id 기준으로 저장/조회하는 가벼운 in-memory cache를 제공하고, `PersistedWorkoutRoute`/`SwiftDataWorkoutRoutePersistenceStore`는 local-first route persistence를 담당한다.
 - HealthKit heart rate/cadence/power stream query는 `HealthKitWorkoutMetricStreamFetcher`와 `WorkoutZoneDataProvider`를 통해 Workout Detail Zone Cards에 연결되었다. Garmin/Samsung route/stream import는 아직 연결하지 않고 공통 계약만 유지한다.
 - RecoveryCalculator와 Workout Growth 계산 로직은 이 모델 추가로 변경되지 않는다.
 
@@ -537,7 +537,7 @@ Imported workout detail can now use stored UnifiedWorkout history for comparison
 
 `UnifiedWorkoutStore -> SimilarWorkoutCandidateProvider -> WorkoutGrowthInput baseline -> WorkoutComparisonInsightBuilder -> WorkoutComparisonInsightCard`
 
-The provider keeps the analysis input boundary clear: it filters out `isExcludedFromAnalysis` workouts, keeps only the same `workoutType`, excludes the current workout, and uses recent records only. Route-based ranking remains optional until route persistence is broader; distance/recency fallback is used when route data is missing. This does not change RecoveryCalculator, Growth builders, deduplication, or import policy.
+The provider keeps the analysis input boundary clear: it filters out `isExcludedFromAnalysis` workouts, keeps only the same `workoutType`, excludes the current workout, and uses recent records only. Route-based ranking can reuse persisted `WorkoutRoute` values when available; distance/recency fallback is still used when route data is missing. This does not change RecoveryCalculator, Growth builders, deduplication, or import policy.
 
 ## Metric Stream to Split Insight
 
@@ -551,7 +551,7 @@ Same-course records use the same normalized route/growth boundary as comparison 
 
 `WorkoutRoute + WorkoutGrowthInput -> CourseSimilarityBuilder -> CourseRecordBuilder -> CourseRecordCard`
 
-`WorkoutRoute` provides approximate same-course signals such as bounds overlap, start/end proximity, and distance tolerance. `WorkoutGrowthInput` supplies sport-specific metrics such as running pace, cycling speed, swimming 100m pace, distance, and duration. Imported UnifiedWorkout detail can use stored same-type candidates through `SimilarWorkoutCandidateProvider` when route persistence is not available.
+`WorkoutRoute` provides approximate same-course signals such as bounds overlap, start/end proximity, and distance tolerance. `WorkoutGrowthInput` supplies sport-specific metrics such as running pace, cycling speed, swimming 100m pace, distance, and duration. Persisted routes can now be reused by course identity and comparison flows, while imported UnifiedWorkout detail can still fall back to stored same-type candidates through `SimilarWorkoutCandidateProvider` when route data is missing.
 
 This remains an interpretation layer. It does not change RecoveryCalculator, Growth builders, import policy, deduplication, or Feed/SNS behavior.
 
@@ -561,3 +561,15 @@ This remains an interpretation layer. It does not change RecoveryCalculator, Gro
 `WorkoutRoute` can now be interpreted through `CourseIdentityBuilder` before course record comparison. The generated identity uses normalized bounds, estimated center, distance bucket, and optional direction estimate. Reverse-direction routes are allowed as similar course candidates through `CourseSimilarityBuilder` metadata, but no server identity, GPS map matching, or segment replay is introduced.
 
 This keeps course grouping local-first and future-ready for HealthKit, Garmin, Samsung, and SOOM local routes once their route streams are normalized.
+
+
+## WorkoutRoute Persistence v1
+
+`WorkoutRoute` now has a local-first SwiftData persistence foundation:
+
+- `PersistedWorkoutRoute` stores route metadata by `workoutId`, source raw value, encoded coordinate payload, coordinate count, distance, elevation gain, timestamps, and a future-ready `courseIdentity` field.
+- `WorkoutRouteMapper` converts between `WorkoutRoute` and `PersistedWorkoutRoute` using lightweight JSON coordinate encoding.
+- `SwiftDataWorkoutRoutePersistenceStore` handles save/fetch/delete and workout-id upsert. It intentionally does not perform fuzzy deduplication, GIS indexing, server sync, or analysis exclusion.
+- HealthKit import can persist a route after `HealthKitWorkout -> UnifiedWorkout -> UnifiedWorkoutStore` succeeds by looking up the original `HKWorkout`, fetching `HKWorkoutRoute`, and saving the mapped `WorkoutRoute`. Route failures are ignored so workout import remains safe.
+
+This gives CourseIdentity, CourseRecord, and Route Comparison a reusable local route source without changing RecoveryCalculator, Growth builders, Garmin/Samsung connectors, or server/Auth policy.

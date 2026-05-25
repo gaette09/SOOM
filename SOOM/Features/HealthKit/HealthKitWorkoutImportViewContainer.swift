@@ -9,7 +9,10 @@ struct HealthKitWorkoutImportViewContainer: View {
             viewModel: HealthKitWorkoutImportViewModel(
                 pipeline: HealthKitWorkoutImportPipeline(
                     workoutFetcher: HealthKitWorkoutFetcher(),
-                    store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+                    store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
+                    routeLookupProvider: HealthKitWorkoutLookupProvider(),
+                    routeFetcher: HealthKitWorkoutRouteFetcher(),
+                    routeStore: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
                 )
             )
         )

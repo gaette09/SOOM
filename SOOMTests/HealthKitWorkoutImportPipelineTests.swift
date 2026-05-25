@@ -1,3 +1,4 @@
+import HealthKit
 import XCTest
 @testable import SOOM
 
@@ -24,6 +25,51 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.count, 2)
         XCTAssertEqual(store.savedWorkouts.map(\.workoutType), [.running, .cycling])
     }
+
+    func testPersistsWorkoutRoutesWhenRouteDependenciesAreInjected() async {
+        let workoutID = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+        let store = FakeUnifiedWorkoutStore()
+        let routeStore = FakeWorkoutRoutePersistenceStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(id: workoutID, type: .cycling)
+                ])
+            ),
+            store: store,
+            routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
+            routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: makeRoute(workoutId: workoutID)),
+            routeStore: routeStore
+        )
+
+        let result = await pipeline.importRecentWorkouts(limit: 10)
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(routeStore.savedRoutes.map(\.workoutId), [workoutID])
+    }
+
+    func testRoutePersistenceFailureDoesNotFailWorkoutImport() async {
+        let workoutID = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
+        let routeStore = FakeWorkoutRoutePersistenceStore(saveError: SampleError.saveFailed)
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(id: workoutID, type: .running)
+                ])
+            ),
+            store: FakeUnifiedWorkoutStore(),
+            routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
+            routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: makeRoute(workoutId: workoutID)),
+            routeStore: routeStore
+        )
+
+        let result = await pipeline.importRecentWorkouts(limit: 10)
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.failedCount, 0)
+        XCTAssertTrue(routeStore.savedRoutes.isEmpty)
+    }
+
 
     func testEmptyFetchReturnsEmptySuccessResult() async {
         let store = FakeUnifiedWorkoutStore()
@@ -127,6 +173,85 @@ private final class FakeHealthKitWorkoutFetcher: HealthKitWorkoutFetching {
     func fetchRecentWorkouts(limit: Int) async throws -> [HealthKitWorkout] {
         try result.get()
     }
+}
+
+private final class FakeHealthKitWorkoutLookupProvider: HealthKitWorkoutLookingUp {
+    private let workout: HKWorkout?
+
+    init(workout: HKWorkout?) {
+        self.workout = workout
+    }
+
+    func lookupWorkout(externalId: String) async -> HKWorkout? {
+        workout
+    }
+}
+
+private final class FakeHealthKitWorkoutRouteFetcher: HealthKitWorkoutRouteFetching {
+    private let route: WorkoutRoute?
+
+    init(route: WorkoutRoute?) {
+        self.route = route
+    }
+
+    func fetchRoute(for workout: HKWorkout) async throws -> WorkoutRoute? {
+        route
+    }
+}
+
+private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStoring {
+    private(set) var savedRoutes: [WorkoutRoute] = []
+    private let saveError: Error?
+
+    init(saveError: Error? = nil) {
+        self.saveError = saveError
+    }
+
+    func saveRoute(_ route: WorkoutRoute) async throws {
+        if let saveError {
+            throw saveError
+        }
+
+        savedRoutes.append(route)
+    }
+
+    func fetchRoute(workoutId: UUID) async throws -> WorkoutRoute? {
+        savedRoutes.first { $0.workoutId == workoutId }
+    }
+
+    func fetchRoutes(workoutIds: [UUID]) async throws -> [WorkoutRoute] {
+        savedRoutes.filter { workoutIds.contains($0.workoutId) }
+    }
+
+    func deleteRoute(workoutId: UUID) async throws {
+        savedRoutes.removeAll { $0.workoutId == workoutId }
+    }
+}
+
+private func makeHKWorkout() -> HKWorkout {
+    HKWorkout(
+        activityType: .cycling,
+        start: Date(timeIntervalSince1970: 1_800_000_000),
+        end: Date(timeIntervalSince1970: 1_800_003_600),
+        duration: 3_600,
+        totalEnergyBurned: nil,
+        totalDistance: HKQuantity(unit: .meter(), doubleValue: 10_000),
+        metadata: nil
+    )
+}
+
+private func makeRoute(workoutId: UUID) -> WorkoutRoute {
+    WorkoutRoute(
+        workoutId: workoutId,
+        source: .appleHealthKit,
+        coordinates: [
+            WorkoutRouteCoordinate(latitude: 37.500, longitude: 127.000),
+            WorkoutRouteCoordinate(latitude: 37.505, longitude: 127.005)
+        ],
+        totalDistanceMeters: 10_000,
+        totalElevationGain: 80,
+        createdAt: Date(timeIntervalSince1970: 1_800_000_000)
+    )
 }
 
 private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
