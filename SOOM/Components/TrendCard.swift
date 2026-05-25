@@ -62,10 +62,10 @@ struct TrendCard: View {
 
                     HStack(alignment: .firstTextBaseline, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                         Text(currentValue)
-                            .font(SOOMFont.display(25, relativeTo: .title2))
+                            .font(SOOMFont.displayMedium(22, relativeTo: .title3))
                             .foregroundStyle(SOOMColor.ink)
                         Text(unit)
-                            .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
                     }
                 }
