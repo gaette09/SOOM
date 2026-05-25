@@ -1,21 +1,29 @@
 import Foundation
 
 final class SupabaseAuthProvider {
-    private let configuration: SupabaseAuthConfiguration
+    private let clientProvider: SupabaseClientProvider
 
     init(configuration: SupabaseAuthConfiguration = .empty) {
-        self.configuration = configuration
+        self.clientProvider = SupabaseClientProvider(configuration: configuration)
+    }
+
+    init(clientProvider: SupabaseClientProvider) {
+        self.clientProvider = clientProvider
+    }
+
+    var clientState: SupabaseClientProvider.ClientState {
+        clientProvider.state
     }
 
     func signInWithEmail(_ email: String) async throws -> AuthSession {
-        guard configuration.isConfigured else {
+        guard clientProvider.state == .ready else {
             throw AuthError.futureRemoteAuthNotConfigured
         }
         throw AuthError.futureRemoteAuthNotConfigured
     }
 
     func signOut() async throws -> AuthSession {
-        guard configuration.isConfigured else {
+        guard clientProvider.state == .ready else {
             throw AuthError.futureRemoteAuthNotConfigured
         }
         throw AuthError.futureRemoteAuthNotConfigured

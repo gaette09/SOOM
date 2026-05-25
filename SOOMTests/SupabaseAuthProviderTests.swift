@@ -32,6 +32,28 @@ final class SupabaseAuthProviderTests: XCTestCase {
         }
     }
 
+    func testConfiguredClientProviderStillReturnsFutureRemoteAuthNotConfigured() async {
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            )
+        )
+
+        XCTAssertEqual(provider.clientState, .ready)
+
+        do {
+            _ = try await provider.signInWithEmail("user@example.com")
+            XCTFail("Configured Supabase client should not enable auth calls in integration v1")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testProviderSignOutAlsoStaysFutureOnly() async {
         let provider = SupabaseAuthProvider(configuration: .empty)
 

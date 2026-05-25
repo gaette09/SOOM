@@ -199,9 +199,10 @@ struct SettingsView: View {
     }
 
     private var authEnvironmentStatusText: String {
-        let supabaseStatus = authEnvironment.isSupabaseConfigured ? "Supabase 준비됨" : "Supabase 미설정"
+        let sdkStatus = "SDK 준비됨"
+        let supabaseStatus = authEnvironment.isSupabaseConfigured ? "환경 설정됨" : "환경 미설정"
         let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
-        return "\(authEnvironment.environment.title) · \(supabaseStatus) · \(redirectStatus)"
+        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · 로그인 다음 단계"
     }
 
     private func settingInputRow(

@@ -666,3 +666,7 @@ Design 기준:
 - Keep real URL/key values out of visible UI.
 - Do not add OAuth-styled buttons until Apple, Google, or Supabase flows are actually implemented.
 
+
+## Supabase SDK Integration UX
+
+The presence of the Supabase SDK should not make the app feel cloud-first. Settings may show that the SDK foundation is ready, but login UI must still communicate that remote account connection is a future step. Avoid active OAuth or email login affordances until the underlying flow, redirect handling, consent, and sync policy are implemented.

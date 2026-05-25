@@ -390,6 +390,9 @@
 		010389 /* AuthEnvironmentLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020389 /* AuthEnvironmentLoader.swift */; };
 		010390 /* AuthEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020390 /* AuthEnvironmentTests.swift */; };
 		010391 /* AuthEnvironmentLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020391 /* AuthEnvironmentLoaderTests.swift */; };
+		010392 /* SupabaseClientProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020392 /* SupabaseClientProvider.swift */; };
+		010393 /* SupabaseClientProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020393 /* SupabaseClientProviderTests.swift */; };
+		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -788,6 +791,8 @@
 		020389 /* AuthEnvironmentLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentLoader.swift; sourceTree = "<group>"; };
 		020390 /* AuthEnvironmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentTests.swift; sourceTree = "<group>"; };
 		020391 /* AuthEnvironmentLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthEnvironmentLoaderTests.swift; sourceTree = "<group>"; };
+		020392 /* SupabaseClientProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClientProvider.swift; sourceTree = "<group>"; };
+		020393 /* SupabaseClientProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClientProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -797,6 +802,7 @@
 			files = (
 				010286 /* MapboxMaps in Frameworks */,
 				010290 /* Turf in Frameworks */,
+				010394 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1001,6 +1007,7 @@
 				020384 /* SupabaseAuthProvider.swift */,
 				020388 /* AuthEnvironment.swift */,
 				020389 /* AuthEnvironmentLoader.swift */,
+				020392 /* SupabaseClientProvider.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -1361,6 +1368,7 @@
 				020387 /* SupabaseAuthProviderTests.swift */,
 				020390 /* AuthEnvironmentTests.swift */,
 				020391 /* AuthEnvironmentLoaderTests.swift */,
+				020393 /* SupabaseClientProviderTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1420,6 +1428,7 @@
 			packageProductDependencies = (
 				0D0002 /* MapboxMaps */,
 				0D0004 /* Turf */,
+				0D0006 /* Supabase */,
 			);
 			productName = SOOM;
 			productReference = 020017 /* SOOM.app */;
@@ -1478,6 +1487,7 @@
 			packageReferences = (
 				0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
 				0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */,
+				0D0005 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			productRefGroup = 040002 /* Products */;
 			projectDirPath = "";
@@ -1761,6 +1771,7 @@
 				010384 /* SupabaseAuthProvider.swift in Sources */,
 				010388 /* AuthEnvironment.swift in Sources */,
 				010389 /* AuthEnvironmentLoader.swift in Sources */,
+				010392 /* SupabaseClientProvider.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1856,6 +1867,7 @@
 				010387 /* SupabaseAuthProviderTests.swift in Sources */,
 				010390 /* AuthEnvironmentTests.swift in Sources */,
 				010391 /* AuthEnvironmentLoaderTests.swift in Sources */,
+				010393 /* SupabaseClientProviderTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
@@ -2185,6 +2197,14 @@
 				minimumVersion = 4.0.0;
 			};
 		};
+		0D0005 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2197,6 +2217,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */;
 			productName = Turf;
+		};
+		0D0006 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D0005 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

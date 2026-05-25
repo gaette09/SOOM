@@ -639,3 +639,7 @@ Auth now has a repository boundary on top of the local session store:
 
 Secrets must come from Xcode build settings, ignored `.xcconfig` files, or CI secret injection in a later phase. No real Supabase URL, anon key, or OAuth redirect value should be committed.
 
+
+## Supabase SDK Integration Boundary
+
+The Supabase Swift SDK is now available behind `SupabaseClientProvider`, but HealthKit-derived workouts, routes, zones, progression intelligence, and local user data remain local-first. `SupabaseClientProvider` can create a client only from configured environment values; it does not upload records, migrate schemas, assign remote `user_id` ownership, or change RecoveryCalculator, Growth, Workout, Feed, or HealthKit import behavior.

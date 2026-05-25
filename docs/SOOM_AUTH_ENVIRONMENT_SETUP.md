@@ -30,8 +30,25 @@ Apple and Google OAuth will need an iOS redirect/scheme policy before implementa
 
 ## Current Boundary
 
-- Supabase SDK is not installed.
+- Supabase Swift SDK is installed as a foundation dependency.
 - Supabase network login is not implemented.
 - Apple Sign In and Google Sign In are not implemented.
 - HealthKit, workout, route, and progression data stay local-first.
 - RecoveryCalculator and Growth calculations are unchanged.
+
+## Supabase Swift SDK Integration v1
+
+SOOM now includes the Supabase Swift SDK through Swift Package Manager using the `Supabase` product from `https://github.com/supabase/supabase-swift`. The SDK is present so the app can create a `SupabaseClient` only when the environment is explicitly configured.
+
+`SupabaseClientProvider` is the only app-side boundary that imports the Supabase module. It reads `SupabaseAuthConfiguration` or `AuthEnvironment`, returns `nil` when values are missing or placeholder-like, and does not perform network login or session loading.
+
+Real Supabase URL and anon key values must still come from Xcode build settings, ignored `.xcconfig` files, or CI secrets. The repository keeps only placeholder keys in `Info.plist`.
+
+## Current SDK Boundary
+
+- Supabase Swift SDK is installed.
+- `SupabaseClient` can be constructed from configured mock/build-time values.
+- Email login UI is not implemented.
+- Supabase Auth sign-in, OAuth, session refresh, and remote profile loading are not implemented.
+- Apple and Google OAuth redirect handling remains a future step.
+- Local-first Auth remains the default app behavior.
