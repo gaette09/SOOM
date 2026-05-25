@@ -14,6 +14,7 @@ struct WorkoutDetailContent: View {
     var courseRecord: CourseRecord?
     var courseProgression: CourseProgressionTimeline?
     var splitInsight: WorkoutSplitInsight?
+    var climbInsight: ClimbInsight?
     var weaknessInsight: WorkoutWeaknessInsight?
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
@@ -78,6 +79,10 @@ struct WorkoutDetailContent: View {
 
                 if let displayedSplitInsight {
                     WorkoutSplitInsightCard(insight: displayedSplitInsight, tint: workout.sport.tint)
+                }
+
+                if let climbInsight, climbInsight.isVisible {
+                    ClimbInsightCard(insight: climbInsight, tint: workout.sport.tint)
                 }
             }
 

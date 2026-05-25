@@ -598,3 +598,15 @@ Design 기준:
 - Use calm direction cues: improving, stable, fluctuating, insufficient data.
 - Keep copy centered on “이전 나와의 흐름” and avoid hard claims when route matching is heuristic.
 - Recovery score, Growth score, Feed ranking, and social comparison should not be mixed into this card.
+
+## Climb Insight Card
+
+Climb Insight is a terrain/rhythm interpretation card. It should appear in Workout Detail after Split Insight and before Zone Analysis when elevation data is meaningful, especially for cycling and hiking.
+
+Design 기준:
+
+- Use calm copy such as “오르막 리듬”, “지형에 맞춘 조절”, and “완만한 지형 변화”.
+- Avoid segment leaderboard, trophy, or harsh fatigue language.
+- Show only a few rows: elevation gain, average grade, and optional late-climb rhythm.
+- Hide flat or low-confidence routes rather than forcing an empty dashboard.
+- Keep Recovery score, Feed ranking, and complex climb charts out of this card.

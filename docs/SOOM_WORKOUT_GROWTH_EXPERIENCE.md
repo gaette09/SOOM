@@ -649,3 +649,9 @@ Sport policy:
 - Other simple workouts: completion-time trend.
 
 The card is intentionally not a complex chart, segment replay, leaderboard, or prediction model. If data is limited, it shows an insufficient-data promise instead of forcing a trend. RecoveryCalculator and existing Growth calculation logic remain unchanged.
+
+## Climb Insight v1
+
+Workout Detail now includes a lightweight climb/elevation interpretation layer for cycling and hiking. `ClimbInsightBuilder` reads `WorkoutGrowthInput`, optional `WorkoutRoute`, and optional split metrics to explain steady climbs, rolling terrain, strong finish signals, or a softer late-climb rhythm check.
+
+The card is intentionally terrain/rhythm coaching, not a climb segment leaderboard. Flat routes and workouts without enough elevation data stay hidden or fall back to insufficient data. RecoveryCalculator and existing Growth calculation logic remain unchanged.

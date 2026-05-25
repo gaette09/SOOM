@@ -515,3 +515,9 @@ Implementation status:
 - `CourseProgressionTimeline` summarizes improving, stable, fluctuating, or insufficient-data direction.
 - `CourseProgressionBuilder` uses route candidates and optional Course Identity when available, and falls back to same-type distance/history candidates when route context is missing.
 - No complex chart library, GPS replay, map matching, ML prediction, server grouping, or Strava-style segment clone is included.
+
+## Climb / Elevation Insight v1
+
+Workout Detail can now place a `ClimbInsightCard` after Split Insight and before Zone Analysis. The card interprets route elevation and workout summary data for cycling and hiking, with optional split metrics ready for future cadence/speed rhythm refinement.
+
+v1 uses simple thresholds such as elevation gain, distance-to-elevation ratio, and late-session rhythm cues. It does not implement GPS climb replay, Strava-style climb segments, ML prediction, or complex charts. Flat routes remain quiet so the detail page does not become noisy.

@@ -10,6 +10,7 @@ struct WorkoutDetailView: View {
     var comparisonInsightOverride: WorkoutComparisonInsight?
     var courseRecordOverride: CourseRecord?
     var courseProgressionOverride: CourseProgressionTimeline?
+    var climbInsightOverride: ClimbInsight?
 
     var body: some View {
         SOOMScreen {
@@ -23,6 +24,7 @@ struct WorkoutDetailView: View {
                 courseRecord: courseRecordOverride ?? courseRecord,
                 courseProgression: courseProgressionOverride ?? courseProgression,
                 splitInsight: splitInsight,
+                climbInsight: climbInsightOverride ?? climbInsight,
                 weaknessInsight: weaknessInsight,
                 recoveryImpact: recoveryImpact,
                 shareableCard: shareableCard,
@@ -145,6 +147,14 @@ struct WorkoutDetailView: View {
 
     private var splitInsight: WorkoutSplitInsight {
         WorkoutSplitInsightBuilder().build(current: WorkoutGrowthInput(detailWorkout: workout))
+    }
+
+    private var climbInsight: ClimbInsight? {
+        let insight = ClimbInsightBuilder().build(
+            current: WorkoutGrowthInput(detailWorkout: workout),
+            route: detailMapRoute
+        )
+        return insight.isVisible ? insight : nil
     }
 
     private var growthSummary: WorkoutGrowthSummary {

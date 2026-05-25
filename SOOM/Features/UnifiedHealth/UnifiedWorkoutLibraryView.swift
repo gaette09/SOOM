@@ -335,6 +335,7 @@ private struct UnifiedWorkoutDetailDestination: View {
     @State private var comparisonInsight: WorkoutComparisonInsight?
     @State private var courseRecord: CourseRecord?
     @State private var courseProgression: CourseProgressionTimeline?
+    @State private var climbInsight: ClimbInsight?
 
     var body: some View {
         WorkoutDetailView(
@@ -344,7 +345,8 @@ private struct UnifiedWorkoutDetailDestination: View {
             splitDataProvider: zoneContext.splitDataProvider,
             comparisonInsightOverride: comparisonInsight,
             courseRecordOverride: courseRecord,
-            courseProgressionOverride: courseProgression
+            courseProgressionOverride: courseProgression,
+            climbInsightOverride: climbInsight
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
@@ -352,6 +354,7 @@ private struct UnifiedWorkoutDetailDestination: View {
             comparisonInsight = buildComparisonInsight(from: candidateResult)
             courseRecord = buildCourseRecord(from: candidateResult)
             courseProgression = buildCourseProgression(from: candidateResult)
+            climbInsight = buildClimbInsight()
         }
     }
 
@@ -407,6 +410,13 @@ private struct UnifiedWorkoutDetailDestination: View {
             routeCandidates: result.routeCandidates.isEmpty ? result.routeCandidate.map { [$0] } ?? [] : result.routeCandidates,
             courseIdentity: result.currentCourseIdentity
         )
+    }
+
+    private func buildClimbInsight() -> ClimbInsight? {
+        let insight = ClimbInsightBuilder().build(
+            current: UnifiedWorkoutToGrowthInputMapper().map(unifiedWorkout)
+        )
+        return insight.isVisible ? insight : nil
     }
 }
 
