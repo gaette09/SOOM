@@ -1,31 +1,13 @@
-#!/bin/bash
-
-TASK_NAME=$1
-TASK_GOAL=$2
-
-if [ -z "$TASK_NAME" ]; then
-  echo "Usage: ./scripts/soom-task.sh task-name \"task goal\""
-  exit 1
-fi
-
-TASK_ID=$(printf "%04d" $(( $(find tasks/soom -name "*.md" ! -name "TEMPLATE.md" | wc -l) + 1 )))
-FILE="tasks/soom/${TASK_ID}-${TASK_NAME}.md"
-
-cp tasks/soom/TEMPLATE.md "$FILE"
-
-BACKGROUND_TEXT="이 작업은 SOOM 앱의 사용자 경험과 브랜드 일관성을 개선하기 위한 목적이다. 기존 기능을 유지하면서 최소 범위에서 화면 구조, 문구, spacing 또는 시각적 위계를 점검한다."
-
-cat > "$FILE" <<EOT
 # SOOM Codex Task
 
 ## Project
 SOOM iOS App
 
 ## Goal
-$TASK_GOAL
+Recovery 문구를 SOOM 호흡 중심 톤으로 정리한다.
 
 ## Background
-$BACKGROUND_TEXT
+이 작업은 SOOM 앱의 사용자 경험과 브랜드 일관성을 개선하기 위한 목적이다. 기존 기능을 유지하면서 최소 범위에서 화면 구조, 문구, spacing 또는 시각적 위계를 점검한다.
 
 ## Scope
 
@@ -60,13 +42,3 @@ $BACKGROUND_TEXT
 ### Validation Result
 ### Risk / Notes
 ### Suggested Commit Message
-EOT
-
-echo "Created:"
-echo "$FILE"
-echo ""
-
-open "$FILE"
-
-echo "Codex prompt:"
-echo "tasks/soom/$(basename "$FILE") 파일을 기준으로 작업해줘. 작업 전 현재 git status를 확인하고, main 브랜치에 직접 커밋하지 말고 필요한 경우 feature 브랜치를 만들어 진행해줘. 완료 후 Result Report 형식으로 보고해줘."
