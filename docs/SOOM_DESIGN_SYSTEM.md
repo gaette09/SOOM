@@ -670,3 +670,8 @@ Design 기준:
 ## Supabase SDK Integration UX
 
 The presence of the Supabase SDK should not make the app feel cloud-first. Settings may show that the SDK foundation is ready, but login UI must still communicate that remote account connection is a future step. Avoid active OAuth or email login affordances until the underlying flow, redirect handling, consent, and sync policy are implemented.
+
+
+## Supabase Session Smoke Status
+
+Settings may show Supabase session smoke status as a small trust/debug cue. The copy should use calm states such as “미설정”, “세션 없음”, “세션 확인됨”, or “확인 실패” without making the user feel blocked. This status is not a login prompt and must not look like an active email/OAuth sign-in flow until those flows are implemented.

@@ -195,6 +195,7 @@ struct SettingsView: View {
             SOOMSectionHeader("앱 정보")
             SOOMActionRow(icon: "info.circle", title: "SOOM Foundation", subtitle: "Recovery, Growth, HealthKit 데이터 신뢰 구조를 실험 중입니다.", tint: SOOMColor.secondaryInk)
             SOOMActionRow(icon: "lock.shield", title: "계정 환경", subtitle: authEnvironmentStatusText, tint: SOOMColor.secondaryInk)
+            SOOMActionRow(icon: "person.badge.key", title: "Supabase 세션", subtitle: authSessionSmokeStatusText, tint: SOOMColor.secondaryInk)
         }
     }
 
@@ -203,6 +204,11 @@ struct SettingsView: View {
         let supabaseStatus = authEnvironment.isSupabaseConfigured ? "환경 설정됨" : "환경 미설정"
         let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
         return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · 로그인 다음 단계"
+    }
+
+    private var authSessionSmokeStatusText: String {
+        let sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 확인 가능" : "미설정"
+        return "\(sessionStatus) · 로그인 기능은 다음 단계에서 연결합니다."
     }
 
     private func settingInputRow(

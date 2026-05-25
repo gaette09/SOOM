@@ -52,3 +52,17 @@ Real Supabase URL and anon key values must still come from Xcode build settings,
 - Supabase Auth sign-in, OAuth, session refresh, and remote profile loading are not implemented.
 - Apple and Google OAuth redirect handling remains a future step.
 - Local-first Auth remains the default app behavior.
+
+
+## Supabase Email Session Smoke v1
+
+SOOM now has a read-only Supabase auth session smoke path. `SupabaseAuthSessionProbe` asks `SupabaseClientProvider` for a configured client and reads the current Supabase auth session when one is available. It does not call sign-in, sign-up, sign-out, OAuth, or server storage APIs.
+
+Session smoke states are intentionally limited:
+
+- `unconfigured`: Supabase URL/key placeholders are missing or still placeholder-like.
+- `signedOut`: the client is configured, but no local Supabase session is present.
+- `signedIn`: a current Supabase session exists and can expose user id/email for smoke visibility.
+- `failed`: session lookup failed without changing the local SOOM session.
+
+If the environment is unconfigured, the app remains local-first. A failed smoke check must not replace `AuthSessionStore`, migrate `user_id`, upload HealthKit/workout data, or imply that login UI is active. Email login UI, OAuth, session sync, and remote profile ownership remain deferred.

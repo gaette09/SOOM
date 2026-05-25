@@ -66,4 +66,41 @@ final class SupabaseAuthProviderTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+    func testProviderCanReturnReadOnlySessionSmokeSnapshot() async {
+        let probe = SupabaseAuthSessionProbe(
+            isConfigured: true,
+            reader: ProviderFakeSessionReader(
+                session: SupabaseAuthSessionProbe.SessionInfo(userId: "remote-user", email: "remote@example.com")
+            ),
+            now: { Date(timeIntervalSince1970: 1_800_000_000) }
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: probe
+        )
+
+        let snapshot = await provider.checkSessionStatus()
+
+        XCTAssertEqual(snapshot.status, .signedIn)
+        XCTAssertEqual(snapshot.userId, "remote-user")
+        XCTAssertEqual(snapshot.email, "remote@example.com")
+    }
+
+}
+
+private final class ProviderFakeSessionReader: SupabaseAuthSessionReading {
+    private let session: SupabaseAuthSessionProbe.SessionInfo?
+
+    init(session: SupabaseAuthSessionProbe.SessionInfo?) {
+        self.session = session
+    }
+
+    func readCurrentSession() async throws -> SupabaseAuthSessionProbe.SessionInfo? {
+        session
+    }
 }

@@ -632,7 +632,7 @@ Auth now has a repository boundary on top of the local session store:
 
 `AuthViewModel -> AuthRepository -> LocalAuthRepository -> AuthSessionStore`
 
-`SupabaseAuthConfiguration` and `SupabaseAuthProvider` exist only as non-network placeholders. They do not import the Supabase SDK, do not authenticate remotely, and do not move HealthKit, workout, route, or progression records to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
+`SupabaseAuthConfiguration`, `SupabaseClientProvider`, and `SupabaseAuthProvider` now form the remote-auth preparation boundary. The Supabase SDK is installed, but the app only creates a client from configured environment values and keeps sign-in/OAuth/server storage deferred. HealthKit, workout, route, and progression records are not moved to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
 ## Auth Environment Foundation
 
 `AuthEnvironmentLoader` can read Supabase and redirect placeholders from Info.plist, but placeholder values are treated as unconfigured. This prepares future user ownership without changing local-first HealthKit import, route persistence, workout analysis, RecoveryCalculator, Growth builders, or Feed/SNS behavior.
@@ -643,3 +643,14 @@ Secrets must come from Xcode build settings, ignored `.xcconfig` files, or CI se
 ## Supabase SDK Integration Boundary
 
 The Supabase Swift SDK is now available behind `SupabaseClientProvider`, but HealthKit-derived workouts, routes, zones, progression intelligence, and local user data remain local-first. `SupabaseClientProvider` can create a client only from configured environment values; it does not upload records, migrate schemas, assign remote `user_id` ownership, or change RecoveryCalculator, Growth, Workout, Feed, or HealthKit import behavior.
+
+
+## Supabase Session Smoke Boundary
+
+Supabase auth session smoke is read-only and separate from data ownership.
+
+Flow:
+
+`AuthEnvironment -> SupabaseClientProvider -> SupabaseAuthSessionProbe -> SupabaseAuthSessionSnapshot`
+
+A signed-in Supabase snapshot may show that a remote session exists, but it does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
