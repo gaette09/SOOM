@@ -3,6 +3,7 @@ import Foundation
 enum AuthError: Error, Equatable {
     case unsupportedProvider(AuthProvider)
     case invalidDisplayName
+    case invalidEmail
     case sessionNotFound
     case futureRemoteAuthNotConfigured
     case unknown(String)
@@ -13,6 +14,8 @@ enum AuthError: Error, Equatable {
             return "\(provider.title)은 아직 준비 중이에요. 지금은 로컬 사용자로 계속 이용할 수 있어요."
         case .invalidDisplayName:
             return "표시 이름을 입력해주세요."
+        case .invalidEmail:
+            return "이메일 주소를 다시 확인해주세요."
         case .sessionNotFound:
             return "사용자 정보를 찾지 못했어요. 로컬 사용자로 다시 시작할 수 있어요."
         case .futureRemoteAuthNotConfigured:

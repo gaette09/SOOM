@@ -72,6 +72,19 @@ final class AuthRepositoryTests: XCTestCase {
         }
     }
 
+    func testLocalRepositoryEmailMagicLinkRequestStaysUnsupported() async {
+        let repository = makeRepository()
+
+        do {
+            _ = try await repository.requestEmailMagicLink(email: "user@example.com", redirectTo: nil)
+            XCTFail("Local repository should not request remote email magic link")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testRepositoryDoesNotUseRecoveryCalculator() {
         let repository = makeRepository()
         let session = repository.continueAsLocalUser(displayName: "SOOM 사용자")

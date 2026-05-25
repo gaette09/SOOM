@@ -48,7 +48,7 @@ Real Supabase URL and anon key values must still come from Xcode build settings,
 
 - Supabase Swift SDK is installed.
 - `SupabaseClient` can be constructed from configured mock/build-time values.
-- Email login UI is not implemented.
+- Email Magic Link request UI is implemented; signed-in session completion and local session bridge remain deferred.
 - Supabase Auth sign-in, OAuth, session refresh, and remote profile loading are not implemented.
 - Apple and Google OAuth redirect handling remains a future step.
 - Local-first Auth remains the default app behavior.
@@ -65,4 +65,17 @@ Session smoke states are intentionally limited:
 - `signedIn`: a current Supabase session exists and can expose user id/email for smoke visibility.
 - `failed`: session lookup failed without changing the local SOOM session.
 
-If the environment is unconfigured, the app remains local-first. A failed smoke check must not replace `AuthSessionStore`, migrate `user_id`, upload HealthKit/workout data, or imply that login UI is active. Email login UI, OAuth, session sync, and remote profile ownership remain deferred.
+If the environment is unconfigured, the app remains local-first. A failed smoke check must not replace `AuthSessionStore`, migrate `user_id`, upload HealthKit/workout data, or imply that completed login/session sync is active. Email Magic Link request UI exists, but signed-in session bridge, OAuth, session sync, and remote profile ownership remain deferred.
+
+
+## Supabase Email Auth UI v1
+
+Settings/My Page now includes a low-pressure email auth request surface. The UI can ask the configured Supabase client to send a magic link/OTP email through `SupabaseAuthProvider.requestMagicLink(email:redirectTo:)`. This is an auth request only; it does not bridge the resulting Supabase session into SOOM's local `AuthSessionStore`.
+
+Current boundary:
+
+- Email format is validated before a request is sent.
+- Supabase must be configured through environment/build settings; placeholder values keep the flow safely unavailable.
+- `signInWithOTP` is used only for magic link/OTP request and starts with `shouldCreateUser: false` because explicit signup UI is still deferred.
+- Redirect URL is optional. If `SOOM_AUTH_REDIRECT_SCHEME` is configured, SOOM can prepare `scheme://auth/callback`; `CFBundleURLTypes` and deep-link session handling remain future work.
+- Password login, signup UI, Apple/Google OAuth, session bridge, user ownership migration, and remote data sync remain deferred.

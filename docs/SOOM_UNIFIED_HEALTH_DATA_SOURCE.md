@@ -654,3 +654,14 @@ Flow:
 `AuthEnvironment -> SupabaseClientProvider -> SupabaseAuthSessionProbe -> SupabaseAuthSessionSnapshot`
 
 A signed-in Supabase snapshot may show that a remote session exists, but it does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
+
+
+## Email Auth Request Boundary
+
+Supabase email magic link/OTP request is now available as an auth UI foundation, but it is separate from data ownership.
+
+Flow:
+
+`Settings/My Page -> EmailAuthViewModel -> SupabaseAuthProvider.requestMagicLink -> Supabase Auth OTP request`
+
+This flow does not replace the local `AuthSessionStore`, does not attach remote `user_id` to SwiftData records, does not sync HealthKit/workout/route/progression data, and does not change RecoveryCalculator or Growth builders. Remote session bridge and explicit data ownership migration remain future steps.

@@ -395,6 +395,11 @@
 		010395 /* SupabaseAuthSessionSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020394 /* SupabaseAuthSessionSnapshot.swift */; };
 		010396 /* SupabaseAuthSessionProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020395 /* SupabaseAuthSessionProbe.swift */; };
 		010397 /* SupabaseAuthSessionProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020396 /* SupabaseAuthSessionProbeTests.swift */; };
+		010398 /* EmailAuthRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020397 /* EmailAuthRequest.swift */; };
+		010399 /* EmailAuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020398 /* EmailAuthViewModel.swift */; };
+		010400 /* EmailAuthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020399 /* EmailAuthCard.swift */; };
+		010401 /* EmailAuthRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020400 /* EmailAuthRequestTests.swift */; };
+		010402 /* EmailAuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020401 /* EmailAuthViewModelTests.swift */; };
 		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -799,6 +804,11 @@
 		020394 /* SupabaseAuthSessionSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthSessionSnapshot.swift; sourceTree = "<group>"; };
 		020395 /* SupabaseAuthSessionProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthSessionProbe.swift; sourceTree = "<group>"; };
 		020396 /* SupabaseAuthSessionProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthSessionProbeTests.swift; sourceTree = "<group>"; };
+		020397 /* EmailAuthRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthRequest.swift; sourceTree = "<group>"; };
+		020398 /* EmailAuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthViewModel.swift; sourceTree = "<group>"; };
+		020399 /* EmailAuthCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthCard.swift; sourceTree = "<group>"; };
+		020400 /* EmailAuthRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthRequestTests.swift; sourceTree = "<group>"; };
+		020401 /* EmailAuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1016,6 +1026,9 @@
 				020392 /* SupabaseClientProvider.swift */,
 				020394 /* SupabaseAuthSessionSnapshot.swift */,
 				020395 /* SupabaseAuthSessionProbe.swift */,
+				020397 /* EmailAuthRequest.swift */,
+				020398 /* EmailAuthViewModel.swift */,
+				020399 /* EmailAuthCard.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -1378,6 +1391,8 @@
 				020391 /* AuthEnvironmentLoaderTests.swift */,
 				020393 /* SupabaseClientProviderTests.swift */,
 				020396 /* SupabaseAuthSessionProbeTests.swift */,
+				020400 /* EmailAuthRequestTests.swift */,
+				020401 /* EmailAuthViewModelTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1783,6 +1798,9 @@
 				010392 /* SupabaseClientProvider.swift in Sources */,
 				010395 /* SupabaseAuthSessionSnapshot.swift in Sources */,
 				010396 /* SupabaseAuthSessionProbe.swift in Sources */,
+				010398 /* EmailAuthRequest.swift in Sources */,
+				010399 /* EmailAuthViewModel.swift in Sources */,
+				010400 /* EmailAuthCard.swift in Sources */,
 				010129 /* HealthKitRecoveryActivityMapper.swift in Sources */,
 				010175 /* HealthKitWorkoutToUnifiedWorkoutMapper.swift in Sources */,
 				010189 /* HealthKitWorkoutImportResult.swift in Sources */,
@@ -1880,6 +1898,8 @@
 				010391 /* AuthEnvironmentLoaderTests.swift in Sources */,
 				010393 /* SupabaseClientProviderTests.swift in Sources */,
 				010397 /* SupabaseAuthSessionProbeTests.swift in Sources */,
+				010401 /* EmailAuthRequestTests.swift in Sources */,
+				010402 /* EmailAuthViewModelTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

@@ -675,3 +675,8 @@ The presence of the Supabase SDK should not make the app feel cloud-first. Setti
 ## Supabase Session Smoke Status
 
 Settings may show Supabase session smoke status as a small trust/debug cue. The copy should use calm states such as “미설정”, “세션 없음”, “세션 확인됨”, or “확인 실패” without making the user feel blocked. This status is not a login prompt and must not look like an active email/OAuth sign-in flow until those flows are implemented.
+
+
+## Email Auth Request UI
+
+Email auth UI should feel like an optional account connection path, not a requirement to use SOOM. The card belongs in Settings/My Page near local user status and must keep local-first copy visible. Use simple language such as “현재 기록은 로컬에 유지돼요” and avoid cloud-backup promises until session bridge, ownership migration, and sync consent are implemented.

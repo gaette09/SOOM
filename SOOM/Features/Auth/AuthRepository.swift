@@ -8,6 +8,7 @@ protocol AuthRepository {
     func signInWithApple() async throws -> AuthSession
     func signInWithGoogle() async throws -> AuthSession
     func signInWithSupabaseEmail(email: String) async throws -> AuthSession
+    func requestEmailMagicLink(email: String, redirectTo: URL?) async throws -> EmailAuthRequestResult
 }
 
 extension AuthRepository {
@@ -20,6 +21,10 @@ extension AuthRepository {
     }
 
     func signInWithSupabaseEmail(email: String) async throws -> AuthSession {
+        throw AuthError.futureRemoteAuthNotConfigured
+    }
+
+    func requestEmailMagicLink(email: String, redirectTo: URL? = nil) async throws -> EmailAuthRequestResult {
         throw AuthError.futureRemoteAuthNotConfigured
     }
 }

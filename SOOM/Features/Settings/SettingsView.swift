@@ -94,7 +94,9 @@ struct SettingsView: View {
                     action: { authViewModel.updateDisplayName() }
                 )
 
-                SOOMActionRow(icon: "lock", title: "계정 연결 준비 중", subtitle: "Supabase, Apple, Google 로그인은 이후 단계에서 연결합니다.", tint: SOOMColor.secondaryInk)
+                SOOMActionRow(icon: "lock", title: "계정 연결 준비 중", subtitle: "Supabase 이메일 링크 요청부터 작게 열어둡니다.", tint: SOOMColor.secondaryInk)
+
+                EmailAuthCard(environment: authEnvironment)
 
                 Button("로컬 세션 초기화") {
                     authViewModel.signOut()
