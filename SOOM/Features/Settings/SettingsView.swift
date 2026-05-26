@@ -11,10 +11,12 @@ struct SettingsView: View {
         authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
         authViewModel: AuthViewModel? = nil
     ) {
+        let remoteAuthProvider = SupabaseAuthProvider(
+            configuration: SupabaseAuthConfiguration.from(environment: authEnvironment)
+        )
         let resolvedAuthViewModel = authViewModel ?? AuthViewModel(
-            remoteSessionLoader: SupabaseAuthProvider(
-                configuration: SupabaseAuthConfiguration.from(environment: authEnvironment)
-            )
+            remoteSessionLoader: remoteAuthProvider,
+            appleSignInHandler: remoteAuthProvider.signInWithAppleCredential
         )
         _viewModel = StateObject(wrappedValue: viewModel)
         _authViewModel = StateObject(wrappedValue: resolvedAuthViewModel)
@@ -111,13 +113,7 @@ struct SettingsView: View {
 
                 EmailAuthCard(environment: authEnvironment)
 
-                SOOMActionRow(
-                    icon: "apple.logo",
-                    title: "Apple 로그인 준비 중",
-                    subtitle: "Apple 계정 연결은 다음 단계에서 연결합니다. 현재 기록은 로컬에 유지돼요.",
-                    tint: SOOMColor.secondaryInk
-                )
-                .opacity(0.72)
+                AppleAuthCard(authViewModel: authViewModel)
 
                 if authViewModel.session.currentUser?.authProvider == .supabase {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
@@ -238,12 +234,12 @@ struct SettingsView: View {
         let sdkStatus = "SDK 준비됨"
         let supabaseStatus = authEnvironment.isSupabaseConfigured ? "환경 설정됨" : "환경 미설정"
         let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
-        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · 로그인 다음 단계"
+        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · Apple 로그인 사용 가능"
     }
 
     private var authSessionSmokeStatusText: String {
         let sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 확인 가능" : "미설정"
-        return "\(sessionStatus) · 로그인 기능은 다음 단계에서 연결합니다."
+        return "\(sessionStatus) · Apple 로그인은 계정 세션만 연결합니다."
     }
 
     private func settingInputRow(

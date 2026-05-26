@@ -19,21 +19,37 @@ struct AppleSignInCredential: Equatable {
         createdAt: Date = Date()
     ) {
         self.userIdentifier = userIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.identityToken = identityToken?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-        self.authorizationCode = authorizationCode?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-        self.email = email?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-        self.fullName = fullName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-        self.nonce = nonce?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        self.identityToken = Self.normalized(identityToken)
+        self.authorizationCode = Self.normalized(authorizationCode)
+        self.email = Self.normalized(email)?.lowercased()
+        self.fullName = Self.normalized(fullName)
+        self.nonce = Self.normalized(nonce)
         self.createdAt = createdAt
     }
 
-    var hasIdentityToken: Bool { identityToken != nil }
-    var hasAuthorizationCode: Bool { authorizationCode != nil }
-    var isReadyForFutureSupabaseExchange: Bool {
-        !userIdentifier.isEmpty && hasIdentityToken && hasAuthorizationCode
+    var hasIdentityToken: Bool {
+        identityToken != nil
     }
-}
 
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
+    var hasAuthorizationCode: Bool {
+        authorizationCode != nil
+    }
+
+    var hasNonce: Bool {
+        nonce != nil
+    }
+
+    var isReadyForSupabaseExchange: Bool {
+        !userIdentifier.isEmpty && hasIdentityToken && hasNonce
+    }
+
+    var isReadyForFutureSupabaseExchange: Bool {
+        !userIdentifier.isEmpty && hasIdentityToken && hasAuthorizationCode && hasNonce
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
 }

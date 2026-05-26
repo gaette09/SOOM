@@ -632,7 +632,7 @@ Auth now has a repository boundary on top of the local session store:
 
 `AuthViewModel -> AuthRepository -> LocalAuthRepository -> AuthSessionStore`
 
-`SupabaseAuthConfiguration`, `SupabaseClientProvider`, and `SupabaseAuthProvider` now form the remote-auth preparation boundary. The Supabase SDK is installed, but the app only creates a client from configured environment values and keeps sign-in/OAuth/server storage deferred. HealthKit, workout, route, and progression records are not moved to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
+`SupabaseAuthConfiguration`, `SupabaseClientProvider`, and `SupabaseAuthProvider` now form the remote-auth boundary. The Supabase SDK is installed, and Apple Sign In can exchange an Apple ID token for a Supabase Auth session when the environment is configured. Server storage, Google/password auth, and local workout ownership migration remain deferred. HealthKit, workout, route, and progression records are not moved to a server. Future `user_id` ownership can attach behind this boundary without forcing schema changes in v1.
 ## Auth Environment Foundation
 
 `AuthEnvironmentLoader` can read Supabase and redirect placeholders from Info.plist, but placeholder values are treated as unconfigured. This prepares future user ownership without changing local-first HealthKit import, route persistence, workout analysis, RecoveryCalculator, Growth builders, or Feed/SNS behavior.
@@ -664,7 +664,7 @@ Flow:
 
 `Settings/My Page -> EmailAuthViewModel -> SupabaseAuthProvider.requestMagicLink -> Supabase Auth OTP request`
 
-This flow does not replace the local `AuthSessionStore`, does not attach remote `user_id` to SwiftData records, does not sync HealthKit/workout/route/progression data, and does not change RecoveryCalculator or Growth builders. The read-only remote session bridge is available for account-connected UI state, while explicit data ownership migration remains a future step.
+This flow does not replace the local `AuthSessionStore`, does not attach remote `user_id` to SwiftData records, does not sync HealthKit/workout/route/progression data, and does not change RecoveryCalculator or Growth builders. The remote session bridge is available for account-connected UI state after Apple sign-in or session checks, while explicit data ownership migration remains a future step.
 
 
 ## Supabase Session Bridge Boundary
@@ -674,4 +674,6 @@ This flow does not replace the local `AuthSessionStore`, does not attach remote 
 
 ## Apple Sign In Account Boundary
 
-Apple Sign In preparation adds a future account-provider boundary only. Apple account credentials are not exchanged with Supabase yet, and no HealthKit, route, workout, progression, or Recovery data is migrated to a remote `user_id`. Local workout ownership remains separate from remote account state until an explicit migration/sync phase exists.
+Apple Sign In can now create a Supabase Auth session through an Apple ID token exchange when the app entitlement and Supabase environment are configured. The resulting remote account session is still separate from local workout ownership: no HealthKit, route, workout, zone, progression, Feed, or Recovery data is migrated to a remote `user_id`, and no SwiftData schema receives user ownership fields in this step.
+
+If Apple credential parsing, Supabase configuration, network exchange, or session bridging fails, SOOM preserves the local-first session and local data remains on device. Explicit ownership migration and remote sync remain future work.

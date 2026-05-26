@@ -215,17 +215,18 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertEqual(request.redirectStrategy, .supabaseOAuthFuture)
     }
 
-    func testHandleAppleCredentialStaysFutureOnly() async {
+    func testHandleAppleCredentialReturnsSafeErrorWhenUnconfigured() async {
         let provider = SupabaseAuthProvider(configuration: .empty)
         let credential = AppleSignInCredential(
             userIdentifier: "apple-user",
             identityToken: "token",
-            authorizationCode: "code"
+            authorizationCode: "code",
+            nonce: "raw-nonce"
         )
 
         do {
             _ = try await provider.handleAppleSignInCredential(credential)
-            XCTFail("Supabase Apple exchange should stay deferred")
+            XCTFail("Unconfigured Supabase Apple exchange should fail safely")
         } catch let error as AuthError {
             XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
         } catch {
@@ -233,6 +234,179 @@ final class SupabaseAuthProviderTests: XCTestCase {
         }
     }
 
+    func testHandleAppleCredentialUsesInjectedExchangerAndBridgesSession() async throws {
+        let userId = "55555555-5555-5555-5555-555555555555"
+        let exchanger = ProviderFakeAppleCredentialExchanger(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: userId,
+                email: "apple@example.com",
+                checkedAt: Date(timeIntervalSince1970: 1_800_000_000),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: exchanger
+        )
+        let credential = AppleSignInCredential(
+            userIdentifier: "apple-user",
+            identityToken: "apple-id-token",
+            authorizationCode: "code",
+            nonce: "raw-nonce"
+        )
+
+        let session = try await provider.handleAppleSignInCredential(credential)
+
+        XCTAssertEqual(exchanger.idTokens, ["apple-id-token"])
+        XCTAssertEqual(exchanger.nonces, ["raw-nonce"])
+        XCTAssertEqual(session.currentUser?.id, UUID(uuidString: userId))
+        XCTAssertEqual(session.currentUser?.email, "apple@example.com")
+        XCTAssertEqual(session.currentUser?.authProvider, .supabase)
+    }
+
+
+    func testHandleAppleCredentialMissingNonceFailsBeforeExchange() async {
+        let exchanger = ProviderFakeAppleCredentialExchanger(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: "55555555-5555-5555-5555-555555555555",
+                email: nil,
+                checkedAt: Date(),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: exchanger
+        )
+
+        do {
+            _ = try await provider.handleAppleSignInCredential(
+                AppleSignInCredential(
+                    userIdentifier: "apple-user",
+                    identityToken: "apple-id-token",
+                    authorizationCode: "code"
+                )
+            )
+            XCTFail("Missing Apple nonce should fail before Supabase exchange")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .appleCredentialMissing)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertTrue(exchanger.idTokens.isEmpty)
+    }
+
+    func testHandleAppleCredentialEmptyNonceFailsBeforeExchange() async {
+        let exchanger = ProviderFakeAppleCredentialExchanger(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: "55555555-5555-5555-5555-555555555555",
+                email: nil,
+                checkedAt: Date(),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: exchanger
+        )
+
+        do {
+            _ = try await provider.handleAppleSignInCredential(
+                AppleSignInCredential(
+                    userIdentifier: "apple-user",
+                    identityToken: "apple-id-token",
+                    authorizationCode: "code",
+                    nonce: "   "
+                )
+            )
+            XCTFail("Empty Apple nonce should fail before Supabase exchange")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .appleCredentialMissing)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertTrue(exchanger.idTokens.isEmpty)
+    }
+
+    func testHandleAppleCredentialMissingTokenFailsBeforeExchange() async {
+        let exchanger = ProviderFakeAppleCredentialExchanger(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: "55555555-5555-5555-5555-555555555555",
+                email: nil,
+                checkedAt: Date(),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: exchanger
+        )
+
+        do {
+            _ = try await provider.handleAppleSignInCredential(AppleSignInCredential(userIdentifier: "apple-user"))
+            XCTFail("Missing Apple token should fail before Supabase exchange")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .appleCredentialMissing)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertTrue(exchanger.idTokens.isEmpty)
+    }
+
+}
+
+private final class ProviderFakeAppleCredentialExchanger: SupabaseAppleCredentialExchanging {
+    private let snapshot: SupabaseAuthSessionSnapshot
+    private let error: Error?
+    private(set) var idTokens: [String] = []
+    private(set) var nonces: [String?] = []
+
+    init(snapshot: SupabaseAuthSessionSnapshot, error: Error? = nil) {
+        self.snapshot = snapshot
+        self.error = error
+    }
+
+    func signInWithApple(idToken: String, nonce: String?) async throws -> SupabaseAuthSessionSnapshot {
+        if let error { throw error }
+        idTokens.append(idToken)
+        nonces.append(nonce)
+        return snapshot
+    }
 }
 
 private final class ProviderFakeSessionReader: SupabaseAuthSessionReading {

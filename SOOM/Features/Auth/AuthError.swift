@@ -4,6 +4,7 @@ enum AuthError: Error, Equatable {
     case unsupportedProvider(AuthProvider)
     case invalidDisplayName
     case invalidEmail
+    case appleCredentialMissing
     case sessionNotFound
     case futureRemoteAuthNotConfigured
     case unknown(String)
@@ -16,6 +17,8 @@ enum AuthError: Error, Equatable {
             return "표시 이름을 입력해주세요."
         case .invalidEmail:
             return "이메일 주소를 다시 확인해주세요."
+        case .appleCredentialMissing:
+            return "Apple 로그인 정보를 확인하지 못했어요. 다시 시도해 주세요."
         case .sessionNotFound:
             return "사용자 정보를 찾지 못했어요. 로컬 사용자로 다시 시작할 수 있어요."
         case .futureRemoteAuthNotConfigured:

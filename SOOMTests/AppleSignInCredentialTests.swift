@@ -21,6 +21,8 @@ final class AppleSignInCredentialTests: XCTestCase {
         XCTAssertEqual(credential.fullName, "SOOM User")
         XCTAssertEqual(credential.nonce, "nonce")
         XCTAssertEqual(credential.createdAt, date)
+        XCTAssertTrue(credential.hasNonce)
+        XCTAssertTrue(credential.isReadyForSupabaseExchange)
         XCTAssertTrue(credential.isReadyForFutureSupabaseExchange)
     }
 
@@ -50,10 +52,38 @@ final class AppleSignInCredentialTests: XCTestCase {
         let credential = AppleSignInCredential(
             userIdentifier: " ",
             identityToken: "token",
-            authorizationCode: "code"
+            authorizationCode: "code",
+            nonce: "nonce"
         )
 
         XCTAssertEqual(credential.userIdentifier, "")
+        XCTAssertFalse(credential.isReadyForSupabaseExchange)
+        XCTAssertFalse(credential.isReadyForFutureSupabaseExchange)
+    }
+
+    func testMissingNonceIsNotReadyForSupabaseExchange() {
+        let credential = AppleSignInCredential(
+            userIdentifier: "apple-user",
+            identityToken: "token",
+            authorizationCode: "code"
+        )
+
+        XCTAssertFalse(credential.hasNonce)
+        XCTAssertFalse(credential.isReadyForSupabaseExchange)
+        XCTAssertFalse(credential.isReadyForFutureSupabaseExchange)
+    }
+
+    func testEmptyNonceIsNotReadyForSupabaseExchange() {
+        let credential = AppleSignInCredential(
+            userIdentifier: "apple-user",
+            identityToken: "token",
+            authorizationCode: "code",
+            nonce: "   "
+        )
+
+        XCTAssertNil(credential.nonce)
+        XCTAssertFalse(credential.hasNonce)
+        XCTAssertFalse(credential.isReadyForSupabaseExchange)
         XCTAssertFalse(credential.isReadyForFutureSupabaseExchange)
     }
 }

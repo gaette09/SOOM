@@ -2,7 +2,7 @@ import XCTest
 @testable import SOOM
 
 final class AppleSignInProviderTests: XCTestCase {
-    func testPrepareRequestUsesEmailAndFullNameScopes() {
+    func testPrepareRequestUsesEmailFullNameScopesAndProvidedNonce() {
         let date = Date(timeIntervalSince1970: 1_800_000_000)
         let provider = AppleSignInProvider(now: { date })
 
@@ -16,43 +16,62 @@ final class AppleSignInProviderTests: XCTestCase {
         XCTAssertTrue(request.isNoncePrepared)
     }
 
-    func testPrepareRequestWithoutNonceStaysFutureReadyButNotPrepared() {
+    func testPrepareRequestWithoutNonceGeneratesPreparedNonce() {
         let provider = AppleSignInProvider()
 
         let request = provider.prepareRequest()
 
         XCTAssertTrue(request.requiresNonce)
-        XCTAssertNil(request.nonce)
-        XCTAssertFalse(request.isNoncePrepared)
+        XCTAssertEqual(request.nonce?.count, 32)
+        XCTAssertTrue(request.isNoncePrepared)
     }
 
-    func testHandleCredentialStillReturnsFutureError() async {
+    func testMakeNonceCreatesRequestedLength() {
+        let provider = AppleSignInProvider()
+
+        let nonce = provider.makeNonce(length: 48)
+
+        XCTAssertEqual(nonce.count, 48)
+    }
+
+    func testHashedNonceUsesSHA256Hex() {
+        let provider = AppleSignInProvider()
+
+        XCTAssertEqual(
+            provider.hashedNonce("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        )
+    }
+
+    func testStringFromDataTrimsUTF8() {
+        XCTAssertEqual(AppleSignInProvider.string(from: Data(" token ".utf8)), "token")
+        XCTAssertNil(AppleSignInProvider.string(from: Data()))
+    }
+
+    func testHandleCredentialReturnsCompleteCredential() throws {
         let provider = AppleSignInProvider()
         let credential = AppleSignInCredential(
             userIdentifier: "apple-user",
             identityToken: "token",
-            authorizationCode: "code"
+            authorizationCode: "code",
+            nonce: "raw-nonce"
         )
 
-        do {
-            _ = try await provider.handleCredential(credential)
-            XCTFail("Apple Sign In should not complete in prep v1")
-        } catch let error as AuthError {
-            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        let prepared = try provider.handleCredential(credential)
+
+        XCTAssertEqual(prepared.identityToken, "token")
+        XCTAssertEqual(prepared.nonce, "raw-nonce")
     }
 
-    func testMissingCredentialValuesFailSafely() async {
+    func testMissingCredentialValuesFailSafely() {
         let provider = AppleSignInProvider()
         let credential = AppleSignInCredential(userIdentifier: "apple-user")
 
         do {
-            _ = try await provider.handleCredential(credential)
+            _ = try provider.handleCredential(credential)
             XCTFail("Incomplete Apple credential should not complete")
         } catch let error as AuthError {
-            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+            XCTAssertEqual(error, .appleCredentialMissing)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

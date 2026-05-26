@@ -5,6 +5,10 @@ protocol SupabaseEmailMagicLinkRequesting {
     func requestMagicLink(_ request: EmailAuthRequest) async throws
 }
 
+protocol SupabaseAppleCredentialExchanging {
+    func signInWithApple(idToken: String, nonce: String?) async throws -> SupabaseAuthSessionSnapshot
+}
+
 struct SupabaseClientEmailMagicLinkRequester: SupabaseEmailMagicLinkRequesting {
     private let client: SupabaseClient
 
@@ -22,29 +26,63 @@ struct SupabaseClientEmailMagicLinkRequester: SupabaseEmailMagicLinkRequesting {
     }
 }
 
+struct SupabaseClientAppleCredentialExchanger: SupabaseAppleCredentialExchanging {
+    private let client: SupabaseClient
+    private let now: () -> Date
+
+    init(client: SupabaseClient, now: @escaping () -> Date = Date.init) {
+        self.client = client
+        self.now = now
+    }
+
+    func signInWithApple(idToken: String, nonce: String?) async throws -> SupabaseAuthSessionSnapshot {
+        let session = try await client.auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(
+                provider: .apple,
+                idToken: idToken,
+                nonce: nonce
+            )
+        )
+
+        return SupabaseAuthSessionSnapshot(
+            isConfigured: true,
+            hasSession: true,
+            userId: session.user.id.uuidString,
+            email: session.user.email,
+            checkedAt: now(),
+            status: .signedIn
+        )
+    }
+}
+
 final class SupabaseAuthProvider: RemoteAuthSessionLoading {
     private let clientProvider: SupabaseClientProvider
     private let sessionProbe: SupabaseAuthSessionProbe
     private let sessionBridge: AuthSessionBridge
     private let emailRequester: (any SupabaseEmailMagicLinkRequesting)?
+    private let appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)?
     private let appleSignInProvider: AppleSignInProvider
     private let now: () -> Date
 
     init(configuration: SupabaseAuthConfiguration = .empty, now: @escaping () -> Date = { Date() }) {
         let clientProvider = SupabaseClientProvider(configuration: configuration)
+        let client = clientProvider.makeClient()
         self.clientProvider = clientProvider
         self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
         self.sessionBridge = AuthSessionBridge()
-        self.emailRequester = clientProvider.makeClient().map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
 
     init(clientProvider: SupabaseClientProvider, now: @escaping () -> Date = { Date() }) {
+        let client = clientProvider.makeClient()
         self.clientProvider = clientProvider
         self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
         self.sessionBridge = AuthSessionBridge()
-        self.emailRequester = clientProvider.makeClient().map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
@@ -54,6 +92,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
         sessionProbe: SupabaseAuthSessionProbe,
         sessionBridge: AuthSessionBridge = AuthSessionBridge(),
         emailRequester: (any SupabaseEmailMagicLinkRequesting)? = nil,
+        appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)? = nil,
         appleSignInProvider: AppleSignInProvider = AppleSignInProvider(),
         now: @escaping () -> Date = { Date() }
     ) {
@@ -61,6 +100,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
         self.sessionProbe = sessionProbe
         self.sessionBridge = sessionBridge
         self.emailRequester = emailRequester
+        self.appleCredentialExchanger = appleCredentialExchanger
         self.appleSignInProvider = appleSignInProvider
         self.now = now
     }
@@ -83,7 +123,32 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
     }
 
     func handleAppleSignInCredential(_ credential: AppleSignInCredential) async throws -> AuthSession {
-        try await appleSignInProvider.handleCredential(credential)
+        try await signInWithAppleCredential(credential)
+    }
+
+    func signInWithAppleCredential(_ credential: AppleSignInCredential) async throws -> AuthSession {
+        let preparedCredential = try appleSignInProvider.handleCredential(credential)
+
+        guard clientProvider.state == .ready, let appleCredentialExchanger else {
+            throw AuthError.futureRemoteAuthNotConfigured
+        }
+
+        guard let idToken = preparedCredential.identityToken,
+              let nonce = preparedCredential.nonce
+        else {
+            throw AuthError.appleCredentialMissing
+        }
+
+        let snapshot = try await appleCredentialExchanger.signInWithApple(
+            idToken: idToken,
+            nonce: nonce
+        )
+
+        guard let session = sessionBridge.bridge(snapshot: snapshot) else {
+            throw AuthError.sessionNotFound
+        }
+
+        return session
     }
 
     func requestMagicLink(email: String, redirectTo: URL? = nil) async throws -> EmailAuthRequestResult {

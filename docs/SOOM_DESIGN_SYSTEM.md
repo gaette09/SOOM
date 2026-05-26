@@ -643,7 +643,7 @@ My Page and Auth are part of SOOM's data trust foundation. v1 should make local 
 Design 기준:
 
 - Show local-only status as a calm trust cue, not a warning.
-- Keep future Apple, Google, and Supabase login affordances disabled or clearly marked as 준비 중 until implemented.
+- Keep future Google and password login affordances disabled or clearly marked as 준비 중 until implemented. Apple login may be active when Supabase environment and Apple capability are configured.
 - Profile identity, HealthKit management, privacy defaults, and training baselines belong together because they shape user-owned data.
 - Do not imply cloud sync or account backup before server/Auth is actually connected.
 
@@ -687,6 +687,8 @@ Email auth UI should feel like an optional account connection path, not a requir
 When a valid Supabase current session is detected, Settings may show a small “계정 연결됨” cue. The cue should be calm and explicit: account connection is visible, but local records are not synced or migrated yet. Do not use backup, cloud sync, or ownership language until those flows exist.
 
 
-## Apple Sign In Prep v1
+## Apple Sign In Real Flow v1
 
-Apple login should appear as a high-trust account connection option only when the implementation is ready. In the preparation phase, Settings may show a subtle disabled/준비 중 row near email account connection, but it must not look like an active OAuth button. Copy should keep local-first reassurance: current records stay on device, and sync/ownership migration comes later.
+Apple login can now appear as an active account connection option in Settings/My Page. It should stay trust-oriented rather than conversion-oriented: present it near email account connection, show calm progress/error copy, and keep the boundary explicit that current records stay local and data sync/ownership migration comes later.
+
+After a successful Apple/Supabase session connection, the UI may show `계정 연결됨`, but it must not imply that HealthKit workouts, routes, progression, or feed data have been uploaded or transferred to remote ownership.

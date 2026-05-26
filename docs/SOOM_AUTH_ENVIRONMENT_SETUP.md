@@ -32,7 +32,7 @@ Apple and Google OAuth will need an iOS redirect/scheme policy before implementa
 
 - Supabase Swift SDK is installed as a foundation dependency.
 - Supabase sign-in completion and session ownership migration are not implemented.
-- Apple Sign In and Google Sign In are not implemented.
+- Apple Sign In can request an iOS credential and exchange the Apple ID token with Supabase when the environment is configured. Google Sign In is not implemented.
 - HealthKit, workout, route, and progression data stay local-first.
 - RecoveryCalculator and Growth calculations are unchanged.
 
@@ -65,7 +65,7 @@ Session smoke states are intentionally limited:
 - `signedIn`: a current Supabase session exists and can expose user id/email for smoke visibility.
 - `failed`: session lookup failed without changing the local SOOM session.
 
-If the environment is unconfigured, the app remains local-first. A failed smoke check must not replace `AuthSessionStore`, migrate `user_id`, upload HealthKit/workout data, or imply that completed login/session sync is active. Email Magic Link request UI exists, and a read-only session bridge can show an existing Supabase session as connected. OAuth, session sync, remote profile ownership, and data migration remain deferred.
+If the environment is unconfigured, the app remains local-first. A failed smoke check must not replace `AuthSessionStore`, migrate `user_id`, upload HealthKit/workout data, or imply that completed login/session sync is active. Email Magic Link request UI exists, and a read-only session bridge can show an existing Supabase session as connected. Google OAuth, password auth, remote profile ownership, and data migration remain deferred. Apple Sign In can create a Supabase session when configured, but it does not migrate local data ownership.
 
 
 ## Supabase Email Auth UI v1
@@ -88,10 +88,12 @@ SOOM now maps a read-only `SupabaseAuthSessionSnapshot.signedIn` state into an `
 The bridge does not fetch Supabase profiles, does not persist the remote user into `AuthSessionStore`, and does not migrate HealthKit/workout/route/progression ownership. Signed-out, failed, unconfigured, empty-id, or non-UUID snapshots preserve the local-first session.
 
 
-## Apple Sign In Prep v1
+## Apple Sign In Real Flow v1
 
-SOOM now includes Apple Sign In preparation models and a placeholder provider: `AppleSignInCredential`, `AppleSignInRequest`, and `AppleSignInProvider`. This layer can prepare requested scopes and nonce-aware request metadata, but it does not run `ASAuthorizationController`, does not add the Apple Sign In capability, and does not exchange Apple credentials with Supabase.
+SOOM now includes an executable Apple Sign In path in Settings/My Page. The app enables the Apple Sign In entitlement, uses `SignInWithAppleButton` with `AppleSignInProvider` nonce hashing and credential parsing, and passes the Apple ID token to Supabase through `auth.signInWithIdToken(provider: .apple)`. Tokens are not logged.
 
-The future flow is Apple credential -> Supabase OAuth/id-token exchange -> read-only session bridge -> explicit data ownership migration. Only the model/provider boundary exists in v1. Email Magic Link remains the only active Supabase auth request surface, and local-first fallback remains the default.
+A successful Supabase Apple exchange is bridged into transient `AppUser` / `AuthSession.signedIn` UI state. This does not write the remote user into `AuthSessionStore`, does not migrate local workout ownership, and does not sync HealthKit, route, zone, progression, or feed data. Missing Supabase configuration, Apple cancellation, missing token, or exchange failure preserves the local-first session.
 
-Deferred: Apple Developer configuration, app capability review, nonce generation policy, Supabase provider setup, OAuth callback handling, session persistence bridge, user ownership migration, and remote workout sync.
+Required manual setup remains outside the repository: Apple Developer Sign in with Apple capability, matching app identifier/provisioning profile, and Supabase Apple provider configuration. `SOOM_SUPABASE_URL` and `SOOM_SUPABASE_ANON_KEY` still come from build settings/xcconfig/CI secrets, not committed values.
+
+Deferred: explicit user ownership migration, cloud sync, Google OAuth, password auth, Feed ownership migration, and HealthKit remote sync.

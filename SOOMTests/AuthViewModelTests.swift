@@ -133,6 +133,59 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
     }
 
+
+    func testAppleSignInSuccessPromotesRemoteSessionWithoutDeletingLocalStore() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "66666666-6666-6666-6666-666666666666")!,
+            displayName: "apple",
+            email: "apple@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            appleSignInHandler: { credential in
+                XCTAssertEqual(credential.identityToken, "token")
+                return .signedIn(user: remoteUser)
+            }
+        )
+
+        await viewModel.signInWithAppleCredential(
+            AppleSignInCredential(
+                userIdentifier: "apple-user",
+                identityToken: "token",
+                authorizationCode: "code",
+                nonce: "raw-nonce"
+            )
+        )
+
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.session.currentUser?.email, "apple@example.com")
+        XCTAssertFalse(viewModel.isAppleSignInInProgress)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testAppleSignInFailureKeepsLocalSession() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            appleSignInHandler: { _ in throw AuthError.appleCredentialMissing }
+        )
+
+        await viewModel.signInWithAppleCredential(
+            AppleSignInCredential(userIdentifier: "apple-user")
+        )
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertEqual(viewModel.errorMessage, AuthError.appleCredentialMissing.userMessage)
+        XCTAssertFalse(viewModel.isAppleSignInInProgress)
+    }
+
     func testViewModelDoesNotUseRecoveryCalculator() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.continueAsLocalUser()
