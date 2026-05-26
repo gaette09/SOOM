@@ -4,6 +4,7 @@ import UIKit
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @State private var isShowingDisconnectConfirmation = false
     private let authEnvironment: AuthEnvironment
 
     init(
@@ -46,6 +47,20 @@ struct SettingsView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "입력 값을 다시 확인해주세요.")
+        }
+        .confirmationDialog(
+            "계정 연결만 해제합니다",
+            isPresented: $isShowingDisconnectConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("계정 연결 해제") {
+                Task {
+                    await authViewModel.disconnectRemoteAccount()
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("이 기기의 운동 기록, 설정, route 데이터는 삭제하지 않아요. 로컬 기록은 그대로 유지됩니다.")
         }
     }
 
@@ -107,6 +122,14 @@ struct SettingsView: View {
 
                 if authViewModel.session.currentUser?.authProvider == .supabase {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
+
+                    SOOMActionRow(icon: "person.crop.circle.badge.minus", title: "계정 연결 해제", subtitle: "원격 세션만 종료하고 이 기기의 기록과 설정은 유지합니다.", tint: SOOMColor.warning)
+
+                    Button("계정 연결만 해제하기") {
+                        isShowingDisconnectConfirmation = true
+                    }
+                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.warning)
                 }
 
                 Button("계정 상태 확인") {
@@ -117,11 +140,13 @@ struct SettingsView: View {
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.recovery)
 
-                Button("로컬 세션 초기화") {
-                    authViewModel.signOut()
+                if authViewModel.session.currentUser?.authProvider != .supabase {
+                    Button("로컬 세션 초기화") {
+                        authViewModel.signOut()
+                    }
+                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
                 }
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.secondaryInk)
             }
 
             if let error = authViewModel.errorMessage {

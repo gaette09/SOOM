@@ -12,13 +12,15 @@ final class AuthViewModel: ObservableObject {
     private let remoteSessionLoader: (any RemoteAuthSessionLoading)?
     private let sessionRestorer: AuthSessionRestorer
     private let appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)?
+    private let remoteSignOutHandler: (() async throws -> AuthSession)?
     private var initializeSessionTask: Task<Void, Never>?
 
     init(
         repository: any AuthRepository = LocalAuthRepository(),
         remoteSessionLoader: (any RemoteAuthSessionLoading)? = nil,
         restorePolicy: AuthSessionRestorePolicy = .preferRemoteIfAvailable,
-        appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)? = nil
+        appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)? = nil,
+        remoteSignOutHandler: (() async throws -> AuthSession)? = nil
     ) {
         let loadedSession = repository.loadSession()
         self.repository = repository
@@ -29,6 +31,7 @@ final class AuthViewModel: ObservableObject {
             policy: restorePolicy
         )
         self.appleSignInHandler = appleSignInHandler
+        self.remoteSignOutHandler = remoteSignOutHandler
         self.session = loadedSession
         self.displayNameText = loadedSession.currentUser?.displayName ?? ""
         self.errorMessage = loadedSession.errorMessage
@@ -148,6 +151,25 @@ final class AuthViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func disconnectRemoteAccount() async {
+        guard session.currentUser?.authProvider == .supabase else {
+            restoreLocalFallbackAfterRemoteDisconnect()
+            return
+        }
+
+        guard let remoteSignOutHandler else {
+            errorMessage = AuthError.futureRemoteAuthNotConfigured.userMessage
+            return
+        }
+
+        do {
+            _ = try await remoteSignOutHandler()
+            restoreLocalFallbackAfterRemoteDisconnect()
+        } catch {
+            errorMessage = userMessage(for: error)
+        }
+    }
+
     private func userMessage(for error: Error) -> String {
         if let authError = error as? AuthError {
             return authError.userMessage
@@ -164,5 +186,16 @@ final class AuthViewModel: ObservableObject {
             displayNameText = ""
         }
         errorMessage = newSession.errorMessage
+    }
+
+    private func restoreLocalFallbackAfterRemoteDisconnect() {
+        let localSession = repository.loadSession()
+        if localSession.isLocalOnly, localSession.currentUser != nil {
+            publish(session: localSession, preservingDisplayName: false)
+        } else {
+            let fallbackSession = repository.continueAsLocalUser(displayName: "SOOM 사용자")
+            publish(session: fallbackSession, preservingDisplayName: false)
+        }
+        errorMessage = nil
     }
 }

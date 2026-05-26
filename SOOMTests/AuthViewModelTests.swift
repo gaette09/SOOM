@@ -323,6 +323,87 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
     }
 
+    func testDisconnectRemoteAccountRestoresLocalFallbackWithoutDeletingStore() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "13131313-1313-1313-1313-131313131313")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        var signOutCallCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSignOutHandler: {
+                signOutCallCount += 1
+                return .signedOut
+            }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        await viewModel.disconnectRemoteAccount()
+
+        XCTAssertEqual(signOutCallCount, 1)
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertEqual(viewModel.displayNameText, "Local User")
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testDisconnectRemoteAccountCreatesLocalFallbackWhenNoLocalUserExists() async {
+        let store = makeStore()
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "14141414-1414-1414-1414-141414141414")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSignOutHandler: { .signedOut }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        await viewModel.disconnectRemoteAccount()
+
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertEqual(viewModel.session.currentUser?.displayName, "SOOM 사용자")
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .local)
+        XCTAssertEqual(store.loadSession().currentUser?.id, viewModel.session.currentUser?.id)
+    }
+
+    func testDisconnectRemoteAccountFailureKeepsRemoteSessionAndPublishesSoftError() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "15151515-1515-1515-1515-151515151515")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSignOutHandler: {
+                throw AuthError.unknown("계정 연결 해제를 완료하지 못했어요.")
+            }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        await viewModel.disconnectRemoteAccount()
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, remoteUser.id)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.errorMessage, "계정 연결 해제를 완료하지 못했어요.")
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
     func testViewModelDoesNotUseRecoveryCalculator() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.continueAsLocalUser()

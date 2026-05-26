@@ -715,3 +715,14 @@ When an email callback returns a valid Supabase session, Settings may update to 
 ## Production Auth Redirect UX
 
 Email Magic Link device QA uses the `soom-auth://auth/callback` URL scheme, but the UI should not expose scheme mechanics as primary user copy. Settings can say “계정 연결 상태” or “계정 연결됨” after a valid callback, while failures should remain soft and local-first. Do not describe account connection as backup, cloud sync, or ownership migration until those flows exist.
+
+## Remote Account Disconnect UX
+
+Account disconnect copy must make a narrow promise: it ends the remote account session, and this device's records remain local. Do not use copy that sounds like account deletion, data deletion, backup removal, or cloud sync reversal. Prefer calm labels such as “계정 연결 해제”, “원격 세션만 종료”, and “로컬 기록은 유지돼요”.
+
+Design 기준:
+
+- Place disconnect actions only when a remote Supabase session is currently connected.
+- Use a confirmation dialog that explicitly says workouts, settings, and route data remain on device.
+- Keep the button visually secondary; it should not look like a destructive data-wipe action.
+- On failure, keep the connected state and show a soft error.

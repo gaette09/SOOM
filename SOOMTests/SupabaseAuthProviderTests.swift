@@ -128,6 +128,72 @@ final class SupabaseAuthProviderTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
+    func testConfiguredSignOutUsesInjectedRequester() async throws {
+        let requester = ProviderFakeRemoteSignOutRequester()
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            remoteSignOutRequester: requester
+        )
+
+        let session = try await provider.signOut()
+
+        XCTAssertEqual(requester.callCount, 1)
+        XCTAssertEqual(session.sessionState, .signedOut)
+    }
+
+    func testConfiguredSignOutWithoutRequesterFailsSafely() async {
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil)
+        )
+
+        do {
+            _ = try await provider.signOut()
+            XCTFail("Configured provider without a sign-out requester should fail safely")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testSignOutFailurePropagatesWithoutSessionMutation() async {
+        let requester = ProviderFakeRemoteSignOutRequester(error: AuthError.unknown("계정 연결 해제를 완료하지 못했어요."))
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            remoteSignOutRequester: requester
+        )
+
+        do {
+            _ = try await provider.signOut()
+            XCTFail("Requester failure should propagate")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .unknown("계정 연결 해제를 완료하지 못했어요."))
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(requester.callCount, 1)
+    }
+
     func testProviderCanReturnReadOnlySessionSmokeSnapshot() async {
         let probe = SupabaseAuthSessionProbe(
             isConfigured: true,
@@ -521,5 +587,19 @@ private final class ProviderFakeAuthCallbackSessionLoader: SupabaseAuthCallbackS
         if let error { throw error }
         urls.append(url)
         return snapshot
+    }
+}
+
+private final class ProviderFakeRemoteSignOutRequester: SupabaseRemoteSignOutRequesting {
+    private let error: Error?
+    private(set) var callCount = 0
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
+
+    func signOut() async throws {
+        callCount += 1
+        if let error { throw error }
     }
 }

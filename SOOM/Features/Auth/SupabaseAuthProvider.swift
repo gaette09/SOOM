@@ -13,6 +13,10 @@ protocol SupabaseAuthCallbackSessionLoading {
     func loadSession(from url: URL) async throws -> SupabaseAuthSessionSnapshot
 }
 
+protocol SupabaseRemoteSignOutRequesting {
+    func signOut() async throws
+}
+
 struct SupabaseClientEmailMagicLinkRequester: SupabaseEmailMagicLinkRequesting {
     private let client: SupabaseClient
 
@@ -82,6 +86,18 @@ struct SupabaseClientAuthCallbackSessionLoader: SupabaseAuthCallbackSessionLoadi
     }
 }
 
+struct SupabaseClientRemoteSignOutRequester: SupabaseRemoteSignOutRequesting {
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
+    func signOut() async throws {
+        try await client.auth.signOut()
+    }
+}
+
 final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionHandling {
     private let clientProvider: SupabaseClientProvider
     private let sessionProbe: SupabaseAuthSessionProbe
@@ -89,6 +105,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
     private let emailRequester: (any SupabaseEmailMagicLinkRequesting)?
     private let appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)?
     private let callbackSessionLoader: (any SupabaseAuthCallbackSessionLoading)?
+    private let remoteSignOutRequester: (any SupabaseRemoteSignOutRequesting)?
     private let appleSignInProvider: AppleSignInProvider
     private let now: () -> Date
 
@@ -101,6 +118,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.callbackSessionLoader = client.map { SupabaseClientAuthCallbackSessionLoader(client: $0, now: now) }
+        self.remoteSignOutRequester = client.map(SupabaseClientRemoteSignOutRequester.init(client:))
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
@@ -113,6 +131,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.callbackSessionLoader = client.map { SupabaseClientAuthCallbackSessionLoader(client: $0, now: now) }
+        self.remoteSignOutRequester = client.map(SupabaseClientRemoteSignOutRequester.init(client:))
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
@@ -124,6 +143,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         emailRequester: (any SupabaseEmailMagicLinkRequesting)? = nil,
         appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)? = nil,
         callbackSessionLoader: (any SupabaseAuthCallbackSessionLoading)? = nil,
+        remoteSignOutRequester: (any SupabaseRemoteSignOutRequesting)? = nil,
         appleSignInProvider: AppleSignInProvider = AppleSignInProvider(),
         now: @escaping () -> Date = { Date() }
     ) {
@@ -133,6 +153,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.emailRequester = emailRequester
         self.appleCredentialExchanger = appleCredentialExchanger
         self.callbackSessionLoader = callbackSessionLoader
+        self.remoteSignOutRequester = remoteSignOutRequester
         self.appleSignInProvider = appleSignInProvider
         self.now = now
     }
@@ -220,9 +241,11 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
     }
 
     func signOut() async throws -> AuthSession {
-        guard clientProvider.state == .ready else {
+        guard clientProvider.state == .ready, let remoteSignOutRequester else {
             throw AuthError.futureRemoteAuthNotConfigured
         }
-        throw AuthError.futureRemoteAuthNotConfigured
+
+        try await remoteSignOutRequester.signOut()
+        return .signedOut
     }
 }

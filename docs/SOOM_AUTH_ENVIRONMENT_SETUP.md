@@ -143,3 +143,17 @@ Production/device QA uses `soom-auth://auth/callback` as the recommended Email M
 Supabase Dashboard should allowlist `soom-auth://auth/callback` for email magic links. Native Apple Sign In remains separate: it uses Apple credential plus Supabase id-token exchange and does not depend on the email callback URL scheme.
 
 Operational QA details live in `docs/SOOM_DEVICE_AUTH_QA_CHECKLIST.md`.
+
+## Remote Sign-Out & Account Unlink UX v1
+
+SOOM now has a remote account disconnect path for Supabase sessions. When a Supabase account is connected, Settings/My Page can call `SupabaseAuthProvider.signOut()` to end only the remote Supabase auth session, then return the UI to the local-first fallback session.
+
+Current boundary:
+
+- Remote sign-out does not delete local `AuthSessionStore` data.
+- Local workout records, settings, HealthKit imports, persisted routes, route privacy settings, Growth, Recovery, Feed, and progression data stay on device.
+- If a local user exists, SOOM restores that local session after remote disconnect.
+- If no local user exists, SOOM creates the normal local fallback user so the app remains usable.
+- Account deletion, server-side data deletion, user ownership migration, cloud sync, and HealthKit remote sync remain deferred.
+
+Settings copy must describe this as “계정 연결 해제”, not account deletion. The confirmation message should make clear that this device's records are preserved.

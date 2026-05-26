@@ -699,4 +699,16 @@ Email Magic Link callbacks can now update the shared root auth view model as soo
 
 ## Production Redirect Boundary
 
+Production Email Magic Link callbacks use `soom-auth://auth/callback` and can update the root auth state after Supabase returns a valid session. This remains an auth-state boundary only: no workout, route, HealthKit, Recovery, Growth, Feed, or progression data is uploaded or assigned remote ownership as part of redirect handling.
+
+## Remote Account Disconnect Boundary
+
+Supabase remote sign-out can now end the connected remote auth session and return Settings/My Page to the local-first user state. This is not account deletion and not local data deletion.
+
+Flow:
+
+`Settings/My Page -> AuthViewModel.disconnectRemoteAccount() -> SupabaseAuthProvider.signOut() -> local fallback session`
+
+The local `AuthSessionStore` is preserved, local workouts/settings/routes stay on device, and no SwiftData schema receives remote `user_id` ownership. If remote sign-out fails, the current UI session remains connected and the user sees a soft error. Cloud sync, HealthKit remote sync, account deletion, and ownership migration remain future work.
+
 Email Magic Link device QA now has a concrete native callback target: `soom-auth://auth/callback`, registered through `CFBundleURLTypes` and backed by the `SOOM_AUTH_REDIRECT_SCHEME` build setting. This only enables the app to receive auth callbacks. It does not migrate local HealthKit, workout, route, zone, progression, Feed, Recovery, or Growth data to remote ownership, and it does not add `user_id` to local schemas.
