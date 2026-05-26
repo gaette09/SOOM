@@ -692,3 +692,8 @@ When a valid Supabase current session is detected, Settings may show a small “
 Apple login can now appear as an account connection option in Settings/My Page when the app is configured for Supabase and Apple capability/provisioning is valid. It should stay trust-oriented rather than conversion-oriented: present it near email account connection, show calm progress/error copy, and keep the boundary explicit that current records stay local and data sync/ownership migration comes later.
 
 Environment copy should distinguish between `Apple 로그인 환경 미설정`, `Apple 로그인 준비됨`, and `계정 연결됨`; none of these states should imply backup, cloud sync, or ownership migration. After a successful Apple/Supabase session connection, the UI may show `계정 연결됨`, but it must not imply that HealthKit workouts, routes, progression, or feed data have been uploaded or transferred to remote ownership.
+
+
+## Email Magic Link Callback UX
+
+Email callback handling should feel like quiet account-state confirmation, not a cloud-sync promise. If a callback produces a valid Supabase session, Settings may show `계정 연결됨` while keeping copy such as “현재 기록은 로컬에 유지돼요” and “로컬 기록 동기화는 다음 단계입니다.” Invalid, ignored, or failed callbacks should not interrupt workout, HealthKit, Recovery, Growth, or Feed flows.

@@ -388,6 +388,81 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertTrue(exchanger.idTokens.isEmpty)
     }
 
+
+    func testHandleAuthCallbackLoadsSessionAndBridges() async throws {
+        let callbackURL = URL(string: "soom-dev://auth/callback#access_token=token")!
+        let loader = ProviderFakeAuthCallbackSessionLoader(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: "66666666-6666-6666-6666-666666666666",
+                email: "magic@example.com",
+                checkedAt: Date(timeIntervalSince1970: 1_800_000_000),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            callbackSessionLoader: loader
+        )
+
+        let session = try await provider.handleAuthCallback(url: callbackURL)
+
+        XCTAssertEqual(loader.urls, [callbackURL])
+        XCTAssertEqual(session?.sessionState, .signedIn)
+        XCTAssertEqual(session?.currentUser?.id, UUID(uuidString: "66666666-6666-6666-6666-666666666666"))
+        XCTAssertEqual(session?.currentUser?.email, "magic@example.com")
+        XCTAssertEqual(session?.currentUser?.authProvider, .supabase)
+    }
+
+    func testHandleAuthCallbackUnconfiguredReturnsSafeError() async {
+        let provider = SupabaseAuthProvider(configuration: .empty)
+
+        do {
+            _ = try await provider.handleAuthCallback(url: URL(string: "soom-dev://auth/callback")!)
+            XCTFail("Unconfigured Supabase callback should fail safely")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testHandleAuthCallbackInvalidSnapshotFallsBackToProbe() async throws {
+        let callbackURL = URL(string: "soom-dev://auth/callback#access_token=token")!
+        let loader = ProviderFakeAuthCallbackSessionLoader(
+            snapshot: SupabaseAuthSessionSnapshot(
+                isConfigured: true,
+                hasSession: true,
+                userId: "not-a-uuid",
+                email: "bad@example.com",
+                checkedAt: Date(),
+                status: .signedIn
+            )
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            callbackSessionLoader: loader
+        )
+
+        let session = try await provider.handleAuthCallback(url: callbackURL)
+
+        XCTAssertNil(session)
+        XCTAssertEqual(loader.urls, [callbackURL])
+    }
+
 }
 
 private final class ProviderFakeAppleCredentialExchanger: SupabaseAppleCredentialExchanging {
@@ -428,5 +503,23 @@ private final class ProviderFakeEmailMagicLinkRequester: SupabaseEmailMagicLinkR
     func requestMagicLink(_ request: EmailAuthRequest) async throws {
         if let error { throw error }
         requests.append(request)
+    }
+}
+
+
+private final class ProviderFakeAuthCallbackSessionLoader: SupabaseAuthCallbackSessionLoading {
+    private let snapshot: SupabaseAuthSessionSnapshot
+    private let error: Error?
+    private(set) var urls: [URL] = []
+
+    init(snapshot: SupabaseAuthSessionSnapshot, error: Error? = nil) {
+        self.snapshot = snapshot
+        self.error = error
+    }
+
+    func loadSession(from url: URL) async throws -> SupabaseAuthSessionSnapshot {
+        if let error { throw error }
+        urls.append(url)
+        return snapshot
     }
 }

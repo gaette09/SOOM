@@ -69,7 +69,8 @@ Current state:
 - Redirect scheme can be loaded from `SOOMAuthRedirectScheme`.
 - Placeholder redirect schemes are ignored.
 - `CFBundleURLTypes` is not registered yet.
-- Deep-link callback parsing and session persistence bridge remain deferred.
+- The app has an `onOpenURL` callback handling foundation for Email Magic Link/future OAuth URLs once a real scheme is registered.
+- Durable callback persistence and production scheme registration remain deferred.
 
 Do not add a real production scheme without confirming the Supabase redirect allowlist and iOS URL handling plan.
 
@@ -105,7 +106,7 @@ Use this checklist for local/dev validation:
 
 ## Deferred Items
 
-- Production callback/deep-link handling.
+- Production callback/deep-link persistence and QA hardening.
 - `CFBundleURLTypes` registration for email/OAuth callbacks.
 - Supabase profile table or DB profile fetch.
 - Remote workout ownership migration.

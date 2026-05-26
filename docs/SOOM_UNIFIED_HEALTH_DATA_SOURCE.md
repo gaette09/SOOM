@@ -677,3 +677,8 @@ This flow does not replace the local `AuthSessionStore`, does not attach remote 
 Apple Sign In can now create a Supabase Auth session through an Apple ID token exchange when the app entitlement and Supabase environment are configured. The resulting remote account session is still separate from local workout ownership: no HealthKit, route, workout, zone, progression, Feed, or Recovery data is migrated to a remote `user_id`, and no SwiftData schema receives user ownership fields in this step.
 
 If Apple credential parsing, Supabase configuration, network exchange, or session bridging fails, SOOM preserves the local-first session and local data remains on device. Explicit ownership migration and remote sync remain future work.
+
+
+## Email Callback Session Boundary
+
+Email Magic Link callback handling can now validate `auth/callback` URLs and ask Supabase Auth to load a session from the callback URL. If a valid Supabase session is available, the existing session bridge can represent it as account-connected UI state. This remains separate from local workout ownership: no HealthKit, workout, route, zone, progression, Feed, Recovery, or Growth data is migrated or uploaded, and no SwiftData schema receives remote `user_id` fields in this step.
