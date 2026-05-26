@@ -70,6 +70,46 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.displayNameText.isEmpty)
     }
 
+
+    func testCheckRemoteSessionPromotesSignedInRemoteSessionWithoutDeletingLocalStore() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: .signedIn(user: remoteUser))
+        )
+
+        await viewModel.checkRemoteSession()
+
+        XCTAssertEqual(viewModel.session.sessionState, .signedIn)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.session.currentUser?.email, "remote@example.com")
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testCheckRemoteSessionFailureKeepsLocalSession() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: nil)
+        )
+
+        await viewModel.checkRemoteSession()
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+    }
+
     func testViewModelDoesNotUseRecoveryCalculator() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.continueAsLocalUser()
@@ -82,5 +122,14 @@ final class AuthViewModelTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return AuthSessionStore(userDefaults: defaults, now: { Date(timeIntervalSince1970: 1_800_000_000) })
+    }
+}
+
+
+private struct FakeRemoteSessionLoader: RemoteAuthSessionLoading {
+    let session: AuthSession?
+
+    func loadRemoteSession() async -> AuthSession? {
+        session
     }
 }

@@ -58,6 +58,7 @@ final class AuthSessionStoreTests: XCTestCase {
     func testFutureProviderEnumCasesExist() {
         XCTAssertTrue(AuthProvider.allCases.contains(.apple))
         XCTAssertTrue(AuthProvider.allCases.contains(.google))
+        XCTAssertTrue(AuthProvider.allCases.contains(.supabase))
         XCTAssertTrue(AuthProvider.allCases.contains(.supabaseFuture))
     }
 

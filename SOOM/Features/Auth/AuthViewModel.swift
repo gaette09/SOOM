@@ -6,10 +6,15 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let repository: any AuthRepository
+    private let remoteSessionLoader: (any RemoteAuthSessionLoading)?
 
-    init(repository: any AuthRepository = LocalAuthRepository()) {
+    init(
+        repository: any AuthRepository = LocalAuthRepository(),
+        remoteSessionLoader: (any RemoteAuthSessionLoading)? = nil
+    ) {
         let loadedSession = repository.loadSession()
         self.repository = repository
+        self.remoteSessionLoader = remoteSessionLoader
         self.session = loadedSession
         self.displayNameText = loadedSession.currentUser?.displayName ?? ""
         self.errorMessage = loadedSession.errorMessage
@@ -23,6 +28,19 @@ final class AuthViewModel: ObservableObject {
         session = repository.loadSession()
         displayNameText = session.currentUser?.displayName ?? ""
         errorMessage = session.errorMessage
+    }
+
+    func checkRemoteSession() async {
+        guard let remoteSessionLoader,
+              let remoteSession = await remoteSessionLoader.loadRemoteSession(),
+              remoteSession.isSignedIn
+        else {
+            return
+        }
+
+        session = remoteSession
+        displayNameText = remoteSession.currentUser?.displayName ?? displayNameText
+        errorMessage = nil
     }
 
     func continueAsLocalUser() {

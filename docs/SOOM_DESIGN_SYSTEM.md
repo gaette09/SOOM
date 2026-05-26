@@ -669,14 +669,19 @@ Design 기준:
 
 ## Supabase SDK Integration UX
 
-The presence of the Supabase SDK should not make the app feel cloud-first. Settings may show that the SDK foundation is ready, but login UI must still communicate that remote account connection is a future step. Avoid active OAuth or email login affordances until the underlying flow, redirect handling, consent, and sync policy are implemented.
+The presence of the Supabase SDK should not make the app feel cloud-first. Settings may show that the SDK foundation is ready and can offer the implemented email magic link request, but copy must still communicate that sign-in completion, redirect handling, consent, and sync policy are staged separately.
 
 
 ## Supabase Session Smoke Status
 
-Settings may show Supabase session smoke status as a small trust/debug cue. The copy should use calm states such as “미설정”, “세션 없음”, “세션 확인됨”, or “확인 실패” without making the user feel blocked. This status is not a login prompt and must not look like an active email/OAuth sign-in flow until those flows are implemented.
+Settings may show Supabase session smoke status as a small trust/debug cue. The copy should use calm states such as “미설정”, “세션 없음”, “세션 확인됨”, or “확인 실패” without making the user feel blocked. This status is not a sync promise and must not look like an OAuth sign-in flow before those flows are implemented.
 
 
 ## Email Auth Request UI
 
-Email auth UI should feel like an optional account connection path, not a requirement to use SOOM. The card belongs in Settings/My Page near local user status and must keep local-first copy visible. Use simple language such as “현재 기록은 로컬에 유지돼요” and avoid cloud-backup promises until session bridge, ownership migration, and sync consent are implemented.
+Email auth UI should feel like an optional account connection path, not a requirement to use SOOM. The card belongs in Settings/My Page near local user status and must keep local-first copy visible. Use simple language such as “현재 기록은 로컬에 유지돼요” and avoid cloud-backup promises. A connected Supabase session can be shown as account state, but ownership migration and sync consent are still separate future steps.
+
+
+## Supabase Session Bridge UX
+
+When a Supabase current session is detected, Settings may show a small “계정 연결됨” cue. The cue should be calm and explicit: account connection is visible, but local records are not synced or migrated yet. Do not use backup, cloud sync, or ownership language until those flows exist.

@@ -8,11 +8,16 @@ struct SettingsView: View {
 
     init(
         viewModel: SettingsViewModel = SettingsViewModel(),
-        authViewModel: AuthViewModel = AuthViewModel(),
-        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load()
+        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
+        authViewModel: AuthViewModel? = nil
     ) {
+        let resolvedAuthViewModel = authViewModel ?? AuthViewModel(
+            remoteSessionLoader: SupabaseAuthProvider(
+                configuration: SupabaseAuthConfiguration.from(environment: authEnvironment)
+            )
+        )
         _viewModel = StateObject(wrappedValue: viewModel)
-        _authViewModel = StateObject(wrappedValue: authViewModel)
+        _authViewModel = StateObject(wrappedValue: resolvedAuthViewModel)
         self.authEnvironment = authEnvironment
     }
 
@@ -22,7 +27,7 @@ struct SettingsView: View {
             ProfileSummaryCard(
                 name: authViewModel.session.currentUser?.displayName ?? "SOOM 사용자",
                 handle: authViewModel.session.currentUser?.handle ?? "@soom.local",
-                authStatus: authViewModel.session.isLocalOnly ? "로컬 사용자" : "로그인 준비 중"
+                authStatus: authStatusText
             )
             profileSection
             dataConnectionSection
@@ -52,6 +57,14 @@ struct SettingsView: View {
         }
     }
 
+    private var authStatusText: String {
+        if authViewModel.session.currentUser?.authProvider == .supabase {
+            return "계정 연결됨"
+        }
+
+        return authViewModel.session.isLocalOnly ? "로컬 사용자" : "로그인 준비 중"
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
             Text("마이")
@@ -67,7 +80,7 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         SOOMCard {
-            SOOMSectionHeader("프로필", caption: "현재는 로컬 사용자로 기록을 관리하고, Supabase, Apple, Google 로그인 연결은 다음 단계에서 준비합니다.")
+            SOOMSectionHeader("프로필", caption: "로컬 기록을 유지하면서 Supabase 이메일 세션 확인을 준비합니다. 동기화와 소유권 이전은 다음 단계입니다.")
 
             if authViewModel.session.currentUser == nil {
                 SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.recovery)
@@ -97,6 +110,18 @@ struct SettingsView: View {
                 SOOMActionRow(icon: "lock", title: "계정 연결 준비 중", subtitle: "Supabase 이메일 링크 요청부터 작게 열어둡니다.", tint: SOOMColor.secondaryInk)
 
                 EmailAuthCard(environment: authEnvironment)
+
+                if authViewModel.session.currentUser?.authProvider == .supabase {
+                    SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
+                }
+
+                Button("Supabase 세션 확인") {
+                    Task {
+                        await authViewModel.checkRemoteSession()
+                    }
+                }
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.recovery)
 
                 Button("로컬 세션 초기화") {
                     authViewModel.signOut()

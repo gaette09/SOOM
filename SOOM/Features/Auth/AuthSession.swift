@@ -28,6 +28,10 @@ struct AuthSession: Codable, Equatable {
         AuthSession(currentUser: user, sessionState: .localOnly)
     }
 
+    static func signedIn(user: AppUser) -> AuthSession {
+        AuthSession(currentUser: user, sessionState: .signedIn)
+    }
+
     static func error(_ message: String, currentUser: AppUser? = nil) -> AuthSession {
         AuthSession(currentUser: currentUser, sessionState: .error, errorMessage: message)
     }

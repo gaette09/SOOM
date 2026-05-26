@@ -153,6 +153,58 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.email, "remote@example.com")
     }
 
+
+    func testLoadRemoteSessionBridgesSignedInSnapshot() async {
+        let userId = "44444444-4444-4444-4444-444444444444"
+        let probe = SupabaseAuthSessionProbe(
+            isConfigured: true,
+            reader: ProviderFakeSessionReader(
+                session: SupabaseAuthSessionProbe.SessionInfo(userId: userId, email: "remote@example.com")
+            ),
+            now: { Date(timeIntervalSince1970: 1_800_000_000) }
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: probe,
+            sessionBridge: AuthSessionBridge(
+                mapper: SupabaseAppUserMapper(now: { Date(timeIntervalSince1970: 1_800_000_100) })
+            )
+        )
+
+        let session = await provider.loadRemoteSession()
+
+        XCTAssertEqual(session?.sessionState, .signedIn)
+        XCTAssertEqual(session?.currentUser?.id, UUID(uuidString: userId))
+        XCTAssertEqual(session?.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(session?.currentUser?.email, "remote@example.com")
+    }
+
+    func testLoadRemoteSessionReturnsNilForSignedOutSnapshot() async {
+        let probe = SupabaseAuthSessionProbe(
+            isConfigured: true,
+            reader: ProviderFakeSessionReader(session: nil),
+            now: { Date(timeIntervalSince1970: 1_800_000_000) }
+        )
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: probe
+        )
+
+        let session = await provider.loadRemoteSession()
+
+        XCTAssertNil(session)
+    }
+
 }
 
 private final class ProviderFakeSessionReader: SupabaseAuthSessionReading {

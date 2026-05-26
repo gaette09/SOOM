@@ -400,6 +400,10 @@
 		010400 /* EmailAuthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020399 /* EmailAuthCard.swift */; };
 		010401 /* EmailAuthRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020400 /* EmailAuthRequestTests.swift */; };
 		010402 /* EmailAuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020401 /* EmailAuthViewModelTests.swift */; };
+		010403 /* SupabaseAppUserMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020402 /* SupabaseAppUserMapper.swift */; };
+		010404 /* AuthSessionBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020403 /* AuthSessionBridge.swift */; };
+		010405 /* SupabaseAppUserMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020404 /* SupabaseAppUserMapperTests.swift */; };
+		010406 /* AuthSessionBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020405 /* AuthSessionBridgeTests.swift */; };
 		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -809,6 +813,10 @@
 		020399 /* EmailAuthCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthCard.swift; sourceTree = "<group>"; };
 		020400 /* EmailAuthRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthRequestTests.swift; sourceTree = "<group>"; };
 		020401 /* EmailAuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailAuthViewModelTests.swift; sourceTree = "<group>"; };
+		020402 /* SupabaseAppUserMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAppUserMapper.swift; sourceTree = "<group>"; };
+		020403 /* AuthSessionBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionBridge.swift; sourceTree = "<group>"; };
+		020404 /* SupabaseAppUserMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAppUserMapperTests.swift; sourceTree = "<group>"; };
+		020405 /* AuthSessionBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionBridgeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1026,6 +1034,8 @@
 				020392 /* SupabaseClientProvider.swift */,
 				020394 /* SupabaseAuthSessionSnapshot.swift */,
 				020395 /* SupabaseAuthSessionProbe.swift */,
+				020402 /* SupabaseAppUserMapper.swift */,
+				020403 /* AuthSessionBridge.swift */,
 				020397 /* EmailAuthRequest.swift */,
 				020398 /* EmailAuthViewModel.swift */,
 				020399 /* EmailAuthCard.swift */,
@@ -1391,6 +1401,8 @@
 				020391 /* AuthEnvironmentLoaderTests.swift */,
 				020393 /* SupabaseClientProviderTests.swift */,
 				020396 /* SupabaseAuthSessionProbeTests.swift */,
+				020404 /* SupabaseAppUserMapperTests.swift */,
+				020405 /* AuthSessionBridgeTests.swift */,
 				020400 /* EmailAuthRequestTests.swift */,
 				020401 /* EmailAuthViewModelTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
@@ -1798,6 +1810,8 @@
 				010392 /* SupabaseClientProvider.swift in Sources */,
 				010395 /* SupabaseAuthSessionSnapshot.swift in Sources */,
 				010396 /* SupabaseAuthSessionProbe.swift in Sources */,
+				010403 /* SupabaseAppUserMapper.swift in Sources */,
+				010404 /* AuthSessionBridge.swift in Sources */,
 				010398 /* EmailAuthRequest.swift in Sources */,
 				010399 /* EmailAuthViewModel.swift in Sources */,
 				010400 /* EmailAuthCard.swift in Sources */,
@@ -1898,6 +1912,8 @@
 				010391 /* AuthEnvironmentLoaderTests.swift in Sources */,
 				010393 /* SupabaseClientProviderTests.swift in Sources */,
 				010397 /* SupabaseAuthSessionProbeTests.swift in Sources */,
+				010405 /* SupabaseAppUserMapperTests.swift in Sources */,
+				010406 /* AuthSessionBridgeTests.swift in Sources */,
 				010401 /* EmailAuthRequestTests.swift in Sources */,
 				010402 /* EmailAuthViewModelTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,

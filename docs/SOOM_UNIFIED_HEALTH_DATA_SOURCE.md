@@ -653,7 +653,7 @@ Flow:
 
 `AuthEnvironment -> SupabaseClientProvider -> SupabaseAuthSessionProbe -> SupabaseAuthSessionSnapshot`
 
-A signed-in Supabase snapshot may show that a remote session exists, but it does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
+A signed-in Supabase snapshot can now be bridged into a transient `AppUser` / `AuthSession.signedIn` state for Settings/My Page. It still does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
 
 
 ## Email Auth Request Boundary
@@ -664,4 +664,9 @@ Flow:
 
 `Settings/My Page -> EmailAuthViewModel -> SupabaseAuthProvider.requestMagicLink -> Supabase Auth OTP request`
 
-This flow does not replace the local `AuthSessionStore`, does not attach remote `user_id` to SwiftData records, does not sync HealthKit/workout/route/progression data, and does not change RecoveryCalculator or Growth builders. Remote session bridge and explicit data ownership migration remain future steps.
+This flow does not replace the local `AuthSessionStore`, does not attach remote `user_id` to SwiftData records, does not sync HealthKit/workout/route/progression data, and does not change RecoveryCalculator or Growth builders. The read-only remote session bridge is available for account-connected UI state, while explicit data ownership migration remains a future step.
+
+
+## Supabase Session Bridge Boundary
+
+`SupabaseAuthSessionSnapshot -> SupabaseAppUserMapper -> AuthSessionBridge -> AuthViewModel.checkRemoteSession()` can represent an existing Supabase current session as an account-connected UI state. This is intentionally separate from local data ownership: no SwiftData schema receives `user_id`, no HealthKit/workout/route/progression record is uploaded, and local-first fallback remains intact when remote session lookup fails.

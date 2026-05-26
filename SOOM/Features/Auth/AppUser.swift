@@ -4,6 +4,7 @@ enum AuthProvider: String, Codable, Equatable, CaseIterable {
     case local
     case apple
     case google
+    case supabase
     case supabaseFuture
 
     var title: String {
@@ -14,6 +15,8 @@ enum AuthProvider: String, Codable, Equatable, CaseIterable {
             return "Apple 로그인"
         case .google:
             return "Google 로그인"
+        case .supabase:
+            return "Supabase 계정"
         case .supabaseFuture:
             return "Supabase 연결 예정"
         }
