@@ -1,6 +1,7 @@
 import XCTest
 @testable import SOOM
 
+@MainActor
 final class AuthViewModelTests: XCTestCase {
     func testLoadPublishesStoredLocalSession() {
         let store = makeStore()
@@ -93,6 +94,28 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.session.currentUser?.email, "remote@example.com")
         XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
         XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testCheckRemoteSessionRunsOnMainActorAndPromotesRemoteSessionSafely() async {
+        XCTAssertTrue(Thread.isMainThread)
+        let store = makeStore()
+        _ = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "44444444-4444-4444-4444-444444444444")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: .signedIn(user: remoteUser))
+        )
+
+        await viewModel.checkRemoteSession()
+
+        XCTAssertTrue(Thread.isMainThread)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
     }
 
     func testCheckRemoteSessionFailureKeepsLocalSession() async {

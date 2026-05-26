@@ -41,6 +41,24 @@ final class AuthSessionBridgeTests: XCTestCase {
         XCTAssertTrue(local.isLocalOnly)
     }
 
+    func testInvalidUserIdSignedInSnapshotReturnsNil() {
+        let bridge = AuthSessionBridge(mapper: SupabaseAppUserMapper(now: { self.fixedDate }))
+        let local = AuthSession.localOnly(user: AppUser(displayName: "Local", authProvider: .local, createdAt: fixedDate))
+        let snapshot = SupabaseAuthSessionSnapshot(
+            isConfigured: true,
+            hasSession: true,
+            userId: "not-a-uuid",
+            email: "member@example.com",
+            checkedAt: fixedDate,
+            status: .signedIn
+        )
+
+        let session = bridge.bridge(snapshot: snapshot, preserving: local)
+
+        XCTAssertNil(session)
+        XCTAssertTrue(local.isLocalOnly)
+    }
+
     func testFailedAndUnconfiguredSnapshotsReturnNil() {
         let bridge = AuthSessionBridge(mapper: SupabaseAppUserMapper(now: { self.fixedDate }))
         let failed = SupabaseAuthSessionSnapshot(isConfigured: true, hasSession: false, userId: nil, email: nil, checkedAt: fixedDate, status: .failed)

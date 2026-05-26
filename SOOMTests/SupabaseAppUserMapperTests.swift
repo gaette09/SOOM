@@ -26,12 +26,13 @@ final class SupabaseAppUserMapperTests: XCTestCase {
         XCTAssertEqual(user?.createdAt, fixedDate)
     }
 
-    func testMissingEmailUsesUserIdDisplayNameFallback() {
+    func testMissingEmailUsesValidUserIdDisplayNameFallback() {
+        let userId = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
         let mapper = SupabaseAppUserMapper(now: { self.fixedDate })
         let snapshot = SupabaseAuthSessionSnapshot(
             isConfigured: true,
             hasSession: true,
-            userId: "remote-user-12345",
+            userId: userId.uuidString,
             email: nil,
             checkedAt: fixedDate,
             status: .signedIn
@@ -39,9 +40,38 @@ final class SupabaseAppUserMapperTests: XCTestCase {
 
         let user = mapper.map(snapshot: snapshot)
 
-        XCTAssertEqual(user?.displayName, "Supabase remote-u")
+        XCTAssertEqual(user?.id, userId)
+        XCTAssertEqual(user?.displayName, "Supabase 55555555")
         XCTAssertNil(user?.email)
         XCTAssertEqual(user?.authProvider, .supabase)
+    }
+
+    func testNonUUIDUserIdDoesNotMapUser() {
+        let mapper = SupabaseAppUserMapper(now: { self.fixedDate })
+        let snapshot = SupabaseAuthSessionSnapshot(
+            isConfigured: true,
+            hasSession: true,
+            userId: "remote-user-12345",
+            email: "user@example.com",
+            checkedAt: fixedDate,
+            status: .signedIn
+        )
+
+        XCTAssertNil(mapper.map(snapshot: snapshot))
+    }
+
+    func testEmptyUserIdDoesNotMapUser() {
+        let mapper = SupabaseAppUserMapper(now: { self.fixedDate })
+        let snapshot = SupabaseAuthSessionSnapshot(
+            isConfigured: true,
+            hasSession: true,
+            userId: "   ",
+            email: "user@example.com",
+            checkedAt: fixedDate,
+            status: .signedIn
+        )
+
+        XCTAssertNil(mapper.map(snapshot: snapshot))
     }
 
     func testSignedOutSnapshotDoesNotMapUser() {

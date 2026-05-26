@@ -653,7 +653,7 @@ Flow:
 
 `AuthEnvironment -> SupabaseClientProvider -> SupabaseAuthSessionProbe -> SupabaseAuthSessionSnapshot`
 
-A signed-in Supabase snapshot can now be bridged into a transient `AppUser` / `AuthSession.signedIn` state for Settings/My Page. It still does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
+A signed-in Supabase snapshot with a valid UUID user id can now be bridged into a transient `AppUser` / `AuthSession.signedIn` state for Settings/My Page. It still does not migrate local HealthKit/workout data, attach `user_id` to SwiftData schemas, upload routes/zones/progression records, or replace the local `AuthSessionStore`. Missing configuration, missing session, or lookup failure all preserve local-first behavior.
 
 
 ## Email Auth Request Boundary
@@ -669,4 +669,4 @@ This flow does not replace the local `AuthSessionStore`, does not attach remote 
 
 ## Supabase Session Bridge Boundary
 
-`SupabaseAuthSessionSnapshot -> SupabaseAppUserMapper -> AuthSessionBridge -> AuthViewModel.checkRemoteSession()` can represent an existing Supabase current session as an account-connected UI state. This is intentionally separate from local data ownership: no SwiftData schema receives `user_id`, no HealthKit/workout/route/progression record is uploaded, and local-first fallback remains intact when remote session lookup fails.
+`SupabaseAuthSessionSnapshot -> SupabaseAppUserMapper -> AuthSessionBridge -> AuthViewModel.checkRemoteSession()` can represent an existing Supabase current session with a valid UUID user id as an account-connected UI state. This is intentionally separate from local data ownership: no SwiftData schema receives `user_id`, no HealthKit/workout/route/progression record is uploaded, and local-first fallback remains intact when remote session lookup fails.

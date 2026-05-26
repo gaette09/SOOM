@@ -107,7 +107,7 @@ struct SettingsView: View {
                     action: { authViewModel.updateDisplayName() }
                 )
 
-                SOOMActionRow(icon: "lock", title: "계정 연결 준비 중", subtitle: "Supabase 이메일 링크 요청부터 작게 열어둡니다.", tint: SOOMColor.secondaryInk)
+                SOOMActionRow(icon: "lock", title: "계정 연결 상태", subtitle: "현재 기록은 로컬에 유지돼요. 계정 연결과 동기화는 단계적으로 확인합니다.", tint: SOOMColor.secondaryInk)
 
                 EmailAuthCard(environment: authEnvironment)
 
@@ -115,7 +115,7 @@ struct SettingsView: View {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
                 }
 
-                Button("Supabase 세션 확인") {
+                Button("계정 상태 확인") {
                     Task {
                         await authViewModel.checkRemoteSession()
                     }

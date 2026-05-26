@@ -16,9 +16,13 @@ struct SupabaseAppUserMapper {
             return nil
         }
 
+        guard let userUUID = userIdentifier(from: userId) else {
+            return nil
+        }
+
         let email = normalizedEmail(snapshot.email)
         return AppUser(
-            id: userIdentifier(from: userId),
+            id: userUUID,
             displayName: displayName(from: email, fallbackUserId: userId),
             handle: email.map { "@\($0)" },
             email: email,
@@ -46,11 +50,7 @@ struct SupabaseAppUserMapper {
         return "Supabase 사용자"
     }
 
-    private func userIdentifier(from userId: String) -> UUID {
-        if let uuid = UUID(uuidString: userId) {
-            return uuid
-        }
-
-        return UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID()
+    private func userIdentifier(from userId: String) -> UUID? {
+        UUID(uuidString: userId.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

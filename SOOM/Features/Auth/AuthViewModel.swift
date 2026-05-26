@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class AuthViewModel: ObservableObject {
     @Published private(set) var session: AuthSession
     @Published var displayNameText: String

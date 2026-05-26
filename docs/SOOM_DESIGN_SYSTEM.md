@@ -658,7 +658,7 @@ Design 기준:
 - Avoid pressuring users to create an account before HealthKit, workout, route, and progression data have an explicit sync policy.
 ## Auth Environment Configuration
 
-Auth environment status is a small trust cue, not a user-facing login prompt. Settings may show whether Supabase and redirect placeholders are configured, but the copy must stay low-priority and avoid implying that cloud login or sync is live.
+Auth environment status is a small trust cue, not a user-facing login prompt. Settings may show whether Supabase and redirect placeholders are configured, but the copy must stay low-priority, user-friendly, and avoid implying that cloud login or sync is live.
 
 Design 기준:
 
@@ -674,7 +674,7 @@ The presence of the Supabase SDK should not make the app feel cloud-first. Setti
 
 ## Supabase Session Smoke Status
 
-Settings may show Supabase session smoke status as a small trust/debug cue. The copy should use calm states such as “미설정”, “세션 없음”, “세션 확인됨”, or “확인 실패” without making the user feel blocked. This status is not a sync promise and must not look like an OAuth sign-in flow before those flows are implemented.
+Settings may show account status as a small trust cue. The copy should prefer user-facing language such as “계정 상태 확인”, “계정 연결됨”, or “로컬 기록은 유지돼요” over developer-facing session language, without making the user feel blocked. This status is not a sync promise and must not look like an OAuth sign-in flow before those flows are implemented.
 
 
 ## Email Auth Request UI
@@ -684,4 +684,4 @@ Email auth UI should feel like an optional account connection path, not a requir
 
 ## Supabase Session Bridge UX
 
-When a Supabase current session is detected, Settings may show a small “계정 연결됨” cue. The cue should be calm and explicit: account connection is visible, but local records are not synced or migrated yet. Do not use backup, cloud sync, or ownership language until those flows exist.
+When a valid Supabase current session is detected, Settings may show a small “계정 연결됨” cue. The cue should be calm and explicit: account connection is visible, but local records are not synced or migrated yet. Do not use backup, cloud sync, or ownership language until those flows exist.

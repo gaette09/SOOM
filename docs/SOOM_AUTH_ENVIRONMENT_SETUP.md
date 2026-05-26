@@ -83,6 +83,6 @@ Current boundary:
 
 ## Supabase Session Bridge v1
 
-SOOM now maps a read-only `SupabaseAuthSessionSnapshot.signedIn` state into an `AppUser` and transient `AuthSession.signedIn` state through `SupabaseAppUserMapper` and `AuthSessionBridge`. This lets Settings/My Page show “계정 연결됨” after a Supabase current session is detected.
+SOOM now maps a read-only `SupabaseAuthSessionSnapshot.signedIn` state into an `AppUser` and transient `AuthSession.signedIn` state through `SupabaseAppUserMapper` and `AuthSessionBridge` only when the Supabase user id is a valid UUID. This lets Settings/My Page show “계정 연결됨” after a Supabase current session is detected.
 
-The bridge does not fetch Supabase profiles, does not persist the remote user into `AuthSessionStore`, and does not migrate HealthKit/workout/route/progression ownership. Signed-out, failed, or unconfigured snapshots preserve the local-first session.
+The bridge does not fetch Supabase profiles, does not persist the remote user into `AuthSessionStore`, and does not migrate HealthKit/workout/route/progression ownership. Signed-out, failed, unconfigured, empty-id, or non-UUID snapshots preserve the local-first session.
