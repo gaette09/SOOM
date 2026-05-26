@@ -41,6 +41,18 @@ struct UserOwnershipMigrationPlanner {
         )
     }
 
+    func buildPlan(
+        localSession: AuthSession,
+        remoteSession: AuthSession? = nil,
+        localDataPresence: LocalDataPresence
+    ) -> UserOwnershipMigrationPlan {
+        buildPlan(
+            localSession: localSession,
+            remoteSession: remoteSession,
+            eligibleDataTypes: localDataPresence.eligibleDataTypes
+        )
+    }
+
     private func preferredRemoteUser(localSession: AuthSession, remoteSession: AuthSession?) -> AppUser? {
         if let remoteUser = remoteSession?.currentUser, remoteUser.authProvider == .supabase {
             return remoteUser

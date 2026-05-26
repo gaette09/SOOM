@@ -25,6 +25,16 @@ final class TrainingSettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.loadSettings().maxHeartRate, 188)
     }
 
+    func testHasAnySavedTrainingSettingStartsFalse() {
+        XCTAssertFalse(store.hasAnySavedTrainingSetting())
+    }
+
+    func testHasAnySavedTrainingSettingDetectsSavedValue() {
+        store.saveMaxHeartRate(188)
+
+        XCTAssertTrue(store.hasAnySavedTrainingSetting())
+    }
+
     func testSaveAndLoadCyclingFTP() {
         store.saveCyclingFTP(246)
 

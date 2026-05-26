@@ -63,6 +63,13 @@ final class SwiftDataWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStorin
         return routes
     }
 
+    func hasAnyWorkoutRoute() async throws -> Bool {
+        var descriptor = FetchDescriptor<PersistedWorkoutRoute>()
+        descriptor.fetchLimit = 1
+
+        return try !modelContext.fetch(descriptor).isEmpty
+    }
+
     func deleteRoute(workoutId: UUID) async throws {
         guard let record = try fetchRecord(workoutId: workoutId) else {
             return

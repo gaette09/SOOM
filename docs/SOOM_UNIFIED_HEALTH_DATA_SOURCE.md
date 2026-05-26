@@ -717,8 +717,10 @@ Email Magic Link device QA now has a concrete native callback target: `soom-auth
 
 SOOM now has a planning layer for local-to-remote ownership migration:
 
-`AuthSession -> UserOwnershipMigrationPlanner -> UserOwnershipMigrationPlan`
+`AuthSession -> LocalDataDetector -> LocalDataPresence -> UserOwnershipMigrationPlanner -> UserOwnershipMigrationPlan`
 
-The planner can mark local-first records as eligible for future review when a Supabase account is connected, but it does not mutate data. Training settings, workouts, workout routes, course identities, progression summaries, and future feed posts are only listed as eligible data types. No SwiftData schema receives `user_id`, no HealthKit/workout/route record is uploaded, and no cloud sync starts in this step.
+The detector checks only whether local data categories exist. Training settings, workouts, persisted workout routes, route-derived course identity foundations, and future progression data can be marked as eligible for review. The planner uses that presence summary to avoid showing migration notices when no local data is detected.
+
+This layer does not mutate data. No SwiftData schema receives `user_id`, no HealthKit/workout/route record is uploaded, no Supabase database write happens, and no cloud sync starts in this step.
 
 Migration requires explicit consent in a future UX. Account deletion, conflict handling, cross-device merges, and server-side writes remain separate future work.

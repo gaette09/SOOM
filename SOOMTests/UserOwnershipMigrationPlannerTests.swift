@@ -25,7 +25,12 @@ final class UserOwnershipMigrationPlannerTests: XCTestCase {
         let plan = planner.buildPlan(
             localSession: localSession,
             remoteSession: remoteSession,
-            eligibleDataTypes: [.trainingSettings, .workouts, .workoutRoutes]
+            localDataPresence: LocalDataPresence(
+                hasTrainingSettings: true,
+                hasWorkouts: true,
+                hasWorkoutRoutes: true,
+                hasProgressionData: false
+            )
         )
 
         XCTAssertEqual(plan.localUserId, localSession.currentUser?.id)
@@ -33,13 +38,16 @@ final class UserOwnershipMigrationPlannerTests: XCTestCase {
         XCTAssertEqual(plan.ownershipScope, .migrationEligible)
         XCTAssertEqual(plan.migrationStatus, .awaitingConsent)
         XCTAssertTrue(plan.requiresUserConsent)
-        XCTAssertEqual(plan.eligibleDataTypes, [.trainingSettings, .workouts, .workoutRoutes])
+        XCTAssertEqual(plan.eligibleDataTypes, [.trainingSettings, .workouts, .workoutRoutes, .courseIdentities])
     }
 
     func testRemoteSignedInWithoutLocalDataDefersMigration() {
         let localSession = AuthSession.signedIn(user: remoteUser())
 
-        let plan = planner.buildPlan(localSession: localSession, eligibleDataTypes: [])
+        let plan = planner.buildPlan(
+            localSession: localSession,
+            localDataPresence: .empty
+        )
 
         XCTAssertNil(plan.localUserId)
         XCTAssertEqual(plan.remoteUserId, localSession.currentUser?.id)
@@ -59,6 +67,22 @@ final class UserOwnershipMigrationPlannerTests: XCTestCase {
         XCTAssertNotEqual(plan.migrationStatus, .migratedFuture)
         XCTAssertEqual(plan.migrationStatus, .awaitingConsent)
         XCTAssertTrue(plan.requiresUserConsent)
+    }
+
+    func testRemoteSignedInWithWorkoutOnlyAwaitsConsentForWorkoutsOnly() {
+        let plan = planner.buildPlan(
+            localSession: .signedIn(user: remoteUser()),
+            localDataPresence: LocalDataPresence(
+                hasTrainingSettings: false,
+                hasWorkouts: true,
+                hasWorkoutRoutes: false,
+                hasProgressionData: false
+            )
+        )
+
+        XCTAssertEqual(plan.migrationStatus, .awaitingConsent)
+        XCTAssertTrue(plan.requiresUserConsent)
+        XCTAssertEqual(plan.eligibleDataTypes, [.workouts])
     }
 
     func testRemoteSessionPreferenceDoesNotMutateInputSessions() {

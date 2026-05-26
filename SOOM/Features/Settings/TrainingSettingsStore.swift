@@ -39,6 +39,15 @@ final class TrainingSettingsStore {
         )
     }
 
+    func hasAnySavedTrainingSetting() -> Bool {
+        [
+            Key.maxHeartRate,
+            Key.cyclingFTP,
+            Key.preferredUnit,
+            Key.privacyDefault
+        ].contains { userDefaults.object(forKey: $0) != nil }
+    }
+
     func saveMaxHeartRate(_ value: Int?) {
         saveOptionalInt(value, forKey: Key.maxHeartRate)
     }

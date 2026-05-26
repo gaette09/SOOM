@@ -77,6 +77,13 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
         return mapper.makeWorkout(from: record)
     }
 
+    func hasAnyWorkout() async throws -> Bool {
+        var descriptor = FetchDescriptor<UnifiedWorkoutRecord>()
+        descriptor.fetchLimit = 1
+
+        return try !modelContext.fetch(descriptor).isEmpty
+    }
+
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws {
         guard let record = try fetchRecord(id: id) else {
             return

@@ -1,10 +1,13 @@
 import SwiftUI
 import UIKit
+import SwiftData
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var isShowingDisconnectConfirmation = false
+    @State private var localDataPresence: LocalDataPresence = .empty
     private let authEnvironment: AuthEnvironment
 
     init(
@@ -34,6 +37,10 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.load()
+            await refreshLocalDataPresence()
+        }
+        .task(id: authViewModel.session.currentUser?.id) {
+            await refreshLocalDataPresence()
         }
         .alert(
             "설정 값을 확인해주세요",
@@ -123,7 +130,9 @@ struct SettingsView: View {
                 if authViewModel.session.currentUser?.authProvider == .supabase {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
 
-                    SOOMActionRow(icon: "externaldrive.badge.person.crop", title: "기록 소유권", subtitle: ownershipPlanNotice, tint: SOOMColor.secondaryInk)
+                    if let ownershipPlanNotice {
+                        SOOMActionRow(icon: "externaldrive.badge.person.crop", title: "기록 소유권", subtitle: ownershipPlanNotice, tint: SOOMColor.secondaryInk)
+                    }
 
                     SOOMActionRow(icon: "person.crop.circle.badge.minus", title: "계정 연결 해제", subtitle: "원격 세션만 종료하고 이 기기의 기록과 설정은 유지합니다.", tint: SOOMColor.warning)
 
@@ -267,9 +276,21 @@ struct SettingsView: View {
         return "\(sessionStatus) · 로컬 기록 동기화는 다음 단계입니다."
     }
 
-    private var ownershipPlanNotice: String {
-        let plan = UserOwnershipMigrationPlanner().buildPlan(localSession: authViewModel.session)
+    private var ownershipPlanNotice: String? {
+        let plan = UserOwnershipMigrationPlanner().buildPlan(
+            localSession: authViewModel.session,
+            localDataPresence: localDataPresence
+        )
+        guard plan.hasEligibleLocalData else {
+            return nil
+        }
         return plan.userFacingSummary
+    }
+
+    @MainActor
+    private func refreshLocalDataPresence() async {
+        let detector = LocalDataDetector.live(modelContext: modelContext)
+        localDataPresence = await detector.detect()
     }
 
     private func settingInputRow(

@@ -731,6 +731,8 @@ Design 기준:
 
 Ownership migration copy should reassure before it asks. A connected account is not the same as cloud sync, backup, or data transfer. Settings may show a small notice such as “이 기기의 기록은 아직 로컬에 있어요” and “계정에 연결하려면 다음 단계에서 확인이 필요해요.”
 
+Show the ownership notice only when local data presence is detected. If no local workout/settings/route/progression data is found, avoid implying that the user has records waiting for migration.
+
 Design 기준:
 
 - Treat ownership migration as a future review/consent step, not an automatic result of login.

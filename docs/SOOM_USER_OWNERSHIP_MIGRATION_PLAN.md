@@ -39,6 +39,15 @@ Future migration can consider:
 
 Migration is eligible only after a valid remote account session exists and local data is detected. The app may show a review notice in Settings/My Page, but it must not run migration automatically.
 
+`LocalDataPresence` and `LocalDataDetector` provide the v1 detection foundation. They only check whether local categories exist:
+
+- Saved training settings.
+- Stored workouts.
+- Persisted workout routes, which can imply route-derived course identities.
+- Future progression cache/foundation data.
+
+The detector uses existence/count-style checks only. It must not fetch full analytical payloads, mutate local records, write to Supabase, or start sync.
+
 The v1 planner behavior:
 
 - Local-only session -> `notLinked`.
@@ -55,6 +64,8 @@ Settings/My Page copy should be calm and explicit:
 - “동기화와 소유권 이전은 아직 사용하지 않아요.”
 
 Do not use copy that implies backup, cloud sync, or account data transfer before those systems exist.
+
+The Settings/My Page ownership notice should appear only when actual local data presence is detected. If no eligible local data is found, the app can keep the quieter account-connected copy and avoid implying that records need migration.
 
 ## Conflict Handling Future
 

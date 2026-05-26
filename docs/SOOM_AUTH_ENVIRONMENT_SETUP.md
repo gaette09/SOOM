@@ -162,6 +162,8 @@ Settings copy must describe this as “계정 연결 해제”, not account dele
 
 SOOM now has a lightweight ownership planning model for the gap between local-first data and a connected Supabase account. `UserOwnershipScope`, `UserOwnershipMigrationPlan`, and `UserOwnershipMigrationPlanner` can describe whether local data is not linked, eligible for future review, awaiting consent, or deferred.
 
-This is planning only. The planner does not write to Supabase, does not add `user_id` to SwiftData schemas, does not mutate local workouts/settings/routes, and does not start cloud sync. A connected remote account can make local records eligible for future review, but migration requires explicit user consent and remains a later implementation step.
+`LocalDataPresence` and `LocalDataDetector` now provide a lightweight existence check so Settings/My Page only shows ownership review copy when local training settings, workouts, persisted routes, or future progression data are detected.
+
+This is planning only. The detector and planner do not write to Supabase, do not add `user_id` to SwiftData schemas, do not mutate local workouts/settings/routes, and do not start cloud sync. A connected remote account can make detected local records eligible for future review, but migration requires explicit user consent and remains a later implementation step.
 
 Full policy lives in `docs/SOOM_USER_OWNERSHIP_MIGRATION_PLAN.md`.
