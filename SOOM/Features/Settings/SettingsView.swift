@@ -111,6 +111,14 @@ struct SettingsView: View {
 
                 EmailAuthCard(environment: authEnvironment)
 
+                SOOMActionRow(
+                    icon: "apple.logo",
+                    title: "Apple 로그인 준비 중",
+                    subtitle: "Apple 계정 연결은 다음 단계에서 연결합니다. 현재 기록은 로컬에 유지돼요.",
+                    tint: SOOMColor.secondaryInk
+                )
+                .opacity(0.72)
+
                 if authViewModel.session.currentUser?.authProvider == .supabase {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
                 }

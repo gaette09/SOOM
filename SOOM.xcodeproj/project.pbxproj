@@ -404,6 +404,11 @@
 		010404 /* AuthSessionBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020403 /* AuthSessionBridge.swift */; };
 		010405 /* SupabaseAppUserMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020404 /* SupabaseAppUserMapperTests.swift */; };
 		010406 /* AuthSessionBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020405 /* AuthSessionBridgeTests.swift */; };
+		010407 /* AppleSignInCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020406 /* AppleSignInCredential.swift */; };
+		010408 /* AppleSignInRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020407 /* AppleSignInRequest.swift */; };
+		010409 /* AppleSignInProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020408 /* AppleSignInProvider.swift */; };
+		010410 /* AppleSignInCredentialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020409 /* AppleSignInCredentialTests.swift */; };
+		010411 /* AppleSignInProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020410 /* AppleSignInProviderTests.swift */; };
 		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -817,6 +822,11 @@
 		020403 /* AuthSessionBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionBridge.swift; sourceTree = "<group>"; };
 		020404 /* SupabaseAppUserMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAppUserMapperTests.swift; sourceTree = "<group>"; };
 		020405 /* AuthSessionBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionBridgeTests.swift; sourceTree = "<group>"; };
+		020406 /* AppleSignInCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInCredential.swift; sourceTree = "<group>"; };
+		020407 /* AppleSignInRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInRequest.swift; sourceTree = "<group>"; };
+		020408 /* AppleSignInProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInProvider.swift; sourceTree = "<group>"; };
+		020409 /* AppleSignInCredentialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInCredentialTests.swift; sourceTree = "<group>"; };
+		020410 /* AppleSignInProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1036,6 +1046,9 @@
 				020395 /* SupabaseAuthSessionProbe.swift */,
 				020402 /* SupabaseAppUserMapper.swift */,
 				020403 /* AuthSessionBridge.swift */,
+				020406 /* AppleSignInCredential.swift */,
+				020407 /* AppleSignInRequest.swift */,
+				020408 /* AppleSignInProvider.swift */,
 				020397 /* EmailAuthRequest.swift */,
 				020398 /* EmailAuthViewModel.swift */,
 				020399 /* EmailAuthCard.swift */,
@@ -1403,6 +1416,8 @@
 				020396 /* SupabaseAuthSessionProbeTests.swift */,
 				020404 /* SupabaseAppUserMapperTests.swift */,
 				020405 /* AuthSessionBridgeTests.swift */,
+				020409 /* AppleSignInCredentialTests.swift */,
+				020410 /* AppleSignInProviderTests.swift */,
 				020400 /* EmailAuthRequestTests.swift */,
 				020401 /* EmailAuthViewModelTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
@@ -1812,6 +1827,9 @@
 				010396 /* SupabaseAuthSessionProbe.swift in Sources */,
 				010403 /* SupabaseAppUserMapper.swift in Sources */,
 				010404 /* AuthSessionBridge.swift in Sources */,
+				010407 /* AppleSignInCredential.swift in Sources */,
+				010408 /* AppleSignInRequest.swift in Sources */,
+				010409 /* AppleSignInProvider.swift in Sources */,
 				010398 /* EmailAuthRequest.swift in Sources */,
 				010399 /* EmailAuthViewModel.swift in Sources */,
 				010400 /* EmailAuthCard.swift in Sources */,
@@ -1914,6 +1932,8 @@
 				010397 /* SupabaseAuthSessionProbeTests.swift in Sources */,
 				010405 /* SupabaseAppUserMapperTests.swift in Sources */,
 				010406 /* AuthSessionBridgeTests.swift in Sources */,
+				010410 /* AppleSignInCredentialTests.swift in Sources */,
+				010411 /* AppleSignInProviderTests.swift in Sources */,
 				010401 /* EmailAuthRequestTests.swift in Sources */,
 				010402 /* EmailAuthViewModelTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,

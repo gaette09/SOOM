@@ -27,6 +27,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
     private let sessionProbe: SupabaseAuthSessionProbe
     private let sessionBridge: AuthSessionBridge
     private let emailRequester: (any SupabaseEmailMagicLinkRequesting)?
+    private let appleSignInProvider: AppleSignInProvider
     private let now: () -> Date
 
     init(configuration: SupabaseAuthConfiguration = .empty, now: @escaping () -> Date = { Date() }) {
@@ -35,6 +36,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
         self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
         self.sessionBridge = AuthSessionBridge()
         self.emailRequester = clientProvider.makeClient().map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
 
@@ -43,6 +45,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
         self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
         self.sessionBridge = AuthSessionBridge()
         self.emailRequester = clientProvider.makeClient().map(SupabaseClientEmailMagicLinkRequester.init(client:))
+        self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
 
@@ -51,12 +54,14 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
         sessionProbe: SupabaseAuthSessionProbe,
         sessionBridge: AuthSessionBridge = AuthSessionBridge(),
         emailRequester: (any SupabaseEmailMagicLinkRequesting)? = nil,
+        appleSignInProvider: AppleSignInProvider = AppleSignInProvider(),
         now: @escaping () -> Date = { Date() }
     ) {
         self.clientProvider = clientProvider
         self.sessionProbe = sessionProbe
         self.sessionBridge = sessionBridge
         self.emailRequester = emailRequester
+        self.appleSignInProvider = appleSignInProvider
         self.now = now
     }
 
@@ -71,6 +76,14 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading {
     func loadRemoteSession() async -> AuthSession? {
         let snapshot = await checkSessionStatus()
         return sessionBridge.bridge(snapshot: snapshot)
+    }
+
+    func prepareAppleSignInRequest(nonce: String? = nil) -> AppleSignInRequest {
+        appleSignInProvider.prepareRequest(nonce: nonce)
+    }
+
+    func handleAppleSignInCredential(_ credential: AppleSignInCredential) async throws -> AuthSession {
+        try await appleSignInProvider.handleCredential(credential)
     }
 
     func requestMagicLink(email: String, redirectTo: URL? = nil) async throws -> EmailAuthRequestResult {

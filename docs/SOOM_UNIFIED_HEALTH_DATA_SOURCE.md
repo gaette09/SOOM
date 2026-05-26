@@ -670,3 +670,8 @@ This flow does not replace the local `AuthSessionStore`, does not attach remote 
 ## Supabase Session Bridge Boundary
 
 `SupabaseAuthSessionSnapshot -> SupabaseAppUserMapper -> AuthSessionBridge -> AuthViewModel.checkRemoteSession()` can represent an existing Supabase current session with a valid UUID user id as an account-connected UI state. This is intentionally separate from local data ownership: no SwiftData schema receives `user_id`, no HealthKit/workout/route/progression record is uploaded, and local-first fallback remains intact when remote session lookup fails.
+
+
+## Apple Sign In Account Boundary
+
+Apple Sign In preparation adds a future account-provider boundary only. Apple account credentials are not exchanged with Supabase yet, and no HealthKit, route, workout, progression, or Recovery data is migrated to a remote `user_id`. Local workout ownership remains separate from remote account state until an explicit migration/sync phase exists.

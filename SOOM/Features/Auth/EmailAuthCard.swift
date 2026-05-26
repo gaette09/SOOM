@@ -62,7 +62,7 @@ struct EmailAuthCard: View {
     private var statusText: String {
         if let successMessage = viewModel.successMessage { return successMessage }
         if let errorMessage = viewModel.errorMessage { return errorMessage }
-        return "비밀번호 로그인, 회원가입, Apple/Google 로그인은 아직 연결하지 않았어요."
+        return "Apple/Google 로그인은 준비 중이고, 비밀번호 로그인과 회원가입은 아직 연결하지 않았어요."
     }
 
     private var statusColor: Color {

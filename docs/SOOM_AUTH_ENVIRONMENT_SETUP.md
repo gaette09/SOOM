@@ -86,3 +86,12 @@ Current boundary:
 SOOM now maps a read-only `SupabaseAuthSessionSnapshot.signedIn` state into an `AppUser` and transient `AuthSession.signedIn` state through `SupabaseAppUserMapper` and `AuthSessionBridge` only when the Supabase user id is a valid UUID. This lets Settings/My Page show “계정 연결됨” after a Supabase current session is detected.
 
 The bridge does not fetch Supabase profiles, does not persist the remote user into `AuthSessionStore`, and does not migrate HealthKit/workout/route/progression ownership. Signed-out, failed, unconfigured, empty-id, or non-UUID snapshots preserve the local-first session.
+
+
+## Apple Sign In Prep v1
+
+SOOM now includes Apple Sign In preparation models and a placeholder provider: `AppleSignInCredential`, `AppleSignInRequest`, and `AppleSignInProvider`. This layer can prepare requested scopes and nonce-aware request metadata, but it does not run `ASAuthorizationController`, does not add the Apple Sign In capability, and does not exchange Apple credentials with Supabase.
+
+The future flow is Apple credential -> Supabase OAuth/id-token exchange -> read-only session bridge -> explicit data ownership migration. Only the model/provider boundary exists in v1. Email Magic Link remains the only active Supabase auth request surface, and local-first fallback remains the default.
+
+Deferred: Apple Developer configuration, app capability review, nonce generation policy, Supabase provider setup, OAuth callback handling, session persistence bridge, user ownership migration, and remote workout sync.

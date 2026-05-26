@@ -205,6 +205,34 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertNil(session)
     }
 
+    func testPrepareAppleSignInRequestUsesFutureOAuthStrategy() {
+        let provider = SupabaseAuthProvider(configuration: .empty)
+
+        let request = provider.prepareAppleSignInRequest(nonce: "apple-nonce")
+
+        XCTAssertEqual(request.requestedScopes, [.fullName, .email])
+        XCTAssertEqual(request.nonce, "apple-nonce")
+        XCTAssertEqual(request.redirectStrategy, .supabaseOAuthFuture)
+    }
+
+    func testHandleAppleCredentialStaysFutureOnly() async {
+        let provider = SupabaseAuthProvider(configuration: .empty)
+        let credential = AppleSignInCredential(
+            userIdentifier: "apple-user",
+            identityToken: "token",
+            authorizationCode: "code"
+        )
+
+        do {
+            _ = try await provider.handleAppleSignInCredential(credential)
+            XCTFail("Supabase Apple exchange should stay deferred")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
 }
 
 private final class ProviderFakeSessionReader: SupabaseAuthSessionReading {

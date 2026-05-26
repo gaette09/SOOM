@@ -685,3 +685,8 @@ Email auth UI should feel like an optional account connection path, not a requir
 ## Supabase Session Bridge UX
 
 When a valid Supabase current session is detected, Settings may show a small “계정 연결됨” cue. The cue should be calm and explicit: account connection is visible, but local records are not synced or migrated yet. Do not use backup, cloud sync, or ownership language until those flows exist.
+
+
+## Apple Sign In Prep v1
+
+Apple login should appear as a high-trust account connection option only when the implementation is ready. In the preparation phase, Settings may show a subtle disabled/준비 중 row near email account connection, but it must not look like an active OAuth button. Copy should keep local-first reassurance: current records stay on device, and sync/ownership migration comes later.

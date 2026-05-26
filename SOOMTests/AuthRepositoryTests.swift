@@ -33,8 +33,9 @@ final class AuthRepositoryTests: XCTestCase {
         XCTAssertNil(repository.loadSession().currentUser)
     }
 
-    func testFutureAppleSignInReturnsUnsupportedProvider() async {
+    func testFutureAppleSignInReturnsUnsupportedProviderAndKeepsLocalSession() async {
         let repository = makeRepository()
+        let localSession = repository.continueAsLocalUser(displayName: "SOOM 사용자")
 
         do {
             _ = try await repository.signInWithApple()
@@ -44,6 +45,8 @@ final class AuthRepositoryTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+
+        XCTAssertEqual(repository.loadSession(), localSession)
     }
 
     func testFutureGoogleSignInReturnsUnsupportedProvider() async {
