@@ -198,6 +198,31 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isCheckingRemoteSession)
     }
 
+    func testDuplicateInitializeSessionCallsShareActiveRestoreTask() async {
+        let store = makeStore()
+        _ = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "10101010-1010-1010-1010-101010101010")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let loader = CountingRemoteSessionLoader(session: .signedIn(user: remoteUser))
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: loader
+        )
+
+        async let first: Void = viewModel.initializeSession()
+        async let second: Void = viewModel.initializeSession()
+        _ = await (first, second)
+
+        XCTAssertEqual(loader.loadCount, 1)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertFalse(viewModel.isCheckingRemoteSession)
+    }
+
     func testAppleSignInSuccessPromotesRemoteSessionWithoutDeletingLocalStore() async {
         let store = makeStore()
         let localSession = store.continueAsLocalUser(displayName: "Local User")
@@ -271,5 +296,20 @@ private struct FakeRemoteSessionLoader: RemoteAuthSessionLoading {
 
     func loadRemoteSession() async -> AuthSession? {
         session
+    }
+}
+
+private final class CountingRemoteSessionLoader: RemoteAuthSessionLoading {
+    private(set) var loadCount = 0
+    let session: AuthSession?
+
+    init(session: AuthSession?) {
+        self.session = session
+    }
+
+    func loadRemoteSession() async -> AuthSession? {
+        loadCount += 1
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        return session
     }
 }

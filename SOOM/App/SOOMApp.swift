@@ -5,6 +5,8 @@ import SwiftData
 struct SOOMApp: App {
     @StateObject private var dashboardViewModel: DashboardViewModel
     @StateObject private var communityViewModel: CommunityViewModel
+    @StateObject private var authViewModel: AuthViewModel
+    @StateObject private var rootAuthBootstrap: RootAuthBootstrap
     private let authCallbackHandler: AuthCallbackHandler
 
     init() {
@@ -13,8 +15,14 @@ struct SOOMApp: App {
         let remoteAuthProvider = SupabaseAuthProvider(
             configuration: SupabaseAuthConfiguration.from(environment: authEnvironment)
         )
+        let authViewModel = AuthViewModel(
+            remoteSessionLoader: remoteAuthProvider,
+            appleSignInHandler: remoteAuthProvider.signInWithAppleCredential
+        )
         _dashboardViewModel = StateObject(wrappedValue: DashboardViewModel(harness: harness))
         _communityViewModel = StateObject(wrappedValue: CommunityViewModel(harness: harness))
+        _authViewModel = StateObject(wrappedValue: authViewModel)
+        _rootAuthBootstrap = StateObject(wrappedValue: RootAuthBootstrap(authViewModel: authViewModel))
         self.authCallbackHandler = AuthCallbackHandler(
             environment: authEnvironment,
             sessionHandler: remoteAuthProvider
@@ -26,6 +34,10 @@ struct SOOMApp: App {
             RootTabView()
                 .environmentObject(dashboardViewModel)
                 .environmentObject(communityViewModel)
+                .environmentObject(authViewModel)
+                .task {
+                    await rootAuthBootstrap.bootstrap()
+                }
                 .onOpenURL { url in
                     Task {
                         _ = await authCallbackHandler.handle(url: url)

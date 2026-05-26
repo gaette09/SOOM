@@ -701,3 +701,8 @@ Email callback handling should feel like quiet account-state confirmation, not a
 ## Restored Account State Copy
 
 When SOOM restores a Supabase account session on app launch, Settings may show `계정 연결됨` as an account-state cue. The surrounding copy must continue to separate account connection from data sync, using language such as “현재 기록은 로컬에 유지돼요” and “로컬 기록 동기화는 다음 단계입니다.” Remote restore failures should stay low priority and should not interrupt HealthKit, workout analysis, Recovery, Growth, or Feed flows.
+
+
+## Root Auth Bootstrap UX
+
+Auth state is prepared from the app root so My Page can present account status without doing its own restore work. Settings should read as a calm account-status surface: "계정 연결됨", "로컬 사용자", and "계정 상태 확인 중" are trust cues, not sync promises. Copy must continue to distinguish remote session visibility from local workout ownership and cloud sync.

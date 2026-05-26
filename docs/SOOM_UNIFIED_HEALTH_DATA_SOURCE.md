@@ -686,3 +686,8 @@ Email Magic Link callback handling can now validate `auth/callback` URLs and ask
 ## Supabase Session Restore Boundary
 
 App launch session restore can now represent an existing Supabase `currentSession` as account-connected UI state. This is a read-only auth-state restore, not a data ownership migration. Local workout, route, HealthKit, zone, progression, Feed, Recovery, and Growth records are not assigned a remote `user_id`, uploaded, or synced as part of this step.
+
+
+## Root Auth Bootstrap Boundary
+
+Session restore is now orchestrated from the app bootstrap layer. `SOOMApp` creates the shared auth view model, runs `RootAuthBootstrap`, and passes the resulting auth state through the SwiftUI environment before Settings is opened. This keeps account state global while preserving the same local-first data boundary: remote account visibility still does not create user-scoped workout ownership, HealthKit sync, route sync, Feed sync, Recovery sync, or Growth sync.

@@ -3,23 +3,14 @@ import UIKit
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
-    @StateObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var authViewModel: AuthViewModel
     private let authEnvironment: AuthEnvironment
 
     init(
         viewModel: SettingsViewModel = SettingsViewModel(),
-        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
-        authViewModel: AuthViewModel? = nil
+        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load()
     ) {
-        let remoteAuthProvider = SupabaseAuthProvider(
-            configuration: SupabaseAuthConfiguration.from(environment: authEnvironment)
-        )
-        let resolvedAuthViewModel = authViewModel ?? AuthViewModel(
-            remoteSessionLoader: remoteAuthProvider,
-            appleSignInHandler: remoteAuthProvider.signInWithAppleCredential
-        )
         _viewModel = StateObject(wrappedValue: viewModel)
-        _authViewModel = StateObject(wrappedValue: resolvedAuthViewModel)
         self.authEnvironment = authEnvironment
     }
 
@@ -42,7 +33,6 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.load()
-            await authViewModel.initializeSession()
         }
         .alert(
             "설정 값을 확인해주세요",
@@ -287,5 +277,6 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .environmentObject(AuthViewModel())
     .preferredColorScheme(.light)
 }

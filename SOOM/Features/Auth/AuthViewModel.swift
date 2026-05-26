@@ -12,6 +12,7 @@ final class AuthViewModel: ObservableObject {
     private let remoteSessionLoader: (any RemoteAuthSessionLoading)?
     private let sessionRestorer: AuthSessionRestorer
     private let appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)?
+    private var initializeSessionTask: Task<Void, Never>?
 
     init(
         repository: any AuthRepository = LocalAuthRepository(),
@@ -46,6 +47,20 @@ final class AuthViewModel: ObservableObject {
     }
 
     func initializeSession() async {
+        if let initializeSessionTask {
+            await initializeSessionTask.value
+            return
+        }
+
+        let task = Task { @MainActor in
+            await self.performInitializeSession()
+        }
+        initializeSessionTask = task
+        await task.value
+        initializeSessionTask = nil
+    }
+
+    private func performInitializeSession() async {
         let localSession = repository.loadSession()
         publish(session: localSession, preservingDisplayName: false)
 

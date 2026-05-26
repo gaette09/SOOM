@@ -118,3 +118,10 @@ Deferred: explicit user ownership migration, cloud sync, Google OAuth, password 
 SOOM now restores Supabase `currentSession` on app launch through a read-only session restore foundation. `AuthSessionRestorer` first loads the local `AuthSessionStore` session, then checks the remote Supabase session when the policy is `preferRemoteIfAvailable`. A valid remote session can be bridged into transient `AuthSession.signedIn` UI state, while signed-out, failed, unconfigured, or missing remote sessions preserve the local session.
 
 This restore step does not call Supabase sign-out, password login, Apple/Google additions, database profile fetch, server storage, or any ownership migration. Local HealthKit, workout, route, Growth, Recovery, Feed, and progression records remain local-first until a separate explicit sync/migration step exists.
+
+
+## Root Auth Bootstrap v1
+
+Auth session restore now starts from the app root instead of depending on Settings entry. `SOOMApp` owns the root `AuthViewModel`, injects it through the SwiftUI environment, and runs `RootAuthBootstrap` with the existing read-only restore policy. Settings observes the global auth state and no longer forces a separate restore task when the user opens My Page.
+
+The bootstrap is non-blocking and idempotent: duplicate launch tasks share the active restore path, and failed or missing remote sessions keep the local-first session intact. This still does not migrate local workout ownership, upload HealthKit data, or sync Feed/Recovery/Growth records to a remote account.
