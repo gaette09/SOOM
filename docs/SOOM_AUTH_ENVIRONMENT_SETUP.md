@@ -157,3 +157,11 @@ Current boundary:
 - Account deletion, server-side data deletion, user ownership migration, cloud sync, and HealthKit remote sync remain deferred.
 
 Settings copy must describe this as “계정 연결 해제”, not account deletion. The confirmation message should make clear that this device's records are preserved.
+
+## User Ownership Migration Planning v1
+
+SOOM now has a lightweight ownership planning model for the gap between local-first data and a connected Supabase account. `UserOwnershipScope`, `UserOwnershipMigrationPlan`, and `UserOwnershipMigrationPlanner` can describe whether local data is not linked, eligible for future review, awaiting consent, or deferred.
+
+This is planning only. The planner does not write to Supabase, does not add `user_id` to SwiftData schemas, does not mutate local workouts/settings/routes, and does not start cloud sync. A connected remote account can make local records eligible for future review, but migration requires explicit user consent and remains a later implementation step.
+
+Full policy lives in `docs/SOOM_USER_OWNERSHIP_MIGRATION_PLAN.md`.

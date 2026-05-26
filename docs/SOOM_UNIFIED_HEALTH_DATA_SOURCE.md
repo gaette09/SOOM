@@ -712,3 +712,13 @@ Flow:
 The local `AuthSessionStore` is preserved, local workouts/settings/routes stay on device, and no SwiftData schema receives remote `user_id` ownership. If remote sign-out fails, the current UI session remains connected and the user sees a soft error. Cloud sync, HealthKit remote sync, account deletion, and ownership migration remain future work.
 
 Email Magic Link device QA now has a concrete native callback target: `soom-auth://auth/callback`, registered through `CFBundleURLTypes` and backed by the `SOOM_AUTH_REDIRECT_SCHEME` build setting. This only enables the app to receive auth callbacks. It does not migrate local HealthKit, workout, route, zone, progression, Feed, Recovery, or Growth data to remote ownership, and it does not add `user_id` to local schemas.
+
+## User Ownership Migration Planning Boundary
+
+SOOM now has a planning layer for local-to-remote ownership migration:
+
+`AuthSession -> UserOwnershipMigrationPlanner -> UserOwnershipMigrationPlan`
+
+The planner can mark local-first records as eligible for future review when a Supabase account is connected, but it does not mutate data. Training settings, workouts, workout routes, course identities, progression summaries, and future feed posts are only listed as eligible data types. No SwiftData schema receives `user_id`, no HealthKit/workout/route record is uploaded, and no cloud sync starts in this step.
+
+Migration requires explicit consent in a future UX. Account deletion, conflict handling, cross-device merges, and server-side writes remain separate future work.

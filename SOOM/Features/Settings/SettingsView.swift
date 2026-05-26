@@ -123,6 +123,8 @@ struct SettingsView: View {
                 if authViewModel.session.currentUser?.authProvider == .supabase {
                     SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
 
+                    SOOMActionRow(icon: "externaldrive.badge.person.crop", title: "기록 소유권", subtitle: ownershipPlanNotice, tint: SOOMColor.secondaryInk)
+
                     SOOMActionRow(icon: "person.crop.circle.badge.minus", title: "계정 연결 해제", subtitle: "원격 세션만 종료하고 이 기기의 기록과 설정은 유지합니다.", tint: SOOMColor.warning)
 
                     Button("계정 연결만 해제하기") {
@@ -263,6 +265,11 @@ struct SettingsView: View {
             sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 복원 준비됨" : "미설정"
         }
         return "\(sessionStatus) · 로컬 기록 동기화는 다음 단계입니다."
+    }
+
+    private var ownershipPlanNotice: String {
+        let plan = UserOwnershipMigrationPlanner().buildPlan(localSession: authViewModel.session)
+        return plan.userFacingSummary
     }
 
     private func settingInputRow(

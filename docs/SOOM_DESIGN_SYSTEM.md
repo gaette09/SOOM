@@ -726,3 +726,14 @@ Design 기준:
 - Use a confirmation dialog that explicitly says workouts, settings, and route data remain on device.
 - Keep the button visually secondary; it should not look like a destructive data-wipe action.
 - On failure, keep the connected state and show a soft error.
+
+## User Ownership Migration Copy
+
+Ownership migration copy should reassure before it asks. A connected account is not the same as cloud sync, backup, or data transfer. Settings may show a small notice such as “이 기기의 기록은 아직 로컬에 있어요” and “계정에 연결하려면 다음 단계에서 확인이 필요해요.”
+
+Design 기준:
+
+- Treat ownership migration as a future review/consent step, not an automatic result of login.
+- Avoid urgent, diagnostic, or loss-framed language.
+- Do not show “sync now” or “migrate now” actions until the migration path exists.
+- Keep account deletion, remote sign-out, local data deletion, and ownership migration as distinct concepts.

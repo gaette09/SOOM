@@ -419,6 +419,10 @@
 		010419 /* AuthSessionRestorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020418 /* AuthSessionRestorerTests.swift */; };
 		010420 /* RootAuthBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020419 /* RootAuthBootstrap.swift */; };
 		010421 /* RootAuthBootstrapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020420 /* RootAuthBootstrapTests.swift */; };
+		010422 /* UserOwnershipScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020421 /* UserOwnershipScope.swift */; };
+		010423 /* UserOwnershipMigrationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020422 /* UserOwnershipMigrationPlan.swift */; };
+		010424 /* UserOwnershipMigrationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020423 /* UserOwnershipMigrationPlanner.swift */; };
+		010425 /* UserOwnershipMigrationPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020424 /* UserOwnershipMigrationPlannerTests.swift */; };
 		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -847,6 +851,10 @@
 		020418 /* AuthSessionRestorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionRestorerTests.swift; sourceTree = "<group>"; };
 		020419 /* RootAuthBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootAuthBootstrap.swift; sourceTree = "<group>"; };
 		020420 /* RootAuthBootstrapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootAuthBootstrapTests.swift; sourceTree = "<group>"; };
+		020421 /* UserOwnershipScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserOwnershipScope.swift; sourceTree = "<group>"; };
+		020422 /* UserOwnershipMigrationPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserOwnershipMigrationPlan.swift; sourceTree = "<group>"; };
+		020423 /* UserOwnershipMigrationPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserOwnershipMigrationPlanner.swift; sourceTree = "<group>"; };
+		020424 /* UserOwnershipMigrationPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserOwnershipMigrationPlannerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1075,6 +1083,9 @@
 				020416 /* AuthSessionRestorePolicy.swift */,
 				020417 /* AuthSessionRestorer.swift */,
 				020419 /* RootAuthBootstrap.swift */,
+				020421 /* UserOwnershipScope.swift */,
+				020422 /* UserOwnershipMigrationPlan.swift */,
+				020423 /* UserOwnershipMigrationPlanner.swift */,
 				020397 /* EmailAuthRequest.swift */,
 				020398 /* EmailAuthViewModel.swift */,
 				020399 /* EmailAuthCard.swift */,
@@ -1450,6 +1461,7 @@
 				020415 /* AuthCallbackHandlerTests.swift */,
 				020418 /* AuthSessionRestorerTests.swift */,
 				020420 /* RootAuthBootstrapTests.swift */,
+				020424 /* UserOwnershipMigrationPlannerTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1869,6 +1881,9 @@
 				010417 /* AuthSessionRestorePolicy.swift in Sources */,
 				010418 /* AuthSessionRestorer.swift in Sources */,
 				010420 /* RootAuthBootstrap.swift in Sources */,
+				010422 /* UserOwnershipScope.swift in Sources */,
+				010423 /* UserOwnershipMigrationPlan.swift in Sources */,
+				010424 /* UserOwnershipMigrationPlanner.swift in Sources */,
 				010398 /* EmailAuthRequest.swift in Sources */,
 				010399 /* EmailAuthViewModel.swift in Sources */,
 				010400 /* EmailAuthCard.swift in Sources */,
@@ -1979,6 +1994,7 @@
 				010416 /* AuthCallbackHandlerTests.swift in Sources */,
 				010419 /* AuthSessionRestorerTests.swift in Sources */,
 				010421 /* RootAuthBootstrapTests.swift in Sources */,
+				010425 /* UserOwnershipMigrationPlannerTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,
