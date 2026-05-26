@@ -682,3 +682,7 @@ If Apple credential parsing, Supabase configuration, network exchange, or sessio
 ## Email Callback Session Boundary
 
 Email Magic Link callback handling can now validate `auth/callback` URLs and ask Supabase Auth to load a session from the callback URL. If a valid Supabase session is available, the existing session bridge can represent it as account-connected UI state. This remains separate from local workout ownership: no HealthKit, workout, route, zone, progression, Feed, Recovery, or Growth data is migrated or uploaded, and no SwiftData schema receives remote `user_id` fields in this step.
+
+## Supabase Session Restore Boundary
+
+App launch session restore can now represent an existing Supabase `currentSession` as account-connected UI state. This is a read-only auth-state restore, not a data ownership migration. Local workout, route, HealthKit, zone, progression, Feed, Recovery, and Growth records are not assigned a remote `user_id`, uploaded, or synced as part of this step.

@@ -42,7 +42,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.load()
-            authViewModel.load()
+            await authViewModel.initializeSession()
         }
         .alert(
             "설정 값을 확인해주세요",
@@ -239,8 +239,15 @@ struct SettingsView: View {
     }
 
     private var authSessionSmokeStatusText: String {
-        let sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 확인 가능" : "미설정"
-        return "\(sessionStatus) · Apple 로그인은 계정 세션만 연결합니다."
+        let sessionStatus: String
+        if authViewModel.isCheckingRemoteSession {
+            sessionStatus = "계정 상태 확인 중"
+        } else if authViewModel.session.currentUser?.authProvider == .supabase {
+            sessionStatus = "계정 연결됨"
+        } else {
+            sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 복원 준비됨" : "미설정"
+        }
+        return "\(sessionStatus) · 로컬 기록 동기화는 다음 단계입니다."
     }
 
     private func settingInputRow(

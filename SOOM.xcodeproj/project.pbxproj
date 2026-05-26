@@ -414,6 +414,9 @@
 		010414 /* AuthCallbackHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020413 /* AuthCallbackHandler.swift */; };
 		010415 /* AuthCallbackURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020414 /* AuthCallbackURLTests.swift */; };
 		010416 /* AuthCallbackHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020415 /* AuthCallbackHandlerTests.swift */; };
+		010417 /* AuthSessionRestorePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020416 /* AuthSessionRestorePolicy.swift */; };
+		010418 /* AuthSessionRestorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020417 /* AuthSessionRestorer.swift */; };
+		010419 /* AuthSessionRestorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020418 /* AuthSessionRestorerTests.swift */; };
 		010394 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0006 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -837,6 +840,9 @@
 		020413 /* AuthCallbackHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackHandler.swift; sourceTree = "<group>"; };
 		020414 /* AuthCallbackURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackURLTests.swift; sourceTree = "<group>"; };
 		020415 /* AuthCallbackHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackHandlerTests.swift; sourceTree = "<group>"; };
+		020416 /* AuthSessionRestorePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionRestorePolicy.swift; sourceTree = "<group>"; };
+		020417 /* AuthSessionRestorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionRestorer.swift; sourceTree = "<group>"; };
+		020418 /* AuthSessionRestorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionRestorerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1062,6 +1068,8 @@
 				020411 /* AppleAuthCard.swift */,
 				020412 /* AuthCallbackURL.swift */,
 				020413 /* AuthCallbackHandler.swift */,
+				020416 /* AuthSessionRestorePolicy.swift */,
+				020417 /* AuthSessionRestorer.swift */,
 				020397 /* EmailAuthRequest.swift */,
 				020398 /* EmailAuthViewModel.swift */,
 				020399 /* EmailAuthCard.swift */,
@@ -1435,6 +1443,7 @@
 				020401 /* EmailAuthViewModelTests.swift */,
 				020414 /* AuthCallbackURLTests.swift */,
 				020415 /* AuthCallbackHandlerTests.swift */,
+				020418 /* AuthSessionRestorerTests.swift */,
 				020358 /* WorkoutDetailRouteContextProviderTests.swift */,
 				020340 /* CourseIdentityBuilderTests.swift */,
 				020324 /* WorkoutSplitInsightBuilderTests.swift */,
@@ -1851,6 +1860,8 @@
 				010412 /* AppleAuthCard.swift in Sources */,
 				010413 /* AuthCallbackURL.swift in Sources */,
 				010414 /* AuthCallbackHandler.swift in Sources */,
+				010417 /* AuthSessionRestorePolicy.swift in Sources */,
+				010418 /* AuthSessionRestorer.swift in Sources */,
 				010398 /* EmailAuthRequest.swift in Sources */,
 				010399 /* EmailAuthViewModel.swift in Sources */,
 				010400 /* EmailAuthCard.swift in Sources */,
@@ -1959,6 +1970,7 @@
 				010402 /* EmailAuthViewModelTests.swift in Sources */,
 				010415 /* AuthCallbackURLTests.swift in Sources */,
 				010416 /* AuthCallbackHandlerTests.swift in Sources */,
+				010419 /* AuthSessionRestorerTests.swift in Sources */,
 				010358 /* WorkoutDetailRouteContextProviderTests.swift in Sources */,
 				010340 /* CourseIdentityBuilderTests.swift in Sources */,
 				010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */,

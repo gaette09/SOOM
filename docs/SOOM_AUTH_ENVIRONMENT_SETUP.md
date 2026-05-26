@@ -112,3 +112,9 @@ Required manual setup remains outside the repository: Apple Developer Sign in wi
 Operational setup details live in `docs/SOOM_APPLE_SIGNIN_SETUP.md`. The app can validate configured/unconfigured environment state, nonce-required credential readiness, and redirect placeholder behavior, but real Apple Developer, Supabase provider, and TestFlight/device checks must still be performed outside unit tests.
 
 Deferred: explicit user ownership migration, cloud sync, Google OAuth, password auth, Feed ownership migration, HealthKit remote sync, and production callback persistence.
+
+## Supabase Session Persistence v1
+
+SOOM now restores Supabase `currentSession` on app launch through a read-only session restore foundation. `AuthSessionRestorer` first loads the local `AuthSessionStore` session, then checks the remote Supabase session when the policy is `preferRemoteIfAvailable`. A valid remote session can be bridged into transient `AuthSession.signedIn` UI state, while signed-out, failed, unconfigured, or missing remote sessions preserve the local session.
+
+This restore step does not call Supabase sign-out, password login, Apple/Google additions, database profile fetch, server storage, or any ownership migration. Local HealthKit, workout, route, Growth, Recovery, Feed, and progression records remain local-first until a separate explicit sync/migration step exists.

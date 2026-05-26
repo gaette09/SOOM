@@ -6,24 +6,33 @@ final class AuthViewModel: ObservableObject {
     @Published var displayNameText: String
     @Published private(set) var errorMessage: String?
     @Published private(set) var isAppleSignInInProgress: Bool
+    @Published private(set) var isCheckingRemoteSession: Bool
 
     private let repository: any AuthRepository
     private let remoteSessionLoader: (any RemoteAuthSessionLoading)?
+    private let sessionRestorer: AuthSessionRestorer
     private let appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)?
 
     init(
         repository: any AuthRepository = LocalAuthRepository(),
         remoteSessionLoader: (any RemoteAuthSessionLoading)? = nil,
+        restorePolicy: AuthSessionRestorePolicy = .preferRemoteIfAvailable,
         appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)? = nil
     ) {
         let loadedSession = repository.loadSession()
         self.repository = repository
         self.remoteSessionLoader = remoteSessionLoader
+        self.sessionRestorer = AuthSessionRestorer(
+            repository: repository,
+            remoteSessionLoader: remoteSessionLoader,
+            policy: restorePolicy
+        )
         self.appleSignInHandler = appleSignInHandler
         self.session = loadedSession
         self.displayNameText = loadedSession.currentUser?.displayName ?? ""
         self.errorMessage = loadedSession.errorMessage
         self.isAppleSignInInProgress = false
+        self.isCheckingRemoteSession = false
     }
 
     convenience init(store: AuthSessionStore) {
@@ -36,6 +45,21 @@ final class AuthViewModel: ObservableObject {
         errorMessage = session.errorMessage
     }
 
+    func initializeSession() async {
+        let localSession = repository.loadSession()
+        publish(session: localSession, preservingDisplayName: false)
+
+        guard remoteSessionLoader != nil else {
+            return
+        }
+
+        isCheckingRemoteSession = true
+        defer { isCheckingRemoteSession = false }
+
+        let restoredSession = await sessionRestorer.restore()
+        publish(session: restoredSession, preservingDisplayName: restoredSession.currentUser == nil)
+    }
+
     func checkRemoteSession() async {
         guard let remoteSessionLoader,
               let remoteSession = await remoteSessionLoader.loadRemoteSession(),
@@ -44,9 +68,7 @@ final class AuthViewModel: ObservableObject {
             return
         }
 
-        session = remoteSession
-        displayNameText = remoteSession.currentUser?.displayName ?? displayNameText
-        errorMessage = nil
+        publish(session: remoteSession, preservingDisplayName: true)
     }
 
     func signInWithAppleCredential(_ credential: AppleSignInCredential) async {
@@ -64,9 +86,7 @@ final class AuthViewModel: ObservableObject {
                 throw AuthError.sessionNotFound
             }
 
-            session = remoteSession
-            displayNameText = remoteSession.currentUser?.displayName ?? displayNameText
-            errorMessage = nil
+            publish(session: remoteSession, preservingDisplayName: true)
         } catch {
             errorMessage = userMessage(for: error)
         }
@@ -100,5 +120,15 @@ final class AuthViewModel: ObservableObject {
         }
 
         return "계정 연결 상태를 확인하지 못했어요. 현재 기록은 로컬에 유지됩니다."
+    }
+
+    private func publish(session newSession: AuthSession, preservingDisplayName: Bool) {
+        session = newSession
+        if let displayName = newSession.currentUser?.displayName {
+            displayNameText = displayName
+        } else if !preservingDisplayName {
+            displayNameText = ""
+        }
+        errorMessage = newSession.errorMessage
     }
 }

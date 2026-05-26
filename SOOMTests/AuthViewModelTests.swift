@@ -134,6 +134,70 @@ final class AuthViewModelTests: XCTestCase {
     }
 
 
+    func testInitializeSessionRestoresRemoteSessionWhenAvailableWithoutMutatingLocalStore() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "88888888-8888-8888-8888-888888888888")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: .signedIn(user: remoteUser))
+        )
+
+        await viewModel.initializeSession()
+
+        XCTAssertEqual(viewModel.session.sessionState, .signedIn)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.displayNameText, "remote")
+        XCTAssertFalse(viewModel.isCheckingRemoteSession)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testInitializeSessionKeepsLocalWhenRemoteIsMissing() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: nil)
+        )
+
+        await viewModel.initializeSession()
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertFalse(viewModel.isCheckingRemoteSession)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+    }
+
+    func testInitializeSessionWithLocalFirstPolicyDoesNotPromoteRemote() async {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "99999999-9999-9999-9999-999999999999")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteSessionLoader: FakeRemoteSessionLoader(session: .signedIn(user: remoteUser)),
+            restorePolicy: .localFirst
+        )
+
+        await viewModel.initializeSession()
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertFalse(viewModel.isCheckingRemoteSession)
+    }
+
     func testAppleSignInSuccessPromotesRemoteSessionWithoutDeletingLocalStore() async {
         let store = makeStore()
         let localSession = store.continueAsLocalUser(displayName: "Local User")
