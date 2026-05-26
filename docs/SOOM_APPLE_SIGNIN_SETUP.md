@@ -58,21 +58,22 @@ Placeholder-like values such as `$(...)`, `replace_me`, `your_...`, and `placeho
 
 ## Redirect Strategy
 
-Current Apple Sign In uses the native Apple credential and Supabase id-token exchange. It does not require `CFBundleURLTypes` for the Apple button flow.
+Current Apple Sign In uses the native Apple credential and Supabase id-token exchange. It does not require the Email Magic Link callback scheme for the Apple button flow.
 
 Email Magic Link and future OAuth callback handling may use:
 
-`<SOOM_AUTH_REDIRECT_SCHEME>://auth/callback`
+`soom-auth://auth/callback`
 
 Current state:
 
 - Redirect scheme can be loaded from `SOOMAuthRedirectScheme`.
 - Placeholder redirect schemes are ignored.
-- `CFBundleURLTypes` is not registered yet.
+- `CFBundleURLTypes` is registered through `$(SOOM_AUTH_REDIRECT_SCHEME)`.
+- The repository default scheme is `soom-auth`, and dev builds may override it with ignored local build settings.
 - The app has an `onOpenURL` callback handling foundation for Email Magic Link/future OAuth URLs once a real scheme is registered.
-- Durable callback persistence and production scheme registration remain deferred.
+- Durable callback persistence remains deferred.
 
-Do not add a real production scheme without confirming the Supabase redirect allowlist and iOS URL handling plan.
+Do not change the production scheme without confirming the Supabase redirect allowlist and iOS URL handling plan.
 
 ## Runtime Smoke Checklist
 
@@ -107,7 +108,6 @@ Use this checklist for local/dev validation:
 ## Deferred Items
 
 - Production callback/deep-link persistence and QA hardening.
-- `CFBundleURLTypes` registration for email/OAuth callbacks.
 - Supabase profile table or DB profile fetch.
 - Remote workout ownership migration.
 - HealthKit, route, zone, progression, Recovery, Growth, or Feed cloud sync.

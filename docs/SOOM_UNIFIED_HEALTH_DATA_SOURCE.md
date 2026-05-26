@@ -696,3 +696,7 @@ Session restore is now orchestrated from the app bootstrap layer. `SOOMApp` crea
 ## Magic Link Callback Root State Boundary
 
 Email Magic Link callbacks can now update the shared root auth view model as soon as a valid Supabase session is bridged. This is still only account UI state. Local HealthKit, workout, route, zone, progression, Feed, Recovery, and Growth records are not assigned a remote `user_id`, uploaded, migrated, or synced by the callback result.
+
+## Production Redirect Boundary
+
+Email Magic Link device QA now has a concrete native callback target: `soom-auth://auth/callback`, registered through `CFBundleURLTypes` and backed by the `SOOM_AUTH_REDIRECT_SCHEME` build setting. This only enables the app to receive auth callbacks. It does not migrate local HealthKit, workout, route, zone, progression, Feed, Recovery, or Growth data to remote ownership, and it does not add `user_id` to local schemas.

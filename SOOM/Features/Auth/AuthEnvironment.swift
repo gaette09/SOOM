@@ -61,6 +61,9 @@ struct AuthEnvironment: Equatable {
         if lowercased.contains("placeholder") { return nil }
         if lowercased.contains("replace_me") { return nil }
         if lowercased.contains("your_") { return nil }
+        if lowercased == "soom_supabase_url" { return nil }
+        if lowercased == "soom_supabase_anon_key" { return nil }
+        if lowercased == "soom_auth_redirect_scheme" { return nil }
         return trimmed
     }
 }

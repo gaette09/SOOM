@@ -711,3 +711,7 @@ Auth state is prepared from the app root so My Page can present account status w
 ## Magic Link Callback State UX
 
 When an email callback returns a valid Supabase session, Settings may update to `계정 연결됨` immediately through the root auth state. This should feel like quiet confirmation, not a data migration event. Keep local-first boundary copy visible, especially “현재 기록은 로컬에 유지돼요” and “로컬 기록 동기화는 다음 단계입니다.”
+
+## Production Auth Redirect UX
+
+Email Magic Link device QA uses the `soom-auth://auth/callback` URL scheme, but the UI should not expose scheme mechanics as primary user copy. Settings can say “계정 연결 상태” or “계정 연결됨” after a valid callback, while failures should remain soft and local-first. Do not describe account connection as backup, cloud sync, or ownership migration until those flows exist.

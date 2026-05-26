@@ -22,6 +22,25 @@ final class AuthCallbackURLTests: XCTestCase {
         XCTAssertEqual(callbackURL.provider, "email")
     }
 
+    func testProductionSchemeAllowsMagicLinkCallback() {
+        let productionEnvironment = AuthEnvironment(
+            environment: .production,
+            supabaseURL: URL(string: "https://example.supabase.co"),
+            supabaseAnonKey: "anon-test-key",
+            redirectScheme: "soom-auth"
+        )
+        let callbackURL = AuthCallbackURL(
+            url: URL(string: "soom-auth://auth/callback?provider=email")!,
+            environment: productionEnvironment
+        )
+
+        XCTAssertTrue(callbackURL.isAuthCallback)
+        XCTAssertEqual(callbackURL.scheme, "soom-auth")
+        XCTAssertEqual(callbackURL.host, "auth")
+        XCTAssertEqual(callbackURL.path, "/callback")
+        XCTAssertEqual(callbackURL.provider, "email")
+    }
+
     func testValidPathOnlyCallbackURL() {
         let callbackURL = AuthCallbackURL(
             url: URL(string: "soom-dev:/auth/callback#type=magiclink")!,
@@ -55,6 +74,31 @@ final class AuthCallbackURLTests: XCTestCase {
         let callbackURL = AuthCallbackURL(
             url: URL(string: "soom-dev://auth/callback")!,
             environment: placeholderEnvironment
+        )
+
+        XCTAssertFalse(callbackURL.isAuthCallback)
+    }
+
+    func testUnresolvedBuildSettingSchemeIsInvalidEvenIfURLMatchesLiteralValue() {
+        let placeholderEnvironment = AuthEnvironment(redirectScheme: "SOOM_AUTH_REDIRECT_SCHEME")
+        let callbackURL = AuthCallbackURL(
+            url: URL(string: "soom-auth://auth/callback")!,
+            environment: placeholderEnvironment
+        )
+
+        XCTAssertFalse(callbackURL.isAuthCallback)
+    }
+
+    func testProductionSchemeMismatchIsRejected() {
+        let productionEnvironment = AuthEnvironment(
+            environment: .production,
+            supabaseURL: URL(string: "https://example.supabase.co"),
+            supabaseAnonKey: "anon-test-key",
+            redirectScheme: "soom-auth"
+        )
+        let callbackURL = AuthCallbackURL(
+            url: URL(string: "soom-dev://auth/callback?provider=email")!,
+            environment: productionEnvironment
         )
 
         XCTAssertFalse(callbackURL.isAuthCallback)

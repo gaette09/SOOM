@@ -26,7 +26,9 @@ Do not commit a real Supabase URL, anon key, OAuth client id, or redirect secret
 
 ## Redirect Scheme Direction
 
-Native Apple Sign In currently uses an in-app Apple credential plus Supabase id-token exchange and does not require `CFBundleURLTypes`. Email Magic Link and future OAuth/deep-link completion use the `SOOMAuthRedirectScheme` placeholder to prepare and validate `scheme://auth/callback`. The app now has an `onOpenURL` callback handling foundation that can validate the callback URL, ask Supabase Auth to load the session from the URL, and bridge a valid current session into transient account-connected UI state. Concrete `CFBundleURLTypes` registration and production callback persistence remain deferred until a real scheme is injected and reviewed so it does not expose secrets or imply cloud sync is active.
+Native Apple Sign In currently uses an in-app Apple credential plus Supabase id-token exchange and does not require the email callback URL scheme for the Apple button flow. Email Magic Link and future OAuth/deep-link completion use `SOOMAuthRedirectScheme` to prepare and validate `scheme://auth/callback`.
+
+Production redirect v1 standardizes on `soom-auth://auth/callback`. The app registers `CFBundleURLTypes` with `$(SOOM_AUTH_REDIRECT_SCHEME)`, and the project default build setting is `soom-auth`. Dev and CI builds may override the scheme through ignored local configuration. Placeholder-like or unresolved values are still treated as invalid by runtime validation.
 
 ## Current Boundary
 
@@ -77,7 +79,7 @@ Current boundary:
 - Email format is validated before a request is sent.
 - Supabase must be configured through environment/build settings; placeholder values keep the flow safely unavailable.
 - `signInWithOTP` is used only for magic link/OTP request and starts with `shouldCreateUser: false` because explicit signup UI is still deferred.
-- Redirect URL is optional. If `SOOM_AUTH_REDIRECT_SCHEME` is configured, SOOM can prepare `scheme://auth/callback` and validate incoming callback URLs. `onOpenURL` can pass matching callbacks to Supabase Auth session handling, but `CFBundleURLTypes`, production scheme registration, and durable callback persistence remain future work.
+- Redirect URL is optional for request construction, but production/device QA now uses `soom-auth://auth/callback`. `SOOM_AUTH_REDIRECT_SCHEME` is registered through `CFBundleURLTypes`, and `onOpenURL` can pass matching callbacks to Supabase Auth session handling. Durable callback persistence, remote ownership migration, and cloud sync remain future work.
 - Password login, signup UI, Apple/Google OAuth, sign-in completion, user ownership migration, and remote data sync remain deferred.
 
 
@@ -91,7 +93,8 @@ Current boundary:
 - Placeholder redirect schemes remain invalid.
 - Supabase callback session loading is attempted only when Supabase is configured.
 - Local `AuthSessionStore` is not deleted, overwritten, or migrated.
-- `CFBundleURLTypes`, production scheme registration, durable callback persistence, user ownership migration, and cloud sync remain deferred.
+- Production URL scheme registration now uses `CFBundleURLTypes` with `$(SOOM_AUTH_REDIRECT_SCHEME)` and the repository default `soom-auth`.
+- Durable callback persistence, user ownership migration, and cloud sync remain deferred.
 
 
 ## Supabase Session Bridge v1
@@ -132,3 +135,11 @@ The bootstrap is non-blocking and idempotent: duplicate launch tasks share the a
 Magic Link callback handling now syncs a successful `AuthCallbackResult.sessionBridged` result into the root `AuthViewModel` immediately from `SOOMApp.onOpenURL`. This lets Settings/My Page show the connected account state after a valid callback without waiting for an app relaunch or a later session restore.
 
 Ignored or failed callbacks keep the current local-first session. The callback sync updates transient UI auth state only; it does not write the remote user into `AuthSessionStore`, migrate local workout ownership, upload HealthKit data, or sync Feed/Recovery/Growth records.
+
+## Production Redirect & Device Auth QA v1
+
+Production/device QA uses `soom-auth://auth/callback` as the recommended Email Magic Link callback. The scheme is registered through `CFBundleURLTypes`, while Supabase URL, anon key, Apple private key, and OAuth provider secrets remain outside the repository.
+
+Supabase Dashboard should allowlist `soom-auth://auth/callback` for email magic links. Native Apple Sign In remains separate: it uses Apple credential plus Supabase id-token exchange and does not depend on the email callback URL scheme.
+
+Operational QA details live in `docs/SOOM_DEVICE_AUTH_QA_CHECKLIST.md`.
