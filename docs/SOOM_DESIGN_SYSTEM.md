@@ -706,3 +706,8 @@ When SOOM restores a Supabase account session on app launch, Settings may show `
 ## Root Auth Bootstrap UX
 
 Auth state is prepared from the app root so My Page can present account status without doing its own restore work. Settings should read as a calm account-status surface: "계정 연결됨", "로컬 사용자", and "계정 상태 확인 중" are trust cues, not sync promises. Copy must continue to distinguish remote session visibility from local workout ownership and cloud sync.
+
+
+## Magic Link Callback State UX
+
+When an email callback returns a valid Supabase session, Settings may update to `계정 연결됨` immediately through the root auth state. This should feel like quiet confirmation, not a data migration event. Keep local-first boundary copy visible, especially “현재 기록은 로컬에 유지돼요” and “로컬 기록 동기화는 다음 단계입니다.”

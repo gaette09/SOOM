@@ -125,3 +125,10 @@ This restore step does not call Supabase sign-out, password login, Apple/Google 
 Auth session restore now starts from the app root instead of depending on Settings entry. `SOOMApp` owns the root `AuthViewModel`, injects it through the SwiftUI environment, and runs `RootAuthBootstrap` with the existing read-only restore policy. Settings observes the global auth state and no longer forces a separate restore task when the user opens My Page.
 
 The bootstrap is non-blocking and idempotent: duplicate launch tasks share the active restore path, and failed or missing remote sessions keep the local-first session intact. This still does not migrate local workout ownership, upload HealthKit data, or sync Feed/Recovery/Growth records to a remote account.
+
+
+## Magic Link Callback Root State Sync v1
+
+Magic Link callback handling now syncs a successful `AuthCallbackResult.sessionBridged` result into the root `AuthViewModel` immediately from `SOOMApp.onOpenURL`. This lets Settings/My Page show the connected account state after a valid callback without waiting for an app relaunch or a later session restore.
+
+Ignored or failed callbacks keep the current local-first session. The callback sync updates transient UI auth state only; it does not write the remote user into `AuthSessionStore`, migrate local workout ownership, upload HealthKit data, or sync Feed/Recovery/Growth records.

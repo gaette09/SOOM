@@ -40,7 +40,8 @@ struct SOOMApp: App {
                 }
                 .onOpenURL { url in
                     Task {
-                        _ = await authCallbackHandler.handle(url: url)
+                        let result = await authCallbackHandler.handle(url: url)
+                        authViewModel.handleAuthCallbackResult(result)
                     }
                 }
         }

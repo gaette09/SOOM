@@ -86,6 +86,25 @@ final class AuthViewModel: ObservableObject {
         publish(session: remoteSession, preservingDisplayName: true)
     }
 
+    func applyRemoteSession(_ remoteSession: AuthSession) {
+        guard remoteSession.isSignedIn else {
+            return
+        }
+
+        publish(session: remoteSession, preservingDisplayName: true)
+    }
+
+    func handleAuthCallbackResult(_ result: AuthCallbackResult) {
+        switch result {
+        case .sessionBridged(let remoteSession):
+            applyRemoteSession(remoteSession)
+        case .failed(let message):
+            errorMessage = message
+        case .ignored, .handled:
+            break
+        }
+    }
+
     func signInWithAppleCredential(_ credential: AppleSignInCredential) async {
         guard let appleSignInHandler else {
             errorMessage = AuthError.futureRemoteAuthNotConfigured.userMessage

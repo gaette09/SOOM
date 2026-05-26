@@ -275,6 +275,54 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isAppleSignInInProgress)
     }
 
+    func testSessionBridgedCallbackResultAppliesSignedInSessionWithoutMutatingLocalStore() {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "12121212-1212-1212-1212-121212121212")!,
+            displayName: "magic",
+            email: "magic@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(repository: LocalAuthRepository(store: store))
+
+        viewModel.handleAuthCallbackResult(.sessionBridged(.signedIn(user: remoteUser)))
+
+        XCTAssertEqual(viewModel.session.sessionState, .signedIn)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.session.currentUser?.email, "magic@example.com")
+        XCTAssertEqual(viewModel.displayNameText, "magic")
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(store.loadSession().isLocalOnly)
+    }
+
+    func testIgnoredCallbackResultKeepsLocalSession() {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let viewModel = AuthViewModel(repository: LocalAuthRepository(store: store))
+
+        viewModel.handleAuthCallbackResult(.ignored)
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+    }
+
+    func testFailedCallbackResultKeepsLocalSessionAndPublishesSoftError() {
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Local User")
+        let viewModel = AuthViewModel(repository: LocalAuthRepository(store: store))
+
+        viewModel.handleAuthCallbackResult(.failed("계정 연결 callback을 확인하지 못했어요."))
+
+        XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertEqual(viewModel.errorMessage, "계정 연결 callback을 확인하지 못했어요.")
+        XCTAssertEqual(store.loadSession().currentUser?.id, localSession.currentUser?.id)
+    }
+
     func testViewModelDoesNotUseRecoveryCalculator() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.continueAsLocalUser()
