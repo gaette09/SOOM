@@ -689,6 +689,6 @@ When a valid Supabase current session is detected, Settings may show a small “
 
 ## Apple Sign In Real Flow v1
 
-Apple login can now appear as an active account connection option in Settings/My Page. It should stay trust-oriented rather than conversion-oriented: present it near email account connection, show calm progress/error copy, and keep the boundary explicit that current records stay local and data sync/ownership migration comes later.
+Apple login can now appear as an account connection option in Settings/My Page when the app is configured for Supabase and Apple capability/provisioning is valid. It should stay trust-oriented rather than conversion-oriented: present it near email account connection, show calm progress/error copy, and keep the boundary explicit that current records stay local and data sync/ownership migration comes later.
 
-After a successful Apple/Supabase session connection, the UI may show `계정 연결됨`, but it must not imply that HealthKit workouts, routes, progression, or feed data have been uploaded or transferred to remote ownership.
+Environment copy should distinguish between `Apple 로그인 환경 미설정`, `Apple 로그인 준비됨`, and `계정 연결됨`; none of these states should imply backup, cloud sync, or ownership migration. After a successful Apple/Supabase session connection, the UI may show `계정 연결됨`, but it must not imply that HealthKit workouts, routes, progression, or feed data have been uploaded or transferred to remote ownership.

@@ -26,7 +26,7 @@ Do not commit a real Supabase URL, anon key, OAuth client id, or redirect secret
 
 ## Redirect Scheme Direction
 
-Apple and Google OAuth will need an iOS redirect/scheme policy before implementation. v1 documents the expected placeholder but does not add a concrete OAuth flow, OAuth SDK, or URL callback handler. If `CFBundleURLTypes` is added later, the scheme must be injected from configuration and reviewed so it does not expose secrets or imply login is already active.
+Native Apple Sign In currently uses an in-app Apple credential plus Supabase id-token exchange and does not require `CFBundleURLTypes`. Email Magic Link and future OAuth/deep-link completion can use the `SOOMAuthRedirectScheme` placeholder to prepare `scheme://auth/callback`, but concrete URL scheme registration and callback parsing remain deferred. If `CFBundleURLTypes` is added later, the scheme must be injected from configuration and reviewed so it does not expose secrets or imply cloud sync is active.
 
 ## Current Boundary
 
@@ -96,4 +96,6 @@ A successful Supabase Apple exchange is bridged into transient `AppUser` / `Auth
 
 Required manual setup remains outside the repository: Apple Developer Sign in with Apple capability, matching app identifier/provisioning profile, and Supabase Apple provider configuration. `SOOM_SUPABASE_URL` and `SOOM_SUPABASE_ANON_KEY` still come from build settings/xcconfig/CI secrets, not committed values.
 
-Deferred: explicit user ownership migration, cloud sync, Google OAuth, password auth, Feed ownership migration, and HealthKit remote sync.
+Operational setup details live in `docs/SOOM_APPLE_SIGNIN_SETUP.md`. The app can validate configured/unconfigured environment state, nonce-required credential readiness, and redirect placeholder behavior, but real Apple Developer, Supabase provider, and TestFlight/device checks must still be performed outside unit tests.
+
+Deferred: explicit user ownership migration, cloud sync, Google OAuth, password auth, Feed ownership migration, HealthKit remote sync, and production callback persistence.

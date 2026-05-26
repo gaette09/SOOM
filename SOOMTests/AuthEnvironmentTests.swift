@@ -34,6 +34,18 @@ final class AuthEnvironmentTests: XCTestCase {
         XCTAssertFalse(environment.isRedirectConfigured)
     }
 
+    func testOperationalPlaceholderWordsStayUnconfigured() {
+        let environment = AuthEnvironment(
+            environment: .production,
+            supabaseURL: URL(string: "https://example.supabase.co"),
+            supabaseAnonKey: "replace_me_supabase_anon_key",
+            redirectScheme: "your_redirect_scheme"
+        )
+
+        XCTAssertFalse(environment.isSupabaseConfigured)
+        XCTAssertFalse(environment.isRedirectConfigured)
+    }
+
     func testEnvironmentDoesNotUseRecoveryCalculator() {
         let environment = AuthEnvironment.local
 

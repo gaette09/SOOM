@@ -5,11 +5,7 @@ struct SupabaseAuthConfiguration: Equatable {
     var anonKey: String?
 
     var isConfigured: Bool {
-        guard projectURL != nil else { return false }
-        guard let anonKey, !anonKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return false
-        }
-        return true
+        projectURL != nil && AuthEnvironment.isConcreteValue(anonKey)
     }
 
     static let empty = SupabaseAuthConfiguration()

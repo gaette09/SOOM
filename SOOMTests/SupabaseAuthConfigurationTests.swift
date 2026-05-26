@@ -21,9 +21,15 @@ final class SupabaseAuthConfigurationTests: XCTestCase {
     }
 
     func testProjectURLAndAnonKeyMarkConfigurationReady() {
-        let configuration = SupabaseAuthConfiguration(projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-placeholder")
+        let configuration = SupabaseAuthConfiguration(projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-test-key")
 
         XCTAssertTrue(configuration.isConfigured)
+    }
+
+    func testPlaceholderAnonKeyIsNotConfigured() {
+        let configuration = SupabaseAuthConfiguration(projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-placeholder")
+
+        XCTAssertFalse(configuration.isConfigured)
     }
     func testBuildsFromConfiguredAuthEnvironment() {
         let environment = AuthEnvironment(

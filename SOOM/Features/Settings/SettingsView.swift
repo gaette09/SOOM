@@ -234,7 +234,8 @@ struct SettingsView: View {
         let sdkStatus = "SDK 준비됨"
         let supabaseStatus = authEnvironment.isSupabaseConfigured ? "환경 설정됨" : "환경 미설정"
         let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
-        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · Apple 로그인 사용 가능"
+        let appleStatus = authEnvironment.isSupabaseConfigured ? "Apple 로그인 준비됨" : "Apple 로그인 환경 미설정"
+        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · \(appleStatus)"
     }
 
     private var authSessionSmokeStatusText: String {

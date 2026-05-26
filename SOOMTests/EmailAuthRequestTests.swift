@@ -44,6 +44,12 @@ final class EmailAuthRequestTests: XCTestCase {
         XCTAssertNil(EmailAuthRequest.redirectURL(from: environment))
     }
 
+    func testReplaceMeRedirectDoesNotCreateURL() {
+        let environment = AuthEnvironment(redirectScheme: "replace_me_redirect_scheme")
+
+        XCTAssertNil(EmailAuthRequest.redirectURL(from: environment))
+    }
+
     func testRequestDoesNotUseRecoveryCalculator() {
         let request = EmailAuthRequest(email: "user@example.com")
 
