@@ -21,9 +21,12 @@ Required outside the repository:
 
 1. Confirm the Apple Developer team owns the app identifier for `app.soom.prototype` or the production bundle id.
 2. Enable **Sign in with Apple** for the app identifier.
-3. Regenerate or refresh provisioning profiles after enabling the capability.
-4. Verify the Xcode target uses the matching team and provisioning profile.
-5. For TestFlight/production, confirm the final production bundle id has the same capability enabled.
+3. Confirm the App ID capability and the provisioning profile both include Sign In with Apple.
+4. Regenerate or refresh provisioning profiles after enabling the capability.
+5. Verify the Xcode target uses the matching team and provisioning profile.
+6. For TestFlight/production, confirm the final production bundle id has the same capability enabled.
+
+The Xcode project can contain `com.apple.developer.applesignin` in `SOOM/SOOM.entitlements` while archive still fails if the selected provisioning profile was generated before Sign In with Apple was enabled. In that case, keep the entitlement and refresh the Apple Developer App ID/provisioning profile pair.
 
 Associated Domains are not required for the direct in-app Apple credential flow currently used by SOOM. Add Associated Domains only if a future web callback, universal link, or web-to-app auth flow requires it.
 
@@ -97,6 +100,7 @@ Use this checklist for local/dev validation:
 ## TestFlight QA Checklist
 
 - App launches with configured Supabase environment.
+- Release archive uses a provisioning profile that includes `com.apple.developer.applesignin`.
 - Apple button appears in Settings/My Page.
 - Apple prompt appears and can be cancelled without breaking local user state.
 - Missing/invalid Supabase configuration returns a soft error and preserves local session.
