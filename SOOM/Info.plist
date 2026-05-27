@@ -10,6 +10,8 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -35,6 +37,8 @@
 	<string>public.app-category.healthcare-fitness</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>SOOM은 운동 기록, 심박, 거리, 활동 에너지 데이터를 읽어 회복 흐름과 운동 분석을 더 이해하기 쉽게 보여주기 위해 사용합니다.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>SOOM은 사용자가 선택한 운동 데이터를 Health 앱에 저장하거나 업데이트하기 위해 HealthKit 쓰기 권한을 요청합니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

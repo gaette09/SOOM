@@ -32,6 +32,11 @@ Before TestFlight, confirm whether `app.soom.prototype` is the intended producti
 - Confirm automatic signing resolves a valid distribution profile for the selected team.
 - Confirm `SOOM/SOOM.entitlements` includes HealthKit and Sign In with Apple.
 - Confirm `Info.plist` contains required runtime placeholders, not real secrets.
+- Confirm `Info.plist` contains both HealthKit usage descriptions:
+  - `NSHealthShareUsageDescription`
+  - `NSHealthUpdateUsageDescription`
+- Confirm the App Icon asset catalog is wired as `AppIcon` and includes the required 120x120 iPhone icon.
+- Confirm `CFBundleIconName` resolves to `AppIcon`.
 - Confirm the built app expands `SOOM_AUTH_REDIRECT_SCHEME` to `soom-auth`.
 - Confirm no local `.xcconfig` or generated secret file is staged in git.
 
@@ -67,9 +72,9 @@ Do not automate App Store Connect upload from this readiness step.
 - Team id in the Xcode project matches the intended release team.
 - TestFlight build uses Release signing, not local simulator signing.
 
-## Signing Blocker: Sign In with Apple Profile Mismatch
+## Previous Signing Blocker: Sign In with Apple Profile Mismatch
 
-The current archive failure is a provisioning mismatch:
+A previous archive failure was caused by a provisioning mismatch:
 
 - Bundle identifier: `app.soom.prototype`
 - Xcode entitlement file: `SOOM/SOOM.entitlements`
@@ -77,7 +82,7 @@ The current archive failure is a provisioning mismatch:
 - Failing provisioning profile: `iOS Team Provisioning Profile: app.soom.prototype`
 - Missing from profile: Sign In with Apple / `com.apple.developer.applesignin`
 
-This means the app target is asking for Sign In with Apple, but the selected provisioning profile was generated before that capability was enabled or has not been refreshed. Do not remove the app entitlement to make archive pass; fix the App ID and provisioning profile instead.
+This means the app target asks for Sign In with Apple, but the selected provisioning profile may have been generated before that capability was enabled or may not have been refreshed. Do not remove the app entitlement to make archive pass; fix the App ID and provisioning profile instead.
 
 Manual Apple Developer actions:
 
@@ -134,7 +139,9 @@ Secret safety rules:
 
 - Entitlement: enabled.
 - `NSHealthShareUsageDescription`: present in `Info.plist`.
+- `NSHealthUpdateUsageDescription`: present in `Info.plist`.
 - Read-only data use: workout, heart rate, distance, active energy, routes, cadence, and power where available.
+- Write/update purpose: only for user-selected workout data that SOOM may save or update in Health. This does not change RecoveryCalculator, Workout, or Growth calculations.
 - QA must cover permission granted, permission denied, and no-data states.
 
 ### Sign In with Apple
@@ -157,6 +164,42 @@ Secret safety rules:
 - Current repo value is `$(MBX_ACCESS_TOKEN)`.
 - Token missing or route missing must fall back to neutral route UI.
 - Share/feed previews must keep route privacy masking.
+
+## App Store Upload Validation Fixes
+
+### HealthKit Purpose Strings
+
+App Store upload validation requires HealthKit apps to declare both read and write/update purpose strings when the app has HealthKit entitlements. SOOM now keeps both strings in `Info.plist`:
+
+- `NSHealthShareUsageDescription`: explains workout, heart rate, distance, active energy, route, cadence, and power reads.
+- `NSHealthUpdateUsageDescription`: explains that SOOM asks for write permission only to save or update user-selected workout data in Health.
+
+The update string is an App Store validation and permission clarity fix. It does not change HealthKit import behavior, RecoveryCalculator, Workout analysis, or Growth calculations.
+
+### App Icon And Bundle Icon Name
+
+App Store upload validation requires a complete app icon declaration for iPhone builds:
+
+- Asset catalog: `SOOM/Assets.xcassets`
+- App icon set: `AppIcon.appiconset`
+- Required iPhone slot: `60pt @2x` / `120x120` is present.
+- Marketing icon: `1024x1024` is present.
+- Build setting: `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`
+- Bundle key/build setting: `CFBundleIconName` / `INFOPLIST_KEY_CFBundleIconName = AppIcon`
+
+The current icon is a simple SOOM placeholder asset for upload validation. Replace it with final production artwork before public launch if brand artwork changes.
+
+### Mapbox dSYM Upload Warning
+
+App Store Connect may warn that `MapboxCommon.framework` or `MapboxCoreMaps.framework` is missing dSYM files during upload. Treat this as a symbolication warning, not the same class of blocker as missing HealthKit purpose strings or app icons.
+
+Operational notes:
+
+- The warning can reduce crash symbolication quality for Mapbox framework crashes.
+- It should not require removing Mapbox or changing route/map features.
+- Confirm whether the generated archive includes Mapbox dSYMs under the archive `dSYMs` folder.
+- If the warning persists, follow Mapbox/SPM/Xcode symbol upload guidance in a separate release hardening pass.
+- For this v1, validation blockers are the Info.plist HealthKit update string, AppIcon asset catalog, and `CFBundleIconName`.
 
 ## Auth QA Checklist
 
@@ -251,12 +294,12 @@ xcodebuild -project /Volumes/Platinum1TB/SOOM/SOOM.xcodeproj \
 
 ## Readiness Assessment
 
-Current readiness is high for simulator build/test and local-first product logic, but not complete for TestFlight until archive/signing and real device QA pass.
+Current readiness is high for simulator build/test, archive generation, and local-first product logic, but not complete for TestFlight until App Store Connect upload validation and real device QA pass.
 
 - Code/test readiness: strong.
 - Auth readiness: feature-complete foundation, requires real device QA.
 - HealthKit readiness: implemented, requires permission and import QA on real data.
-- Map readiness: implemented with placeholder token strategy, requires injected token QA.
+- Map readiness: implemented with placeholder token strategy, requires injected token QA. Mapbox dSYM upload warnings may still need separate symbolication follow-up.
 - Ownership/cloud readiness: intentionally deferred.
 
 ## Validation Log
@@ -276,3 +319,21 @@ Archive blocker:
 This is a release signing readiness issue, not a simulator build/test or product logic failure. Before TestFlight upload, update the Apple Developer app identifier/provisioning profile so Sign In with Apple is enabled for the final bundle id, then regenerate or refresh the distribution profile used by the archive.
 
 Next manual action: regenerate or refresh the provisioning profile after enabling Sign In with Apple on the App ID, then rerun the archive command above.
+
+### 2026-05-27 App Store Upload Validation Fix
+
+- `plutil -lint SOOM/Info.plist`: passed.
+- `python3 -m json.tool SOOM/Assets.xcassets/AppIcon.appiconset/Contents.json`: passed.
+- `plutil -lint SOOM.xcodeproj/project.pbxproj`: passed.
+- `xcodebuild test -destination 'platform=iOS Simulator,id=E6A13169-3246-423B-895D-A707A36D5076'`: passed.
+- `xcodebuild build -destination 'generic/platform=iOS Simulator'`: passed.
+- `xcodebuild archive -configuration Release -destination 'generic/platform=iOS'`: passed.
+
+Archive validation notes:
+
+- Archive path: `~/Library/Developer/Xcode/Archives/2026-05-27/SOOM 5-27-26, 10.56 PM.xcarchive`
+- Built app `Info.plist` includes `CFBundleIconName = AppIcon`.
+- Built app `Info.plist` includes both HealthKit purpose strings.
+- Built app includes `AppIcon60x60@2x.png` for the required 120x120 icon slot.
+- Archive dSYMs observed: `SOOM.app.dSYM`, `Turf.framework.dSYM`.
+- `MapboxCommon.framework` / `MapboxCoreMaps.framework` dSYM upload warnings, if still shown by App Store Connect, should be handled as symbolication warnings rather than validation blockers.

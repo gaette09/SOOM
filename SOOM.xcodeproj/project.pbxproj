@@ -27,6 +27,7 @@
 		010018 /* GmarketSansTTFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020020 /* GmarketSansTTFBold.ttf */; };
 		010019 /* NanumSquareNeo-bRg.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020021 /* NanumSquareNeo-bRg.ttf */; };
 		010020 /* NanumSquareNeo-cBd.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020022 /* NanumSquareNeo-cBd.ttf */; };
+		010500 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 020500 /* Assets.xcassets */; };
 		010021 /* WorkoutMapSheetScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020023 /* WorkoutMapSheetScaffold.swift */; };
 		010022 /* WorkoutDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020024 /* WorkoutDetailContent.swift */; };
 		010023 /* WorkoutMetricCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020025 /* WorkoutMetricCards.swift */; };
@@ -861,6 +862,7 @@
 		020425 /* LocalDataPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataPresence.swift; sourceTree = "<group>"; };
 		020426 /* LocalDataDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataDetector.swift; sourceTree = "<group>"; };
 		020427 /* LocalDataDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataDetectorTests.swift; sourceTree = "<group>"; };
+		020500 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -912,6 +914,7 @@
 				040010 /* DesignSystem */,
 				040011 /* Components */,
 				040014 /* Features */,
+				020500 /* Assets.xcassets */,
 				040012 /* Resources */,
 				020018 /* Info.plist */,
 				020259 /* SOOM.entitlements */,
@@ -1613,6 +1616,7 @@
 				010018 /* GmarketSansTTFBold.ttf in Resources */,
 				010019 /* NanumSquareNeo-bRg.ttf in Resources */,
 				010020 /* NanumSquareNeo-cBd.ttf in Resources */,
+				010500 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2188,6 +2192,8 @@
 				ENABLE_DEBUG_DYLIB = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SOOM/Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2215,6 +2221,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SOOM/Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
