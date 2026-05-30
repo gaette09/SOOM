@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 import UIKit
 
@@ -48,6 +49,7 @@ final class SOOMTabBarVisibility: ObservableObject {
 struct RootTabView: View {
     @State private var selectedTab: SOOMTab = .feed
     @State private var isRecordLaunchPresented = false
+    @State private var shouldReturnToActivityAfterRecordSave = false
     @State private var shouldShowInitialCoachPreview = true
     @StateObject private var tabBarVisibility = SOOMTabBarVisibility()
     @Namespace private var tabBarNamespace
@@ -100,13 +102,21 @@ struct RootTabView: View {
         .sensoryFeedback(.selection, trigger: selectedTab)
         .animation(.easeOut(duration: SOOMMotion.Duration.normal), value: tabBarVisibility.isHidden)
         .fullScreenCover(isPresented: $isRecordLaunchPresented, onDismiss: {
-            selectedTab = .feed
+            selectedTab = shouldReturnToActivityAfterRecordSave ? .activity : .feed
+            shouldReturnToActivityAfterRecordSave = false
         }) {
             NavigationStack {
-                RecordView {
-                    selectedTab = .feed
-                    isRecordLaunchPresented = false
-                }
+                RecordView(
+                    onDismiss: {
+                        shouldReturnToActivityAfterRecordSave = false
+                        selectedTab = .feed
+                        isRecordLaunchPresented = false
+                    },
+                    onSaveComplete: {
+                        shouldReturnToActivityAfterRecordSave = true
+                        isRecordLaunchPresented = false
+                    }
+                )
             }
             .preferredColorScheme(.light)
         }
@@ -585,6 +595,7 @@ private struct ActivityView: View {
         SOOMScreen {
             header
             workoutHistorySection
+            localSavedWorkoutSection
             importedWorkoutSection
             analysisEntrySection
         }
@@ -660,6 +671,10 @@ private struct ActivityView: View {
         }
     }
 
+    private var localSavedWorkoutSection: some View {
+        LocalSavedWorkoutSection()
+    }
+
     private var analysisEntrySection: some View {
         SOOMCard {
             SOOMSectionHeader("최근 흐름", caption: "주간/월간 분석은 별도 탭이 아니라 내 활동의 보조 레이어로 둡니다.")
@@ -675,6 +690,137 @@ private struct ActivityView: View {
                 )
             }
             .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct LocalSavedWorkoutSection: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var workouts: [UnifiedWorkout] = []
+
+    var body: some View {
+        if !workouts.isEmpty {
+            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
+                SOOMSectionHeader("Record에서 저장한 운동", caption: "방금 저장한 local-first 기록입니다. 자세한 관리는 운동 라이브러리에서 이어집니다.")
+
+                ForEach(workouts.prefix(3)) { workout in
+                    NavigationLink {
+                        UnifiedWorkoutLibraryViewContainer()
+                    } label: {
+                        SOOMCard {
+                            SOOMActionRow(
+                                icon: iconName(for: workout.workoutType),
+                                title: "\(displayName(for: workout.workoutType)) 저장됨",
+                                subtitle: "\(dateText(workout.startDate)) · \(durationText(workout.durationSeconds)) · \(distanceText(workout.distanceMeters))",
+                                tint: tint(for: workout.workoutType)
+                            )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("운동 라이브러리에서 저장된 운동을 확인합니다.")
+                }
+            }
+            .task {
+                await loadWorkouts()
+            }
+        } else {
+            EmptyView()
+                .task {
+                    await loadWorkouts()
+                }
+        }
+    }
+
+    @MainActor
+    private func loadWorkouts() async {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        workouts = (try? await store.fetchRecentWorkouts(days: 30))
+            .map { recent in
+                recent
+                    .filter { $0.source == .soomLocal }
+                    .sorted { $0.startDate > $1.startDate }
+            } ?? []
+    }
+
+    private func dateText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M.d HH:mm"
+        return formatter.string(from: date)
+    }
+
+    private func durationText(_ duration: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(duration / 60))
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+
+        if hours > 0 {
+            return "\(hours)시간 \(minutes)분"
+        }
+
+        return "\(minutes)분"
+    }
+
+    private func distanceText(_ distanceMeters: Double?) -> String {
+        guard let distanceMeters else {
+            return "거리 없음"
+        }
+
+        return String(format: "%.1f km", distanceMeters / 1_000)
+    }
+
+    private func tint(for workoutType: UnifiedWorkoutType) -> Color {
+        switch workoutType {
+        case .cycling:
+            return SOOMColor.bike
+        case .running:
+            return SOOMColor.run
+        case .walking:
+            return SOOMColor.blue
+        default:
+            return SOOMColor.secondaryInk
+        }
+    }
+
+    private func displayName(for workoutType: UnifiedWorkoutType) -> String {
+        switch workoutType {
+        case .running:
+            return "러닝"
+        case .cycling:
+            return "라이딩"
+        case .walking:
+            return "걷기"
+        case .swimming:
+            return "수영"
+        case .hiking:
+            return "하이킹"
+        case .strength:
+            return "근력"
+        case .yoga:
+            return "요가"
+        case .other:
+            return "운동"
+        }
+    }
+
+    private func iconName(for workoutType: UnifiedWorkoutType) -> String {
+        switch workoutType {
+        case .running:
+            return SOOMIcon.run
+        case .cycling:
+            return SOOMIcon.bike
+        case .walking:
+            return "figure.walk"
+        case .swimming:
+            return "figure.pool.swim"
+        case .hiking:
+            return "figure.hiking"
+        case .strength:
+            return "dumbbell"
+        case .yoga:
+            return "figure.mind.and.body"
+        case .other:
+            return SOOMIcon.activity
         }
     }
 }

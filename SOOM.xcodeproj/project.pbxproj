@@ -26,6 +26,7 @@
 		010512 /* RecordMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020512 /* RecordMapView.swift */; };
 		010514 /* RecordLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020514 /* RecordLocationManager.swift */; };
 		010515 /* RecordWorkoutSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020515 /* RecordWorkoutSession.swift */; };
+		010517 /* RecordWorkoutSaveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020517 /* RecordWorkoutSaveFlow.swift */; };
 		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
 		010016 /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020016 /* DetailViews.swift */; };
@@ -274,6 +275,7 @@
 		010509 /* RecordLaunchPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020509 /* RecordLaunchPlanTests.swift */; };
 		010513 /* RecordMapFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020513 /* RecordMapFoundationTests.swift */; };
 		010516 /* RecordWorkoutSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020516 /* RecordWorkoutSessionTests.swift */; };
+		010518 /* RecordWorkoutSaveFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020518 /* RecordWorkoutSaveFlowTests.swift */; };
 		010258 /* SoomMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020258 /* SoomMotion.swift */; };
 		010259 /* WorkoutGrowthMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020260 /* WorkoutGrowthMetric.swift */; };
 		010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020261 /* WorkoutGrowthMetricsBuilder.swift */; };
@@ -476,6 +478,7 @@
 		020512 /* RecordMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapView.swift; sourceTree = "<group>"; };
 		020514 /* RecordLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLocationManager.swift; sourceTree = "<group>"; };
 		020515 /* RecordWorkoutSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSession.swift; sourceTree = "<group>"; };
+		020517 /* RecordWorkoutSaveFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSaveFlow.swift; sourceTree = "<group>"; };
 		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
 		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
@@ -726,6 +729,7 @@
 		020509 /* RecordLaunchPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlanTests.swift; sourceTree = "<group>"; };
 		020513 /* RecordMapFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapFoundationTests.swift; sourceTree = "<group>"; };
 		020516 /* RecordWorkoutSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSessionTests.swift; sourceTree = "<group>"; };
+		020518 /* RecordWorkoutSaveFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSaveFlowTests.swift; sourceTree = "<group>"; };
 		020258 /* SoomMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMotion.swift; sourceTree = "<group>"; };
 		020259 /* SOOM.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SOOM.entitlements; sourceTree = "<group>"; };
 		020260 /* WorkoutGrowthMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetric.swift; sourceTree = "<group>"; };
@@ -1156,6 +1160,7 @@
 				020514 /* RecordLocationManager.swift */,
 				020512 /* RecordMapView.swift */,
 				020515 /* RecordWorkoutSession.swift */,
+				020517 /* RecordWorkoutSaveFlow.swift */,
 				020013 /* RecordView.swift */,
 				020016 /* DetailViews.swift */,
 				020023 /* WorkoutMapSheetScaffold.swift */,
@@ -1556,6 +1561,7 @@
 				020509 /* RecordLaunchPlanTests.swift */,
 				020513 /* RecordMapFoundationTests.swift */,
 				020516 /* RecordWorkoutSessionTests.swift */,
+				020518 /* RecordWorkoutSaveFlowTests.swift */,
 				020308 /* TrainingSettingsStoreTests.swift */,
 				020309 /* SettingsViewModelTests.swift */,
 			);
@@ -1736,6 +1742,7 @@
 				010514 /* RecordLocationManager.swift in Sources */,
 				010512 /* RecordMapView.swift in Sources */,
 				010515 /* RecordWorkoutSession.swift in Sources */,
+				010517 /* RecordWorkoutSaveFlow.swift in Sources */,
 				010013 /* RecordView.swift in Sources */,
 				010253 /* FeedItem.swift in Sources */,
 				010254 /* FeedMockData.swift in Sources */,
@@ -2109,6 +2116,7 @@
 				010509 /* RecordLaunchPlanTests.swift in Sources */,
 				010513 /* RecordMapFoundationTests.swift in Sources */,
 				010516 /* RecordWorkoutSessionTests.swift in Sources */,
+				010518 /* RecordWorkoutSaveFlowTests.swift in Sources */,
 				010309 /* TrainingSettingsStoreTests.swift in Sources */,
 				010310 /* SettingsViewModelTests.swift in Sources */,
 			);

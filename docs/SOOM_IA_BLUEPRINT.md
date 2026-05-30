@@ -157,7 +157,9 @@ Record v1 should behave like a pre-workout launch surface:
 - The main "READY" action belongs near the bottom center, large enough to start from but smaller than the map itself.
 - READY starts a local-first workout session foundation using the selected sport. Cycling maps to cycling, running maps to running, and walking maps to walking.
 - Workout start does not require location permission. If GPS is available, route capture can be prepared; if not, the session still starts as time-first local recording.
-- HealthKit write and durable workout persistence remain finish/save boundaries for a later stage, not launch-time blockers.
+- Stop opens a finish summary inside Record instead of dismissing immediately. Save writes a local-first `UnifiedWorkout` record; discard returns to the launch map without storing anything.
+- Saved Record workouts return the user to Activity so the workout can be checked from the local workout library/history surface.
+- HealthKit write, Feed share draft creation, cloud sync, and ownership migration remain deferred finish/save boundaries, not launch-time blockers.
 - Route recommendation is sample-overlay only until route backend is added. The v1 sample route should read like a real riverside course, not a decorative polygon.
 
 ### Activity

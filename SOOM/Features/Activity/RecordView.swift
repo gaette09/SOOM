@@ -1,20 +1,29 @@
+import SwiftData
 import SwiftUI
 
 struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var locationManager = RecordLocationManager()
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
     @State private var isRoutePlaceholderPresented = false
     @State private var recenterTrigger = 0
     @State private var activeSession: RecordWorkoutSession?
     @State private var currentDate = Date()
+    @State private var isSavingWorkout = false
+    @State private var saveErrorMessage: String?
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
     private let onDismiss: (() -> Void)?
+    private let onSaveComplete: (() -> Void)?
 
-    init(onDismiss: (() -> Void)? = nil) {
+    init(
+        onDismiss: (() -> Void)? = nil,
+        onSaveComplete: (() -> Void)? = nil
+    ) {
         self.onDismiss = onDismiss
+        self.onSaveComplete = onSaveComplete
     }
 
     var body: some View {
@@ -298,7 +307,7 @@ struct RecordView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if session.state == .finished {
-                    finishedActions
+                    finishedSummaryContent(for: session)
                 } else {
                     activeSessionActions(for: session)
                 }
@@ -382,27 +391,141 @@ struct RecordView: View {
         }
     }
 
-    private var finishedActions: some View {
-        Button {
-            SOOMHaptics.selection()
-            withAnimation(.easeOut(duration: 0.22)) {
-                activeSession = nil
+    private func finishedSummaryContent(for session: RecordWorkoutSession) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Divider()
+                .overlay(SOOMColor.line.opacity(0.8))
+
+            if let summary = RecordWorkoutSummaryBuilder.makeSummary(from: session) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        summaryPill(title: "시작", value: timeText(summary.startedAt))
+                        summaryPill(title: "종료", value: timeText(summary.endedAt))
+                        summaryPill(
+                            title: "Route",
+                            value: summary.capturedRoute ? "기록 준비" : "없음"
+                        )
+                    }
+
+                    Text("저장하면 이 기기의 로컬 운동 기록으로 남고 Activity에서 확인할 수 있어요.")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let saveErrorMessage {
+                    Text(saveErrorMessage)
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        SOOMHaptics.selection()
+                        discardFinishedSession()
+                    } label: {
+                        Text("삭제")
+                            .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(SOOMColor.background)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSavingWorkout)
+
+                    Button {
+                        SOOMHaptics.softImpact()
+                        Task {
+                            await saveFinishedSession(summary)
+                        }
+                    } label: {
+                        Text(isSavingWorkout ? "저장 중" : "저장")
+                            .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                            .foregroundStyle(SOOMColor.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(SOOMColor.ink)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSavingWorkout)
+                }
+            } else {
+                Button {
+                    SOOMHaptics.selection()
+                    discardFinishedSession()
+                } label: {
+                    Text("닫기")
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                        .foregroundStyle(SOOMColor.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(SOOMColor.ink)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
-        } label: {
-            Text("닫기")
-                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
-                .foregroundStyle(SOOMColor.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(SOOMColor.ink)
-                .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+    }
+
+    private func summaryPill(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+                .textCase(.uppercase)
+            Text(value)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(SOOMColor.background)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    @MainActor
+    private func saveFinishedSession(_ summary: RecordWorkoutSummary) async {
+        guard !isSavingWorkout else { return }
+
+        isSavingWorkout = true
+        saveErrorMessage = nil
+
+        do {
+            let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+            let saver = RecordWorkoutSaver(store: store)
+            _ = try await saver.save(summary)
+            isSavingWorkout = false
+            activeSession = nil
+
+            if let onSaveComplete {
+                onSaveComplete()
+            } else {
+                dismiss()
+            }
+        } catch {
+            isSavingWorkout = false
+            saveErrorMessage = "저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+        }
+    }
+
+    @MainActor
+    private func discardFinishedSession() {
+        saveErrorMessage = nil
+        isSavingWorkout = false
+        withAnimation(.easeOut(duration: 0.22)) {
+            activeSession = nil
+        }
     }
 
     private func sessionSubtitle(for session: RecordWorkoutSession) -> String {
         if session.state == .finished {
-            return "저장과 HealthKit 쓰기는 다음 단계에서 연결돼요."
+            return "요약을 확인하고 로컬 기록으로 저장할 수 있어요."
         }
 
         return session.startedWithLocation
@@ -421,6 +544,13 @@ struct RecordView: View {
         }
 
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func timeText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     private var shortRecommendationText: String {
