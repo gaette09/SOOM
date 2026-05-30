@@ -42,6 +42,8 @@ private struct MapboxRouteMap: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> MapView {
+        MapboxAccessTokenAvailability.configureMapboxOptionsIfNeeded()
+
         let mapView = MapView(frame: .zero)
         mapView.ornaments.options.logo.margins = CGPoint(x: 10, y: 10)
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: 10, y: 10)
@@ -183,13 +185,35 @@ private struct WorkoutDetailMapFallback: View {
 
 enum MapboxAccessTokenAvailability {
     static var hasUsableToken: Bool {
-        guard let token = Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String else {
-            return false
-        }
+        resolvedUsableToken != nil
+    }
+
+    static var resolvedUsableToken: String? {
+        [
+            Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String,
+            ProcessInfo.processInfo.environment["MBX_ACCESS_TOKEN"],
+            ProcessInfo.processInfo.environment["MAPBOX_ACCESS_TOKEN"]
+        ]
+        .compactMap { $0 }
+        .first(where: isUsableToken)
+    }
+
+    static func isUsableToken(_ token: String?) -> Bool {
+        guard let token else { return false }
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
+
+        let lowered = trimmed.lowercased()
         guard !trimmed.contains("$(") else { return false }
-        guard !trimmed.localizedCaseInsensitiveContains("placeholder") else { return false }
+        guard !lowered.contains("placeholder") else { return false }
+        guard !lowered.contains("replace_me") else { return false }
+        guard !lowered.contains("your_") else { return false }
+        guard !lowered.contains("your-") else { return false }
         return true
+    }
+
+    static func configureMapboxOptionsIfNeeded() {
+        guard let token = resolvedUsableToken else { return }
+        MapboxOptions.accessToken = token
     }
 }

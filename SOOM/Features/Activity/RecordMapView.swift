@@ -24,25 +24,43 @@ struct RecordMapView: View {
     }
 
     var body: some View {
-        if shouldRenderMapbox {
-            RecordMapboxSurface(
-                sport: sport,
-                route: route,
-                locationState: locationState,
-                cameraState: RecordMapCameraState(routeCoordinates: route.coordinates),
-                recenterTrigger: recenterTrigger
-            )
-        } else {
-            RecordMapFallbackSurface(
-                sport: sport,
-                routeTitle: route.title,
-                routeDistance: route.distanceText
-            )
+        Group {
+            if shouldRenderMapbox {
+                RecordMapboxSurface(
+                    sport: sport,
+                    route: route,
+                    locationState: locationState,
+                    cameraState: RecordMapCameraState(
+                        routeCoordinates: route.coordinates,
+                        fallback: RecordMapCameraState(center: locationState.displayCoordinate, zoom: 13.1)
+                    ),
+                    recenterTrigger: recenterTrigger
+                )
+            } else {
+                RecordMapFallbackSurface(
+                    sport: sport,
+                    routeTitle: route.title,
+                    routeDistance: route.distanceText
+                )
+            }
         }
+        .onAppear(perform: logRenderingDecision)
     }
 
     var shouldRenderMapbox: Bool {
-        accessTokenAvailable && route.coordinates.count >= 2
+        accessTokenAvailable
+    }
+
+    var fallbackReason: String? {
+        accessTokenAvailable ? nil : "missing-or-unusable-mapbox-token"
+    }
+
+    private func logRenderingDecision() {
+        #if DEBUG
+        let mode = shouldRenderMapbox ? "mapbox" : "fallback"
+        let reason = fallbackReason ?? "none"
+        print("[RecordMapView] mode=\(mode) tokenAvailable=\(accessTokenAvailable) routeCoordinateCount=\(route.coordinates.count) fallbackReason=\(reason)")
+        #endif
     }
 }
 
@@ -58,6 +76,8 @@ private struct RecordMapboxSurface: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> MapView {
+        MapboxAccessTokenAvailability.configureMapboxOptionsIfNeeded()
+
         let mapView = MapView(
             frame: .zero,
             mapInitOptions: MapInitOptions(
@@ -80,7 +100,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
             route: route,
             locationState: locationState,
             cameraState: cameraState,
-            tint: UIColor(sportTint)
+            tint: UIColor(SOOMColor.green)
         )
         return mapView
     }
@@ -91,7 +111,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
             route: route,
             locationState: locationState,
             cameraState: cameraState,
-            tint: UIColor(sportTint)
+            tint: UIColor(SOOMColor.green)
         )
         context.coordinator.recenterIfNeeded(
             mapView: mapView,
@@ -139,24 +159,28 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                 locationManager = mapView.annotations.makeCircleAnnotationManager()
             }
 
-            var routeAnnotation = PolylineAnnotation(
-                lineCoordinates: route.coordinates.map(\.locationCoordinate)
-            )
-            routeAnnotation.lineColor = StyleColor(tint)
-            routeAnnotation.lineWidth = 5.2
-            routeAnnotation.lineOpacity = 0.88
-            routeManager?.annotations = [routeAnnotation]
+            if route.coordinates.count >= 2 {
+                var routeAnnotation = PolylineAnnotation(
+                    lineCoordinates: route.coordinates.map(\.locationCoordinate)
+                )
+                routeAnnotation.lineColor = StyleColor(tint)
+                routeAnnotation.lineWidth = 4.0
+                routeAnnotation.lineOpacity = 0.78
+                routeManager?.annotations = [routeAnnotation]
+            } else {
+                routeManager?.annotations = []
+            }
 
             let displayCoordinate = locationState.displayCoordinate.locationCoordinate
             var halo = CircleAnnotation(id: "record-current-location-halo", centerCoordinate: displayCoordinate)
-            halo.circleRadius = 22
-            halo.circleColor = StyleColor(UIColor(SOOMColor.blue.opacity(0.16)))
+            halo.circleRadius = locationState.canShowUserLocation ? 22 : 16
+            halo.circleColor = StyleColor(UIColor(markerTint(for: locationState).opacity(locationState.canShowUserLocation ? 0.16 : 0.09)))
             halo.circleStrokeColor = StyleColor(UIColor(SOOMColor.white.opacity(0.55)))
             halo.circleStrokeWidth = 1
 
             var dot = CircleAnnotation(id: "record-current-location-dot", centerCoordinate: displayCoordinate)
             dot.circleRadius = locationState.canShowUserLocation ? 7 : 6
-            dot.circleColor = StyleColor(UIColor(SOOMColor.blue))
+            dot.circleColor = StyleColor(UIColor(markerTint(for: locationState)))
             dot.circleStrokeColor = StyleColor(UIColor.white)
             dot.circleStrokeWidth = 2
             locationManager?.annotations = [halo, dot]
@@ -195,6 +219,10 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                     pitch: 0
                 )
             )
+        }
+
+        private func markerTint(for locationState: RecordLocationState) -> Color {
+            locationState.canShowUserLocation ? SOOMColor.blue : SOOMColor.secondaryInk
         }
     }
 }

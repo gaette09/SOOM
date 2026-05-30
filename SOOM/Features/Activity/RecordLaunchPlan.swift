@@ -56,16 +56,20 @@ struct RecordRouteRecommendation: Equatable {
 
     static let mockHanRiver = RecordRouteRecommendation(
         title: "한강 가벼운 코스",
-        distanceText: "8.6 km",
+        distanceText: "9.2 km",
         durationText: "45분",
         reason: "회복 흐름에 맞는 코스",
         coordinates: [
-            RecordMapCoordinate(latitude: 37.5253, longitude: 126.9148),
-            RecordMapCoordinate(latitude: 37.5204, longitude: 126.9238),
-            RecordMapCoordinate(latitude: 37.5228, longitude: 126.9362),
-            RecordMapCoordinate(latitude: 37.5302, longitude: 126.9448),
-            RecordMapCoordinate(latitude: 37.5364, longitude: 126.9360),
-            RecordMapCoordinate(latitude: 37.5328, longitude: 126.9220)
+            RecordMapCoordinate(latitude: 37.5274, longitude: 126.9089),
+            RecordMapCoordinate(latitude: 37.5282, longitude: 126.9134),
+            RecordMapCoordinate(latitude: 37.5287, longitude: 126.9182),
+            RecordMapCoordinate(latitude: 37.5286, longitude: 126.9235),
+            RecordMapCoordinate(latitude: 37.5279, longitude: 126.9292),
+            RecordMapCoordinate(latitude: 37.5271, longitude: 126.9347),
+            RecordMapCoordinate(latitude: 37.5267, longitude: 126.9405),
+            RecordMapCoordinate(latitude: 37.5269, longitude: 126.9460),
+            RecordMapCoordinate(latitude: 37.5277, longitude: 126.9512),
+            RecordMapCoordinate(latitude: 37.5291, longitude: 126.9561)
         ]
     )
 }

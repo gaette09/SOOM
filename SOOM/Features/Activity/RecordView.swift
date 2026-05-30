@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var locationManager = RecordLocationManager()
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
     @State private var isStartPlaceholderPresented = false
     @State private var isRoutePlaceholderPresented = false
@@ -20,6 +21,7 @@ struct RecordView: View {
                 RecordMapView(
                     sport: selectedSport,
                     route: plan.route,
+                    locationState: locationManager.state,
                     recenterTrigger: recenterTrigger
                 )
                     .ignoresSafeArea()
@@ -28,7 +30,12 @@ struct RecordView: View {
                     iconButton(
                         icon: "location.viewfinder",
                         accessibilityLabel: "현재 위치 다시 잡기",
-                        action: { recenterTrigger += 1 }
+                        action: {
+                            locationManager.handleLocationButtonTap()
+                            if locationManager.state.recenterTarget != nil {
+                                recenterTrigger += 1
+                            }
+                        }
                     )
 
                     Spacer(minLength: 0)
@@ -62,6 +69,10 @@ struct RecordView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text("v1에서는 mock route preview만 보여주고, 실제 route recommendation backend는 아직 연결하지 않았어요.")
+        }
+        .onChange(of: locationManager.state) { _, newState in
+            guard newState.recenterTarget != nil else { return }
+            recenterTrigger += 1
         }
     }
 

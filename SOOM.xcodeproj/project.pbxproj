@@ -24,6 +24,7 @@
 		010510 /* RecordMapCameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020510 /* RecordMapCameraState.swift */; };
 		010511 /* RecordLocationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020511 /* RecordLocationState.swift */; };
 		010512 /* RecordMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020512 /* RecordMapView.swift */; };
+		010514 /* RecordLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020514 /* RecordLocationManager.swift */; };
 		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
 		010016 /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020016 /* DetailViews.swift */; };
@@ -471,6 +472,7 @@
 		020510 /* RecordMapCameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapCameraState.swift; sourceTree = "<group>"; };
 		020511 /* RecordLocationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLocationState.swift; sourceTree = "<group>"; };
 		020512 /* RecordMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapView.swift; sourceTree = "<group>"; };
+		020514 /* RecordLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLocationManager.swift; sourceTree = "<group>"; };
 		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
 		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
@@ -1147,6 +1149,7 @@
 				020508 /* RecordLaunchPlan.swift */,
 				020510 /* RecordMapCameraState.swift */,
 				020511 /* RecordLocationState.swift */,
+				020514 /* RecordLocationManager.swift */,
 				020512 /* RecordMapView.swift */,
 				020013 /* RecordView.swift */,
 				020016 /* DetailViews.swift */,
@@ -1724,6 +1727,7 @@
 				010508 /* RecordLaunchPlan.swift in Sources */,
 				010510 /* RecordMapCameraState.swift in Sources */,
 				010511 /* RecordLocationState.swift in Sources */,
+				010514 /* RecordLocationManager.swift in Sources */,
 				010512 /* RecordMapView.swift in Sources */,
 				010013 /* RecordView.swift in Sources */,
 				010253 /* FeedItem.swift in Sources */,

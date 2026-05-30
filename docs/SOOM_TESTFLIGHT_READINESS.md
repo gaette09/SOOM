@@ -162,9 +162,12 @@ Secret safety rules:
 
 - `MBXAccessToken` is read from `Info.plist`.
 - Current repo value is `$(MBX_ACCESS_TOKEN)`.
-- Record fullscreen launch uses a real Mapbox map only when `MBX_ACCESS_TOKEN` is injected with a usable value.
-- Token missing, placeholder, or route missing must fall back to neutral route/mock map UI.
-- Record should not show an automatic location permission prompt on entry; device QA should verify the map opens with the fallback marker when location is unavailable.
+- Record fullscreen launch uses a real Mapbox map when `MBX_ACCESS_TOKEN` is injected with a usable value. Route overlay availability is separate from base-map rendering.
+- Token missing or placeholder values fall back to neutral route/mock map UI.
+- For local verification, `xcodebuild -showBuildSettings | grep MBX_ACCESS_TOKEN` should show a non-placeholder value. If it is absent, the processed `Info.plist` keeps the placeholder and Record correctly uses fallback.
+- Debug/simulator runs may also provide `MBX_ACCESS_TOKEN` or `MAPBOX_ACCESS_TOKEN` as a process environment value; token values must never be logged or committed.
+- Record should not show an automatic location permission prompt on entry. Device QA should verify the location button is the only trigger for `When In Use` permission, GPS update, and recenter behavior.
+- `NSLocationWhenInUseUsageDescription`: explains current-location display and nearby course guidance before starting a workout.
 - Share/feed previews must keep route privacy masking.
 
 ## App Store Upload Validation Fixes

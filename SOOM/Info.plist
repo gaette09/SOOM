@@ -39,6 +39,8 @@
 	<string>SOOM은 운동 기록, 심박, 거리, 활동 에너지 데이터를 읽어 회복 흐름과 운동 분석을 더 이해하기 쉽게 보여주기 위해 사용합니다.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>SOOM은 사용자가 선택한 운동 데이터를 Health 앱에 저장하거나 업데이트하기 위해 HealthKit 쓰기 권한을 요청합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SOOM은 운동 시작 전 현재 위치를 지도에 표시하고 주변 코스를 안내하기 위해 위치 권한을 요청합니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
