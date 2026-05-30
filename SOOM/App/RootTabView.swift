@@ -69,11 +69,11 @@ struct RootTabView: View {
         ZStack(alignment: .bottom) {
             selectedContent
                 .environmentObject(tabBarVisibility)
-                .environment(\.soomBottomOverlayInset, tabBarVisibility.isHidden ? 0 : SOOMLayout.TabBar.bottomOverlayInset + 72)
+                .environment(\.soomBottomOverlayInset, bottomOverlayInset)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(SOOMColor.background.ignoresSafeArea())
 
-            if !tabBarVisibility.isHidden {
+            if shouldShowFloatingCoach {
                 FloatingRecoveryCoach(shouldShowInitialPreview: $shouldShowInitialCoachPreview)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.trailing, SOOMLayout.FloatingCoach.trailingPadding)
@@ -120,6 +120,17 @@ struct RootTabView: View {
             }
             .preferredColorScheme(.light)
         }
+    }
+
+    private var shouldShowFloatingCoach: Bool {
+        !tabBarVisibility.isHidden && selectedTab != .activity
+    }
+
+    private var bottomOverlayInset: CGFloat {
+        guard !tabBarVisibility.isHidden else { return 0 }
+        return shouldShowFloatingCoach
+            ? SOOMLayout.TabBar.bottomOverlayInset + 72
+            : SOOMLayout.TabBar.bottomOverlayInset
     }
 
     @ViewBuilder
@@ -590,32 +601,41 @@ private struct FloatingRecoveryCoach: View {
 
 private struct ActivityView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
+    @Environment(\.modelContext) private var modelContext
+    @State private var savedWorkouts: [UnifiedWorkout] = []
 
     var body: some View {
         SOOMScreen {
-            header
-            workoutHistorySection
-            localSavedWorkoutSection
-            importedWorkoutSection
-            analysisEntrySection
+            activityCalendarSection
+            recentChangeSection
+            recentWorkoutSection
+            favoriteRoutesSection
+            statisticsSection
+            libraryManagementSection
         }
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-            Text("내 운동 기록을 먼저 보고, 분석은 각 운동의 상세 흐름 안에서 확인합니다.")
-                .font(SOOMFont.body(15, relativeTo: .subheadline))
-                .foregroundStyle(SOOMColor.secondaryInk)
-                .fixedSize(horizontal: false, vertical: true)
+        .task {
+            await loadSavedWorkouts()
         }
     }
 
-    private var workoutHistorySection: some View {
-        VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
-            SOOMSectionHeader("최근 운동", caption: "route, split, terrain, climb, zone, recovery impact는 상세에서 이어집니다.")
+    private var libraryEntries: [ActivityLibraryEntry] {
+        let dashboardEntries = dashboardViewModel.workouts.map(ActivityLibraryEntry.make)
+        let savedEntries = savedWorkouts.map(ActivityLibraryEntry.make)
 
-            if dashboardViewModel.workouts.isEmpty {
+        return (savedEntries + dashboardEntries)
+            .sorted { $0.date > $1.date }
+    }
+
+    private var activityCalendarSection: some View {
+        ActivityCalendarSection(entries: libraryEntries)
+    }
+
+    private var recentWorkoutSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SOOMSectionHeader("최근 운동", caption: "최근 저장된 움직임을 도서관 서가처럼 모아봅니다.")
+
+            if libraryEntries.isEmpty {
                 SOOMFirstJourneyCard(
                     prompt: .activity,
                     actions: [
@@ -633,29 +653,52 @@ private struct ActivityView: View {
                     footer: "0을 크게 보여주기보다, 첫 움직임이 남을 자리를 비워둡니다."
                 )
             } else {
-                ForEach(dashboardViewModel.workouts) { workout in
-                    NavigationLink {
-                        WorkoutDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
-                    } label: {
-                        SOOMCard {
-                            SOOMActionRow(
-                                icon: workout.sport.iconName,
-                                title: workout.title,
-                                subtitle: "\(workout.formattedDistance) · \(workout.formattedDuration) · \(workout.formattedPace)",
-                                tint: workout.sport.tint
-                            )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("운동 상세 분석 화면으로 이동합니다.")
+                ForEach(libraryEntries.prefix(5)) { entry in
+                    recentWorkoutLink(for: entry)
                 }
             }
         }
     }
 
-    private var importedWorkoutSection: some View {
+    private var recentChangeSection: some View {
+        SOOMCard(depth: .ambient) {
+            SOOMSectionHeader("최근 변화", caption: "숫자보다 방향을 먼저 봅니다.")
+
+            HStack(spacing: 10) {
+                ActivityDirectionPill(title: "꾸준함", value: "↑", tint: SOOMColor.recovery)
+                ActivityDirectionPill(title: "회복", value: "→", tint: SOOMColor.blue)
+                ActivityDirectionPill(title: "운동 시간", value: "↑", tint: SOOMColor.bike)
+            }
+        }
+    }
+
+    private var favoriteRoutesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SOOMSectionHeader("자주 가는 코스", caption: "자주 남은 길을 도서관처럼 모아둡니다.")
+
+            HStack(spacing: 10) {
+                ActivityRouteCard(title: "한강 북단", count: "12회", tint: SOOMColor.bike)
+                ActivityRouteCard(title: "탄천", count: "8회", tint: SOOMColor.run)
+                ActivityRouteCard(title: "북악", count: "3회", tint: SOOMColor.secondaryInk)
+            }
+        }
+    }
+
+    private var statisticsSection: some View {
+        SOOMCard(depth: .ambient) {
+            SOOMSectionHeader("통계", caption: "도서관의 작은 인덱스처럼 하단에 둡니다.")
+
+            HStack(spacing: 10) {
+                ActivityStatTile(title: "운동 횟수", value: "\(libraryEntries.count)")
+                ActivityStatTile(title: "운동 시간", value: totalDurationText)
+                ActivityStatTile(title: "총 거리", value: totalDistanceText)
+            }
+        }
+    }
+
+    private var libraryManagementSection: some View {
         SOOMCard {
-            SOOMSectionHeader("가져온 기록", caption: "HealthKit에서 가져온 운동과 분석 제외 상태를 관리합니다.")
+            SOOMSectionHeader("운동 라이브러리 관리", caption: "HealthKit 가져오기, 분석 제외, 상세 분석 진입은 이곳에서 정리합니다.")
 
             NavigationLink {
                 UnifiedWorkoutLibraryViewContainer()
@@ -671,86 +714,101 @@ private struct ActivityView: View {
         }
     }
 
-    private var localSavedWorkoutSection: some View {
-        LocalSavedWorkoutSection()
-    }
-
-    private var analysisEntrySection: some View {
-        SOOMCard {
-            SOOMSectionHeader("최근 흐름", caption: "주간/월간 분석은 별도 탭이 아니라 내 활동의 보조 레이어로 둡니다.")
-
+    @ViewBuilder
+    private func recentWorkoutLink(for entry: ActivityLibraryEntry) -> some View {
+        switch entry.destination {
+        case .workout(let workout):
             NavigationLink {
-                AnalysisViewContainer()
+                WorkoutDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
             } label: {
-                SOOMActionRow(
-                    icon: SOOMIcon.chartLine,
-                    title: "성장 리포트 보기",
-                    subtitle: "주간 흐름, 개인 기록, progression intelligence를 조용히 확인합니다.",
-                    tint: SOOMColor.secondaryInk
-                )
+                ActivityWorkoutLibraryCard(entry: entry)
             }
             .buttonStyle(.plain)
+            .accessibilityHint("운동 상세 흐름으로 이동합니다.")
+        case .library:
+            NavigationLink {
+                UnifiedWorkoutLibraryViewContainer()
+            } label: {
+                ActivityWorkoutLibraryCard(entry: entry)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("운동 라이브러리에서 저장된 운동을 확인합니다.")
+        }
+    }
+
+    private var totalDurationText: String {
+        let totalSeconds = libraryEntries.reduce(0) { $0 + $1.durationSeconds }
+        let hours = Int(totalSeconds / 3_600)
+        let minutes = Int(totalSeconds.truncatingRemainder(dividingBy: 3_600) / 60)
+
+        if hours > 0 {
+            return "\(hours)시간"
+        }
+
+        return "\(minutes)분"
+    }
+
+    private var totalDistanceText: String {
+        let totalMeters = libraryEntries.reduce(0) { $0 + ($1.distanceMeters ?? 0) }
+        guard totalMeters > 0 else { return "0 km" }
+
+        return String(format: "%.1f km", totalMeters / 1_000)
+    }
+
+    @MainActor
+    private func loadSavedWorkouts() async {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        savedWorkouts = (try? await store.fetchRecentWorkouts(days: 180)) ?? []
+    }
+}
+
+private enum ActivityCalendarMode: String, CaseIterable, Identifiable {
+    case month
+    case week
+    case list
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .month:
+            return "월"
+        case .week:
+            return "주"
+        case .list:
+            return "목록"
         }
     }
 }
 
-private struct LocalSavedWorkoutSection: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var workouts: [UnifiedWorkout] = []
+private enum ActivityLibraryDestination {
+    case workout(Workout)
+    case library
+}
 
-    var body: some View {
-        if !workouts.isEmpty {
-            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
-                SOOMSectionHeader("Record에서 저장한 운동", caption: "방금 저장한 local-first 기록입니다. 자세한 관리는 운동 라이브러리에서 이어집니다.")
+private struct ActivityLibraryEntry: Identifiable {
+    let id: UUID
+    let title: String
+    let date: Date
+    let typeTitle: String
+    let iconName: String
+    let tint: Color
+    let distanceMeters: Double?
+    let durationSeconds: TimeInterval
+    let routePoints: [RoutePoint]
+    let destination: ActivityLibraryDestination
 
-                ForEach(workouts.prefix(3)) { workout in
-                    NavigationLink {
-                        UnifiedWorkoutLibraryViewContainer()
-                    } label: {
-                        SOOMCard {
-                            SOOMActionRow(
-                                icon: iconName(for: workout.workoutType),
-                                title: "\(displayName(for: workout.workoutType)) 저장됨",
-                                subtitle: "\(dateText(workout.startDate)) · \(durationText(workout.durationSeconds)) · \(distanceText(workout.distanceMeters))",
-                                tint: tint(for: workout.workoutType)
-                            )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("운동 라이브러리에서 저장된 운동을 확인합니다.")
-                }
-            }
-            .task {
-                await loadWorkouts()
-            }
-        } else {
-            EmptyView()
-                .task {
-                    await loadWorkouts()
-                }
+    var distanceText: String {
+        guard let distanceMeters, distanceMeters > 0 else { return "기록 준비 중" }
+        if distanceMeters < 1_000 {
+            return "\(Int(distanceMeters)) m"
         }
+        return String(format: "%.1f km", distanceMeters / 1_000)
     }
 
-    @MainActor
-    private func loadWorkouts() async {
-        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-        workouts = (try? await store.fetchRecentWorkouts(days: 30))
-            .map { recent in
-                recent
-                    .filter { $0.source == .soomLocal }
-                    .sorted { $0.startDate > $1.startDate }
-            } ?? []
-    }
-
-    private func dateText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M.d HH:mm"
-        return formatter.string(from: date)
-    }
-
-    private func durationText(_ duration: TimeInterval) -> String {
-        let totalMinutes = max(0, Int(duration / 60))
+    var durationText: String {
+        let totalMinutes = max(0, Int(durationSeconds / 60))
+        guard totalMinutes > 0 else { return "기록 준비 중" }
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
 
@@ -761,28 +819,66 @@ private struct LocalSavedWorkoutSection: View {
         return "\(minutes)분"
     }
 
-    private func distanceText(_ distanceMeters: Double?) -> String {
-        guard let distanceMeters else {
-            return "거리 없음"
+    var compactEvidence: [(title: String, value: String)] {
+        var items: [(String, String)] = []
+
+        if let distanceMeters, distanceMeters > 0 {
+            items.append(("거리", distanceText))
         }
 
-        return String(format: "%.1f km", distanceMeters / 1_000)
-    }
-
-    private func tint(for workoutType: UnifiedWorkoutType) -> Color {
-        switch workoutType {
-        case .cycling:
-            return SOOMColor.bike
-        case .running:
-            return SOOMColor.run
-        case .walking:
-            return SOOMColor.blue
-        default:
-            return SOOMColor.secondaryInk
+        if durationSeconds >= 60 {
+            items.append(("시간", durationText))
         }
+
+        items.append(("날짜", compactDateText))
+        return items
     }
 
-    private func displayName(for workoutType: UnifiedWorkoutType) -> String {
+    var dateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M.d HH:mm"
+        return formatter.string(from: date)
+    }
+
+    var compactDateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M.d"
+        return formatter.string(from: date)
+    }
+
+    static func make(from workout: Workout) -> ActivityLibraryEntry {
+        ActivityLibraryEntry(
+            id: workout.id,
+            title: workout.title,
+            date: workout.date,
+            typeTitle: workout.sport.title,
+            iconName: workout.sport.iconName,
+            tint: workout.sport.tint,
+            distanceMeters: workout.distanceMeters,
+            durationSeconds: workout.duration,
+            routePoints: workout.route,
+            destination: .workout(workout)
+        )
+    }
+
+    static func make(from workout: UnifiedWorkout) -> ActivityLibraryEntry {
+        ActivityLibraryEntry(
+            id: workout.id,
+            title: "\(displayName(for: workout.workoutType)) 기록",
+            date: workout.startDate,
+            typeTitle: displayName(for: workout.workoutType),
+            iconName: iconName(for: workout.workoutType),
+            tint: tint(for: workout.workoutType),
+            distanceMeters: workout.distanceMeters,
+            durationSeconds: workout.durationSeconds,
+            routePoints: [],
+            destination: .library
+        )
+    }
+
+    private static func displayName(for workoutType: UnifiedWorkoutType) -> String {
         switch workoutType {
         case .running:
             return "러닝"
@@ -803,7 +899,7 @@ private struct LocalSavedWorkoutSection: View {
         }
     }
 
-    private func iconName(for workoutType: UnifiedWorkoutType) -> String {
+    private static func iconName(for workoutType: UnifiedWorkoutType) -> String {
         switch workoutType {
         case .running:
             return SOOMIcon.run
@@ -812,7 +908,7 @@ private struct LocalSavedWorkoutSection: View {
         case .walking:
             return "figure.walk"
         case .swimming:
-            return "figure.pool.swim"
+            return SOOMIcon.swim
         case .hiking:
             return "figure.hiking"
         case .strength:
@@ -822,6 +918,504 @@ private struct LocalSavedWorkoutSection: View {
         case .other:
             return SOOMIcon.activity
         }
+    }
+
+    private static func tint(for workoutType: UnifiedWorkoutType) -> Color {
+        switch workoutType {
+        case .walking:
+            return Color(hex: 0x9FC8A8)
+        case .running:
+            return SOOMColor.run
+        case .cycling:
+            return SOOMColor.bike
+        default:
+            return SOOMColor.secondaryInk
+        }
+    }
+}
+
+private struct ActivityCalendarSection: View {
+    let entries: [ActivityLibraryEntry]
+    @State private var mode: ActivityCalendarMode = .month
+
+    var body: some View {
+        SOOMCard(depth: .primary) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("운동 도서관")
+                            .font(SOOMFont.displayMedium(24, relativeTo: .title2))
+                            .foregroundStyle(SOOMColor.ink)
+                        Text("언제, 어떤 움직임이 남았는지 먼저 봅니다.")
+                            .font(SOOMFont.body(13, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    HStack(spacing: 4) {
+                        ForEach(ActivityCalendarMode.allCases) { calendarMode in
+                            Button {
+                                mode = calendarMode
+                                SOOMHaptics.selection()
+                            } label: {
+                                Text(calendarMode.title)
+                                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                                    .foregroundStyle(mode == calendarMode ? SOOMColor.white : SOOMColor.secondaryInk)
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 7)
+                                    .background(mode == calendarMode ? SOOMColor.ink : SOOMColor.surfaceMuted)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                switch mode {
+                case .month:
+                    monthGrid
+                case .week:
+                    weekStrip
+                case .list:
+                    dateList
+                }
+
+                calendarLegend
+            }
+        }
+    }
+
+    private var monthGrid: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 7), spacing: 9) {
+            ForEach(monthDays, id: \.self) { date in
+                calendarDayCell(date)
+            }
+        }
+    }
+
+    private var weekStrip: some View {
+        HStack(spacing: 7) {
+            ForEach(weekDays, id: \.self) { date in
+                calendarDayCell(date)
+            }
+        }
+    }
+
+    private var dateList: some View {
+        VStack(spacing: 8) {
+            ForEach(entries.prefix(5)) { entry in
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(entry.tint)
+                        .frame(width: 8, height: 8)
+
+                    Text(entry.dateText)
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.ink)
+
+                    Text(entry.title)
+                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+                }
+            }
+
+            if entries.isEmpty {
+                Text("첫 운동이 저장되면 이곳에 날짜가 쌓입니다.")
+                    .font(SOOMFont.body(13, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+            }
+        }
+    }
+
+    private var calendarLegend: some View {
+        HStack(spacing: 12) {
+            legendDot(title: "걷기", color: Color(hex: 0x9FC8A8))
+            legendDot(title: "러닝", color: SOOMColor.run)
+            legendDot(title: "라이딩", color: SOOMColor.bike)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func calendarDayCell(_ date: Date) -> some View {
+        let dayEntries = entries(on: date)
+
+        return VStack(spacing: 5) {
+            Text(dayNumber(for: date))
+                .font(SOOMFont.body(11, weight: dayEntries.isEmpty ? .regular : .bold, relativeTo: .caption2))
+                .foregroundStyle(dayEntries.isEmpty ? SOOMColor.secondaryInk : SOOMColor.ink)
+                .monospacedDigit()
+
+            HStack(spacing: 2) {
+                ForEach(Array(dayEntries.prefix(3).enumerated()), id: \.offset) { _, entry in
+                    Circle()
+                        .fill(entry.tint)
+                        .frame(width: 4.5, height: 4.5)
+                }
+            }
+            .frame(height: 6)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(dayEntries.isEmpty ? SOOMColor.surfaceMuted.opacity(0.55) : SOOMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func legendDot(title: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(title)
+                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+        }
+    }
+
+    private func entries(on date: Date) -> [ActivityLibraryEntry] {
+        entries.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+
+    private var monthDays: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<28).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset - 27, to: today)
+        }
+    }
+
+    private var weekDays: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<7).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset - 6, to: today)
+        }
+    }
+
+    private func dayNumber(for date: Date) -> String {
+        let day = Calendar.current.component(.day, from: date)
+        return "\(day)"
+    }
+}
+
+private struct ActivityWorkoutLibraryCard: View {
+    let entry: ActivityLibraryEntry
+
+    var body: some View {
+        SOOMCard(depth: .secondary) {
+            HStack(spacing: 12) {
+                ActivityCompactMediaStrip(entry: entry)
+                    .frame(width: 116, height: 82)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 7) {
+                        Image(systemName: entry.iconName)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(entry.tint)
+                            .frame(width: 24, height: 24)
+                            .background(entry.tint.opacity(0.12))
+                            .clipShape(Circle())
+
+                        Text(entry.typeTitle)
+                            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                            .foregroundStyle(entry.tint)
+
+                        Text(entry.dateText)
+                            .font(SOOMFont.body(11, relativeTo: .caption2))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .lineLimit(1)
+                    }
+
+                    Text(entry.title)
+                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.ink)
+                        .lineLimit(1)
+
+                    HStack(spacing: 8) {
+                        ForEach(Array(entry.compactEvidence.enumerated()), id: \.offset) { _, item in
+                            ActivityMetricEvidence(title: item.title, value: item.value)
+                        }
+
+                        if entry.compactEvidence.count == 1 {
+                            ActivityMetricEvidence(title: "상태", value: "기록 준비 중")
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(minHeight: 92)
+        }
+    }
+}
+
+private struct ActivityCompactMediaStrip: View {
+    let entry: ActivityLibraryEntry
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ActivityRoutePreview(points: entry.routePoints, tint: entry.tint, showsLabel: false)
+                .frame(width: 72)
+
+            ActivityPhotoThumbnail(tint: entry.tint, showsLabel: false)
+                .frame(width: 39)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct ActivityRoutePreview: View {
+    let points: [RoutePoint]
+    let tint: Color
+    var showsLabel: Bool = true
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: 0xDDE8DC),
+                                Color(hex: 0xEFF0E8),
+                                Color(hex: 0xD5DFD3)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                ActivityMapTexture()
+                    .stroke(SOOMColor.white.opacity(0.55), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+
+                ActivityRouteShape(points: normalizedPoints)
+                    .stroke(tint, style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
+                    .shadow(color: tint.opacity(0.16), radius: 5, x: 0, y: 3)
+                    .padding(18)
+
+                routeDot(at: normalizedPoints.first ?? CGPoint(x: 0.18, y: 0.72), color: SOOMColor.white, in: proxy.size)
+                routeDot(at: normalizedPoints.last ?? CGPoint(x: 0.82, y: 0.32), color: tint, in: proxy.size)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .bottomLeading) {
+                if showsLabel {
+                    Text(points.isEmpty ? "route 준비" : "route")
+                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.ink)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(SOOMColor.surface.opacity(0.86))
+                        .clipShape(Capsule())
+                        .padding(9)
+                }
+            }
+        }
+    }
+
+    private var normalizedPoints: [CGPoint] {
+        guard points.count >= 2 else {
+            return [
+                CGPoint(x: 0.12, y: 0.70),
+                CGPoint(x: 0.28, y: 0.58),
+                CGPoint(x: 0.44, y: 0.62),
+                CGPoint(x: 0.62, y: 0.42),
+                CGPoint(x: 0.85, y: 0.30)
+            ]
+        }
+
+        let latitudes = points.map(\.latitude)
+        let longitudes = points.map(\.longitude)
+        let minLatitude = latitudes.min() ?? 0
+        let maxLatitude = latitudes.max() ?? 1
+        let minLongitude = longitudes.min() ?? 0
+        let maxLongitude = longitudes.max() ?? 1
+        let latitudeRange = max(maxLatitude - minLatitude, 0.000_001)
+        let longitudeRange = max(maxLongitude - minLongitude, 0.000_001)
+
+        return points.map { point in
+            CGPoint(
+                x: 0.10 + CGFloat((point.longitude - minLongitude) / longitudeRange) * 0.80,
+                y: 0.86 - CGFloat((point.latitude - minLatitude) / latitudeRange) * 0.72
+            )
+        }
+    }
+
+    private func routeDot(at normalizedPoint: CGPoint, color: Color, in size: CGSize) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: 9, height: 9)
+            .overlay {
+                Circle().stroke(SOOMColor.ink.opacity(0.14), lineWidth: 1)
+            }
+            .position(
+                x: normalizedPoint.x * size.width,
+                y: normalizedPoint.y * size.height
+            )
+    }
+}
+
+private struct ActivityRouteShape: Shape {
+    let points: [CGPoint]
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        guard let first = points.first else { return path }
+        path.move(to: CGPoint(x: rect.minX + first.x * rect.width, y: rect.minY + first.y * rect.height))
+
+        for point in points.dropFirst() {
+            path.addLine(to: CGPoint(x: rect.minX + point.x * rect.width, y: rect.minY + point.y * rect.height))
+        }
+
+        return path
+    }
+}
+
+private struct ActivityMapTexture: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX - 20, y: rect.midY * 0.82))
+        path.addCurve(
+            to: CGPoint(x: rect.maxX + 20, y: rect.midY * 1.12),
+            control1: CGPoint(x: rect.width * 0.22, y: rect.minY + rect.height * 0.30),
+            control2: CGPoint(x: rect.width * 0.70, y: rect.minY + rect.height * 0.72)
+        )
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.maxY + 12))
+        path.addCurve(
+            to: CGPoint(x: rect.maxX + 12, y: rect.minY + rect.height * 0.26),
+            control1: CGPoint(x: rect.width * 0.34, y: rect.height * 0.76),
+            control2: CGPoint(x: rect.width * 0.58, y: rect.height * 0.14)
+        )
+        return path
+    }
+}
+
+private struct ActivityPhotoThumbnail: View {
+    let tint: Color
+    var showsLabel: Bool = true
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(0.24),
+                            Color(hex: 0xEEF0E7),
+                            Color(hex: 0xC9D7C4)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Image(systemName: SOOMIcon.map)
+                .font(.system(size: showsLabel ? 22 : 15, weight: .semibold))
+                .foregroundStyle(SOOMColor.white.opacity(0.86))
+
+            if showsLabel {
+                Text("photo")
+                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.ink)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(SOOMColor.surface.opacity(0.86))
+                    .clipShape(Capsule())
+                    .padding(9)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct ActivityMetricEvidence: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+            Text(value)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 2)
+    }
+}
+
+private struct ActivityDirectionPill: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 5) {
+            Text(title)
+                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+            Text(value)
+                .font(SOOMFont.displayMedium(21, relativeTo: .title3))
+                .foregroundStyle(tint)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(SOOMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct ActivityRouteCard: View {
+    let title: String
+    let count: String
+    let tint: Color
+
+    var body: some View {
+        SOOMCard(depth: .ambient) {
+            VStack(alignment: .leading, spacing: 10) {
+                ActivityRoutePreview(points: [], tint: tint)
+                    .frame(height: 86)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.ink)
+                        .lineLimit(1)
+                    Text(count)
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                }
+            }
+        }
+    }
+}
+
+private struct ActivityStatTile: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+            Text(value)
+                .font(SOOMFont.body(16, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(SOOMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

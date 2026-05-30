@@ -219,6 +219,49 @@ Feed metrics are evidence, not the headline:
 - If a user wants split, climb, terrain, zone, progression, or recovery impact, that belongs in Activity detail.
 - A feed card should still make sense if the user reads only the media and story.
 
+## Activity Library Rules
+
+Activity is SOOM's personal workout library:
+
+- Calendar is the anchor, with month/week/list modes and quiet sport color dots.
+- Recent changes sit directly under the calendar as a small directional strip.
+- Recent workouts use compact library rows, not Feed-size cards, so at least several records can be scanned on one screen.
+- Workout rows may borrow Feed's route/photo language, but remove social layers, coach copy, comments, and reactions.
+- Missing workout values should be omitted; avoid bug-like labels such as "거리 없음" or "0분" in the library.
+- Recent changes should read as direction, not a KPI board: consistency up, recovery steady, time up.
+- Favorite routes are memory surfaces, not leaderboards.
+- Statistics stay at the bottom and are limited to count, time, and distance.
+- Floating Coach is hidden or minimized in Activity because the user's workout shelf should remain unobstructed.
+
+## Profile Identity Rules
+
+Profile is SOOM's movement identity space:
+
+- Activity answers "what did I do?" Profile answers "what kind of athlete am I?"
+- The first Profile viewport should lead with profile image, name, short motto, identity tags, and long-term movement summary.
+- Do not put recent workout lists in Profile; those belong in Activity.
+- Movement Identity can include representative sport, active days, total distance, total time, and representative route.
+- Movement Pattern should describe style, not only numbers: morning rider, recovery-friendly, consistency-centered, weekend long-distance.
+- Personal Best should show only representative records, not a full statistics dashboard.
+- Favorite Routes in Profile are identity markers; Activity can show the fuller route library.
+- Badge Showcase should show 3-5 representative achievements and connect naturally to Club identity.
+- Connections and settings sit below identity. HealthKit, Garmin, Strava, account, privacy, and baselines are support surfaces, not the hero.
+- Profile can feel more personal and brand-like than Activity, but should remain calm and readable.
+
+## Club Competitive Identity Rules
+
+Club is SOOM's online belonging and contribution space:
+
+- Club should feel more competitive than Feed, more social than Activity, and more compact than Record.
+- Lead with My Club Status: club name, weekly rank, contribution, and club goal progress.
+- Weekly Ranking is a primary surface, not a hidden detail, but the user's own position must stay easy to find.
+- Ranking types should include distance, activity count, consistency, and sport-specific boards.
+- Challenges should be collective and contribution-oriented: weekly movement count, club distance goal, recovery-friendly activity, morning movement.
+- Badge Wall should reward consistency, contribution, recovery-aware participation, and club identity.
+- Club Activity Pulse should summarize movement inside the group: rank changes, badge wins, goal progress, and member activity. Do not repeat Feed cards one-for-one.
+- Avoid offline meetup-first UI, event scheduling dashboards, moderation-heavy community tools, or aggressive game styling.
+- Visual tone can use clearer progress, ranking, and badge surfaces, but keep SOOM's calm spacing and muted palette.
+
 ## Chip Rules
 
 - Use at most one or two chips per feed card.

@@ -165,53 +165,53 @@ Record v1 should behave like a pre-workout launch surface:
 ### Activity
 
 Purpose:
-The user's personal workout history and detail gateway.
+The user's personal workout library. Activity is a history shelf first, not a statistics dashboard.
 
 Primary action:
-Review recent workouts and open detail.
+Review when and how the user moved, then open a workout detail.
 
 Secondary depth:
 Workout detail, route history, course progression, personal records, filtered history.
 
 Keep because:
-SOOM has rich workout detail. Users need a reliable archive.
+SOOM has rich workout detail, but the first Activity surface should feel like "my movement archive": calendar anchor, recent workouts, route memories, and quiet stats.
 
 Avoid:
-Making Activity a top-level analytics dashboard. The list should stay scannable.
+Making Activity a top-level analytics dashboard. Keep the order as calendar -> recent changes -> recent workouts -> favorite routes -> statistics, with numbers pushed behind workout memory. Recent workouts should use compact library rows so at least several records are visible at once, and the floating coach should not cover the Activity shelf.
 
 ### Club
 
 Purpose:
-Group belonging and recurring activity.
+Online club belonging, contribution, ranking, badges, and recurring challenge loops.
 
 Primary action:
-See club activity, events, challenges, and shared routes.
+Check the user's position inside their club this week, then join ranking, badge, and challenge loops.
 
 Secondary depth:
-Club detail, challenge detail, leaderboard, event, group route.
+Club detail, weekly ranking, challenge detail, badge wall, contribution history, member activity pulse.
 
 Keep because:
-Club/community is a core growth and retention loop.
+Club/community is a core growth and retention loop. It gives Feed social sources and gives Activity records a reason to contribute beyond private history.
 
 Avoid:
-Reducing Club to a passive social feed. It should create reasons to return.
+Reducing Club to offline meetup logistics, passive social feed repetition, or a complex community management tool. Club should create reasons to return through rank movement, contribution, badges, and shared goals.
 
 ### Profile
 
 Purpose:
-Identity, trust, privacy, devices, settings, and personal stats.
+Movement identity, long-term athletic self, trust, privacy, devices, settings, and personal stats.
 
 Primary action:
-Manage account, data connections, privacy, and personal baselines.
+Understand "what kind of mover am I?" before managing account, data connections, privacy, and personal baselines.
 
 Secondary depth:
-Auth, ownership, HealthKit, devices, training settings, export, privacy, stats.
+Movement identity, pattern, personal bests, representative routes, badge showcase, auth, ownership, HealthKit, devices, training settings, export, privacy.
 
 Keep because:
-Settings/Auth/Ownership are currently too deep and need one dependable home.
+SOOM needs one dependable place for identity and trust, but Profile should make the user legible as an athlete before it becomes settings.
 
 Avoid:
-Making Profile a marketing page or dumping every analytics card here.
+Making Profile a settings drawer, a marketing page, a recent workout list, or another Activity screen.
 
 ## Feed-first UX Structure
 
@@ -389,45 +389,81 @@ Where they live:
 
 ## Club / Community Structure
 
-Club should become a top-level axis because SOOM's Feed-first structure needs meaningful social sources.
+Club should become a top-level axis because SOOM's Feed-first structure needs meaningful social sources and contribution loops.
+
+Club definition:
+
+Club is an online workout club for belonging, competition, ranking, badges, and challenges. It is not primarily an offline meetup board.
 
 Club content:
 
-- Local clubs
-- Riding crews
-- Running groups
-- Challenges
-- Events
-- Leaderboards
-- Shared routes
-- Club feed
-- Club activity calendar
+- My joined clubs and current club identity
+- This week's personal rank and contribution
+- Club goal progress
+- Weekly rankings by distance, activity count, consistency, and sport
+- Club challenges
+- Badge wall
+- Club activity pulse
 
 Club hierarchy:
 
-1. Joined clubs
-2. Upcoming activity
-3. Active challenges
-4. Shared routes
-5. Discover local clubs
+1. My Club Status
+2. Weekly Ranking
+3. Club Challenge
+4. Badge Wall
+5. Club Activity Pulse
+
+My Club Status:
+
+- Club name
+- This week's user rank
+- Contribution distance or activity count
+- Club goal progress
+- One small change cue, such as "2 places up"
+
+Weekly Ranking:
+
+- Distance ranking
+- Activity count ranking
+- Consistency ranking
+- Sport-specific ranking
+- Keep the user's row visible and understandable before showing the full leaderboard.
+
+Club Challenge:
+
+- Weekly movement count challenge
+- Collective distance goal
+- Recovery-friendly ride/run challenge
+- Morning movement challenge
+- Challenges should make contribution feel possible, not punishing.
+
+Badge Wall:
+
+- Earned badges
+- In-progress badges
+- New badge this week
+- Rare badges
+- Badges should reward contribution, consistency, recovery-aware participation, and role identity.
+
+Club Activity Pulse:
+
+- Member activity summary
+- Rank movement
+- New badge wins
+- Club goal progress
+- This should not duplicate Feed workout cards; it is a compact club status stream.
 
 Club empty state:
 
-- If the user has not joined a club, lead with mood and accessibility: local, slow pace, first-time welcome.
-- Do not show leaderboard emptiness or pressure to compete.
-- The first action should feel like finding people to move with, not joining a ranking.
+- If the user has not joined a club, lead with online belonging and low-pressure contribution: "Find a club where your weekly movement can count."
+- Do not show empty leaderboard shame.
+- The first action should feel like choosing a group identity, not registering for an offline event.
 
-Leaderboards:
+Competition tone:
 
-- Use carefully
-- Default to personal contribution, consistency, or participation
-- Avoid aggressive ranking as the primary identity
-
-Social tone:
-
-- Club surfaces should feel like "people I could join" rather than "people I need to beat".
-- Event cards should lead with vibe, route mood, and accessibility of participation.
-- Challenges should emphasize showing up, consistency, and recovery-aware progress before rank.
+- Club is more competitive than Feed, more social than Activity, and more compact than Record.
+- Ranking is allowed and useful, but should be contribution-centered.
+- Avoid turning Club into an aggressive game screen.
 
 Shared routes:
 
@@ -437,44 +473,90 @@ Shared routes:
 
 ## Profile Structure
 
-Profile is the trust and ownership center, not just a vanity user page.
+Profile is the movement identity center. Activity answers "what did I do?" Profile answers "what kind of athlete am I?"
 
 Profile sections:
 
-1. Profile summary
+1. Profile hero
    - display name
    - handle
+   - profile image
+   - short intro or personal motto
    - local/remote account state
-   - weekly activity mini summary
-2. Account
+2. Movement Identity
+   - representative sport
+   - active days
+   - total distance
+   - total time
+   - representative route
+3. Movement Pattern
+   - morning rider
+   - recovery-friendly
+   - consistency-centered
+   - weekend long-distance
+4. Personal Best
+   - longest ride
+   - longest run
+   - fastest 10 km
+   - only representative records, not a full history
+5. Favorite Routes
+   - representative routes only
+   - compact count or identity cue
+6. Badge Showcase
+   - 3-5 representative badges
+   - club-connected achievements
+7. Connections
+   - HealthKit
+   - Garmin future
+   - Strava future
+   - settings entry
+8. Account and trust
    - local user
    - Supabase session state
    - Apple Sign In
    - Email Magic Link
    - account disconnect
-3. Data ownership
+9. Data ownership
    - local data presence
    - migration planning notice
    - "기록은 이 기기에 유지돼요"
    - cloud sync future boundary
-4. Data connections
+10. Settings
+   - training baselines
+   - privacy defaults
+   - notifications
+   - export
+   - support
+   - app info
+
+Legacy settings details remain in Profile, but they should sit below movement identity:
+
+- Account
+   - local user
+   - local/remote account state
+   - Supabase session state
+   - Apple Sign In
+   - Email Magic Link
+   - account disconnect
+- Data ownership
+   - local data presence
+   - migration planning notice
+   - "기록은 이 기기에 유지돼요"
+   - cloud sync future boundary
+- Data connections
    - HealthKit
    - devices future
    - import history
-5. Training baselines
+- Training baselines
    - max HR
    - FTP
    - unit preferences
    - privacy default
-6. Privacy
+- Privacy
    - route masking
    - feed visibility
    - share card defaults
-7. Stats
-   - personal totals
-   - recent consistency
-   - PR summaries
-8. App settings
+- App settings
    - notifications
    - export
    - support
@@ -482,6 +564,7 @@ Profile sections:
 
 Profile should solve:
 
+- "What kind of athlete am I?"
 - "Is my account connected?"
 - "Where is my data?"
 - "What can SOOM read?"
