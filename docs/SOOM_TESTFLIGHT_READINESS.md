@@ -162,7 +162,9 @@ Secret safety rules:
 
 - `MBXAccessToken` is read from `Info.plist`.
 - Current repo value is `$(MBX_ACCESS_TOKEN)`.
-- Token missing or route missing must fall back to neutral route UI.
+- Record fullscreen launch uses a real Mapbox map only when `MBX_ACCESS_TOKEN` is injected with a usable value.
+- Token missing, placeholder, or route missing must fall back to neutral route/mock map UI.
+- Record should not show an automatic location permission prompt on entry; device QA should verify the map opens with the fallback marker when location is unavailable.
 - Share/feed previews must keep route privacy masking.
 
 ## App Store Upload Validation Fixes

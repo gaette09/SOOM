@@ -6,8 +6,9 @@ final class RecordLaunchPlanTests: XCTestCase {
         let plan = RecordLaunchPlan.mockToday
 
         XCTAssertEqual(plan.defaultSport, .cycling)
-        XCTAssertTrue(plan.usesMockMapSurface)
-        XCTAssertFalse(plan.requiresLocationPermission)
+        XCTAssertTrue(plan.usesMapboxWhenConfigured)
+        XCTAssertFalse(plan.requiresLocationPermissionOnEntry)
+        XCTAssertGreaterThanOrEqual(plan.route.coordinates.count, 2)
     }
 
     func testSportStartTitlesFollowSelectedSport() {

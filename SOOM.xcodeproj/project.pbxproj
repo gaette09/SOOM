@@ -21,6 +21,9 @@
 		010012 /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020012 /* AnalysisView.swift */; };
 		010013 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020013 /* RecordView.swift */; };
 		010508 /* RecordLaunchPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020508 /* RecordLaunchPlan.swift */; };
+		010510 /* RecordMapCameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020510 /* RecordMapCameraState.swift */; };
+		010511 /* RecordLocationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020511 /* RecordLocationState.swift */; };
+		010512 /* RecordMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020512 /* RecordMapView.swift */; };
 		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
 		010016 /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020016 /* DetailViews.swift */; };
@@ -267,6 +270,7 @@
 		010506 /* FeedPostDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020506 /* FeedPostDTOTests.swift */; };
 		010507 /* FeedDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020507 /* FeedDataSourceTests.swift */; };
 		010509 /* RecordLaunchPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020509 /* RecordLaunchPlanTests.swift */; };
+		010513 /* RecordMapFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020513 /* RecordMapFoundationTests.swift */; };
 		010258 /* SoomMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020258 /* SoomMotion.swift */; };
 		010259 /* WorkoutGrowthMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020260 /* WorkoutGrowthMetric.swift */; };
 		010260 /* WorkoutGrowthMetricsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020261 /* WorkoutGrowthMetricsBuilder.swift */; };
@@ -464,6 +468,9 @@
 		020012 /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
 		020013 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
 		020508 /* RecordLaunchPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlan.swift; sourceTree = "<group>"; };
+		020510 /* RecordMapCameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapCameraState.swift; sourceTree = "<group>"; };
+		020511 /* RecordLocationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLocationState.swift; sourceTree = "<group>"; };
+		020512 /* RecordMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapView.swift; sourceTree = "<group>"; };
 		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
 		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
@@ -712,6 +719,7 @@
 		020506 /* FeedPostDTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDTOTests.swift; sourceTree = "<group>"; };
 		020507 /* FeedDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSourceTests.swift; sourceTree = "<group>"; };
 		020509 /* RecordLaunchPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlanTests.swift; sourceTree = "<group>"; };
+		020513 /* RecordMapFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapFoundationTests.swift; sourceTree = "<group>"; };
 		020258 /* SoomMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomMotion.swift; sourceTree = "<group>"; };
 		020259 /* SOOM.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SOOM.entitlements; sourceTree = "<group>"; };
 		020260 /* WorkoutGrowthMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGrowthMetric.swift; sourceTree = "<group>"; };
@@ -1137,6 +1145,9 @@
 				020209 /* AnalysisViewModel.swift */,
 				020210 /* AnalysisViewContainer.swift */,
 				020508 /* RecordLaunchPlan.swift */,
+				020510 /* RecordMapCameraState.swift */,
+				020511 /* RecordLocationState.swift */,
+				020512 /* RecordMapView.swift */,
 				020013 /* RecordView.swift */,
 				020016 /* DetailViews.swift */,
 				020023 /* WorkoutMapSheetScaffold.swift */,
@@ -1535,6 +1546,7 @@
 				020506 /* FeedPostDTOTests.swift */,
 				020507 /* FeedDataSourceTests.swift */,
 				020509 /* RecordLaunchPlanTests.swift */,
+				020513 /* RecordMapFoundationTests.swift */,
 				020308 /* TrainingSettingsStoreTests.swift */,
 				020309 /* SettingsViewModelTests.swift */,
 			);
@@ -1710,6 +1722,9 @@
 				010208 /* AnalysisViewModel.swift in Sources */,
 				010209 /* AnalysisViewContainer.swift in Sources */,
 				010508 /* RecordLaunchPlan.swift in Sources */,
+				010510 /* RecordMapCameraState.swift in Sources */,
+				010511 /* RecordLocationState.swift in Sources */,
+				010512 /* RecordMapView.swift in Sources */,
 				010013 /* RecordView.swift in Sources */,
 				010253 /* FeedItem.swift in Sources */,
 				010254 /* FeedMockData.swift in Sources */,
@@ -2081,6 +2096,7 @@
 				010506 /* FeedPostDTOTests.swift in Sources */,
 				010507 /* FeedDataSourceTests.swift in Sources */,
 				010509 /* RecordLaunchPlanTests.swift in Sources */,
+				010513 /* RecordMapFoundationTests.swift in Sources */,
 				010309 /* TrainingSettingsStoreTests.swift in Sources */,
 				010310 /* SettingsViewModelTests.swift in Sources */,
 			);

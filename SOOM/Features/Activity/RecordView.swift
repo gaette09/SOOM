@@ -5,6 +5,7 @@ struct RecordView: View {
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
     @State private var isStartPlaceholderPresented = false
     @State private var isRoutePlaceholderPresented = false
+    @State private var recenterTrigger = 0
 
     private let plan = RecordLaunchPlan.mockToday
     private let onDismiss: (() -> Void)?
@@ -16,10 +17,10 @@ struct RecordView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                RecordMapSurface(
+                RecordMapView(
                     sport: selectedSport,
-                    routeTitle: plan.route.title,
-                    routeDistance: plan.route.distanceText
+                    route: plan.route,
+                    recenterTrigger: recenterTrigger
                 )
                     .ignoresSafeArea()
 
@@ -27,7 +28,7 @@ struct RecordView: View {
                     iconButton(
                         icon: "location.viewfinder",
                         accessibilityLabel: "현재 위치 다시 잡기",
-                        action: { isRoutePlaceholderPresented = true }
+                        action: { recenterTrigger += 1 }
                     )
 
                     Spacer(minLength: 0)
@@ -267,7 +268,7 @@ struct RecordView: View {
     }
 }
 
-private struct RecordMapSurface: View {
+struct RecordMapFallbackSurface: View {
     let sport: RecordSportMode
     let routeTitle: String
     let routeDistance: String

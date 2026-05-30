@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 enum RecordSportMode: String, CaseIterable, Identifiable, Equatable {
     case cycling
@@ -51,13 +52,31 @@ struct RecordRouteRecommendation: Equatable {
     let distanceText: String
     let durationText: String
     let reason: String
+    let coordinates: [RecordMapCoordinate]
 
     static let mockHanRiver = RecordRouteRecommendation(
         title: "한강 가벼운 코스",
         distanceText: "8.6 km",
         durationText: "45분",
-        reason: "회복 흐름에 맞는 코스"
+        reason: "회복 흐름에 맞는 코스",
+        coordinates: [
+            RecordMapCoordinate(latitude: 37.5253, longitude: 126.9148),
+            RecordMapCoordinate(latitude: 37.5204, longitude: 126.9238),
+            RecordMapCoordinate(latitude: 37.5228, longitude: 126.9362),
+            RecordMapCoordinate(latitude: 37.5302, longitude: 126.9448),
+            RecordMapCoordinate(latitude: 37.5364, longitude: 126.9360),
+            RecordMapCoordinate(latitude: 37.5328, longitude: 126.9220)
+        ]
     )
+}
+
+struct RecordMapCoordinate: Equatable {
+    let latitude: Double
+    let longitude: Double
+
+    var locationCoordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 }
 
 struct RecordLaunchRecommendation: Equatable {
@@ -82,8 +101,8 @@ struct RecordLaunchPlan: Equatable {
     let recommendation: RecordLaunchRecommendation
     let weather: RecordWeatherSnapshot
     let route: RecordRouteRecommendation
-    let usesMockMapSurface: Bool
-    let requiresLocationPermission: Bool
+    let usesMapboxWhenConfigured: Bool
+    let requiresLocationPermissionOnEntry: Bool
 
     static let mockToday = RecordLaunchPlan(
         defaultSport: .cycling,
@@ -94,7 +113,7 @@ struct RecordLaunchPlan: Equatable {
         ),
         weather: .mockClear,
         route: .mockHanRiver,
-        usesMockMapSurface: true,
-        requiresLocationPermission: false
+        usesMapboxWhenConfigured: true,
+        requiresLocationPermissionOnEntry: false
     )
 }

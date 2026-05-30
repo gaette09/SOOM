@@ -148,13 +148,14 @@ Record v1 should behave like a pre-workout launch surface:
 - Tapping Record opens a full-screen launch mode rather than a normal tab page.
 - Bottom Navigation and Floating Coach are hidden while the Record launch surface is active.
 - A top-left back control dismisses launch mode and returns to Feed by default.
-- A full-screen lightweight map-like background anchors the user's current area.
+- A full-screen map anchors the user's current area. Record uses Mapbox when `MBX_ACCESS_TOKEN` is configured and falls back to the lightweight drawn surface when the token is missing or unresolved.
+- Record does not force a location permission prompt on entry; current-location UI stays subtle until permission and coordinates are available.
 - Recovery and sport recommendation are compressed into a small lower pill; weather sits at the top edge.
 - Import, HealthKit connection, and device connection actions belong to Activity or Profile, not Record.
 - Route has one circular icon control below weather; route context can remain as a map overlay without duplicating controls.
 - Sport selection sits directly above the start action and is icon-first.
 - The main "READY" action belongs near the bottom center, large enough to start from but smaller than the map itself.
-- Route recommendation is local/mock only until route backend and location permissions are intentionally added.
+- Route recommendation is sample-overlay only until route backend and intentional location permission flow are added.
 
 ### Activity
 
