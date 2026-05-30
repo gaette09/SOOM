@@ -256,6 +256,22 @@ The Floating Recovery Coach is a companion layer:
 
 It is not a warning system, modal blocker, or dashboard replacement.
 
+## Record Map Start Surface
+
+Record is not a settings-like list of start options. It is a full-screen pre-workout launch mode.
+
+- Selecting Record from Bottom Navigation opens a full-screen launch surface instead of replacing the current tab content.
+- Bottom Navigation and Floating Coach stay hidden while Record launch is open so the start action has no visual competition.
+- A back control in the top leading corner returns to Feed by default.
+- The map-like surface is the primary layer. v1 uses a lightweight drawn map, not a live Mapbox view, and it must not introduce a new location permission request.
+- Keep text minimal: recovery score/status, weather temperature, selected sport icon, and "READY" are enough.
+- Recommendation appears as a small lower pill, not a card. Route recommendation appears as one icon control below weather plus a subtle map overlay, not a separate information block.
+- Controls should sit on corners or edges as small circular icon buttons. Labels are primarily accessibility labels.
+- Import, HealthKit connection, and device connection controls do not belong on the Record surface; move them to Activity/Profile so Record stays focused on starting.
+- Sport mode selection is icon-only and sits directly above the start action.
+- The main start button sits near the bottom center. It remains primary, but should be compact enough that the map still feels like the screen.
+- Route recommendation is a foundation layer: local mock first, route/search backend later, and recovery/weather/time-aware recommendations only after the basic flow is stable.
+
 ## Motion Principles
 
 Motion should make the app feel alive without making it feel excited.

@@ -47,6 +47,7 @@ final class SOOMTabBarVisibility: ObservableObject {
 
 struct RootTabView: View {
     @State private var selectedTab: SOOMTab = .feed
+    @State private var isRecordLaunchPresented = false
     @State private var shouldShowInitialCoachPreview = true
     @StateObject private var tabBarVisibility = SOOMTabBarVisibility()
     @Namespace private var tabBarNamespace
@@ -79,7 +80,14 @@ struct RootTabView: View {
             }
 
             if !tabBarVisibility.isHidden {
-                SOOMBottomTabBar(selectedTab: $selectedTab, namespace: tabBarNamespace)
+                SOOMBottomTabBar(
+                    selectedTab: $selectedTab,
+                    namespace: tabBarNamespace,
+                    onRecordSelected: {
+                        SOOMHaptics.softImpact()
+                        isRecordLaunchPresented = true
+                    }
+                )
                     .padding(.horizontal, SOOMLayout.TabBar.outerHorizontalPadding)
                     .padding(.bottom, SOOMLayout.TabBar.bottomPadding)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -91,6 +99,17 @@ struct RootTabView: View {
         .environment(\.font, SOOMFont.body(15, relativeTo: .body))
         .sensoryFeedback(.selection, trigger: selectedTab)
         .animation(.easeOut(duration: SOOMMotion.Duration.normal), value: tabBarVisibility.isHidden)
+        .fullScreenCover(isPresented: $isRecordLaunchPresented, onDismiss: {
+            selectedTab = .feed
+        }) {
+            NavigationStack {
+                RecordView {
+                    selectedTab = .feed
+                    isRecordLaunchPresented = false
+                }
+            }
+            .preferredColorScheme(.light)
+        }
     }
 
     @ViewBuilder
@@ -663,14 +682,19 @@ private struct ActivityView: View {
 private struct SOOMBottomTabBar: View {
     @Binding var selectedTab: SOOMTab
     let namespace: Namespace.ID
+    let onRecordSelected: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(SOOMTab.allCases) { tab in
                 Button {
-                    SOOMHaptics.selection()
-                    withAnimation(SOOMMotion.quickEaseOut) {
-                        selectedTab = tab
+                    if tab == .record {
+                        onRecordSelected()
+                    } else {
+                        SOOMHaptics.selection()
+                        withAnimation(SOOMMotion.quickEaseOut) {
+                            selectedTab = tab
+                        }
                     }
                 } label: {
                     SOOMBottomTabItem(tab: tab, isSelected: selectedTab == tab, namespace: namespace)

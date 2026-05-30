@@ -129,19 +129,32 @@ Turning Feed into a metric dashboard or Recovery home.
 ### Record
 
 Purpose:
-Start, import, or connect activity data.
+Start from today's context: location, weather, recovery rhythm, sport choice, and one clear action.
 
 Primary action:
-Record a workout or import from HealthKit.
+Start a workout from the map-first launch space.
 
 Secondary depth:
-Apple Health import, manual entry future, device connection, recent import result.
+Route preview, sport choice, current-location recentering, manual entry future.
 
 Keep because:
 It is the clearest creation/action entry.
 
 Avoid:
-Packing analysis into Record. Record is for creating or bringing data in.
+Packing analysis, import management, or device setup into Record. Record is for deciding what to do now and starting from the map.
+
+Record v1 should behave like a pre-workout launch surface:
+
+- Tapping Record opens a full-screen launch mode rather than a normal tab page.
+- Bottom Navigation and Floating Coach are hidden while the Record launch surface is active.
+- A top-left back control dismisses launch mode and returns to Feed by default.
+- A full-screen lightweight map-like background anchors the user's current area.
+- Recovery and sport recommendation are compressed into a small lower pill; weather sits at the top edge.
+- Import, HealthKit connection, and device connection actions belong to Activity or Profile, not Record.
+- Route has one circular icon control below weather; route context can remain as a map overlay without duplicating controls.
+- Sport selection sits directly above the start action and is icon-first.
+- The main "READY" action belongs near the bottom center, large enough to start from but smaller than the map itself.
+- Route recommendation is local/mock only until route backend and location permissions are intentionally added.
 
 ### Activity
 
