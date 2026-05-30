@@ -35,4 +35,25 @@ final class FeedItemTests: XCTestCase {
 
         XCTAssertEqual(view.items.map(\.id), [newer.id, older.id])
     }
+
+    func testFirstJourneyPromptsUseWarmNonEmptyCopy() {
+        let prompts: [SOOMFirstJourneyPrompt] = [
+            .feed,
+            .activity,
+            .club,
+            .coach,
+            .profile
+        ]
+
+        prompts.forEach { prompt in
+            XCTAssertFalse(prompt.title.isEmpty)
+            XCTAssertFalse(prompt.message.isEmpty)
+            XCTAssertFalse(prompt.iconName.isEmpty)
+        }
+
+        let joinedCopy = prompts.map { "\($0.title) \($0.message)" }.joined(separator: " ")
+        ["아직 아무도", "기록 없음", "0개", "실패", "경쟁", "랭킹"].forEach { word in
+            XCTAssertFalse(joinedCopy.contains(word), "First journey copy should avoid cold empty-state tone: \(word)")
+        }
+    }
 }

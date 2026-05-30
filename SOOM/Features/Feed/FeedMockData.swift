@@ -23,7 +23,29 @@ enum FeedMockData {
                     visibility: .followers
                 )
             ),
-            caption: "초반을 차분하게 가져가니까 후반 리듬이 더 편했어요."
+            caption: "초반을 차분하게 가져가니까 후반 리듬이 더 편했어요.",
+            photoPlaceholders: [
+                FeedPhotoPlaceholder(title: "아침 공원", tone: .morning),
+                FeedPhotoPlaceholder(title: "젖은 강변길", tone: .city)
+            ],
+            activityContext: "비 오는 아침 러닝",
+            emotionalContext: "비 오기 전에 짧게 달렸어요",
+            movementMood: "호흡 먼저",
+            optionalShortStory: "오늘은 페이스보다 호흡을 먼저 봤고, 마지막에는 다리보다 리듬이 편했어요.",
+            routeMood: "비 온 뒤 공기가 차분했던 강변 코스",
+            recoveryCue: "무리하지 않아도 좋아요",
+            locationHint: "서강대교 근처",
+            clubContext: "SOOM 러닝 크루",
+            contextLabels: [
+                FeedContextLabel(title: "비슷한 페이스", icon: SOOMIcon.trendFlat),
+                FeedContextLabel(title: "회복 친화", icon: SOOMIcon.recovery)
+            ],
+            reactions: [
+                FeedReaction(symbol: "👏", label: "차분한 리듬"),
+                FeedReaction(symbol: "🌙", label: "아침 응원"),
+                FeedReaction(symbol: "🫶", label: "함께 뛰는 느낌")
+            ],
+            microComment: "민서: 후반 리듬 진짜 편해 보여요."
         ),
         FeedItem(
             id: UUID(uuidString: "D6F50D11-84DD-4201-A0CE-BAD3E3AC9DF8")!,
@@ -44,7 +66,24 @@ enum FeedMockData {
                     visibility: .followers
                 )
             ),
-            caption: "이번 주는 기록보다 루틴을 지키는 쪽에 집중했어요."
+            caption: "이번 주는 기록보다 루틴을 지키는 쪽에 집중했어요.",
+            activityContext: "조용히 쌓은 한 주",
+            emotionalContext: "기록보다 루틴을 지킨 주",
+            movementMood: "꾸준함",
+            optionalShortStory: "큰 변화보다 같은 시간에 다시 움직인 날들이 쌓였어요.",
+            routeMood: "자주 걷고 달린 익숙한 동네 리듬",
+            recoveryCue: "가볍게 이어가도 충분해요",
+            locationHint: "집 근처 루틴",
+            clubContext: "평일 루틴 클럽",
+            contextLabels: [
+                FeedContextLabel(title: "같은 클럽", icon: SOOMIcon.clubs),
+                FeedContextLabel(title: "오늘 추천", icon: SOOMIcon.sparkles)
+            ],
+            reactions: [
+                FeedReaction(symbol: "👏", label: "꾸준함"),
+                FeedReaction(symbol: "🫶", label: "응원")
+            ],
+            microComment: "도윤: 이런 주가 오래 남더라구요."
         ),
         FeedItem(
             id: UUID(uuidString: "0B6B8040-7330-46A9-9A6F-F3F0ED71962E")!,
@@ -67,7 +106,28 @@ enum FeedMockData {
                     visibility: .publicFeed
                 )
             ),
-            caption: "오늘은 강도보다 회복 리듬을 먼저 봤어요."
+            caption: "오늘은 강도보다 회복 리듬을 먼저 봤어요.",
+            photoPlaceholders: [
+                FeedPhotoPlaceholder(title: "강변 라이딩", tone: .city),
+                FeedPhotoPlaceholder(title: "느린 회복길", tone: .trail)
+            ],
+            activityContext: "퇴근 후 회복 라이딩",
+            emotionalContext: "천천히 강변 한 바퀴",
+            movementMood: "바람 따라",
+            optionalShortStory: "다리보다 리듬에 집중한 날. 속도를 올리기보다 몸이 풀리는 쪽을 골랐어요.",
+            routeMood: "강변 바람이 좋았던 회복 코스",
+            recoveryCue: "몸 깨우는 정도로 충분해요",
+            locationHint: "한강 남쪽길",
+            clubContext: "목요 라이트 라이딩",
+            contextLabels: [
+                FeedContextLabel(title: "같은 루트", icon: SOOMIcon.map),
+                FeedContextLabel(title: "recovery-friendly", icon: SOOMIcon.recovery)
+            ],
+            reactions: [
+                FeedReaction(symbol: "💨", label: "부드러운 흐름"),
+                FeedReaction(symbol: "👏", label: "좋은 선택")
+            ],
+            microComment: "지환: 오늘은 이런 강도가 딱 좋네요."
         )
     ]
 }

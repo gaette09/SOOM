@@ -2,18 +2,41 @@ import SwiftUI
 
 enum SOOMLayout {
     static let screenPadding: CGFloat = 20
-    static let stackSpacing: CGFloat = 16
+    static let stackSpacing: CGFloat = 20
     static let cardRadius: CGFloat = SOOMRadius.card
 
     enum Screen {
-        static let topPadding: CGFloat = 18
-        static let bottomPadding: CGFloat = 28
+        static let topPadding: CGFloat = 20
+        static let bottomPadding: CGFloat = 34
     }
 
     enum Card {
-        static let contentSpacing: CGFloat = 12
-        static let padding: CGFloat = 16
+        static let contentSpacing: CGFloat = 14
+        static let padding: CGFloat = 18
         static let borderWidth: CGFloat = 1
+    }
+
+    enum Feed {
+        static let sectionSpacing: CGFloat = 22
+        static let cardSpacing: CGFloat = 24
+        static let cardContentSpacing: CGFloat = 20
+        static let mediaTopSpacing: CGFloat = 6
+        static let mediaHeight: CGFloat = 374
+        static let contentBleed: CGFloat = -19
+        static let quietSurfaceBleed: CGFloat = -3
+        static let surfaceCardMinHeight: CGFloat = 124
+        static let routePreviewHeight: CGFloat = 60
+    }
+
+    enum FloatingCoach {
+        static let buttonSize: CGFloat = 64
+        static let scoreBadgeSize: CGFloat = 26
+        static let trailingPadding: CGFloat = 17
+        static let bottomPaddingAboveTab: CGFloat = 30
+        static let previewMaxWidth: CGFloat = 258
+        static let previewVerticalPadding: CGFloat = 12
+        static let previewHorizontalPadding: CGFloat = 14
+        static let previewAutoCollapseDelaySeconds: Double = 2.0
     }
 
     enum IconButton {
@@ -69,7 +92,7 @@ enum SOOMLayout {
     enum Metrics {
         static let pillPadding: CGFloat = 12
         static let pillSpacing: CGFloat = 4
-        static let gridSpacing: CGFloat = 12
+        static let gridSpacing: CGFloat = 14
         static let scoreRingSize: CGFloat = 82
         static let scoreRingLineWidth: CGFloat = 10
         static let scoreRingSpacing: CGFloat = 8
@@ -82,7 +105,7 @@ enum SOOMLayout {
         static let rowTextSpacing: CGFloat = 3
         static let detailHeaderSpacing: CGFloat = 14
         static let detailIconFrame: CGFloat = 56
-        static let compactListSpacing: CGFloat = 10
+        static let compactListSpacing: CGFloat = 12
         static let tagMinWidth: CGFloat = 96
         static let tagSpacing: CGFloat = 8
         static let tagHorizontalPadding: CGFloat = 10

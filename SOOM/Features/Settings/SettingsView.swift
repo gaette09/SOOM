@@ -20,12 +20,14 @@ struct SettingsView: View {
 
     var body: some View {
         SOOMScreen {
-            header
             ProfileSummaryCard(
                 name: authViewModel.session.currentUser?.displayName ?? "SOOM 사용자",
                 handle: authViewModel.session.currentUser?.handle ?? "@soom.local",
                 authStatus: authStatusText
             )
+            if shouldShowProfileFirstJourney {
+                profileFirstJourneyCard
+            }
             profileSection
             dataConnectionSection
             trainingBaselineSection
@@ -33,8 +35,7 @@ struct SettingsView: View {
             notificationSection
             appInfoSection
         }
-        .navigationTitle("마이")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             viewModel.load()
             await refreshLocalDataPresence()
@@ -81,10 +82,10 @@ struct SettingsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-            Text("마이")
+            Text("프로필")
                 .font(SOOMFont.display(38, relativeTo: .largeTitle))
                 .foregroundStyle(SOOMColor.ink)
-            Text("프로필, 데이터 연결, 운동 기준값을 한곳에서 관리합니다.")
+            Text("계정, 데이터 소유권, HealthKit, 기준값, 공개 범위를 한곳에서 관리합니다.")
                 .font(SOOMFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -166,6 +167,29 @@ struct SettingsView: View {
                     .foregroundStyle(SOOMColor.warning)
             }
         }
+    }
+
+    private var shouldShowProfileFirstJourney: Bool {
+        authViewModel.session.currentUser?.authProvider != .supabase && !localDataPresence.hasAnyData
+    }
+
+    private var profileFirstJourneyCard: some View {
+        SOOMFirstJourneyCard(
+            prompt: .profile,
+            actions: [
+                SOOMFirstJourneyAction(
+                    title: "Health 앱 연결",
+                    subtitle: "권한을 허용하면 첫 운동 기록을 SOOM으로 이어볼 수 있어요.",
+                    iconName: SOOMIcon.health
+                ),
+                SOOMFirstJourneyAction(
+                    title: "로컬로 먼저 시작",
+                    subtitle: "계정 연결 전에도 이 기기에서 조용히 기록을 쌓을 수 있어요.",
+                    iconName: SOOMIcon.profile
+                )
+            ],
+            footer: "설정은 체크리스트보다 신뢰를 쌓는 공간으로 유지합니다."
+        )
     }
 
     private var dataConnectionSection: some View {

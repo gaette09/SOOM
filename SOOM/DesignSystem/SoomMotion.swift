@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum SOOMMotion {
     enum Duration {
@@ -15,7 +16,7 @@ enum SOOMMotion {
     }
 
     enum Offset {
-        static let cardRevealY: CGFloat = 8
+        static let cardRevealY: CGFloat = 6
         static let subtleRevealY: CGFloat = 4
     }
 
@@ -29,4 +30,24 @@ enum SOOMMotion {
     static let normalEaseOut = Animation.easeOut(duration: Duration.normal)
     static let slowEaseOut = Animation.easeOut(duration: Duration.slow)
     static let subtleSpring = Animation.spring(response: 0.28, dampingFraction: 0.88)
+    static let cardPress = Animation.spring(response: 0.24, dampingFraction: 0.92)
+    static let coachSpring = Animation.spring(response: 0.34, dampingFraction: 0.90)
+}
+
+enum SOOMHaptics {
+    static func selection() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    static func softImpact() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.48)
+    }
+
+    static func typingTick() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.34)
+    }
+
+    static func typingWordStart() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.58)
+    }
 }

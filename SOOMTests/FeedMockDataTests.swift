@@ -19,14 +19,34 @@ final class FeedMockDataTests: XCTestCase {
         })
     }
 
+    func testMockFeedIncludesStorytellingContext() {
+        FeedMockData.items.forEach { item in
+            XCTAssertFalse(item.activityContext.isEmpty)
+            XCTAssertFalse((item.optionalShortStory ?? "").isEmpty)
+            XCTAssertFalse((item.movementMood ?? "").isEmpty)
+            XCTAssertFalse((item.recoveryCue ?? "").isEmpty)
+        }
+    }
+
     func testMockFeedCopyAvoidsCompetitiveTone() {
         let copy = FeedMockData.items.flatMap { item -> [String] in
             var values = [
                 item.authorName,
                 item.authorHandle ?? "",
                 item.caption ?? "",
+                item.activityContext,
+                item.emotionalContext ?? "",
+                item.movementMood ?? "",
+                item.optionalShortStory ?? "",
+                item.routeMood ?? "",
+                item.recoveryCue ?? "",
+                item.locationHint ?? "",
+                item.clubContext ?? "",
+                item.microComment ?? "",
                 item.itemType.title
             ]
+            values.append(contentsOf: item.contextLabels.map(\.title))
+            values.append(contentsOf: item.reactions.flatMap { [$0.symbol, $0.label] })
 
             switch item.cardData {
             case .workoutSession(let card):
