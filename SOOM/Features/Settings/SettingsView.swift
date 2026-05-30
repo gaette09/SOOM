@@ -23,13 +23,21 @@ struct SettingsView: View {
             ProfileSummaryCard(
                 name: authViewModel.session.currentUser?.displayName ?? "SOOM 사용자",
                 handle: authViewModel.session.currentUser?.handle ?? "@soom.local",
+                tagline: "Ride the rhythm.",
+                totalWorkoutCount: "라이딩 중심",
+                weeklySummary: "꾸준함 중심",
                 authStatus: authStatusText
             )
+            movementIdentitySection
+            movementPatternSection
+            personalBestSection
+            profileFavoriteRoutesSection
+            badgeShowcaseSection
             if shouldShowProfileFirstJourney {
                 profileFirstJourneyCard
             }
+            connectionsSection
             profileSection
-            dataConnectionSection
             trainingBaselineSection
             privacySection
             notificationSection
@@ -95,7 +103,7 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         SOOMCard {
-            SOOMSectionHeader("프로필", caption: "로컬 기록을 유지하면서 Supabase 이메일 세션 확인을 준비합니다. 동기화와 소유권 이전은 다음 단계입니다.")
+            SOOMSectionHeader("계정", caption: "운동 정체성과 로컬 기록을 유지하면서 계정 연결을 관리합니다.")
 
             if authViewModel.session.currentUser == nil {
                 SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.recovery)
@@ -192,23 +200,88 @@ struct SettingsView: View {
         )
     }
 
-    private var dataConnectionSection: some View {
+    private var movementIdentitySection: some View {
+        SOOMCard(depth: .primary) {
+            SOOMSectionHeader("Movement Identity", caption: "최근 기록 목록이 아니라, 내가 어떤 운동가인지 보여주는 요약입니다.")
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
+                ProfileIdentityTile(title: "대표 종목", value: "라이딩", icon: SOOMIcon.bike, tint: SOOMColor.bike)
+                ProfileIdentityTile(title: "운동한 날", value: "183일", icon: "calendar", tint: SOOMColor.recovery)
+                ProfileIdentityTile(title: "총 거리", value: "5,421km", icon: SOOMIcon.map, tint: SOOMColor.run)
+                ProfileIdentityTile(title: "운동 시간", value: "312시간", icon: "clock", tint: SOOMColor.blue)
+            }
+
+            ProfileIdentityTile(title: "대표 코스", value: "한강 북단", icon: SOOMIcon.map, tint: SOOMColor.secondaryInk)
+        }
+    }
+
+    private var movementPatternSection: some View {
+        SOOMCard(depth: .ambient) {
+            SOOMSectionHeader("Movement Pattern", caption: "운동 기록을 성격으로 읽는 자리입니다.")
+
+            FlowTags(
+                tags: ["아침형 라이더", "회복 친화형", "꾸준함 중심", "주말 장거리형"],
+                tint: SOOMColor.recovery
+            )
+        }
+    }
+
+    private var personalBestSection: some View {
         SOOMCard {
-            SOOMSectionHeader("데이터 연결", caption: "HealthKit과 가져온 운동 기록을 관리합니다.")
+            SOOMSectionHeader("Personal Best", caption: "운동 리스트가 아니라 나를 설명하는 대표 기록만 둡니다.")
+
+            VStack(spacing: 10) {
+                ProfileBestRow(title: "Longest Ride", value: "212km", tint: SOOMColor.bike)
+                ProfileBestRow(title: "Longest Run", value: "42km", tint: SOOMColor.run)
+                ProfileBestRow(title: "Fastest 10km", value: "기록 준비 중", tint: SOOMColor.secondaryInk)
+            }
+        }
+    }
+
+    private var profileFavoriteRoutesSection: some View {
+        SOOMCard(depth: .ambient) {
+            SOOMSectionHeader("대표 코스", caption: "자주 간 길 전체가 아니라, 나를 설명하는 코스만 보여줍니다.")
+
+            HStack(spacing: 10) {
+                ProfileRouteIdentityCard(title: "한강 북단", count: "12회", tint: SOOMColor.bike)
+                ProfileRouteIdentityCard(title: "탄천", count: "8회", tint: SOOMColor.run)
+                ProfileRouteIdentityCard(title: "북악", count: "3회", tint: SOOMColor.secondaryInk)
+            }
+        }
+    }
+
+    private var badgeShowcaseSection: some View {
+        SOOMCard {
+            SOOMSectionHeader("Badge Showcase", caption: "Club과 연결되는 대표 성취만 3~5개로 요약합니다.")
+
+            HStack(spacing: 10) {
+                ProfileBadgeTile(title: "1000km", subtitle: "기여 거리", tint: SOOMColor.bike)
+                ProfileBadgeTile(title: "30일", subtitle: "꾸준함", tint: SOOMColor.recovery)
+                ProfileBadgeTile(title: "Century", subtitle: "첫 완주", tint: SOOMColor.warning)
+            }
+        }
+    }
+
+    private var connectionsSection: some View {
+        SOOMCard {
+            SOOMSectionHeader("Connections", caption: "설정은 마지막에 둡니다. 연결은 운동 정체성을 더 선명하게 만들 때만 사용합니다.")
 
             NavigationLink {
                 HealthKitSettingsViewContainer()
             } label: {
-                SOOMActionRow(icon: SOOMIcon.health, title: "Apple 건강 앱 연결 관리", subtitle: "읽기 권한과 HealthKit 미리보기를 확인합니다.", tint: SOOMColor.bike)
+                SOOMActionRow(icon: SOOMIcon.health, title: "Apple 건강 앱", subtitle: "HealthKit 연결과 권한을 관리합니다.", tint: SOOMColor.bike)
             }
             .buttonStyle(.plain)
 
             NavigationLink {
                 HealthKitWorkoutImportViewContainer()
             } label: {
-                SOOMActionRow(icon: SOOMIcon.sync, title: "HealthKit 운동 가져오기", subtitle: "가져온 운동은 성장 분석과 Recovery 미리보기에 사용됩니다.", tint: SOOMColor.recovery)
+                SOOMActionRow(icon: SOOMIcon.sync, title: "운동 가져오기", subtitle: "가져온 운동은 Activity 도서관과 상세 분석으로 이어집니다.", tint: SOOMColor.recovery)
             }
             .buttonStyle(.plain)
+
+            SOOMActionRow(icon: "figure.run.circle", title: "Strava", subtitle: "외부 운동 정체성 연결은 이후 단계입니다.", tint: SOOMColor.run)
+            SOOMActionRow(icon: "sensor.tag.radiowaves.forward", title: "Garmin", subtitle: "기기 연결은 future connection으로 남겨둡니다.", tint: SOOMColor.secondaryInk)
         }
     }
 
@@ -345,6 +418,130 @@ struct SettingsView: View {
                 .foregroundStyle(SOOMColor.recovery)
         }
         .padding(SOOMLayout.Metrics.pillPadding)
+        .background(SOOMColor.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+private struct ProfileIdentityTile: View {
+    let title: String
+    let value: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 30, height: 30)
+                .background(tint.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.tertiaryInk)
+                Text(value)
+                    .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                    .foregroundStyle(SOOMColor.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(SOOMColor.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+private struct ProfileBestRow: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(tint.opacity(0.14))
+                .frame(width: 8)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                Text(value)
+                    .font(SOOMFont.displayMedium(22, relativeTo: .title3))
+                    .foregroundStyle(SOOMColor.ink)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(SOOMColor.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+private struct ProfileRouteIdentityCard: View {
+    let title: String
+    let count: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: SOOMIcon.map)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(tint.opacity(0.12))
+                .clipShape(Circle())
+
+            Text(title)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+
+            Text(count)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(SOOMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+private struct ProfileBadgeTile: View {
+    let title: String
+    let subtitle: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 7) {
+            Image(systemName: SOOMIcon.medal)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 34, height: 34)
+                .background(tint.opacity(0.12))
+                .clipShape(Circle())
+
+            Text(title)
+                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Text(subtitle)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
         .background(SOOMColor.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
