@@ -4,11 +4,13 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationManager = RecordLocationManager()
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
-    @State private var isStartPlaceholderPresented = false
     @State private var isRoutePlaceholderPresented = false
     @State private var recenterTrigger = 0
+    @State private var activeSession: RecordWorkoutSession?
+    @State private var currentDate = Date()
 
     private let plan = RecordLaunchPlan.mockToday
+    private let sessionStarter = RecordWorkoutSessionStarter()
     private let onDismiss: (() -> Void)?
 
     init(onDismiss: (() -> Void)? = nil) {
@@ -57,14 +59,18 @@ struct RecordView: View {
                     .padding(.bottom, max(proxy.safeAreaInsets.bottom, 18) + 28)
                 }
                 .padding(.horizontal, 18)
+
+                if let activeSession {
+                    activeWorkoutOverlay(
+                        session: activeSession,
+                        safeAreaInsets: proxy.safeAreaInsets
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(3)
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .alert("운동 기록 준비", isPresented: $isStartPlaceholderPresented) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("지금은 지도 위 출발 화면 foundation이에요. 실제 기록 엔진 연결은 다음 단계에서 이어갈 수 있어요.")
-        }
         .alert("추천 루트", isPresented: $isRoutePlaceholderPresented) {
             Button("확인", role: .cancel) {}
         } message: {
@@ -73,6 +79,14 @@ struct RecordView: View {
         .onChange(of: locationManager.state) { _, newState in
             guard newState.recenterTarget != nil else { return }
             recenterTrigger += 1
+        }
+        .task(id: activeSession?.id) {
+            guard activeSession != nil else { return }
+
+            while !Task.isCancelled {
+                currentDate = Date()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
         }
     }
 
@@ -200,7 +214,12 @@ struct RecordView: View {
     private var startButton: some View {
         Button {
             SOOMHaptics.softImpact()
-            isStartPlaceholderPresented = true
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+                activeSession = sessionStarter.start(
+                    sport: selectedSport,
+                    locationState: locationManager.state
+                )
+            }
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: selectedSport.iconName)
@@ -225,6 +244,183 @@ struct RecordView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(selectedSport.startTitle)
         .accessibilityHint("선택한 운동 모드로 기록을 시작합니다.")
+    }
+
+    private func activeWorkoutOverlay(
+        session: RecordWorkoutSession,
+        safeAreaInsets: EdgeInsets
+    ) -> some View {
+        VStack {
+            Spacer(minLength: 0)
+
+            VStack(spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(sportTint(for: session.sport).opacity(0.14))
+                            .frame(width: 46, height: 46)
+                        Image(systemName: session.sport.iconName)
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(sportTint(for: session.sport))
+                    }
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(session.title)
+                            .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                            .foregroundStyle(SOOMColor.ink)
+                        Text(sessionSubtitle(for: session))
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text(session.statusLabel)
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.recovery)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 6)
+                        .background((session.state == .paused ? SOOMColor.warning : SOOMColor.recovery).opacity(0.12))
+                        .clipShape(Capsule())
+                }
+
+                HStack(alignment: .bottom, spacing: 22) {
+                    metricBlock(
+                        value: elapsedText(for: session),
+                        label: "경과 시간"
+                    )
+                    metricBlock(
+                        value: "-- km",
+                        label: session.startedWithLocation ? "거리 측정 준비" : "위치 없이 시작"
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if session.state == .finished {
+                    finishedActions
+                } else {
+                    activeSessionActions(for: session)
+                }
+            }
+            .padding(18)
+            .background(SOOMColor.surface.opacity(0.96))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(SOOMColor.line.opacity(0.9), lineWidth: 1)
+            }
+            .shadow(color: SOOMColor.ink.opacity(0.14), radius: 28, x: 0, y: 16)
+            .padding(.horizontal, 16)
+            .padding(.bottom, max(safeAreaInsets.bottom, 16) + 8)
+        }
+    }
+
+    private func metricBlock(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(SOOMFont.displayMedium(28, relativeTo: .title))
+                .foregroundStyle(SOOMColor.ink)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+            Text(label)
+                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+        }
+    }
+
+    private func activeSessionActions(for session: RecordWorkoutSession) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                SOOMHaptics.selection()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    activeSession = session.state == .paused ? session.resumed() : session.paused(at: currentDate)
+                }
+            } label: {
+                Text(session.state == .paused ? "다시 시작" : "일시정지")
+                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .callout))
+                    .foregroundStyle(SOOMColor.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(SOOMColor.background)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                SOOMHaptics.softImpact()
+                withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
+                    activeSession = session.finished(at: currentDate)
+                }
+            } label: {
+                Text("종료")
+                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .callout))
+                    .foregroundStyle(SOOMColor.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(SOOMColor.ink)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                SOOMHaptics.selection()
+                withAnimation(.easeOut(duration: 0.22)) {
+                    activeSession = nil
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .frame(width: 42, height: 42)
+                    .background(SOOMColor.background)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("기록 취소")
+        }
+    }
+
+    private var finishedActions: some View {
+        Button {
+            SOOMHaptics.selection()
+            withAnimation(.easeOut(duration: 0.22)) {
+                activeSession = nil
+            }
+        } label: {
+            Text("닫기")
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                .foregroundStyle(SOOMColor.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(SOOMColor.ink)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func sessionSubtitle(for session: RecordWorkoutSession) -> String {
+        if session.state == .finished {
+            return "저장과 HealthKit 쓰기는 다음 단계에서 연결돼요."
+        }
+
+        return session.startedWithLocation
+            ? "현재 위치를 바탕으로 route 기록 준비 중"
+            : "위치 권한 없이도 local-first로 시간 기록을 시작했어요."
+    }
+
+    private func elapsedText(for session: RecordWorkoutSession) -> String {
+        let elapsed = Int(session.elapsedTime(referenceDate: currentDate))
+        let hours = elapsed / 3600
+        let minutes = (elapsed % 3600) / 60
+        let seconds = elapsed % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private var shortRecommendationText: String {

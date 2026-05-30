@@ -167,6 +167,8 @@ Secret safety rules:
 - For local verification, `xcodebuild -showBuildSettings | grep MBX_ACCESS_TOKEN` should show a non-placeholder value. If it is absent, the processed `Info.plist` keeps the placeholder and Record correctly uses fallback.
 - Debug/simulator runs may also provide `MBX_ACCESS_TOKEN` or `MAPBOX_ACCESS_TOKEN` as a process environment value; token values must never be logged or committed.
 - Record should not show an automatic location permission prompt on entry. Device QA should verify the location button is the only trigger for `When In Use` permission, GPS update, and recenter behavior.
+- READY starts the local-first workout session foundation immediately with the selected sport. Location is optional at start; when a coordinate is available the route capture path can be prepared, and without it the app starts a time-first local session.
+- HealthKit write remains a finish/save boundary. TestFlight QA should verify that starting from Record does not force HealthKit authorization, cloud sync, or feed sharing.
 - `NSLocationWhenInUseUsageDescription`: explains current-location display and nearby course guidance before starting a workout.
 - Share/feed previews must keep route privacy masking.
 

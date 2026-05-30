@@ -33,6 +33,17 @@ enum RecordSportMode: String, CaseIterable, Identifiable, Equatable {
             return "figure.walk"
         }
     }
+
+    var workoutType: UnifiedWorkoutType {
+        switch self {
+        case .cycling:
+            return .cycling
+        case .running:
+            return .running
+        case .walking:
+            return .walking
+        }
+    }
 }
 
 struct RecordWeatherSnapshot: Equatable {
