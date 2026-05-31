@@ -15,18 +15,24 @@ struct RecordView: View {
     @State private var savedWorkoutForShare: UnifiedWorkout?
     @State private var isCreatingShareDraft = false
     @State private var shareDraftErrorMessage: String?
+    @State private var weatherSnapshot = RecordWeatherSnapshot.fallbackClear
+    @State private var isFetchingWeather = false
+    @State private var lastWeatherCoordinateKey: String?
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
+    private let weatherService: any RecordWeatherService
     private let onDismiss: (() -> Void)?
     private let onSaveComplete: (() -> Void)?
     private let onShareDraftComplete: (() -> Void)?
 
     init(
+        weatherService: any RecordWeatherService = RecordWeatherServiceFactory.make(),
         onDismiss: (() -> Void)? = nil,
         onSaveComplete: (() -> Void)? = nil,
         onShareDraftComplete: (() -> Void)? = nil
     ) {
+        self.weatherService = weatherService
         self.onDismiss = onDismiss
         self.onSaveComplete = onSaveComplete
         self.onShareDraftComplete = onShareDraftComplete
@@ -94,6 +100,12 @@ struct RecordView: View {
         .onChange(of: locationManager.state) { _, newState in
             guard newState.recenterTarget != nil else { return }
             recenterTrigger += 1
+            Task {
+                await fetchWeatherIfPossible(for: newState)
+            }
+        }
+        .task {
+            await fetchWeatherIfPossible(for: locationManager.state)
         }
         .task(id: activeSession?.id) {
             guard activeSession != nil else { return }
@@ -174,13 +186,19 @@ struct RecordView: View {
 
     private var weatherPill: some View {
         HStack(spacing: 8) {
-            Image(systemName: "sun.max.fill")
+            Image(systemName: weatherSnapshot.conditionIconName)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(SOOMColor.warning)
+                .foregroundStyle(weatherIconTint)
 
-            Text(plan.weather.temperatureText)
+            Text(weatherSnapshot.temperatureText)
                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.ink)
+
+            if isFetchingWeather {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(SOOMColor.secondaryInk)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -192,7 +210,7 @@ struct RecordView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("날씨")
-        .accessibilityValue("\(plan.weather.temperatureText), \(plan.weather.conditionText)")
+        .accessibilityValue(weatherSnapshot.pillText)
     }
 
     private var sportSelector: some View {
@@ -647,14 +665,52 @@ struct RecordView: View {
     }
 
     private var shortRecommendationText: String {
-        switch selectedSport {
-        case .cycling:
-            return "Z2 40분"
-        case .running:
-            return "조깅 25분"
-        case .walking:
-            return "걷기 30분"
+        plan.recommendation.compactText(for: selectedSport, weather: weatherSnapshot)
+    }
+
+    private var weatherIconTint: Color {
+        switch weatherSnapshot.condition {
+        case .clear:
+            return SOOMColor.warning
+        case .rain, .storm:
+            return SOOMColor.blue
+        case .snow:
+            return SOOMColor.secondaryInk
+        case .cloudy, .unknown:
+            return SOOMColor.accent
         }
+    }
+
+    @MainActor
+    private func fetchWeatherIfPossible(for state: RecordLocationState) async {
+        guard state.canShowUserLocation,
+              let coordinate = state.coordinate else {
+            weatherSnapshot = .fallbackClear
+            isFetchingWeather = false
+            return
+        }
+
+        let coordinateKey = String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude)
+        guard coordinateKey != lastWeatherCoordinateKey else { return }
+        guard RecordWeatherFetchPolicy.shouldAttemptLiveFetch(locationState: state) else {
+            weatherSnapshot = .fallbackClear
+            isFetchingWeather = false
+            return
+        }
+
+        lastWeatherCoordinateKey = coordinateKey
+        isFetchingWeather = true
+
+        do {
+            weatherSnapshot = try await weatherService.fetchWeather(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+        } catch {
+            weatherSnapshot = .fallbackClear
+        }
+
+        isFetchingWeather = false
     }
 
     private func iconButton(icon: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {

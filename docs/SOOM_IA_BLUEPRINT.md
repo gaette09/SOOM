@@ -150,7 +150,8 @@ Record v1 should behave like a pre-workout launch surface:
 - A top-left back control dismisses launch mode and returns to Feed by default.
 - A full-screen map anchors the user's current area. Record uses Mapbox when `MBX_ACCESS_TOKEN` is configured and falls back to the lightweight drawn surface when the token is missing or unresolved.
 - Record does not force a location permission prompt on entry. The current-location button is the user-initiated entry point for `When In Use` permission, GPS update, and camera recentering.
-- Recovery and sport recommendation are compressed into a small lower pill; weather sits at the top edge.
+- Recovery and sport recommendation are compressed into a small lower pill; weather sits at the top edge. Weather is live only after an authorized current coordinate exists and a weather API key is configured. Missing permission, missing key, or network failure keeps the calm fallback weather.
+- Weather can lightly shape the recommendation copy: clear/low wind supports the default Z2 suggestion, rain/snow adds a short caution, and strong wind nudges the user toward safer route choices.
 - Import, HealthKit connection, and device connection actions belong to Activity or Profile, not Record.
 - Route has one circular icon control below weather; route context can remain as a map overlay without duplicating controls.
 - Sport selection sits directly above the start action and is icon-first.
