@@ -12,6 +12,19 @@ SOOM should feel like a quiet training companion, not a KPI dashboard. The visua
 - Recovery color is a companion cue, not a warning state.
 - Feed cards should rarely use more than one accent at a time.
 
+SOOM's product accent is purple:
+
+- Primary accent: `#7541EE`.
+- Soft accent surfaces should stay lavender and low-contrast, not saturated purple blocks.
+- Purple belongs to selected states, CTAs, progress highlights, active tabs, rank emphasis, and badge accents.
+- Body copy remains ink/gray. Do not turn explanatory text purple.
+- Green stays available for recovery, nature, route, or sport-specific cues when the meaning is genuinely semantic.
+- Bottom Navigation selected state and the central Record action use the purple accent so the app-level interaction language is consistent.
+- Feed draft badges, contextual active chips, lightweight CTAs, carousel indicators, Activity selected controls, Profile identity pills, and Club ranking/challenge progress should pull from the shared accent tokens instead of local green or blue.
+- `accent`, `accentInk`, `accentSurface`, `accentMuted`, `accentLine`, `selectedSurface`, and `selectedInk` are the app-level accent tokens. New selected, active, CTA, progress, badge, and chip states should use these tokens first.
+- Route green is allowed only when the route/map itself is the semantic object, such as Record map polylines or drawn route previews. It should not be used as a generic selected, CTA, ranking, badge, or progress color.
+- Recovery/status colors remain semantic. Use them for actual recovery, readiness, caution, warning, or health state meaning, not for generic navigation or product emphasis.
+
 ## Typography Hierarchy
 
 Each screen should prefer:
@@ -276,8 +289,15 @@ Club is SOOM's online belonging and contribution space:
 - The implemented Club foundation uses mock data until backend support exists; the UI should still feel like a joined online club, not a placeholder dashboard.
 - Empty Club states should invite users to find a club with a similar rhythm and avoid offline meetup-first language.
 - Club should open on a home surface first: my clubs, created clubs, joined clubs, recommended clubs, and create club entry. Ranking surfaces live inside selected club detail.
+- Club Detail hierarchy is identity -> visual status -> members -> ranking -> challenges -> badges -> pulse.
+- Club Detail must explain identity before ranking, but the explanation should be compact: one intro, one short purpose line, mood tags, rule chips, and member preview.
+- Favor graphs over explanatory copy. Club goal, weekly activity, contribution, challenges, and rank position should be shown with rings, bars, stat tiles, avatar cards, and progress cards before paragraphs.
+- Member previews should show roles such as owner, top ranked, consistency leader, recent member, or similar pace; avoid turning this into a full directory in v1.
+- Purpose and rules should make competition feel bounded and fair before showing the leaderboard, using check cards or compact rule chips instead of long bullet lists.
 - Ranking copy must name or imply the selected club scope, such as "SOOM Riders 내 이번 주 랭킹"; avoid global leaderboard language in v1.
+- Purple is the Club accent for selected filters, current-user rank, progress bars, badge emphasis, and create/join CTAs. Green remains available only when a specific recovery/nature meaning is needed.
 - Create club can be visible as a future-ready CTA, but it should use clear placeholder copy until backend creation exists.
+- Join, leave, and manage actions can appear as placeholder states, but backend mutation is not part of v1.
 
 ## Chip Rules
 
@@ -419,3 +439,56 @@ Rules:
 - Coach access copy belongs above the first card when it explains the floating coach.
 - Floating coach button icon and score must remain legible; companion subtlety should not mean unreadable opacity.
 - Primary text uses clear ink contrast; only metadata may move to secondary gray.
+
+## Share Card System
+
+SOOM share cards are vertical story-first exports. The default ratio is 9:16, with SOOM purple as the app-level accent and quiet off-white surfaces for readable text.
+
+Presentation rules:
+
+- Share controls live in a bottom sheet composer, not embedded inside Activity Detail content.
+- Activity Detail should remain workout interpretation-first. It may show `피드에 공유하기` and `이미지로 공유하기`, but not the full card picker, background picker, target grid, or 9:16 preview inline.
+- The composer hierarchy is `preview carousel -> background -> targets`.
+- The 9:16 preview carousel should be the first visible object in the composer and should be large enough to read without being clipped.
+- Share card selection is swipe-first. Avoid making the composer feel like a settings form with a large option grid.
+- Transparent preview uses a checkerboard backdrop only in the composer preview. The exported transparent image must remain transparent.
+
+Share Card option rules:
+
+- The UI should say "공유 카드 선택", not "타입 선택".
+- `운동 카드`: emotion-first movement card, route/photo background allowed.
+- `컨디션 카드`: private-first by default. Public cards must exclude recovery score, personal condition detail, fatigue/readiness language, and sensitive coach guidance.
+- `코스 카드`: route-as-content, with privacy-safe start/end masking.
+- `클럽 카드`: group rhythm and contribution, not global ranking pressure.
+- Card options should include a short preview summary so the user chooses the story, not a technical enum.
+- Card selection should stay swipe-first. Do not reintroduce a large type grid unless editing templates becomes a dedicated mode.
+
+Visual card rules:
+
+- Share cards are emotion-first, metric-light story images.
+- Use one headline, one interpretation line, and one small supporting mark per card.
+- Do not render a heavy dashboard metric grid on the share card itself. Route-based workout cards may use one compact metric row because route + essential data is the expected social workout pattern.
+- Workout card copy should read like `10.4km`, `5'02"/km · 52m`, `리듬을 잃지 않은 날`.
+- Condition card copy should read condition-first: `좋음`, `82`, `밀어도 되는 날`.
+- Avoid technical labels such as Recovery in public-facing primary copy.
+- Map/photo cards need a subtle readability overlay; transparent previews use checkerboard only in the composer preview, never in the exported transparent image.
+- Every share card includes a quiet SOOM signature footer. Use short brand lines such as `페이스는 숨에서`, `숨부터 잡아라`, `길보다 리듬`, or `함께 쌓은 리듬`; the footer must stay smaller than the main story.
+- Signature cards may use a very subtle rhythm/breath background pattern: thin waveform, breathing circle, or route-like curve. It should feel like SOOM's pulse, not a decorative texture.
+- Transparent exports do not include the decorative rhythm/breath background pattern or the checkerboard preview surface.
+- Route-based workouts should show a clear route line when a route preview payload exists. In workout and route cards, the line is a primary visual, not a background hint.
+- Transparent export mode is route/text only: no card surface, no border, no top metadata, no privacy label, no checkerboard, and no decorative rhythm background pattern.
+- Sport-specific share metric sets are fixed and privacy-safe: cycling uses distance/time/elevation, running uses distance/pace/time, walking uses distance/time, and fallback uses distance/time.
+- Share layouts may vary by route/text placement: route hero, route top with metrics below, route left/text right, centered stats, and transparent overlay. The composer can keep four card types while the model remains ready for layout variants.
+
+Preview/background rules:
+
+- `지도/사진` is the default preview mode and should feel like a shareable memory surface.
+- `투명` keeps the export canvas transparent so the card can sit over a story/photo editor background.
+- Transparent cards still need enough internal contrast; text should never depend on an unknown external background.
+- Composer preview may show a checkerboard and a small `투명` badge to explain transparency. Those elements are preview-only and must not be rendered into exported images.
+
+Target rules:
+
+- Instagram Story, Save Image, and More use the iOS share sheet unless a future native integration is explicitly added.
+- Copy Link requires a published remote object and public URL backend, so it should not be exposed in the current UI.
+- Share targets should not imply automatic public posting.

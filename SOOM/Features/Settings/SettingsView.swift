@@ -106,7 +106,7 @@ struct SettingsView: View {
             SOOMSectionHeader("계정", caption: "운동 정체성과 로컬 기록을 유지하면서 계정 연결을 관리합니다.")
 
             if authViewModel.session.currentUser == nil {
-                SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.recovery)
+                SOOMActionRow(icon: "person.crop.circle", title: "로컬 사용자 시작", subtitle: "서버 계정 없이 이 기기에서 SOOM 기록을 이어갑니다.", tint: SOOMColor.accent)
 
                 Button {
                     authViewModel.continueAsLocalUser()
@@ -116,7 +116,7 @@ struct SettingsView: View {
                         .foregroundStyle(SOOMColor.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, SOOMLayout.Card.padding)
-                        .background(SOOMColor.recovery)
+                        .background(SOOMColor.accent)
                         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -137,7 +137,7 @@ struct SettingsView: View {
                 AppleAuthCard(authViewModel: authViewModel)
 
                 if authViewModel.session.currentUser?.authProvider == .supabase {
-                    SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.recovery)
+                    SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.accent)
 
                     if let ownershipPlanNotice {
                         SOOMActionRow(icon: "externaldrive.badge.person.crop", title: "기록 소유권", subtitle: ownershipPlanNotice, tint: SOOMColor.secondaryInk)
@@ -158,7 +158,7 @@ struct SettingsView: View {
                     }
                 }
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.recovery)
+                .foregroundStyle(SOOMColor.accent)
 
                 if authViewModel.session.currentUser?.authProvider != .supabase {
                     Button("로컬 세션 초기화") {
@@ -205,13 +205,13 @@ struct SettingsView: View {
             SOOMSectionHeader("Movement Identity", caption: "최근 기록 목록이 아니라, 내가 어떤 운동가인지 보여주는 요약입니다.")
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
-                ProfileIdentityTile(title: "대표 종목", value: "라이딩", icon: SOOMIcon.bike, tint: SOOMColor.bike)
-                ProfileIdentityTile(title: "운동한 날", value: "183일", icon: "calendar", tint: SOOMColor.recovery)
-                ProfileIdentityTile(title: "총 거리", value: "5,421km", icon: SOOMIcon.map, tint: SOOMColor.run)
-                ProfileIdentityTile(title: "운동 시간", value: "312시간", icon: "clock", tint: SOOMColor.blue)
+                ProfileIdentityTile(title: "대표 종목", value: "라이딩", icon: SOOMIcon.bike, tint: SOOMColor.accent)
+                ProfileIdentityTile(title: "운동한 날", value: "183일", icon: "calendar", tint: SOOMColor.accent)
+                ProfileIdentityTile(title: "총 거리", value: "5,421km", icon: SOOMIcon.map, tint: SOOMColor.accent)
+                ProfileIdentityTile(title: "운동 시간", value: "312시간", icon: "clock", tint: SOOMColor.accent)
             }
 
-            ProfileIdentityTile(title: "대표 코스", value: "한강 북단", icon: SOOMIcon.map, tint: SOOMColor.secondaryInk)
+            ProfileIdentityTile(title: "대표 코스", value: "한강 북단", icon: SOOMIcon.map, tint: SOOMColor.accent)
         }
     }
 
@@ -221,7 +221,7 @@ struct SettingsView: View {
 
             FlowTags(
                 tags: ["아침형 라이더", "회복 친화형", "꾸준함 중심", "주말 장거리형"],
-                tint: SOOMColor.recovery
+                tint: SOOMColor.accent
             )
         }
     }
@@ -231,8 +231,8 @@ struct SettingsView: View {
             SOOMSectionHeader("Personal Best", caption: "운동 리스트가 아니라 나를 설명하는 대표 기록만 둡니다.")
 
             VStack(spacing: 10) {
-                ProfileBestRow(title: "Longest Ride", value: "212km", tint: SOOMColor.bike)
-                ProfileBestRow(title: "Longest Run", value: "42km", tint: SOOMColor.run)
+                ProfileBestRow(title: "Longest Ride", value: "212km", tint: SOOMColor.accent)
+                ProfileBestRow(title: "Longest Run", value: "42km", tint: SOOMColor.accent)
                 ProfileBestRow(title: "Fastest 10km", value: "기록 준비 중", tint: SOOMColor.secondaryInk)
             }
         }
@@ -243,9 +243,9 @@ struct SettingsView: View {
             SOOMSectionHeader("대표 코스", caption: "자주 간 길 전체가 아니라, 나를 설명하는 코스만 보여줍니다.")
 
             HStack(spacing: 10) {
-                ProfileRouteIdentityCard(title: "한강 북단", count: "12회", tint: SOOMColor.bike)
-                ProfileRouteIdentityCard(title: "탄천", count: "8회", tint: SOOMColor.run)
-                ProfileRouteIdentityCard(title: "북악", count: "3회", tint: SOOMColor.secondaryInk)
+                ProfileRouteIdentityCard(title: "한강 북단", count: "12회", tint: SOOMColor.accent)
+                ProfileRouteIdentityCard(title: "탄천", count: "8회", tint: SOOMColor.accent)
+                ProfileRouteIdentityCard(title: "북악", count: "3회", tint: SOOMColor.accent)
             }
         }
     }
@@ -255,9 +255,9 @@ struct SettingsView: View {
             SOOMSectionHeader("Badge Showcase", caption: "Club과 연결되는 대표 성취만 3~5개로 요약합니다.")
 
             HStack(spacing: 10) {
-                ProfileBadgeTile(title: "1000km", subtitle: "기여 거리", tint: SOOMColor.bike)
-                ProfileBadgeTile(title: "30일", subtitle: "꾸준함", tint: SOOMColor.recovery)
-                ProfileBadgeTile(title: "Century", subtitle: "첫 완주", tint: SOOMColor.warning)
+                ProfileBadgeTile(title: "1000km", subtitle: "기여 거리", tint: SOOMColor.accent)
+                ProfileBadgeTile(title: "30일", subtitle: "꾸준함", tint: SOOMColor.accent)
+                ProfileBadgeTile(title: "Century", subtitle: "첫 완주", tint: SOOMColor.accent)
             }
         }
     }
@@ -269,18 +269,18 @@ struct SettingsView: View {
             NavigationLink {
                 HealthKitSettingsViewContainer()
             } label: {
-                SOOMActionRow(icon: SOOMIcon.health, title: "Apple 건강 앱", subtitle: "HealthKit 연결과 권한을 관리합니다.", tint: SOOMColor.bike)
+                SOOMActionRow(icon: SOOMIcon.health, title: "Apple 건강 앱", subtitle: "HealthKit 연결과 권한을 관리합니다.", tint: SOOMColor.accent)
             }
             .buttonStyle(.plain)
 
             NavigationLink {
                 HealthKitWorkoutImportViewContainer()
             } label: {
-                SOOMActionRow(icon: SOOMIcon.sync, title: "운동 가져오기", subtitle: "가져온 운동은 Activity 도서관과 상세 분석으로 이어집니다.", tint: SOOMColor.recovery)
+                SOOMActionRow(icon: SOOMIcon.sync, title: "운동 가져오기", subtitle: "가져온 운동은 Activity 도서관과 상세 분석으로 이어집니다.", tint: SOOMColor.accent)
             }
             .buttonStyle(.plain)
 
-            SOOMActionRow(icon: "figure.run.circle", title: "Strava", subtitle: "외부 운동 정체성 연결은 이후 단계입니다.", tint: SOOMColor.run)
+            SOOMActionRow(icon: "figure.run.circle", title: "Strava", subtitle: "외부 운동 정체성 연결은 이후 단계입니다.", tint: SOOMColor.accent)
             SOOMActionRow(icon: "sensor.tag.radiowaves.forward", title: "Garmin", subtitle: "기기 연결은 future connection으로 남겨둡니다.", tint: SOOMColor.secondaryInk)
         }
     }
@@ -415,7 +415,7 @@ struct SettingsView: View {
 
             Button(actionTitle, action: action)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.recovery)
+                .foregroundStyle(SOOMColor.accent)
         }
         .padding(SOOMLayout.Metrics.pillPadding)
         .background(SOOMColor.surfaceMuted)

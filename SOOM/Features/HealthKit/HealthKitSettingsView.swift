@@ -73,7 +73,7 @@ struct HealthKitSettingsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing + 10)
                 .foregroundStyle(SOOMColor.white)
-                .background(viewModel.canRequestAuthorization ? SOOMColor.recovery : SOOMColor.tertiaryInk)
+                .background(viewModel.canRequestAuthorization ? SOOMColor.accent : SOOMColor.tertiaryInk)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -104,7 +104,7 @@ struct HealthKitSettingsView: View {
                     icon: SOOMIcon.record,
                     title: "최근 운동 기록 미리보기",
                     subtitle: "HealthKit에서 불러올 수 있는 운동 목록을 확인합니다.",
-                    tint: SOOMColor.recovery
+                    tint: SOOMColor.accent
                 )
             }
         }
@@ -140,7 +140,7 @@ struct HealthKitSettingsView: View {
                     icon: SOOMIcon.recovery,
                     title: "실제 운동 기반 Recovery 미리보기",
                     subtitle: "가져온 운동 기록으로 계산한 Recovery 요약을 검증합니다.",
-                    tint: SOOMColor.bike
+                    tint: SOOMColor.accent
                 )
             }
         }
@@ -158,7 +158,7 @@ struct HealthKitSettingsView: View {
                     icon: SOOMIcon.sync,
                     title: "HealthKit 운동 가져오기",
                     subtitle: "Apple 건강 앱 운동 기록을 SOOM으로 가져와요. 성장 분석에 사용되고 Recovery는 아직 미리보기로만 확인합니다.",
-                    tint: SOOMColor.recovery
+                    tint: SOOMColor.accent
                 )
             }
         }

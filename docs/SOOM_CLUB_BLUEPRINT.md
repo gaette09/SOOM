@@ -43,15 +43,117 @@ The ranking dashboard belongs inside a selected club. The Club tab should not op
 
 Selected Club Detail order:
 
-1. My Club Status
-2. Weekly Ranking
-3. Club Challenge
-4. Badge Wall
-5. Club Activity Pulse
+1. Club Identity Hero
+2. Visual Club Status
+3. Club Purpose and Rules
+4. Member Preview
+5. Weekly Ranking
+6. Club Challenge
+7. Badge Wall
+8. Club Activity Pulse
 
 This order makes Club feel like a living competitive identity space: status first, rank second, action third, achievement fourth, pulse fifth.
 
 Ranking is always scoped to the selected club. v1 does not include a global SOOM leaderboard.
+
+## Purple Accent And Graph-first Direction
+
+Club uses SOOM purple as its competitive accent:
+
+- Selected ranking filters
+- Current-user rank emphasis
+- Club goal ring
+- Challenge progress bars
+- Badge emphasis
+- Create/join/manage CTAs
+
+Green remains a supporting semantic color for recovery or nature-oriented meaning. It should not be the default Club accent.
+
+Club Detail should prefer visual comparison over explanatory copy:
+
+- Goal percent appears as a ring or progress graph.
+- Member count, active members, and my rank appear as compact stat tiles.
+- Rules appear as small check cards or chips, not long bullets.
+- Member preview appears as avatar cards.
+- Ranking starts with bars/podium-style comparison before rows.
+- Challenges are progress cards.
+- Badges are short visual cards with state chips.
+
+The hierarchy is:
+
+1. Identity
+2. Visual status
+3. Members
+4. Ranking
+5. Challenges
+6. Badges
+7. Pulse
+
+## Club Identity Layer
+
+Club Detail must explain the club before showing competition.
+
+Recommended content:
+
+- Club name
+- One-line introduction
+- Club purpose
+- Sport type
+- Member count
+- Public/private state
+- Owner or operator
+- Active members this week
+- Mood tags
+- Membership action state
+
+Example:
+
+- SOOM Riders
+- "A riding club that builds consistency before speed"
+- Purpose: Move lightly at least three times a week
+- Cycling · 412 members · public club
+- Operator: Jihwan
+- 128 active this week
+
+Rules:
+
+- Put identity before ranking.
+- Use short, clear copy.
+- Make the user understand why this club exists.
+- Do not make Club Detail feel like a generic leaderboard page.
+
+## Club Purpose And Rules
+
+Purpose and rules should appear before ranking.
+
+Example rules:
+
+- Consistency over harsh competition
+- Participation rate over weekly distance
+- Recovery rides count
+- No manipulated records
+- Respect each member's pace
+- Only public feed workouts count toward ranking
+
+This layer keeps competition bounded and explains what kind of contribution the club values.
+
+Presentation rule:
+
+- Keep the purpose to one or two lines.
+- Convert rules into compact check cards or chips.
+- Avoid explanatory paragraphs such as "look at the club standard before ranking" when the layout already communicates that order.
+
+## Member Preview
+
+Club Detail should include a compact member preview:
+
+- Owner/operator
+- Top ranked members
+- Consistency leader
+- Recently joined member
+- Members with similar pace when available
+
+This should be an identity preview, not a full member directory.
 
 ## My Club Status
 
@@ -95,6 +197,8 @@ Ranking modes:
 Rules:
 
 - Keep the user's row sticky or visually highlighted.
+- Show a top comparison graph, compact podium, or horizontal bars before a long list.
+- Use SOOM purple for "me" and selected ranking mode.
 - Show top 3, nearby ranks, and the user's rank before a full board.
 - Ranking should feel competitive but not hostile.
 - Avoid exaggerated winner language.
@@ -216,21 +320,28 @@ The Club tab UI foundation should render the blueprint as a real product surface
 2. Selected Club Detail
    - the dashboard opens only after the user taps a club
    - each mock club can have different ranking, challenge, badge, and pulse data
-3. My Club Status hero
-   - club name, member count, weekly rank, contribution distance, and club goal progress
+3. Club Identity Hero
+   - introduction, sport, privacy, owner, active members, mood tags, and visual goal progress
+4. Purpose and Rules
+   - short club goals and compact rule chips before ranking
+5. Member Preview
+   - owner, leaders, recent members, and similar rhythm members as avatar cards
+6. Visual Club Status
+   - member count, active members, weekly rank, contribution distance, and club goal progress
    - belonging first, numbers second
-4. Weekly Ranking
+7. Weekly Ranking
    - distance, activity count, and consistency filters
+   - horizontal graph or podium-style comparison before rows
    - top ranks plus the current user's row
    - highlight "나" without shame copy or aggressive winner language
    - copy should read as "within this club", not a global ranking
-5. Challenges
+8. Challenges
    - progress bars for weekly movement count, club distance goal, and morning movement
    - contribution framing instead of pressure
-6. Badge Wall
+9. Badge Wall
    - earned, in progress, new this week, and rare states
    - short labels, muted surfaces, no neon game styling
-7. Club Activity Pulse
+10. Club Activity Pulse
    - compact event rows for badge wins, rank movement, goal progress, and member activity
    - do not repeat Feed workout cards
 
@@ -247,6 +358,7 @@ Deferred:
 - Real club backend
 - Real club creation
 - Invite/member management
+- Real join/leave/manage actions
 - Real rank calculation
 - Badge engine
 - Challenge persistence

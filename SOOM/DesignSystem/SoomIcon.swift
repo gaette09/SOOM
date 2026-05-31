@@ -23,6 +23,7 @@ enum SOOMIcon {
     static let share = "square.and.arrow.up"
     static let trash = "trash"
     static let health = "heart.text.square"
+    static let shield = "checkmark.shield.fill"
     static let map = "map"
     static let chartBar = "chart.bar"
     static let sync = "arrow.triangle.2.circlepath"

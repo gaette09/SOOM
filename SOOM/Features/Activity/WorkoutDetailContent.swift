@@ -26,9 +26,6 @@ struct WorkoutDetailContent: View {
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
-    @State private var shareImage: UIImage?
-    @State private var isShareSheetPresented = false
-    @State private var shareErrorMessage: String?
     @State private var streamZoneSummaries: [WorkoutZoneSummary]?
     @State private var streamSplitInsight: WorkoutSplitInsight?
     @State private var isLoadingZoneSummaries = false
@@ -36,8 +33,11 @@ struct WorkoutDetailContent: View {
     @State private var feedDraftMessage: String?
     @State private var feedDraftErrorMessage: String?
     @State private var isCreatingFeedDraft = false
+    @State private var isShareComposerPresented = false
 
-    static let sharePrivacyCopy = "4:5 이미지로 저장돼요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
+    static let sharePrivacyCopy = "스토리에 올릴 이미지를 고르세요."
+    static let shareComposerTitle = "공유 카드"
+    static let showsInlineShareControls = false
 
     var body: some View {
         Group {
@@ -136,47 +136,30 @@ struct WorkoutDetailContent: View {
             }
 
             ActivityDetailActionsCard(
+                canShareImage: shareableCard != nil,
                 isCreatingFeedDraft: isCreatingFeedDraft,
                 feedDraftMessage: feedDraftMessage,
                 feedDraftErrorMessage: feedDraftErrorMessage,
-                createFeedDraft: { await createFeedDraft() }
+                createFeedDraft: { await createFeedDraft() },
+                openImageShare: { isShareComposerPresented = true }
             )
-
-            if let shareableCard {
-                VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-                    SOOMSectionHeader("공유 카드 미리보기")
-                    Text(Self.sharePrivacyCopy)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                ShareableWorkoutCardView(card: shareableCard, tint: workout.sport.tint)
-                shareButton(for: shareableCard)
-            }
         }
-        .sheet(isPresented: $isShareSheetPresented) {
-            if let shareImage {
-                WorkoutShareSheet(activityItems: [shareImage])
+        .sheet(isPresented: $isShareComposerPresented) {
+            if let shareableCard {
+                ShareCardComposer(
+                    baseCard: shareableCard,
+                    tint: SOOMColor.accent,
+                    renderShareImage: renderShareImage
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            } else {
+                EmptyView()
             }
         }
         .task(id: healthKitWorkout?.uuid) {
             await loadStreamZoneSummaries()
             await loadStreamSplitInsight()
-        }
-        .alert(
-            "공유 카드를 만들지 못했어요",
-            isPresented: Binding(
-                get: { shareErrorMessage != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        shareErrorMessage = nil
-                    }
-                }
-            )
-        ) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
         }
     }
 
@@ -267,23 +250,6 @@ struct WorkoutDetailContent: View {
         )
     }
 
-    private func shareButton(for card: ShareableWorkoutCardModel) -> some View {
-        Button {
-            share(card)
-        } label: {
-            Label("공유하기", systemImage: SOOMIcon.share)
-                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                .foregroundStyle(SOOMColor.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SOOMLayout.Card.padding)
-                .background(workout.sport.tint)
-                .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("공유 카드 공유하기")
-        .accessibilityHint("공유 카드 이미지를 만든 뒤 iOS 공유 시트를 엽니다.")
-    }
-
     @MainActor
     private func createFeedDraft() async {
         guard !isCreatingFeedDraft else { return }
@@ -326,19 +292,8 @@ struct WorkoutDetailContent: View {
     }
 
     @MainActor
-    private func share(_ card: ShareableWorkoutCardModel) {
-        guard let image = renderedShareImage(for: card) else {
-            shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
-            return
-        }
-
-        shareImage = image
-        isShareSheetPresented = true
-    }
-
-    @MainActor
     func renderedShareImage(for card: ShareableWorkoutCardModel) -> UIImage? {
-        renderShareImage(card, workout.sport.tint)
+        renderShareImage(card, SOOMColor.accent)
     }
 }
 
@@ -530,15 +485,17 @@ private struct ActivityDetailRhythmCard: View {
 }
 
 private struct ActivityDetailActionsCard: View {
+    let canShareImage: Bool
     let isCreatingFeedDraft: Bool
     let feedDraftMessage: String?
     let feedDraftErrorMessage: String?
     let createFeedDraft: () async -> Void
+    let openImageShare: () -> Void
 
     var body: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
-                SOOMSectionHeader("액션", caption: "저장은 유지하고, 공유는 초안부터 시작해요.")
+                SOOMSectionHeader("액션", caption: "운동 해석은 그대로 두고, 공유는 필요할 때만 열어요.")
 
                 HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
                     statusPill("저장됨", icon: SOOMIcon.checkCircle)
@@ -561,13 +518,27 @@ private struct ActivityDetailActionsCard: View {
                 .disabled(isCreatingFeedDraft)
                 .accessibilityHint("공개하지 않고 로컬 피드 초안으로 저장합니다.")
 
+                if canShareImage {
+                    Button(action: openImageShare) {
+                        Label("이미지로 공유하기", systemImage: SOOMIcon.share)
+                            .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                            .foregroundStyle(SOOMColor.ink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, SOOMLayout.Card.padding)
+                            .background(SOOMColor.accentSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("공유 카드 composer를 열어 이미지 미리보기와 내보내기 옵션을 확인합니다.")
+                }
+
                 Text("회복 점수와 개인 코칭 문장은 피드 초안에 포함하지 않아요.")
                     .font(SOOMFont.body(12, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let feedDraftMessage {
-                    statusMessage(feedDraftMessage, tint: SOOMColor.recovery)
+                    statusMessage(feedDraftMessage, tint: SOOMColor.accent)
                 }
 
                 if let feedDraftErrorMessage {
@@ -596,6 +567,376 @@ private struct ActivityDetailActionsCard: View {
             .padding(SOOMLayout.Metrics.actionTextSpacing)
             .background(tint.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+private struct ShareCardComposer: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let baseCard: ShareableWorkoutCardModel
+    let tint: Color
+    let renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage?
+
+    @State private var selectedCardIndex = 0
+    @State private var selectedBackgroundOption: ShareCardBackgroundOption = .mapPhoto
+    @State private var shareImage: UIImage?
+    @State private var isShareSheetPresented = false
+    @State private var shareErrorMessage: String?
+    @State private var shareTargetMessage: String?
+
+    private var selectedType: ShareCardType {
+        ShareCardComposerLayout.cardType(at: selectedCardIndex)
+    }
+
+    private var configuredCard: ShareableWorkoutCardModel {
+        baseCard.configured(
+            shareType: selectedType,
+            backgroundOption: selectedBackgroundOption
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: SOOMLayout.Feed.sectionSpacing) {
+                    ShareCardCarousel(
+                        baseCard: baseCard,
+                        selectedIndex: $selectedCardIndex,
+                        backgroundOption: selectedBackgroundOption,
+                        tint: tint
+                    )
+
+                    ShareBackgroundToggle(selectedBackgroundOption: $selectedBackgroundOption)
+
+                    ShareTargetGrid(
+                        message: shareTargetMessage,
+                        handle: { target in handleShareTarget(target, card: configuredCard) }
+                    )
+                }
+                .padding(.horizontal, SOOMLayout.screenPadding)
+                .padding(.top, SOOMLayout.stackSpacing)
+                .padding(.bottom, SOOMLayout.screenPadding * 2)
+            }
+            .background(SOOMColor.background.ignoresSafeArea())
+            .navigationTitle("공유하기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(SOOMColor.ink)
+                    }
+                    .accessibilityLabel("공유 카드 닫기")
+                }
+            }
+        }
+        .sheet(isPresented: $isShareSheetPresented) {
+            if let shareImage {
+                WorkoutShareSheet(activityItems: [shareImage])
+            }
+        }
+        .alert(
+            "공유 카드를 만들지 못했어요",
+            isPresented: Binding(
+                get: { shareErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        shareErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
+        }
+    }
+
+    @MainActor
+    private func share(_ card: ShareableWorkoutCardModel) {
+        guard let image = renderShareImage(card, tint) else {
+            shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
+            return
+        }
+
+        shareImage = image
+        isShareSheetPresented = true
+    }
+
+    @MainActor
+    private func handleShareTarget(_ target: ShareTarget, card: ShareableWorkoutCardModel) {
+        shareTargetMessage = nil
+
+        switch target {
+        case .instagramStory:
+            shareTargetMessage = "Instagram Story는 iOS 공유 시트에서 선택할 수 있어요."
+            share(card)
+        case .saveImage:
+            shareTargetMessage = "Save Image는 iOS 공유 시트의 이미지 저장 액션을 사용해요."
+            share(card)
+        case .more:
+            share(card)
+        }
+    }
+}
+
+private struct ShareCardCarousel: View {
+    let baseCard: ShareableWorkoutCardModel
+    @Binding var selectedIndex: Int
+    let backgroundOption: ShareCardBackgroundOption
+    let tint: Color
+    @State private var scrollPosition: Int?
+
+    private var selectedType: ShareCardType {
+        ShareCardComposerLayout.cardType(at: selectedIndex)
+    }
+
+    var body: some View {
+        VStack(spacing: SOOMLayout.stackSpacing) {
+            VStack(spacing: SOOMLayout.SectionHeader.spacing) {
+                Text("\(selectedType.cardTitle) · \(selectedIndex + 1) / \(ShareCardComposerLayout.cardOrder.count)")
+                    .font(SOOMFont.displayMedium(18, relativeTo: .headline))
+                    .foregroundStyle(SOOMColor.ink)
+                    .lineLimit(1)
+
+                Text(WorkoutDetailContent.sharePrivacyCopy)
+                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
+
+            ScrollView(.horizontal) {
+                HStack(spacing: ShareComposerCarouselMetrics.cardSpacing) {
+                    ForEach(Array(ShareCardComposerLayout.cardOrder.enumerated()), id: \.offset) { index, type in
+                        ShareCardCarouselPreview(
+                            card: configuredCard(for: type),
+                            tint: tint
+                        )
+                        .containerRelativeFrame(.horizontal) { length, _ in
+                            min(
+                                ShareComposerCarouselMetrics.previewWidth,
+                                length * ShareComposerCarouselMetrics.peekWidthRatio
+                            )
+                        }
+                        .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, SOOMLayout.screenPadding)
+            }
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $scrollPosition, anchor: .center)
+            .frame(height: ShareComposerCarouselMetrics.previewHeight)
+            .onAppear {
+                scrollPosition = selectedIndex
+            }
+            .onChange(of: scrollPosition) { _, newValue in
+                guard let newValue, selectedIndex != newValue else { return }
+                selectedIndex = newValue
+            }
+            .onChange(of: selectedIndex) { _, newValue in
+                guard scrollPosition != newValue else { return }
+                withAnimation(.smooth(duration: 0.24)) {
+                    scrollPosition = newValue
+                }
+            }
+
+            HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                ForEach(ShareCardComposerLayout.cardOrder.indices, id: \.self) { index in
+                    Capsule()
+                        .fill(index == selectedIndex ? SOOMColor.accent : SOOMColor.line)
+                        .frame(
+                            width: index == selectedIndex ? ShareComposerCarouselMetrics.activeDotWidth : ShareComposerCarouselMetrics.dotSize,
+                            height: ShareComposerCarouselMetrics.dotSize
+                        )
+                        .animation(.easeOut(duration: 0.18), value: selectedIndex)
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityLabel("\(selectedType.cardTitle) 선택됨")
+        }
+    }
+
+    private func configuredCard(for type: ShareCardType) -> ShareableWorkoutCardModel {
+        baseCard.configured(
+            shareType: type,
+            backgroundOption: backgroundOption
+        )
+    }
+}
+
+private struct ShareCardCarouselPreview: View {
+    let card: ShareableWorkoutCardModel
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            if card.backgroundOption.usesCheckerboardPreview {
+                ShareCardCheckerboardPreview()
+                    .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius + 8, style: .continuous))
+            }
+
+            ShareableWorkoutCardView(card: card, tint: tint)
+                .padding(card.backgroundOption.usesCheckerboardPreview ? ShareComposerCarouselMetrics.transparentPreviewInset : 0)
+
+            if card.backgroundOption.usesCheckerboardPreview {
+                ShareTransparencyBadge()
+                    .padding(ShareComposerCarouselMetrics.transparencyBadgePadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            }
+        }
+        .frame(maxWidth: ShareComposerCarouselMetrics.previewWidth)
+        .frame(maxWidth: .infinity)
+        .shadow(color: SOOMColor.black.opacity(0.12), radius: 20, x: 0, y: 14)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ShareCardCheckerboardPreview: View {
+    private let tileSize: CGFloat = 12
+
+    var body: some View {
+        Canvas { context, size in
+            let columns = Int(ceil(size.width / tileSize))
+            let rows = Int(ceil(size.height / tileSize))
+
+            for row in 0..<rows {
+                for column in 0..<columns {
+                    let isDarkTile = (row + column).isMultiple(of: 2)
+                    let rect = CGRect(
+                        x: CGFloat(column) * tileSize,
+                        y: CGFloat(row) * tileSize,
+                        width: tileSize,
+                        height: tileSize
+                    )
+                    context.fill(
+                        Path(rect),
+                        with: .color(isDarkTile ? SOOMColor.surfaceMuted : SOOMColor.white)
+                    )
+                }
+            }
+        }
+        .overlay(SOOMColor.accent.opacity(0.06))
+        .accessibilityHidden(true)
+    }
+}
+
+private struct ShareTransparencyBadge: View {
+    var body: some View {
+        Text("투명")
+            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(SOOMColor.accentInk)
+            .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
+            .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
+            .background(SOOMColor.white.opacity(0.92))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(SOOMColor.accentLine, lineWidth: SOOMLayout.Card.borderWidth)
+            )
+    }
+}
+
+private struct ShareBackgroundToggle: View {
+    @Binding var selectedBackgroundOption: ShareCardBackgroundOption
+
+    var body: some View {
+        SOOMCard {
+            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                SOOMSectionHeader("배경", caption: "투명은 preview에서만 checkerboard로 표시돼요.")
+
+                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                    ForEach(ShareCardBackgroundOption.allCases) { option in
+                        ShareOptionPill(
+                            title: option.title,
+                            icon: option == .mapPhoto ? SOOMIcon.map : "checkerboard.rectangle",
+                            isSelected: selectedBackgroundOption == option
+                        ) {
+                            selectedBackgroundOption = option
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private enum ShareComposerCarouselMetrics {
+    static let previewWidth: CGFloat = 292
+    static let previewHeight: CGFloat = 560
+    static let cardSpacing: CGFloat = 14
+    static let peekWidthRatio: CGFloat = 0.78
+    static let dotSize: CGFloat = 7
+    static let activeDotWidth: CGFloat = 22
+    static let transparentPreviewInset: CGFloat = 8
+    static let transparencyBadgePadding: CGFloat = 14
+}
+
+private struct ShareOptionPill: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(isSelected ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, SOOMLayout.Metrics.pillPadding)
+                .background(isSelected ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
+                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
+    }
+}
+
+private struct ShareTargetGrid: View {
+    let message: String?
+    let handle: (ShareTarget) -> Void
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        SOOMCard {
+            VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
+                SOOMSectionHeader("공유하기", caption: "공개 업로드 없이 선택한 이미지로만 내보내요.")
+
+                LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                    ForEach(ShareTarget.currentTargets) { target in
+                        Button {
+                            handle(target)
+                        } label: {
+                            Label(target.title, systemImage: target.icon)
+                                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                                .foregroundStyle(SOOMColor.ink)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(SOOMLayout.Card.padding)
+                                .background(target == .more ? SOOMColor.accentSurface : SOOMColor.surfaceMuted)
+                                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if let message {
+                    Text(message)
+                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 }
 

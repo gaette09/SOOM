@@ -1,6 +1,9 @@
 import SwiftUI
 
 enum SOOMColor {
+    static let purple = Color(hex: 0x7541EE)
+    static let lavender = Color(hex: 0xECE5FF)
+    static let purpleInk = Color(hex: 0x2D1B55)
     static let blue = Color(hex: 0x3F6F8F)
     static let orange = Color(hex: 0xB9853B)
     static let green = Color(hex: 0x496B5B)
@@ -16,6 +19,13 @@ enum SOOMColor {
     static let secondaryInk = black.opacity(0.56)
     static let tertiaryInk = black.opacity(0.36)
     static let line = black.opacity(0.08)
+    static let accent = purple
+    static let accentSurface = lavender
+    static let accentInk = purpleInk
+    static let accentMuted = purple.opacity(0.14)
+    static let accentLine = purple.opacity(0.22)
+    static let selectedSurface = accent
+    static let selectedInk = white
     static let swim = blue
     static let bike = green
     static let run = red

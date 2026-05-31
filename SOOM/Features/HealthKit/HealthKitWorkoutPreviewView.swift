@@ -69,7 +69,7 @@ struct HealthKitWorkoutPreviewView: View {
     private var loadingState: some View {
         HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
             ProgressView()
-                .tint(SOOMColor.recovery)
+                .tint(SOOMColor.accent)
                 .accessibilityHidden(true)
 
             Text("최근 운동 기록을 확인하고 있어요.")

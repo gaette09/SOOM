@@ -14,7 +14,7 @@ struct ShareableWorkoutCardRendererTests {
         #expect((image?.size.height ?? 0) > 0)
     }
 
-    @Test func testRendererUsesFourByFiveExportRatio() {
+    @Test func testRendererUsesNineBySixteenExportRatio() {
         let card = makeCard()
         let image = ShareableWorkoutCardRenderer().render(
             card: card,
@@ -26,6 +26,17 @@ struct ShareableWorkoutCardRendererTests {
 
         #expect(width > 0)
         #expect(abs((width / height) - ShareableWorkoutCardLayout.aspectRatio) < 0.02)
+    }
+
+    @Test func testRendererCanRenderTransparentShareCard() {
+        let card = makeCard().configured(
+            shareType: .route,
+            backgroundOption: .transparent
+        )
+        let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.accent)
+
+        #expect(image != nil)
+        #expect(image?.cgImage?.alphaInfo != .none)
     }
 
     @Test func testRendererUsesStableRetinaScaleForShareCard() {
@@ -57,9 +68,8 @@ struct ShareableWorkoutCardRendererTests {
 
         #expect(image != nil)
         #expect((image?.size.width ?? 0) > 0)
-        #expect(WorkoutDetailContent.sharePrivacyCopy.contains("위치"))
-        #expect(WorkoutDetailContent.sharePrivacyCopy.contains("심박"))
-        #expect(WorkoutDetailContent.sharePrivacyCopy.contains("회복 점수"))
+        #expect(WorkoutDetailContent.sharePrivacyCopy == "스토리에 올릴 이미지를 고르세요.")
+        #expect(WorkoutDetailContent.sharePrivacyCopy.contains("fatigue") == false)
     }
 
     @Test func testWorkoutDetailContentUsesInjectedRendererForShareFlow() {

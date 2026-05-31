@@ -128,7 +128,7 @@ struct RootTabView: View {
     }
 
     private var shouldShowFloatingCoach: Bool {
-        !tabBarVisibility.isHidden && selectedTab != .activity
+        !tabBarVisibility.isHidden && selectedTab != .activity && selectedTab != .clubs
     }
 
     private var bottomOverlayInset: CGFloat {
@@ -282,7 +282,7 @@ private struct FloatingRecoveryCoach: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Circle()
-                    .fill(SOOMColor.recovery)
+                    .fill(SOOMColor.accent)
                     .overlay {
                         Circle()
                             .stroke(SOOMColor.white, lineWidth: 1.25)
@@ -299,7 +299,7 @@ private struct FloatingRecoveryCoach: View {
                     .clipShape(Circle())
                     .overlay {
                         Circle()
-                            .stroke(SOOMColor.recovery, lineWidth: 1.2)
+                            .stroke(SOOMColor.accent, lineWidth: 1.2)
                     }
                     .shadow(color: SOOMColor.ink.opacity(0.10), radius: 4, x: 0, y: 2)
                     .padding(2)
@@ -416,7 +416,7 @@ private struct FloatingRecoveryCoach: View {
 
                     Text("\(summary.score)")
                         .font(SOOMFont.display(54, relativeTo: .largeTitle))
-                        .foregroundStyle(SOOMColor.recovery)
+                        .foregroundStyle(SOOMColor.accent)
                         .accessibilityLabel("회복 점수 \(summary.score)")
 
                     Text(summary.status)
@@ -513,7 +513,7 @@ private struct FloatingRecoveryCoach: View {
                 .foregroundStyle(SOOMColor.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
-                .background(SOOMColor.recovery)
+                .background(SOOMColor.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -670,9 +670,9 @@ private struct ActivityView: View {
             SOOMSectionHeader("최근 변화", caption: "숫자보다 방향을 먼저 봅니다.")
 
             HStack(spacing: 10) {
-                ActivityDirectionPill(title: "꾸준함", value: "↑", tint: SOOMColor.recovery)
-                ActivityDirectionPill(title: "회복", value: "→", tint: SOOMColor.blue)
-                ActivityDirectionPill(title: "운동 시간", value: "↑", tint: SOOMColor.bike)
+                ActivityDirectionPill(title: "꾸준함", value: "↑", tint: SOOMColor.accent)
+                ActivityDirectionPill(title: "회복", value: "→", tint: SOOMColor.accent)
+                ActivityDirectionPill(title: "운동 시간", value: "↑", tint: SOOMColor.accent)
             }
         }
     }
@@ -682,9 +682,9 @@ private struct ActivityView: View {
             SOOMSectionHeader("자주 가는 코스", caption: "자주 남은 길을 도서관처럼 모아둡니다.")
 
             HStack(spacing: 10) {
-                ActivityRouteCard(title: "한강 북단", count: "12회", tint: SOOMColor.bike)
-                ActivityRouteCard(title: "탄천", count: "8회", tint: SOOMColor.run)
-                ActivityRouteCard(title: "북악", count: "3회", tint: SOOMColor.secondaryInk)
+                ActivityRouteCard(title: "한강 북단", count: "12회", tint: SOOMColor.accent)
+                ActivityRouteCard(title: "탄천", count: "8회", tint: SOOMColor.accent)
+                ActivityRouteCard(title: "북악", count: "3회", tint: SOOMColor.accent)
             }
         }
     }
@@ -712,7 +712,7 @@ private struct ActivityView: View {
                     icon: SOOMIcon.package,
                     title: "운동 라이브러리",
                     subtitle: "저장된 운동 기록, route 재사용, 상세 분석 진입을 확인합니다.",
-                    tint: SOOMColor.bike
+                    tint: SOOMColor.accent
                 )
             }
             .buttonStyle(.plain)
@@ -966,10 +966,10 @@ private struct ActivityCalendarSection: View {
                             } label: {
                                 Text(calendarMode.title)
                                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                                    .foregroundStyle(mode == calendarMode ? SOOMColor.white : SOOMColor.secondaryInk)
+                                    .foregroundStyle(mode == calendarMode ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
                                     .padding(.horizontal, 9)
                                     .padding(.vertical, 7)
-                                    .background(mode == calendarMode ? SOOMColor.ink : SOOMColor.surfaceMuted)
+                                    .background(mode == calendarMode ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
@@ -1526,9 +1526,9 @@ private struct SOOMBottomTabItem: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        SOOMColor.white.opacity(0.58),
-                                        SOOMColor.white.opacity(0.18),
-                                        SOOMColor.ink.opacity(0.04)
+                                        SOOMColor.accentSurface.opacity(0.80),
+                                        SOOMColor.white.opacity(0.30),
+                                        SOOMColor.accent.opacity(0.08)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -1539,7 +1539,7 @@ private struct SOOMBottomTabItem: View {
                         Capsule(style: .continuous)
                             .strokeBorder(SOOMColor.white.opacity(0.56), lineWidth: 1)
                     }
-                    .shadow(color: SOOMColor.ink.opacity(0.04), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 4)
+                    .shadow(color: SOOMColor.accent.opacity(0.10), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 4)
                     .matchedGeometryEffect(id: "selectedLiquidTab", in: namespace)
             }
 
@@ -1556,7 +1556,7 @@ private struct SOOMBottomTabItem: View {
                     .opacity(isSelected ? 1 : 0.74)
             }
         }
-        .foregroundStyle(isSelected ? SOOMColor.ink : SOOMColor.ink.opacity(0.56))
+        .foregroundStyle(isSelected ? SOOMColor.accent : SOOMColor.ink.opacity(0.56))
         .frame(maxWidth: .infinity)
         .frame(height: SOOMLayout.TabBar.itemHeight)
         .contentShape(RoundedRectangle(cornerRadius: SOOMLayout.TabBar.itemCornerRadius, style: .continuous))
@@ -1569,12 +1569,12 @@ private struct SOOMBottomTabItem: View {
     private var recordItem: some View {
         ZStack {
             Circle()
-                .fill(SOOMColor.recovery)
+                .fill(SOOMColor.accent)
                 .overlay {
                     Circle()
                         .stroke(SOOMColor.white.opacity(0.72), lineWidth: 1)
                 }
-                .shadow(color: SOOMColor.recovery.opacity(isSelected ? 0.26 : 0.14), radius: 10, x: 0, y: 5)
+                .shadow(color: SOOMColor.accent.opacity(isSelected ? 0.28 : 0.16), radius: 10, x: 0, y: 5)
 
             Image(systemName: tab.iconName)
                 .font(.system(size: 26, weight: .bold))

@@ -59,10 +59,16 @@ struct ClubsView: View {
 private struct ClubDashboardDetailView: View {
     let detail: ClubDetail
     @State private var rankingCategory: ClubRankingCategory = .distance
+    @State private var isMembershipSheetPresented = false
 
     var body: some View {
         SOOMScreen {
-            ClubStatusHero(detail: detail)
+            ClubStatusHero(
+                detail: detail,
+                onMembershipAction: { isMembershipSheetPresented = true }
+            )
+            ClubPurposeRulesSection(detail: detail)
+            ClubMemberPreviewSection(members: detail.memberPreview)
             ClubWeeklyRankingSection(
                 clubName: detail.name,
                 ranking: detail.ranking,
@@ -74,6 +80,11 @@ private struct ClubDashboardDetailView: View {
         }
         .navigationTitle(detail.name)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isMembershipSheetPresented) {
+            ClubMembershipPlaceholderSheet(state: detail.membershipState)
+                .presentationDetents([.height(220)])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
@@ -171,6 +182,16 @@ struct ClubSummary: Identifiable, Equatable {
 struct ClubDetail: Identifiable {
     let summary: ClubSummary
     let name: String
+    let intro: String
+    let purpose: String
+    let sport: String
+    let owner: String
+    let privacy: Privacy
+    let activeMembersThisWeek: Int
+    let rules: [String]
+    let memberPreview: [ClubMemberPreview]
+    let identityTags: [String]
+    let membershipState: MembershipState
     let memberCount: Int
     let weeklyRank: Int
     let rankMovement: Int
@@ -185,6 +206,40 @@ struct ClubDetail: Identifiable {
         "\(Int((goalProgress * 100).rounded()))%"
     }
 
+    var privacyText: String {
+        switch privacy {
+        case .open: return "공개 클럽"
+        case .private: return "비공개 클럽"
+        }
+    }
+
+    enum Privacy: Equatable {
+        case open
+        case `private`
+    }
+
+    enum MembershipState: Equatable {
+        case joined
+        case recommended
+        case owned
+
+        var actionTitle: String {
+            switch self {
+            case .joined: return "가입됨"
+            case .recommended: return "가입하기"
+            case .owned: return "관리"
+            }
+        }
+
+        var placeholderTitle: String {
+            switch self {
+            case .joined: return "클럽 연결 상태는 곧 더 자세히 볼 수 있어요."
+            case .recommended: return "클럽 가입은 곧 사용할 수 있어요."
+            case .owned: return "클럽 관리는 곧 사용할 수 있어요."
+            }
+        }
+    }
+
     static let soomRiders = ClubDetail(
         summary: ClubSummary(
             id: "soom-riders",
@@ -197,6 +252,25 @@ struct ClubDetail: Identifiable {
             tagline: "회복 리듬을 지키며 오래 타는 클럽"
         ),
         name: "SOOM Riders",
+        intro: "빠르기보다 꾸준함을 쌓는 라이더 클럽",
+        purpose: "주 3회 이상 가볍게 움직이며, 오래 이어갈 수 있는 라이딩 리듬을 만듭니다.",
+        sport: "자전거",
+        owner: "지환",
+        privacy: .open,
+        activeMembersThisWeek: 128,
+        rules: [
+            "무리한 경쟁보다 꾸준함을 먼저 봅니다.",
+            "회복 라이딩도 클럽 기여로 인정합니다.",
+            "공개 피드 운동만 랭킹에 반영합니다."
+        ],
+        memberPreview: [
+            ClubMemberPreview(name: "지환", role: "운영자", activityText: "이번 주 42.6km", tone: .ink),
+            ClubMemberPreview(name: "김하늘", role: "이번 주 1위", activityText: "142km", tone: .bike),
+            ClubMemberPreview(name: "박서연", role: "꾸준함 리더", activityText: "5일 활동", tone: .recovery),
+            ClubMemberPreview(name: "태호", role: "최근 합류", activityText: "첫 챌린지", tone: .green)
+        ],
+        identityTags: ["꾸준함", "회복 라이딩", "초보 환영", "주말 장거리", "라이딩 중심"],
+        membershipState: .joined,
         memberCount: 412,
         weeklyRank: 12,
         rankMovement: 2,
@@ -221,10 +295,10 @@ struct ClubDetail: Identifiable {
             ClubBadge(title: "회복 라이딩", subtitle: "이번 주", icon: SOOMIcon.recovery, state: .newThisWeek)
         ],
         pulses: [
-            ClubActivityPulse(icon: SOOMIcon.medal, message: "김하늘이 Century 배지를 획득했어요", tint: SOOMColor.warning),
-            ClubActivityPulse(icon: SOOMIcon.trendUp, message: "박서연이 거리 랭킹 3위로 올라왔어요", tint: SOOMColor.bike),
-            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "클럽 목표가 73%까지 찼어요", tint: SOOMColor.recovery),
-            ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 28명이 움직였어요", tint: SOOMColor.ink)
+            ClubActivityPulse(icon: SOOMIcon.medal, message: "김하늘이 Century 배지를 획득했어요", tone: .warning),
+            ClubActivityPulse(icon: SOOMIcon.trendUp, message: "박서연이 거리 랭킹 3위로 올라왔어요", tone: .bike),
+            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "클럽 목표가 73%까지 찼어요", tone: .recovery),
+            ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 28명이 움직였어요", tone: .ink)
         ]
     )
 
@@ -240,6 +314,25 @@ struct ClubDetail: Identifiable {
             tagline: "아침에 짧게 뛰는 리듬을 모아요"
         ),
         name: "Morning Runners",
+        intro: "하루를 가볍게 여는 러너들의 온라인 클럽",
+        purpose: "짧은 러닝을 반복해 아침 움직임을 일상의 리듬으로 만듭니다.",
+        sport: "러닝",
+        owner: "소라",
+        privacy: .open,
+        activeMembersThisWeek: 54,
+        rules: [
+            "속도보다 출석과 리듬을 존중합니다.",
+            "5km 이하의 짧은 러닝도 충분히 기록합니다.",
+            "서로의 페이스를 비교하지 않습니다."
+        ],
+        memberPreview: [
+            ClubMemberPreview(name: "소라", role: "운영자", activityText: "64.2km", tone: .run),
+            ClubMemberPreview(name: "강지훈", role: "이번 주 2위", activityText: "52.8km", tone: .bike),
+            ClubMemberPreview(name: "윤하민", role: "꾸준함 리더", activityText: "4일 활동", tone: .recovery),
+            ClubMemberPreview(name: "나", role: "내 위치", activityText: "18.4km", tone: .ink)
+        ],
+        identityTags: ["아침 러닝", "짧게 자주", "초보 환영", "회복 조깅"],
+        membershipState: .joined,
         memberCount: 128,
         weeklyRank: 8,
         rankMovement: 1,
@@ -263,9 +356,9 @@ struct ClubDetail: Identifiable {
             ClubBadge(title: "꾸준함", subtitle: "희귀", icon: SOOMIcon.medal, state: .rare)
         ],
         pulses: [
-            ClubActivityPulse(icon: SOOMIcon.trendUp, message: "강지훈이 운동 횟수 랭킹 2위로 올라왔어요", tint: SOOMColor.run),
-            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "아침 3회 뛰기 챌린지가 68%까지 찼어요", tint: SOOMColor.recovery),
-            ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 19명이 아침에 움직였어요", tint: SOOMColor.ink)
+            ClubActivityPulse(icon: SOOMIcon.trendUp, message: "강지훈이 운동 횟수 랭킹 2위로 올라왔어요", tone: .run),
+            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "아침 3회 뛰기 챌린지가 68%까지 찼어요", tone: .recovery),
+            ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 19명이 아침에 움직였어요", tone: .ink)
         ]
     )
 
@@ -281,6 +374,24 @@ struct ClubDetail: Identifiable {
             tagline: "무리하지 않는 움직임도 클럽 기여가 됩니다"
         ),
         name: "Recovery Crew",
+        intro: "무리하지 않는 움직임도 클럽 기여가 되는 곳",
+        purpose: "강도보다 회복과 지속성을 기준으로, 가벼운 운동을 서로 인정합니다.",
+        sport: "혼합",
+        owner: "지환",
+        privacy: .private,
+        activeMembersThisWeek: 21,
+        rules: [
+            "회복 운동을 낮게 보지 않습니다.",
+            "개인 회복 점수는 공개 랭킹에 사용하지 않습니다.",
+            "기록 조작 없이 실제 움직임만 반영합니다."
+        ],
+        memberPreview: [
+            ClubMemberPreview(name: "지환", role: "운영자", activityText: "12.0km", tone: .ink),
+            ClubMemberPreview(name: "서유진", role: "회복 루틴", activityText: "6회 활동", tone: .recovery),
+            ClubMemberPreview(name: "한도겸", role: "꾸준함", activityText: "5일 활동", tone: .bike)
+        ],
+        identityTags: ["회복 친화", "가벼운 운동", "꾸준함", "비공개"],
+        membershipState: .owned,
         memberCount: 46,
         weeklyRank: 4,
         rankMovement: 3,
@@ -301,8 +412,8 @@ struct ClubDetail: Identifiable {
             ClubBadge(title: "균형", subtitle: "이번 주", icon: SOOMIcon.sparkles, state: .newThisWeek)
         ],
         pulses: [
-            ClubActivityPulse(icon: SOOMIcon.recovery, message: "서유진이 회복 루틴 배지를 획득했어요", tint: SOOMColor.recovery),
-            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "클럽 목표가 52%까지 찼어요", tint: SOOMColor.bike)
+            ClubActivityPulse(icon: SOOMIcon.recovery, message: "서유진이 회복 루틴 배지를 획득했어요", tone: .recovery),
+            ClubActivityPulse(icon: SOOMIcon.checkCircle, message: "클럽 목표가 52%까지 찼어요", tone: .bike)
         ]
     )
 
@@ -331,6 +442,17 @@ struct ClubRankingEntry: Identifiable, Equatable {
             return "\(sessions)\(category.unit)"
         case .consistency:
             return "\(consistencyDays)\(category.unit)"
+        }
+    }
+
+    func numericValue(for category: ClubRankingCategory) -> Double {
+        switch category {
+        case .distance:
+            return distanceKm
+        case .sessions:
+            return Double(sessions)
+        case .consistency:
+            return Double(consistencyDays)
         }
     }
 }
@@ -375,11 +497,31 @@ struct ClubBadge: Identifiable, Equatable {
 
         var tint: Color {
             switch self {
-            case .earned: return SOOMColor.bike
-            case .inProgress: return SOOMColor.recovery
-            case .newThisWeek: return SOOMColor.green
-            case .rare: return SOOMColor.warning
+            case .earned: return SOOMColor.accent
+            case .inProgress: return SOOMColor.accent.opacity(0.64)
+            case .newThisWeek: return SOOMColor.accent.opacity(0.82)
+            case .rare: return SOOMColor.accentInk
             }
+        }
+    }
+}
+
+enum ClubVisualTone: Hashable {
+    case ink
+    case bike
+    case recovery
+    case green
+    case warning
+    case run
+
+    var color: Color {
+        switch self {
+        case .ink: return SOOMColor.ink
+        case .bike: return SOOMColor.accent
+        case .recovery: return SOOMColor.accent
+        case .green: return SOOMColor.accent
+        case .warning: return SOOMColor.warning
+        case .run: return SOOMColor.accent
         }
     }
 }
@@ -388,7 +530,15 @@ struct ClubActivityPulse: Identifiable {
     let id = UUID()
     let icon: String
     let message: String
-    let tint: Color
+    let tone: ClubVisualTone
+}
+
+struct ClubMemberPreview: Identifiable {
+    let id = UUID()
+    let name: String
+    let role: String
+    let activityText: String
+    let tone: ClubVisualTone
 }
 
 private struct ClubHomeHeader: View {
@@ -442,9 +592,9 @@ private struct ClubHomeCard: View {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowSpacing) {
                 Image(systemName: SOOMIcon.clubs)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(SOOMColor.bike)
+                    .foregroundStyle(SOOMColor.accent)
                     .frame(width: 44, height: 44)
-                    .background(SOOMColor.bike.opacity(0.12))
+                    .background(SOOMColor.accentSurface)
                     .clipShape(Circle())
                     .accessibilityHidden(true)
 
@@ -456,10 +606,10 @@ private struct ClubHomeCard: View {
                         if isOwned {
                             Text("내가 만든 클럽")
                                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                                .foregroundStyle(SOOMColor.bike)
+                                .foregroundStyle(SOOMColor.accentInk)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(SOOMColor.bike.opacity(0.10))
+                                .background(SOOMColor.accentSurface)
                                 .clipShape(Capsule())
                         }
                     }
@@ -480,7 +630,7 @@ private struct ClubHomeCard: View {
                         Spacer()
                         Text("목표 \(summary.goalPercent)%")
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.bike)
+                            .foregroundStyle(SOOMColor.accent)
                     }
                 }
 
@@ -503,9 +653,9 @@ private struct ClubRecommendedCard: View {
         HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
             Image(systemName: SOOMIcon.sparkles)
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(SOOMColor.bike)
+                .foregroundStyle(SOOMColor.accent)
                 .frame(width: 36, height: 36)
-                .background(SOOMColor.surfaceMuted)
+                .background(SOOMColor.accentSurface)
                 .clipShape(Circle())
                 .accessibilityHidden(true)
 
@@ -523,10 +673,10 @@ private struct ClubRecommendedCard: View {
 
             Text("둘러보기")
                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.bike)
+                .foregroundStyle(SOOMColor.accentInk)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(SOOMColor.bike.opacity(0.10))
+                .background(SOOMColor.accentSurface)
                 .clipShape(Capsule())
         }
         .padding(SOOMLayout.Metrics.pillPadding)
@@ -538,6 +688,7 @@ private struct ClubRecommendedCard: View {
 
 private struct ClubStatusHero: View {
     let detail: ClubDetail
+    let onMembershipAction: () -> Void
 
     var body: some View {
         SOOMCard(depth: .primary) {
@@ -547,48 +698,212 @@ private struct ClubStatusHero: View {
                         Text(detail.name)
                             .font(SOOMFont.display(28, relativeTo: .title))
                             .foregroundStyle(SOOMColor.ink)
-                        Text("\(detail.memberCount)명이 함께 움직이는 온라인 클럽")
-                            .font(SOOMFont.body(14, relativeTo: .subheadline))
+                        Text("\"\(detail.intro)\"")
+                            .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                            .foregroundStyle(SOOMColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("\(detail.sport) · \(detail.privacyText) · 운영자 \(detail.owner)")
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
                     }
                     Spacer()
-                    Image(systemName: SOOMIcon.clubs)
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(SOOMColor.bike)
-                        .frame(width: 44, height: 44)
-                        .background(SOOMColor.bike.opacity(0.12))
-                        .clipShape(Circle())
-                        .accessibilityHidden(true)
+                    ClubProgressRing(progress: detail.goalProgress, label: detail.goalPercentText)
+                }
+
+                HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
+                    ForEach(detail.identityTags.prefix(4), id: \.self) { tag in
+                        Text(tag)
+                            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                            .foregroundStyle(SOOMColor.accentInk)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(SOOMColor.accentSurface)
+                            .clipShape(Capsule())
+                    }
                 }
 
                 HStack(spacing: SOOMLayout.Metrics.gridSpacing) {
-                    SOOMMetricPill("이번 주", "\(detail.weeklyRank)위", tint: SOOMColor.bike)
-                    SOOMMetricPill("기여 거리", String(format: "%.1fkm", detail.contributionDistanceKm), tint: SOOMColor.ink)
+                    ClubStatTile(title: "내 순위", value: "\(detail.weeklyRank)위", icon: SOOMIcon.medal, tint: SOOMColor.accent)
+                    ClubStatTile(title: "멤버", value: "\(detail.memberCount)명", icon: SOOMIcon.people, tint: SOOMColor.ink)
+                    ClubStatTile(title: "이번 주", value: "\(detail.activeMembersThisWeek)명", icon: SOOMIcon.trendUp, tint: SOOMColor.accent)
                 }
 
-                VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing + 4) {
-                    HStack {
-                        Text("클럽 목표")
-                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                        Spacer()
-                        Text(detail.goalPercentText)
-                            .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.bike)
-                    }
-                    ProgressView(value: detail.goalProgress)
-                        .tint(SOOMColor.bike)
-                        .accessibilityLabel("클럽 목표 진행률")
-                        .accessibilityValue(detail.goalPercentText)
-                    Label("이번 주 \(detail.rankMovement)계단 올라왔어요", systemImage: SOOMIcon.trendUp)
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.bike)
+                Button(action: onMembershipAction) {
+                    Text(detail.membershipState.actionTitle)
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(detail.membershipState == .joined ? SOOMColor.accent : SOOMColor.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(detail.membershipState == .joined ? SOOMColor.accentSurface : SOOMColor.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(detail.membershipState.actionTitle)
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(detail.name)
         .accessibilityValue("이번 주 \(detail.weeklyRank)위, 기여 거리 \(String(format: "%.1f", detail.contributionDistanceKm))킬로미터, 클럽 목표 \(detail.goalPercentText)")
+    }
+}
+
+private struct ClubProgressRing: View {
+    let progress: Double
+    let label: String
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(SOOMColor.accentSurface, lineWidth: 7)
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0), 1))
+                .stroke(SOOMColor.accent, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 1) {
+                Text(label)
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.accent)
+                Text("목표")
+                    .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.tertiaryInk)
+            }
+        }
+        .frame(width: 74, height: 74)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("클럽 목표 진행률")
+        .accessibilityValue(label)
+    }
+}
+
+private struct ClubStatTile: View {
+    let title: String
+    let value: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Text(title)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(tint.opacity(0.09))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ClubPurposeRulesSection: View {
+    let detail: ClubDetail
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        SOOMCard {
+            SOOMSectionHeader("클럽 기준", caption: "목표와 규칙")
+
+            Text(detail.purpose)
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.gridSpacing) {
+                ForEach(detail.rules, id: \.self) { rule in
+                    ClubRuleChip(title: rule)
+                }
+            }
+        }
+    }
+}
+
+private struct ClubRuleChip: View {
+    let title: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: SOOMIcon.checkCircle)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(SOOMColor.accent)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
+        .padding(10)
+        .background(SOOMColor.accentSurface.opacity(0.56))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ClubMemberPreviewSection: View {
+    let members: [ClubMemberPreview]
+
+    var body: some View {
+        SOOMCard {
+            SOOMSectionHeader("멤버 미리보기", caption: "운영자와 이번 주 리더")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
+                    ForEach(members) { member in
+                        ClubMemberAvatarCard(member: member)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ClubMemberAvatarCard: View {
+    let member: ClubMemberPreview
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(String(member.name.prefix(1)))
+                .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
+                .foregroundStyle(SOOMColor.white)
+                .frame(width: 48, height: 48)
+                .background(member.tone.color)
+                .clipShape(Circle())
+
+            Text(member.name)
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+
+            Text(member.role)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(member.tone.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(member.tone.color.opacity(0.10))
+                .clipShape(Capsule())
+                .lineLimit(1)
+
+            Text(member.activityText)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(1)
+        }
+        .frame(width: 128, alignment: .leading)
+        .padding(12)
+        .background(SOOMColor.surfaceAmbient)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -599,7 +914,7 @@ private struct ClubWeeklyRankingSection: View {
 
     var body: some View {
         SOOMCard {
-            SOOMSectionHeader("\(clubName) 내 이번 주 랭킹", caption: "선택한 클럽 안에서만 계산되는 위치입니다.")
+            SOOMSectionHeader("\(clubName) 내 이번 주 랭킹", caption: "클럽 내 순위")
 
             HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
                 ForEach(ClubRankingCategory.allCases) { category in
@@ -611,12 +926,14 @@ private struct ClubWeeklyRankingSection: View {
                             .foregroundStyle(selectedCategory == category ? SOOMColor.white : SOOMColor.secondaryInk)
                             .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
                             .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                            .background(selectedCategory == category ? SOOMColor.ink : SOOMColor.surfaceMuted)
+                            .background(selectedCategory == category ? SOOMColor.accent : SOOMColor.surfaceMuted)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
             }
+
+            ClubRankingGraph(ranking: ranking, category: selectedCategory)
 
             VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                 ForEach(ranking) { entry in
@@ -624,6 +941,49 @@ private struct ClubWeeklyRankingSection: View {
                 }
             }
         }
+    }
+}
+
+private struct ClubRankingGraph: View {
+    let ranking: [ClubRankingEntry]
+    let category: ClubRankingCategory
+
+    private var maxValue: Double {
+        max(ranking.map { $0.numericValue(for: category) }.max() ?? 1, 1)
+    }
+
+    var body: some View {
+        VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
+            ForEach(ranking.prefix(4)) { entry in
+                HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
+                    Text("#\(entry.rank)")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.secondaryInk)
+                        .frame(width: 34, alignment: .leading)
+
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(SOOMColor.surfaceMuted)
+                            Capsule()
+                                .fill(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.accent.opacity(0.36))
+                                .frame(width: max(8, proxy.size.width * entry.numericValue(for: category) / maxValue))
+                        }
+                    }
+                    .frame(height: 9)
+
+                    Text(entry.valueText(for: category))
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .frame(width: 56, alignment: .trailing)
+                }
+            }
+        }
+        .padding(12)
+        .background(SOOMColor.accentSurface.opacity(0.42))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("클럽 내 랭킹 비교 그래프")
     }
 }
 
@@ -637,7 +997,7 @@ private struct ClubRankingRow: View {
                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(entry.isCurrentUser ? SOOMColor.white : SOOMColor.secondaryInk)
                 .frame(width: 42, height: 34)
-                .background(entry.isCurrentUser ? SOOMColor.bike : SOOMColor.surfaceMuted)
+                .background(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.surfaceMuted)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -647,7 +1007,7 @@ private struct ClubRankingRow: View {
                 if entry.isCurrentUser {
                     Text("내 위치")
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.bike)
+                        .foregroundStyle(SOOMColor.accent)
                 }
             }
 
@@ -655,10 +1015,10 @@ private struct ClubRankingRow: View {
 
             Text(entry.valueText(for: category))
                 .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                .foregroundStyle(entry.isCurrentUser ? SOOMColor.bike : SOOMColor.secondaryInk)
+                .foregroundStyle(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.secondaryInk)
         }
         .padding(SOOMLayout.Metrics.pillPadding)
-        .background(entry.isCurrentUser ? SOOMColor.bike.opacity(0.10) : SOOMColor.surfaceAmbient)
+        .background(entry.isCurrentUser ? SOOMColor.accentSurface : SOOMColor.surfaceAmbient)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(entry.rank)위 \(entry.name)")
@@ -671,26 +1031,41 @@ private struct ClubChallengesSection: View {
 
     var body: some View {
         SOOMCard {
-            SOOMSectionHeader("Challenges", caption: "개인 기록보다 클럽 기여를 작게 쌓아요.")
+            SOOMSectionHeader("Challenges", caption: "진행률 중심")
 
             ForEach(challenges) { challenge in
-                VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing + 4) {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text(challenge.title)
-                            .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                            .foregroundStyle(SOOMColor.ink)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(challenge.title)
+                                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                                .foregroundStyle(SOOMColor.ink)
+                            Text(challenge.subtitle)
+                                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                                .foregroundStyle(SOOMColor.secondaryInk)
+                                .lineLimit(1)
+                        }
                         Spacer()
                         Text(challenge.progressText)
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.bike)
+                            .foregroundStyle(SOOMColor.accent)
                     }
-                    ProgressView(value: challenge.progressRatio)
-                        .tint(SOOMColor.bike)
-                    Text(challenge.subtitle)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(SOOMColor.surfaceMuted)
+                            Capsule()
+                                .fill(SOOMColor.accent)
+                                .frame(width: max(8, proxy.size.width * challenge.progressRatio))
+                        }
+                    }
+                    .frame(height: 10)
+                    .accessibilityLabel(challenge.title)
+                    .accessibilityValue(challenge.progressText)
                 }
-                .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
+                .padding(12)
+                .background(SOOMColor.surfaceAmbient)
+                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
         }
     }
@@ -706,20 +1081,29 @@ private struct ClubBadgeWallSection: View {
 
             LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.gridSpacing) {
                 ForEach(badges) { badge in
-                    VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing + 4) {
+                    VStack(alignment: .leading, spacing: 9) {
                         Image(systemName: badge.icon)
-                            .font(.title3.weight(.semibold))
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(badge.state.tint)
+                            .frame(width: 34, height: 34)
+                            .background(badge.state.tint.opacity(0.12))
+                            .clipShape(Circle())
                         Text(badge.title)
                             .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                             .foregroundStyle(SOOMColor.ink)
+                            .lineLimit(1)
                         Text(badge.subtitle)
                             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(badge.state.tint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(badge.state.tint.opacity(0.10))
+                            .clipShape(Capsule())
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(SOOMLayout.Metrics.pillPadding)
-                    .background(badge.state.tint.opacity(0.10))
+                    .background(SOOMColor.surfaceAmbient)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("\(badge.title) 뱃지")
@@ -742,9 +1126,9 @@ private struct ClubActivityPulseSection: View {
                     HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
                         Image(systemName: pulse.icon)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(pulse.tint)
+                            .foregroundStyle(pulse.tone.color)
                             .frame(width: 34, height: 34)
-                            .background(pulse.tint.opacity(0.10))
+                            .background(pulse.tone.color.opacity(0.10))
                             .clipShape(Circle())
                             .accessibilityHidden(true)
 
@@ -791,7 +1175,7 @@ private struct ClubEmptyStateView: View {
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(SOOMColor.ink)
+                    .background(SOOMColor.accent)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -813,9 +1197,9 @@ private struct ClubCreatePlaceholderSheet: View {
             HStack {
                 Image(systemName: SOOMIcon.clubs)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(SOOMColor.bike)
+                    .foregroundStyle(SOOMColor.accent)
                     .frame(width: 44, height: 44)
-                    .background(SOOMColor.bike.opacity(0.12))
+                    .background(SOOMColor.accentSurface)
                     .clipShape(Circle())
                     .accessibilityHidden(true)
                 Spacer()
@@ -836,6 +1220,50 @@ private struct ClubCreatePlaceholderSheet: View {
                     .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
                     .foregroundStyle(SOOMColor.ink)
                 Text("v1에서는 mock 기반으로 클럽 홈과 상세 구조를 먼저 잡고, 실제 생성과 초대는 backend 단계에서 연결합니다.")
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(SOOMLayout.screenPadding)
+        .background(SOOMColor.background)
+    }
+}
+
+private struct ClubMembershipPlaceholderSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let state: ClubDetail.MembershipState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
+            HStack {
+                Image(systemName: SOOMIcon.clubs)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(SOOMColor.accent)
+                    .frame(width: 44, height: 44)
+                    .background(SOOMColor.accentSurface)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: SOOMIcon.close)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("닫기")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(state.placeholderTitle)
+                    .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
+                    .foregroundStyle(SOOMColor.ink)
+                Text("v1에서는 클럽 정체성과 상세 구조만 mock으로 준비하고, 가입/탈퇴/관리는 backend 단계에서 연결합니다.")
                     .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)

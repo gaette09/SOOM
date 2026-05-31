@@ -19,7 +19,7 @@ struct EmailAuthCard: View {
                 icon: "envelope",
                 title: "이메일 계정 연결",
                 subtitle: "로그인 링크 요청만 준비됐고, 현재 기록은 로컬에 유지돼요.",
-                tint: SOOMColor.recovery
+                tint: SOOMColor.accent
             )
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
@@ -40,7 +40,7 @@ struct EmailAuthCard: View {
                         .foregroundStyle(SOOMColor.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, SOOMLayout.Card.padding)
-                        .background(viewModel.isSending ? SOOMColor.secondaryInk : SOOMColor.recovery)
+                        .background(viewModel.isSending ? SOOMColor.secondaryInk : SOOMColor.accent)
                         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                 }
                 .buttonStyle(.plain)

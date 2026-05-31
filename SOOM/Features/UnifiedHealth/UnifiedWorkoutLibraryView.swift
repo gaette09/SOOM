@@ -60,7 +60,7 @@ struct UnifiedWorkoutLibraryView: View {
         SOOMCard {
             HStack(spacing: SOOMLayout.SectionHeader.spacing) {
                 ProgressView()
-                    .tint(SOOMColor.recovery)
+                    .tint(SOOMColor.accent)
                     .accessibilityHidden(true)
 
                 Text("저장된 운동 기록을 불러오는 중이에요.")

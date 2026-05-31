@@ -10,13 +10,13 @@ struct AnalysisView: View {
     @State private var isWeeklyShareSheetPresented = false
     @State private var weeklyShareErrorMessage: String?
 
-    static let weeklySharePrivacyCopy = "이번 주 성장 흐름을 4:5 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
+    static let weeklySharePrivacyCopy = "이번 주 성장 흐름을 9:16 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
 
     init(
         viewModel: AnalysisViewModel,
         renderWeeklyShareImage: @escaping @MainActor (ShareableWeeklyProgressCardModel) -> UIImage? = { card in
             ShareableWorkoutCardRenderer().render(
-                ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
+                ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.accent)
                     .environment(\.colorScheme, .light)
             )
         }
@@ -33,19 +33,19 @@ struct AnalysisView: View {
 
             WeeklyWorkoutProgressCard(
                 progress: analysisViewModel.progress,
-                tint: SOOMColor.bike
+                tint: SOOMColor.accent
             )
 
             weeklySharePreview
 
             FourWeekWorkoutTrendCard(
                 trend: analysisViewModel.fourWeekTrend,
-                tint: SOOMColor.bike
+                tint: SOOMColor.accent
             )
 
             ProgressionIntelligenceCard(
                 intelligence: analysisViewModel.progressionIntelligence,
-                tint: SOOMColor.bike
+                tint: SOOMColor.accent
             )
 
             PersonalRecordCard(
@@ -83,7 +83,7 @@ struct AnalysisView: View {
             SOOMCard {
                 SOOMSectionHeader("추천 주간 구성")
                 ForEach(dashboardViewModel.monthlySnapshot.recommendations) { item in
-                    SOOMActionRow(icon: SOOMIcon.calendarClock, title: "\(item.targetDay) \(item.title)", subtitle: item.detail, tint: SOOMColor.bike)
+                    SOOMActionRow(icon: SOOMIcon.calendarClock, title: "\(item.targetDay) \(item.title)", subtitle: item.detail, tint: SOOMColor.accent)
                 }
             }
 
@@ -144,7 +144,7 @@ struct AnalysisView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.bike)
+            ShareableWeeklyProgressCardView(card: card, tint: SOOMColor.accent)
 
             Button {
                 shareWeeklyProgress(card)
@@ -154,7 +154,7 @@ struct AnalysisView: View {
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, SOOMLayout.Card.padding)
-                    .background(SOOMColor.bike)
+                    .background(SOOMColor.accent)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
             }
             .buttonStyle(.plain)

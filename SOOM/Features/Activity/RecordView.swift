@@ -204,9 +204,9 @@ struct RecordView: View {
                 } label: {
                     Image(systemName: sport.iconName)
                         .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(selectedSport == sport ? SOOMColor.white : SOOMColor.ink)
+                    .foregroundStyle(selectedSport == sport ? SOOMColor.selectedInk : SOOMColor.ink)
                     .frame(width: 48, height: 48)
-                    .background(selectedSport == sport ? sportTint(for: sport) : SOOMColor.surface.opacity(0.90))
+                    .background(selectedSport == sport ? SOOMColor.selectedSurface : SOOMColor.surface.opacity(0.90))
                     .clipShape(Capsule())
                     .overlay {
                         Capsule()
@@ -248,14 +248,14 @@ struct RecordView: View {
             .frame(width: 104, height: 104)
             .background(
                 Circle()
-                    .fill(sportTint)
+                    .fill(SOOMColor.accent)
                     .overlay {
                         Circle()
                             .stroke(SOOMColor.white.opacity(0.75), lineWidth: 1.4)
                             .padding(8)
                     }
             )
-            .shadow(color: sportTint.opacity(0.26), radius: 18, x: 0, y: 12)
+            .shadow(color: SOOMColor.accent.opacity(0.26), radius: 18, x: 0, y: 12)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(selectedSport.startTitle)
@@ -465,7 +465,7 @@ struct RecordView: View {
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(SOOMColor.ink)
+                                .background(SOOMColor.accent)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -499,7 +499,7 @@ struct RecordView: View {
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(SOOMColor.ink)
+                                .background(SOOMColor.accent)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -516,7 +516,7 @@ struct RecordView: View {
                         .foregroundStyle(SOOMColor.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(SOOMColor.ink)
+                        .background(SOOMColor.accent)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

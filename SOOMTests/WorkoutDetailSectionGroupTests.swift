@@ -41,9 +41,37 @@ final class ClubUIFoundationTests: XCTestCase {
         let detail = ClubDetail.soomRiders
 
         XCTAssertEqual(detail.name, "SOOM Riders")
+        XCTAssertEqual(detail.intro, "빠르기보다 꾸준함을 쌓는 라이더 클럽")
+        XCTAssertEqual(detail.sport, "자전거")
+        XCTAssertEqual(detail.owner, "지환")
+        XCTAssertEqual(detail.privacy, .open)
+        XCTAssertEqual(detail.activeMembersThisWeek, 128)
         XCTAssertEqual(detail.memberCount, 412)
         XCTAssertEqual(detail.weeklyRank, 12)
         XCTAssertEqual(detail.goalPercentText, "73%")
+    }
+
+    func testClubDetailIdentityLayerAppearsBeforeRankingData() {
+        let detail = ClubDetail.soomRiders
+
+        XCTAssertTrue(detail.purpose.contains("주 3회"))
+        XCTAssertTrue(detail.rules.contains("공개 피드 운동만 랭킹에 반영합니다."))
+        XCTAssertEqual(Array(detail.identityTags.prefix(3)), ["꾸준함", "회복 라이딩", "초보 환영"])
+    }
+
+    func testMemberPreviewIncludesOwnerLeadersAndRecentMember() {
+        let members = ClubDetail.soomRiders.memberPreview
+
+        XCTAssertEqual(members.first?.name, "지환")
+        XCTAssertEqual(members.first?.role, "운영자")
+        XCTAssertTrue(members.contains { $0.role == "이번 주 1위" })
+        XCTAssertTrue(members.contains { $0.role == "최근 합류" })
+    }
+
+    func testMembershipStateProvidesPlaceholderActions() {
+        XCTAssertEqual(ClubDetail.soomRiders.membershipState.actionTitle, "가입됨")
+        XCTAssertEqual(ClubDetail.recoveryCrew.membershipState.actionTitle, "관리")
+        XCTAssertTrue(ClubDetail.MembershipState.recommended.placeholderTitle.contains("가입"))
     }
 
     func testWeeklyRankingHighlightsCurrentUser() {

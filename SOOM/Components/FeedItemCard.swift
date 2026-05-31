@@ -215,7 +215,7 @@ struct FeedItemCard: View {
         case .workoutSession(let card):
             return card.workoutType.feedTint
         case .weeklyProgress:
-            return SOOMColor.bike
+            return SOOMColor.accent
         }
     }
 
@@ -724,11 +724,11 @@ private struct FeedReferenceContextPill: View {
     var body: some View {
         Text(label.title)
             .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(tint)
+            .foregroundStyle(SOOMColor.accentInk)
             .lineLimit(1)
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
-            .background(tint.opacity(0.10))
+            .background(SOOMColor.accentSurface)
             .clipShape(Capsule())
     }
 }

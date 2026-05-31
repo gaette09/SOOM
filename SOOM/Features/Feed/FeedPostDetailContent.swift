@@ -52,8 +52,8 @@ struct FeedPostDetailContent: View {
             SOOMCard {
                 SOOMSectionHeader("반응")
                 HStack {
-                    SOOMMetricPill("좋아요", "\(post.likes)", tint: SOOMColor.run)
-                    SOOMMetricPill("댓글", "\(post.comments)", tint: SOOMColor.swim)
+                    SOOMMetricPill("좋아요", "\(post.likes)", tint: SOOMColor.accent)
+                    SOOMMetricPill("댓글", "\(post.comments)", tint: SOOMColor.accent)
                 }
                 Label("좋은 페이스 유지네요. 다음 브릭 세션도 기대됩니다.", systemImage: SOOMIcon.comment)
                 Label("후반 자세 유지가 좋아 보여요.", systemImage: SOOMIcon.comment)

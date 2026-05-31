@@ -21,6 +21,8 @@ struct ShareableWorkoutCardBuilder {
             title: title(for: input.workoutType),
             distanceText: distanceText(from: input),
             durationText: durationText(from: input),
+            averagePaceText: input.averagePaceText,
+            elevationGainText: elevationGainText(from: input),
             primaryMessage: sessionSummary.title,
             growthMessage: growthMessage(from: growthSummary),
             recoveryMessage: recoveryMessage(from: recoveryImpact),
@@ -71,7 +73,7 @@ struct ShareableWorkoutCardBuilder {
             recoveryImpact: recoveryImpact,
             input: WorkoutGrowthInput(shareableWorkout: workout),
             visibility: visibility,
-            staticRoutePreview: staticRoutePreview
+            staticRoutePreview: staticRoutePreview ?? makeStaticRoutePreview(for: workout)
         )
     }
 
@@ -144,6 +146,34 @@ struct ShareableWorkoutCardBuilder {
             return "SOOM · 공개 피드 공유 예정"
         }
     }
+
+    private func elevationGainText(from input: WorkoutGrowthInput) -> String? {
+        guard let elevationGain = input.elevationGainMeters, elevationGain > 0 else {
+            return nil
+        }
+
+        return "\(Int(elevationGain.rounded()))m"
+    }
+
+    private func makeStaticRoutePreview(for workout: Workout) -> StaticRoutePreview? {
+        guard workout.route.count >= 2 else { return nil }
+
+        let route = WorkoutRoute(
+            workoutId: workout.id,
+            source: .soomLocal,
+            coordinates: workout.route.map {
+                WorkoutRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude)
+            },
+            totalDistanceMeters: workout.distanceMeters,
+            totalElevationGain: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil
+        )
+
+        return staticRoutePreviewBuilder.build(
+            route: route,
+            workoutType: UnifiedWorkoutType(shareableSport: workout.sport),
+            privacyPolicy: .defaultShare
+        )
+    }
 }
 
 private extension WorkoutGrowthInput {
@@ -158,7 +188,7 @@ private extension WorkoutGrowthInput {
             averagePaceText: workout.sport == .run ? workout.formattedPace : nil,
             averageSpeedKmh: workout.duration > 0 ? (workout.distanceMeters / 1_000) / (workout.duration / 3_600) : nil,
             averageHeartRate: nil,
-            elevationGainMeters: nil,
+            elevationGainMeters: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
             activeEnergyKcal: nil
         )
     }

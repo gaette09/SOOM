@@ -90,9 +90,9 @@ struct FeedView: View {
         HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
             Image(systemName: SOOMIcon.sparkles)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(SOOMColor.recovery.opacity(0.64))
+                .foregroundStyle(SOOMColor.accent)
                 .frame(width: 32, height: 32)
-                .background(SOOMColor.recovery.opacity(0.06))
+                .background(SOOMColor.accentMuted)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
@@ -122,7 +122,7 @@ struct FeedView: View {
                     title: "오늘은 짧고 편하게",
                     subtitle: "회복 흐름에 맞는 강변 코스",
                     footer: "한강 45분",
-                    tint: SOOMColor.bike
+                    tint: SOOMColor.accent
                 )
 
                 FeedSurfaceButton(
@@ -131,7 +131,7 @@ struct FeedView: View {
                     title: "한 번 더 움직일 자리",
                     subtitle: "이번 주 루틴을 조용히 이어가기",
                     footer: "2 / 3 완료",
-                    tint: SOOMColor.warning
+                    tint: SOOMColor.accent
                 )
             }
 
@@ -142,7 +142,7 @@ struct FeedView: View {
                     title: "오늘도 천천히 같이",
                     subtitle: "처음 오는 사람도 편한 토요 그룹런",
                     footer: "12명 준비 중",
-                    tint: SOOMColor.run
+                    tint: SOOMColor.accent
                 )
 
                 FeedSurfaceButton(
@@ -151,7 +151,7 @@ struct FeedView: View {
                     title: "페이스보다 호흡",
                     subtitle: "비슷한 회복 흐름의 사람들이 많아요",
                     footer: "오늘의 조용한 무드",
-                    tint: SOOMColor.green
+                    tint: SOOMColor.accent
                 )
             }
         }
@@ -218,11 +218,11 @@ private struct FeedCoachAccessBanner: View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(SOOMColor.recovery.opacity(0.16))
+                    .fill(SOOMColor.accentMuted)
 
                 Image(systemName: SOOMIcon.sparkles)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(SOOMColor.recovery)
+                    .foregroundStyle(SOOMColor.accent)
             }
             .frame(width: 36, height: 36)
             .accessibilityHidden(true)

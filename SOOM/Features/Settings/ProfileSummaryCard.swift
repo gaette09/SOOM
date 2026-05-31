@@ -29,9 +29,9 @@ struct ProfileSummaryCard: View {
             HStack(alignment: .top, spacing: SOOMLayout.Card.contentSpacing) {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(SOOMColor.recovery)
+                    .foregroundStyle(SOOMColor.accent)
                     .frame(width: 54, height: 54)
-                    .background(SOOMColor.recovery.opacity(0.12))
+                    .background(SOOMColor.accentMuted)
                     .clipShape(Circle())
                     .accessibilityHidden(true)
 
@@ -52,10 +52,10 @@ struct ProfileSummaryCard: View {
 
                         Text(authStatus)
                             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                            .foregroundStyle(SOOMColor.recovery)
+                            .foregroundStyle(SOOMColor.accentInk)
                             .padding(.horizontal, SOOMLayout.Metrics.tagSpacing)
                             .padding(.vertical, 4)
-                            .background(SOOMColor.recovery.opacity(0.10))
+                            .background(SOOMColor.accentSurface)
                             .clipShape(Capsule())
                     }
 

@@ -78,7 +78,7 @@ struct HealthKitWorkoutImportView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing + 10)
                 .foregroundStyle(SOOMColor.white)
-                .background(viewModel.isImporting ? SOOMColor.tertiaryInk : SOOMColor.recovery)
+                .background(viewModel.isImporting ? SOOMColor.tertiaryInk : SOOMColor.accent)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
             }
             .buttonStyle(.plain)
