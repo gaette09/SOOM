@@ -233,6 +233,18 @@ Activity is SOOM's personal workout library:
 - Statistics stay at the bottom and are limited to count, time, and distance.
 - Floating Coach is hidden or minimized in Activity because the user's workout shelf should remain unobstructed.
 
+## Activity Detail Rules
+
+Activity Detail is the private interpretation surface for one workout:
+
+- Lead with the route or map memory. The first visual read should be "where this movement happened," not a KPI board.
+- Put a compact workout summary directly under the hero: sport, date, distance, duration, pace or speed, and heart rate when available.
+- Add a "Today's Rhythm" interpretation before deep data so the workout has meaning before numbers.
+- Recovery guidance is private-first. It belongs in Floating Coach, personal recovery surfaces, and Activity Detail, but not in public Feed cards by default.
+- Hide empty technical sections. Splits, terrain, elevation, heart rate zones, charts, and route-specific insights should appear only when data exists or an explicit insight is available.
+- Use the hierarchy route first, meaning second, numbers third.
+- Actions should be clear and quiet: saved state, Feed share draft, and deferred edit/delete controls. Sharing starts as a draft, not an automatic public post.
+
 ## Profile Identity Rules
 
 Profile is SOOM's movement identity space:

@@ -346,15 +346,19 @@ It should not be a main bottom tab in this IA.
 
 ## Activity Detail Structure
 
-Workout Detail is where SOOM's analysis becomes valuable. Keep analysis inside this context.
+Workout Detail is where SOOM's analysis becomes valuable. It is the private interpretation surface for a single workout: Feed is public movement content, Activity list is the library shelf, and Activity Detail is where the user understands what today's workout meant.
 
 Recommended detail flow:
 
-1. Map / route hero
-2. Terrain cue
-3. Today's core
-   - session metrics
-   - session summary
+1. Route / map hero
+   - show the workout memory first
+   - use a calm placeholder when route data is missing
+2. Workout summary
+   - sport, date, distance, time, pace, heart rate
+   - numbers are clear but not overloaded
+3. Today's Rhythm
+   - short interpretation of how the workout felt
+   - stable pace, fatigue, weakness, or recovery impact cues
 4. Growth flow
    - growth metrics
    - comparison insight
@@ -362,22 +366,31 @@ Recommended detail flow:
    - course progression
    - split rhythm
    - climb insight
-5. Sensor data
+5. Sensor data, only when available
    - zone analysis
    - HR/cadence/power source indicators
    - chart/splits only as supporting evidence
 6. Recovery impact
    - recovery impact
    - weakness/coaching
-   - next action
-7. Share
-   - privacy-first share card preview
+   - private guidance is allowed here, not in public Feed cards
+7. Actions
+   - saved state
+   - Feed share draft entry
+   - edit/delete remain deferred
 
 What moves out of top-level navigation:
 
 - Weekly/monthly progression intelligence
 - Personal records
 - Similar workout comparison
+
+Activity Detail principle:
+
+- Route first.
+- Meaning second.
+- Numbers third.
+- Empty sections stay hidden instead of showing noisy "no data" placeholders.
 - Zone analysis
 - Route/course insights
 

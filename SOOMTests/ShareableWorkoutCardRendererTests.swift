@@ -82,6 +82,54 @@ struct ShareableWorkoutCardRendererTests {
         #expect(renderCallCount == 1)
     }
 
+    @Test func testActivityDetailHidesEmptyTechnicalSections() {
+        let workout = makeSparseWorkout()
+
+        #expect(ActivityDetailVisibilityPolicy.showsSplits(workout: workout) == false)
+        #expect(ActivityDetailVisibilityPolicy.showsCharts(workout: workout) == false)
+        #expect(ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: nil) == false)
+        #expect(ActivityDetailVisibilityPolicy.showsSplitInsight(.insufficientData) == false)
+    }
+
+    @Test func testActivityDetailShowsAvailablePrivateAnalysisSections() {
+        let workout = makeSparseWorkout(
+            avgHeartRate: 142,
+            splits: [
+                WorkoutSplit(label: "1km", distance: "1.0km", time: "5:40", pace: "5:40/km", heartRate: 142, power: nil)
+            ],
+            samples: [
+                WorkoutSample(minute: 0, heartRate: 132, paceSeconds: 340, power: nil),
+                WorkoutSample(minute: 10, heartRate: 146, paceSeconds: 330, power: nil)
+            ]
+        )
+
+        #expect(ActivityDetailVisibilityPolicy.showsSplits(workout: workout))
+        #expect(ActivityDetailVisibilityPolicy.showsCharts(workout: workout))
+        #expect(ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: nil))
+    }
+
+    @Test func testActivityDetailRhythmUsesMeaningBeforeNumbers() {
+        let workout = makeSparseWorkout(duration: 2_400, distanceMeters: 5_200)
+        let impact = WorkoutRecoveryImpact(
+            impactLevel: .recoveryFriendly,
+            title: "회복 친화적인 기록",
+            shortMessage: "오늘 운동은 회복에 큰 부담을 주지 않았어요.",
+            recommendation: "가볍게 이어가도 충분해요.",
+            icon: SOOMIcon.recovery
+        )
+
+        let messages = ActivityDetailRhythmInterpreter.messages(
+            workout: workout,
+            sessionSummary: nil,
+            splitInsight: nil,
+            weaknessInsight: nil,
+            recoveryImpact: impact
+        )
+
+        #expect(messages.first?.contains("동안 움직임") == true)
+        #expect(messages.contains("오늘 운동은 회복에 큰 부담을 주지 않았어요."))
+    }
+
     @Test func testAnalysisViewRendersWeeklySharePreviewSurface() {
         let viewModel = AnalysisViewModel(provider: StaticWeeklyProgressProvider(progress: makeWeeklyProgress()))
         let dashboardViewModel = DashboardViewModel(harness: MockWorkoutHarness())
@@ -134,6 +182,37 @@ struct ShareableWorkoutCardRendererTests {
             recoveryMessage: "회복 흐름을 생각한 좋은 강도였어요.",
             footerText: "SOOM · 공유 전 미리보기",
             visibility: .privateOnly
+        )
+    }
+
+    private func makeSparseWorkout(
+        avgHeartRate: Int = 0,
+        duration: TimeInterval = 0,
+        distanceMeters: Double = 0,
+        splits: [WorkoutSplit] = [],
+        samples: [WorkoutSample] = []
+    ) -> Workout {
+        Workout(
+            id: UUID(),
+            sport: .run,
+            title: "조용한 러닝",
+            date: Date(timeIntervalSince1970: 1_800_000_000),
+            distanceMeters: distanceMeters,
+            duration: duration,
+            activeCalories: 0,
+            avgHeartRate: avgHeartRate,
+            maxHeartRate: avgHeartRate,
+            avgPower: nil,
+            elevationGain: 0,
+            cadence: nil,
+            effort: 1,
+            source: "SOOM",
+            route: [],
+            splits: splits,
+            samples: samples,
+            zones: [],
+            achievements: [],
+            aiSummary: "운동 흐름을 개인 공간에서 확인해요."
         )
     }
 
