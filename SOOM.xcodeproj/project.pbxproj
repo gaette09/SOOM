@@ -272,6 +272,10 @@
 		010505 /* FeedDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020505 /* FeedDataSource.swift */; };
 		010506 /* FeedPostDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020506 /* FeedPostDTOTests.swift */; };
 		010507 /* FeedDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020507 /* FeedDataSourceTests.swift */; };
+		010519 /* FeedShareDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020519 /* FeedShareDraft.swift */; };
+		010520 /* FeedShareDraftBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020520 /* FeedShareDraftBuilder.swift */; };
+		010521 /* FeedShareDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020521 /* FeedShareDraftStore.swift */; };
+		010522 /* FeedShareDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020522 /* FeedShareDraftTests.swift */; };
 		010509 /* RecordLaunchPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020509 /* RecordLaunchPlanTests.swift */; };
 		010513 /* RecordMapFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020513 /* RecordMapFoundationTests.swift */; };
 		010516 /* RecordWorkoutSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020516 /* RecordWorkoutSessionTests.swift */; };
@@ -726,6 +730,10 @@
 		020505 /* FeedDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSource.swift; sourceTree = "<group>"; };
 		020506 /* FeedPostDTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDTOTests.swift; sourceTree = "<group>"; };
 		020507 /* FeedDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSourceTests.swift; sourceTree = "<group>"; };
+		020519 /* FeedShareDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraft.swift; sourceTree = "<group>"; };
+		020520 /* FeedShareDraftBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftBuilder.swift; sourceTree = "<group>"; };
+		020521 /* FeedShareDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftStore.swift; sourceTree = "<group>"; };
+		020522 /* FeedShareDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftTests.swift; sourceTree = "<group>"; };
 		020509 /* RecordLaunchPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlanTests.swift; sourceTree = "<group>"; };
 		020513 /* RecordMapFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapFoundationTests.swift; sourceTree = "<group>"; };
 		020516 /* RecordWorkoutSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSessionTests.swift; sourceTree = "<group>"; };
@@ -1255,6 +1263,9 @@
 				020503 /* FeedRepository.swift */,
 				020504 /* SupabaseFeedRepository.swift */,
 				020505 /* FeedDataSource.swift */,
+				020519 /* FeedShareDraft.swift */,
+				020520 /* FeedShareDraftBuilder.swift */,
+				020521 /* FeedShareDraftStore.swift */,
 				020014 /* FeedView.swift */,
 				020026 /* FeedPostDetailContent.swift */,
 			);
@@ -1558,6 +1569,7 @@
 				020257 /* FeedMockDataTests.swift */,
 				020506 /* FeedPostDTOTests.swift */,
 				020507 /* FeedDataSourceTests.swift */,
+				020522 /* FeedShareDraftTests.swift */,
 				020509 /* RecordLaunchPlanTests.swift */,
 				020513 /* RecordMapFoundationTests.swift */,
 				020516 /* RecordWorkoutSessionTests.swift */,
@@ -1751,6 +1763,9 @@
 				010503 /* FeedRepository.swift in Sources */,
 				010504 /* SupabaseFeedRepository.swift in Sources */,
 				010505 /* FeedDataSource.swift in Sources */,
+				010519 /* FeedShareDraft.swift in Sources */,
+				010520 /* FeedShareDraftBuilder.swift in Sources */,
+				010521 /* FeedShareDraftStore.swift in Sources */,
 				010014 /* FeedView.swift in Sources */,
 				010015 /* ClubsView.swift in Sources */,
 				010016 /* DetailViews.swift in Sources */,
@@ -2113,6 +2128,7 @@
 				010257 /* FeedMockDataTests.swift in Sources */,
 				010506 /* FeedPostDTOTests.swift in Sources */,
 				010507 /* FeedDataSourceTests.swift in Sources */,
+				010522 /* FeedShareDraftTests.swift in Sources */,
 				010509 /* RecordLaunchPlanTests.swift in Sources */,
 				010513 /* RecordMapFoundationTests.swift in Sources */,
 				010516 /* RecordWorkoutSessionTests.swift in Sources */,

@@ -7,7 +7,7 @@ enum FeedPhotoTone: String, Equatable {
     case water
 }
 
-struct FeedPhotoPlaceholder: Identifiable, Equatable {
+struct FeedPhotoPlaceholder: Identifiable, Codable, Equatable {
     let id: UUID
     let title: String
     let tone: FeedPhotoTone

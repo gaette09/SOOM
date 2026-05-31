@@ -35,9 +35,27 @@ Swift now has a small Feed backend boundary:
 - `SupabaseFeedRepository`: Supabase-ready repository boundary. v1 refuses remote fetch until a concrete fetcher is added.
 - `FeedDataSource`: tries remote when available and falls back to mock feed safely.
 
+## Local Feed Share Draft Flow
+
+Record save can now create a local feed share draft after the workout is stored on device. The flow is explicit:
+
+1. User stops a Record workout.
+2. User saves the workout locally.
+3. User chooses `피드에 공유하기` or `나중에`.
+4. `피드에 공유하기` creates a local draft from the saved `UnifiedWorkout`.
+5. Feed can render the draft with an `초안` label through the same card structure.
+
+Draft rules:
+
+- No automatic public sharing.
+- Default visibility is `draft` / private-only.
+- No Supabase write is performed in v1.
+- Recovery score, Recovery Coach guidance, readiness, and fatigue cues are not copied into the draft.
+- Photo attach, title/body editing, public visibility, and remote publish remain future scope.
+
 ## Future Steps
 
-1. Workout detail creates a private feed draft.
+1. Draft edit screen for title/body/media.
 2. User reviews title/body/media before publishing.
 3. Photo upload uses Supabase Storage.
 4. Reactions and comments are persisted through scoped APIs.

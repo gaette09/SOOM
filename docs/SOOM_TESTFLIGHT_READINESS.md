@@ -312,6 +312,19 @@ Current readiness is high for simulator build/test, archive generation, and loca
 - Map readiness: implemented with placeholder token strategy, requires injected token QA. Mapbox dSYM upload warnings may still need separate symbolication follow-up.
 - Ownership/cloud readiness: intentionally deferred.
 
+## Record To Feed Draft QA
+
+Before TestFlight review, run the local-first draft path on simulator and one device build:
+
+- Start a Record workout.
+- Stop and save it.
+- Choose `피드에 공유하기`.
+- Confirm Feed opens and shows the saved workout as an `초안` card.
+- Repeat the save flow and choose `나중에`.
+- Confirm no new Feed draft is created.
+- Confirm drafts do not expose Recovery score, Recovery Coach guidance, or readiness/fatigue advice.
+- Confirm no Supabase network write is expected for this v1 flow.
+
 ## Validation Log
 
 ### 2026-05-27

@@ -3,13 +3,21 @@ import UIKit
 
 struct FeedView: View {
     let items: [FeedItem]
+    private let dataSource: FeedDataSource?
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var isCoachBannerHidden = false
+    @State private var visibleItems: [FeedItem]
 
-    init(items: [FeedItem] = FeedMockData.items) {
-        self.items = items.sorted { $0.createdAt > $1.createdAt }
+    init(
+        items: [FeedItem] = FeedMockData.items,
+        dataSource: FeedDataSource? = FeedDataSource(draftStore: FileFeedShareDraftStore.live)
+    ) {
+        let sortedItems = items.sorted { $0.createdAt > $1.createdAt }
+        self.items = sortedItems
+        self.dataSource = dataSource
+        _visibleItems = State(initialValue: sortedItems)
     }
 
     var body: some View {
@@ -22,11 +30,11 @@ struct FeedView: View {
                 }
             }
 
-            if items.isEmpty {
+            if visibleItems.isEmpty {
                 emptyState
             } else {
                 VStack(spacing: SOOMLayout.Feed.cardSpacing) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
                         NavigationLink {
                             feedDestination(for: item)
                         } label: {
@@ -51,6 +59,15 @@ struct FeedView: View {
         .onAppear {
             hasAppeared = true
         }
+        .task {
+            await refreshFeed()
+        }
+    }
+
+    @MainActor
+    private func refreshFeed() async {
+        guard let dataSource else { return }
+        visibleItems = await dataSource.loadFeed()
     }
 
     private var feedSupportSection: some View {

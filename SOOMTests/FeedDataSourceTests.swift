@@ -43,6 +43,39 @@ final class FeedDataSourceTests: XCTestCase {
         XCTAssertEqual(items, [remoteItem])
     }
 
+    func testFallbackFeedCanIncludeLocalShareDrafts() async throws {
+        let draft = makeDraft(createdAt: Date(timeIntervalSince1970: 1_900_000_000))
+        let draftStore = InMemoryFeedShareDraftStore()
+        try await draftStore.saveDraft(draft)
+        let dataSource = FeedDataSource(
+            fallbackRepository: MockFeedRepository(items: FeedMockData.items),
+            draftStore: draftStore,
+            strategy: .mockOnly
+        )
+
+        let items = await dataSource.loadFeed(limit: 10)
+
+        XCTAssertEqual(items.first?.id, draft.id)
+        XCTAssertEqual(items.first?.contextLabels.first?.title, "초안")
+        XCTAssertEqual(items.count, FeedMockData.items.count + 1)
+    }
+
+    func testRemoteFeedCanIncludeLocalShareDraftsWithoutRemoteWrite() async throws {
+        let remoteItem = FeedMockData.items[0]
+        let draft = makeDraft(createdAt: remoteItem.createdAt.addingTimeInterval(60))
+        let draftStore = InMemoryFeedShareDraftStore()
+        try await draftStore.saveDraft(draft)
+        let dataSource = FeedDataSource(
+            remoteRepository: StubFeedRepository(result: .success([remoteItem])),
+            fallbackRepository: MockFeedRepository(items: []),
+            draftStore: draftStore
+        )
+
+        let items = await dataSource.loadFeed(limit: 10)
+
+        XCTAssertEqual(items.map(\.id), [draft.id, remoteItem.id])
+    }
+
     func testRemoteFailureFallsBackToMockFeed() async {
         let dataSource = FeedDataSource(
             remoteRepository: StubFeedRepository(result: .failure(FeedRepositoryError.remoteFailed)),
@@ -70,6 +103,28 @@ final class FeedDataSourceTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+}
+
+private func makeDraft(createdAt: Date) -> FeedShareDraft {
+    FeedShareDraft(
+        id: UUID(uuidString: "29F55747-64C8-4F28-9F61-C8F88D6AD209")!,
+        sourceWorkoutId: UUID(uuidString: "4F6F96BE-40D0-42D7-AEDC-4E4B064DC8E3")!,
+        sport: .running,
+        title: "오늘의 러닝",
+        body: "가볍게 리듬을 이어간 기록.",
+        distanceMeters: 5_000,
+        durationSeconds: 1_700,
+        averagePaceSecondsPerKm: 340,
+        routePreviewPayload: FeedShareDraftRoutePreviewPayload(
+            routeExists: true,
+            distanceText: "5.0 km",
+            fallbackStyleRawValue: StaticRouteFallbackStyle.running.rawValue
+        ),
+        photoPlaceholders: [],
+        tags: ["러닝", "기록", "SOOM"],
+        visibility: .draft,
+        createdAt: createdAt
+    )
 }
 
 private struct StubFeedRepository: FeedRepositoryProtocol {

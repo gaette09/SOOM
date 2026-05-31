@@ -706,6 +706,19 @@ Future additions should attach to behavior:
 - Advanced analytics -> Workout detail / Activity summary
 - Social features -> Feed / Club
 
+## Record To Feed Draft Flow
+
+Record remains a start-and-save surface. After a workout is saved locally, SOOM may offer a lightweight `피드에 공유하기` choice before leaving Record.
+
+Principles:
+
+- Save happens first and stays local-first.
+- Sharing is explicit, never automatic.
+- The share action creates a private/local draft, not a published post.
+- Feed can show the draft as `초안` using the established workout card structure.
+- Recovery Coach guidance remains private and does not appear in public/draft feed payloads.
+- Editing, photo attachment, visibility selection, and Supabase publish are future steps.
+
 ## Current UX Completion Estimate
 
 Current UX completion: 68%.

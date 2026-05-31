@@ -12,18 +12,24 @@ struct RecordView: View {
     @State private var currentDate = Date()
     @State private var isSavingWorkout = false
     @State private var saveErrorMessage: String?
+    @State private var savedWorkoutForShare: UnifiedWorkout?
+    @State private var isCreatingShareDraft = false
+    @State private var shareDraftErrorMessage: String?
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
     private let onDismiss: (() -> Void)?
     private let onSaveComplete: (() -> Void)?
+    private let onShareDraftComplete: (() -> Void)?
 
     init(
         onDismiss: (() -> Void)? = nil,
-        onSaveComplete: (() -> Void)? = nil
+        onSaveComplete: (() -> Void)? = nil,
+        onShareDraftComplete: (() -> Void)? = nil
     ) {
         self.onDismiss = onDismiss
         self.onSaveComplete = onSaveComplete
+        self.onShareDraftComplete = onShareDraftComplete
     }
 
     var body: some View {
@@ -224,6 +230,7 @@ struct RecordView: View {
         Button {
             SOOMHaptics.softImpact()
             withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+                resetFinishedShareState()
                 activeSession = sessionStarter.start(
                     sport: selectedSport,
                     locationState: locationManager.state
@@ -376,6 +383,7 @@ struct RecordView: View {
             Button {
                 SOOMHaptics.selection()
                 withAnimation(.easeOut(duration: 0.22)) {
+                    resetFinishedShareState()
                     activeSession = nil
                 }
             } label: {
@@ -407,7 +415,9 @@ struct RecordView: View {
                         )
                     }
 
-                    Text("저장하면 이 기기의 로컬 운동 기록으로 남고 Activity에서 확인할 수 있어요.")
+                    Text(savedWorkoutForShare == nil
+                         ? "저장하면 이 기기의 로컬 운동 기록으로 남고 Activity에서 확인할 수 있어요."
+                         : "저장됐어요. 원하면 이 기록을 공개 전 피드 초안으로 만들어둘 수 있어요.")
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -420,38 +430,81 @@ struct RecordView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                HStack(spacing: 10) {
-                    Button {
-                        SOOMHaptics.selection()
-                        discardFinishedSession()
-                    } label: {
-                        Text("삭제")
-                            .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(SOOMColor.background)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSavingWorkout)
+                if let shareDraftErrorMessage {
+                    Text(shareDraftErrorMessage)
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                    Button {
-                        SOOMHaptics.softImpact()
-                        Task {
-                            await saveFinishedSession(summary)
+                if let savedWorkoutForShare {
+                    HStack(spacing: 10) {
+                        Button {
+                            SOOMHaptics.selection()
+                            completeSavedWorkoutLater()
+                        } label: {
+                            Text("나중에")
+                                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                                .foregroundStyle(SOOMColor.secondaryInk)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(SOOMColor.background)
+                                .clipShape(Capsule())
                         }
-                    } label: {
-                        Text(isSavingWorkout ? "저장 중" : "저장")
-                            .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
-                            .foregroundStyle(SOOMColor.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(SOOMColor.ink)
-                            .clipShape(Capsule())
+                        .buttonStyle(.plain)
+                        .disabled(isCreatingShareDraft)
+
+                        Button {
+                            SOOMHaptics.softImpact()
+                            Task {
+                                await createFeedShareDraft(from: savedWorkoutForShare)
+                            }
+                        } label: {
+                            Text(isCreatingShareDraft ? "초안 생성 중" : "피드에 공유하기")
+                                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                                .foregroundStyle(SOOMColor.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(SOOMColor.ink)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isCreatingShareDraft)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isSavingWorkout)
+                } else {
+                    HStack(spacing: 10) {
+                        Button {
+                            SOOMHaptics.selection()
+                            discardFinishedSession()
+                        } label: {
+                            Text("삭제")
+                                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                                .foregroundStyle(SOOMColor.secondaryInk)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(SOOMColor.background)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isSavingWorkout)
+
+                        Button {
+                            SOOMHaptics.softImpact()
+                            Task {
+                                await saveFinishedSession(summary)
+                            }
+                        } label: {
+                            Text(isSavingWorkout ? "저장 중" : "저장")
+                                .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
+                                .foregroundStyle(SOOMColor.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(SOOMColor.ink)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isSavingWorkout)
+                    }
                 }
             } else {
                 Button {
@@ -499,15 +552,9 @@ struct RecordView: View {
         do {
             let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
             let saver = RecordWorkoutSaver(store: store)
-            _ = try await saver.save(summary)
+            let workout = try await saver.save(summary)
             isSavingWorkout = false
-            activeSession = nil
-
-            if let onSaveComplete {
-                onSaveComplete()
-            } else {
-                dismiss()
-            }
+            savedWorkoutForShare = workout
         } catch {
             isSavingWorkout = false
             saveErrorMessage = "저장하지 못했어요. 잠시 후 다시 시도해 주세요."
@@ -515,12 +562,58 @@ struct RecordView: View {
     }
 
     @MainActor
+    private func createFeedShareDraft(from workout: UnifiedWorkout) async {
+        guard !isCreatingShareDraft else { return }
+
+        isCreatingShareDraft = true
+        shareDraftErrorMessage = nil
+
+        do {
+            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live)
+            _ = try await coordinator.handle(.shareToFeed, workout: workout)
+            isCreatingShareDraft = false
+            finishSavedWorkoutFlow(shareCompleted: true)
+        } catch {
+            isCreatingShareDraft = false
+            shareDraftErrorMessage = "피드 초안을 만들지 못했어요. 기록은 이 기기에 저장되어 있어요."
+        }
+    }
+
+    @MainActor
+    private func completeSavedWorkoutLater() {
+        finishSavedWorkoutFlow(shareCompleted: false)
+    }
+
+    @MainActor
+    private func finishSavedWorkoutFlow(shareCompleted: Bool) {
+        savedWorkoutForShare = nil
+        shareDraftErrorMessage = nil
+        activeSession = nil
+
+        if shareCompleted, let onShareDraftComplete {
+            onShareDraftComplete()
+        } else if let onSaveComplete {
+            onSaveComplete()
+        } else {
+            dismiss()
+        }
+    }
+
+    @MainActor
     private func discardFinishedSession() {
-        saveErrorMessage = nil
-        isSavingWorkout = false
+        resetFinishedShareState()
         withAnimation(.easeOut(duration: 0.22)) {
             activeSession = nil
         }
+    }
+
+    @MainActor
+    private func resetFinishedShareState() {
+        saveErrorMessage = nil
+        shareDraftErrorMessage = nil
+        savedWorkoutForShare = nil
+        isSavingWorkout = false
+        isCreatingShareDraft = false
     }
 
     private func sessionSubtitle(for session: RecordWorkoutSession) -> String {

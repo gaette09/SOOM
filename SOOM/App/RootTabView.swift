@@ -115,6 +115,11 @@ struct RootTabView: View {
                     onSaveComplete: {
                         shouldReturnToActivityAfterRecordSave = true
                         isRecordLaunchPresented = false
+                    },
+                    onShareDraftComplete: {
+                        shouldReturnToActivityAfterRecordSave = false
+                        selectedTab = .feed
+                        isRecordLaunchPresented = false
                     }
                 )
             }
