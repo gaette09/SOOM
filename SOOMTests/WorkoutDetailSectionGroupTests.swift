@@ -29,21 +29,42 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
 }
 
 final class ClubUIFoundationTests: XCTestCase {
-    func testMockClubStatusExposesOnlineCompetitiveIdentity() {
-        let snapshot = ClubDashboardSnapshot.mock
+    func testClubHomeStartsFromJoinedClubDirectory() {
+        let directory = ClubDirectorySnapshot.mock()
 
-        XCTAssertEqual(snapshot.name, "SOOM Riders")
-        XCTAssertEqual(snapshot.memberCount, 412)
-        XCTAssertEqual(snapshot.weeklyRank, 12)
-        XCTAssertEqual(snapshot.goalPercentText, "73%")
+        XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
+        XCTAssertEqual(directory.createdClubs.first?.name, "Recovery Crew")
+        XCTAssertEqual(directory.recommendedClubs.count, 3)
+    }
+
+    func testClubDetailExposesScopedCompetitiveIdentity() {
+        let detail = ClubDetail.soomRiders
+
+        XCTAssertEqual(detail.name, "SOOM Riders")
+        XCTAssertEqual(detail.memberCount, 412)
+        XCTAssertEqual(detail.weeklyRank, 12)
+        XCTAssertEqual(detail.goalPercentText, "73%")
     }
 
     func testWeeklyRankingHighlightsCurrentUser() {
-        let currentUser = ClubDashboardSnapshot.mock.ranking.first(where: \.isCurrentUser)
+        let currentUser = ClubDetail.soomRiders.ranking.first(where: \.isCurrentUser)
 
         XCTAssertEqual(currentUser?.rank, 12)
         XCTAssertEqual(currentUser?.name, "나")
         XCTAssertEqual(currentUser?.valueText(for: .distance), "42.6 km")
+    }
+
+    func testDifferentClubsCanHaveDifferentRankingsAndChallenges() {
+        XCTAssertNotEqual(ClubDetail.soomRiders.weeklyRank, ClubDetail.morningRunners.weeklyRank)
+        XCTAssertNotEqual(ClubDetail.soomRiders.challenges.first?.title, ClubDetail.morningRunners.challenges.first?.title)
+    }
+
+    func testEmptyClubDirectoryKeepsRecommendationsAndCreateEntryFoundation() {
+        let directory = ClubDirectorySnapshot.mock(hasJoinedClubs: false)
+
+        XCTAssertTrue(directory.joinedClubs.isEmpty)
+        XCTAssertTrue(directory.createdClubs.isEmpty)
+        XCTAssertEqual(directory.recommendedClubs.map(\.name), ["한강 라이더스", "초보 라이딩", "주말 러너스"])
     }
 
     func testChallengeProgressFormatting() {
@@ -60,7 +81,7 @@ final class ClubUIFoundationTests: XCTestCase {
     }
 
     func testBadgeStatesKeepCalmAchievementCategories() {
-        let states = Set(ClubDashboardSnapshot.mock.badges.map(\.state))
+        let states = Set(ClubDetail.soomRiders.badges.map(\.state))
 
         XCTAssertTrue(states.contains(.earned))
         XCTAssertTrue(states.contains(.inProgress))

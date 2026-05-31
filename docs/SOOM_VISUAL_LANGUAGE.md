@@ -275,6 +275,9 @@ Club is SOOM's online belonging and contribution space:
 - Visual tone can use clearer progress, ranking, and badge surfaces, but keep SOOM's calm spacing and muted palette.
 - The implemented Club foundation uses mock data until backend support exists; the UI should still feel like a joined online club, not a placeholder dashboard.
 - Empty Club states should invite users to find a club with a similar rhythm and avoid offline meetup-first language.
+- Club should open on a home surface first: my clubs, created clubs, joined clubs, recommended clubs, and create club entry. Ranking surfaces live inside selected club detail.
+- Ranking copy must name or imply the selected club scope, such as "SOOM Riders 내 이번 주 랭킹"; avoid global leaderboard language in v1.
+- Create club can be visible as a future-ready CTA, but it should use clear placeholder copy until backend creation exists.
 
 ## Chip Rules
 

@@ -410,21 +410,37 @@ Club is an online workout club for belonging, competition, ranking, badges, and 
 
 Club content:
 
-- My joined clubs and current club identity
-- This week's personal rank and contribution
-- Club goal progress
-- Weekly rankings by distance, activity count, consistency, and sport
-- Club challenges
-- Badge wall
-- Club activity pulse
+- Club Home with my clubs, clubs I created, joined clubs, recommended clubs, and create club entry
+- Selected Club Detail with this week's personal rank and contribution
+- Selected club goal progress
+- Selected club weekly rankings by distance, activity count, consistency, and sport
+- Selected club challenges
+- Selected club badge wall
+- Selected club activity pulse
 
 Club hierarchy:
+
+1. Club Home
+2. Selected Club Detail
+
+Club Home:
+
+- My clubs
+- Clubs I created
+- Joined clubs
+- Recommended clubs
+- Create club entry
+- A user can join multiple clubs and create a club in a future backend step.
+
+Selected Club Detail:
 
 1. My Club Status
 2. Weekly Ranking
 3. Club Challenge
 4. Badge Wall
 5. Club Activity Pulse
+
+The ranking dashboard should never appear as the entire Club tab before the user chooses a club. Ranking is scoped to the selected club; global ranking is not v1 scope.
 
 My Club Status:
 
@@ -468,7 +484,7 @@ Club Activity Pulse:
 
 Club empty state:
 
-- If the user has not joined a club, lead with online belonging and low-pressure contribution: "Find a club where your weekly movement can count."
+- If the user has not joined a club, show recommended clubs, the create club entry, and low-pressure belonging copy: "Find a club where your weekly movement can count."
 - Do not show empty leaderboard shame.
 - The first action should feel like choosing a group identity, not registering for an offline event.
 
