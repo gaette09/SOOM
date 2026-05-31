@@ -187,6 +187,27 @@ v1 can use mock data:
 - Mock badge states
 - Mock activity pulse
 
+The Club tab UI foundation should render the blueprint as a real product surface even before backend support:
+
+1. My Club Status hero
+   - club name, member count, weekly rank, contribution distance, and club goal progress
+   - belonging first, numbers second
+2. Weekly Ranking
+   - distance, activity count, and consistency filters
+   - top ranks plus the current user's row
+   - highlight "나" without shame copy or aggressive winner language
+3. Challenges
+   - progress bars for weekly movement count, club distance goal, and morning movement
+   - contribution framing instead of pressure
+4. Badge Wall
+   - earned, in progress, new this week, and rare states
+   - short labels, muted surfaces, no neon game styling
+5. Club Activity Pulse
+   - compact event rows for badge wins, rank movement, goal progress, and member activity
+   - do not repeat Feed workout cards
+
+The empty state should say that the user has no club yet and invite them to find a club with a similar rhythm. It should not present Club as an offline meetup board.
+
 Deferred:
 
 - Real club backend
@@ -206,4 +227,3 @@ Rules:
 - A workout can contribute aggregate distance/count without exposing route details.
 - Route start/end privacy masking remains required for shared route surfaces.
 - Recovery score and private coach guidance do not appear in Club ranking by default.
-

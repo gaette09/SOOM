@@ -273,6 +273,8 @@ Club is SOOM's online belonging and contribution space:
 - Club Activity Pulse should summarize movement inside the group: rank changes, badge wins, goal progress, and member activity. Do not repeat Feed cards one-for-one.
 - Avoid offline meetup-first UI, event scheduling dashboards, moderation-heavy community tools, or aggressive game styling.
 - Visual tone can use clearer progress, ranking, and badge surfaces, but keep SOOM's calm spacing and muted palette.
+- The implemented Club foundation uses mock data until backend support exists; the UI should still feel like a joined online club, not a placeholder dashboard.
+- Empty Club states should invite users to find a club with a similar rhythm and avoid offline meetup-first language.
 
 ## Chip Rules
 
