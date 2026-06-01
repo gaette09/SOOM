@@ -907,6 +907,8 @@
 		020426 /* LocalDataDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataDetector.swift; sourceTree = "<group>"; };
 		020427 /* LocalDataDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataDetectorTests.swift; sourceTree = "<group>"; };
 		020500 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		020901 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		020902 /* LocalSecrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LocalSecrets.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -957,6 +959,7 @@
 				040009 /* ViewModels */,
 				040010 /* DesignSystem */,
 				040011 /* Components */,
+				040027 /* Config */,
 				040014 /* Features */,
 				020500 /* Assets.xcassets */,
 				040012 /* Resources */,
@@ -1069,6 +1072,15 @@
 				020067 /* CheckInSummaryCard.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		040027 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				020901 /* Debug.xcconfig */,
+				020902 /* LocalSecrets.example.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		040012 /* Resources */ = {
@@ -2272,6 +2284,7 @@
 		};
 		080003 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 020901 /* Debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SOOM/SOOM.entitlements;
 				CODE_SIGN_STYLE = Automatic;

@@ -344,14 +344,24 @@ Record is not a settings-like list of start options. It is a full-screen pre-wor
 - Bottom Navigation and Floating Coach stay hidden while Record launch is open so the start action has no visual competition.
 - A back control in the top leading corner returns to Feed by default.
 - The map surface is the primary layer. When `MBX_ACCESS_TOKEN` resolves to a usable Mapbox token, Record renders a real Mapbox map; otherwise it falls back to the lightweight drawn map.
+- Record's initial camera should favor a close, usable launch scale near a 100m Mapbox scale-bar feel. Do not zoom out just to show every sample route point if that makes the start surface feel less immediate.
 - Record must not force a location permission prompt on entry. If location is unavailable, show a subtle fallback/current-area marker and keep the launch flow usable.
-- Keep text minimal: recovery score/status, weather temperature, selected sport icon, and "READY" are enough.
-- Recommendation appears as a small lower pill, not a card. Route recommendation appears as one icon control below weather plus a subtle map overlay, not a separate information block.
+- Keep text minimal on the map itself: a top notification header, weather temperature, and "READY" are enough by default.
+- Record guidance is a separate top header layer, not a floating card inside the map overlay stack. It sits just below the status bar with about `safeAreaTop + 8-14pt` visual top padding, 34-38pt side insets, and a compact 76-82pt height. The header owns the daily recommendation copy: label, recovery state, and one short body line about how to move today.
+- Do not show a persistent route strip under the guidance header. Recommended routes are accessed only from the right-edge route icon and route recommendation catalog, so the launch map keeps a single top message instead of stacked information pills.
+- Back and right-edge controls belong directly under the compact header, never drifting into the map center or reserving removed route-strip space. Back sits roughly 28-32pt below the header bottom; the right control column starts roughly 10-14pt below it. Use a neutral surface for readability, with `SOOMColor.accent`, `accentInk`, and `accentLine` reserved for the icon, key state, and border.
+- Record top controls must use one computed frame source for the guidance banner, back button, and right-edge controls. Avoid separate `padding`, `offset`, or legacy route-strip spacing paths that can make tests and actual render positions diverge.
+- Right-edge controls stack in this order: weather, route recommendation, current-location recenter. Weather opens a detail sheet, route opens a mock catalog, and recenter is the only location-permission entry point.
 - Controls should sit on corners or edges as small circular icon buttons. Labels are primarily accessibility labels.
+- The recenter button icon and the map's current-location marker are separate concepts. Keep the button neutral; the actual map marker uses SOOM purple.
+- Mapbox logo/attribution must remain visible and low. Keep ornament bottom inset small enough that logo/info stay near the bottom safe area instead of floating near READY.
+- Actual GPS location uses a compact purple center dot, white ring, soft halo, and small gentle pulse. Keep the pulse around 48-52pt max diameter so it does not cover map detail. Fallback/sample markers stay static or very quiet. Respect Reduce Motion by disabling the pulse.
 - Import, HealthKit connection, and device connection controls do not belong on the Record surface; move them to Activity/Profile so Record stays focused on starting.
-- Sport mode selection is icon-only and sits directly above the start action.
-- The main start button sits near the bottom center. It remains primary, but should be compact enough that the map still feels like the screen.
-- Route recommendation is a foundation layer: sample route overlay first, route/search backend later, and recovery/weather/time-aware recommendations only after the basic flow is stable. Feed cards must not embed live Mapbox maps.
+- Sport mode selection is hidden until the READY long-press gesture. Cycling/running/walking fan out in the upper semicircle only; never place sport choices below READY.
+- READY tap is a no-op. A workout can start only after long-pressing READY, dragging to a visible sport icon, and releasing while that sport is hovered. Releasing without a hovered sport cancels the start.
+- Haptics should mark no-op tap, long press, reveal, hover changes, confirmed release, and cancellation without feeling like a game control.
+- The main start button sits near the bottom center. It remains primary, but should be compact enough that the map still feels like the screen; target an 78-82pt READY button, a quiet default shadow, and a dim gradient that is barely visible until long-press focus begins.
+- Route recommendation is a foundation layer: sample route overlay and mock route catalog first, route/search backend later, and recovery/weather/time-aware recommendations only after the basic flow is stable. Feed cards must not embed live Mapbox maps.
 
 ## Motion Principles
 

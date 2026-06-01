@@ -1,5 +1,6 @@
-import Foundation
 import CoreLocation
+import CoreGraphics
+import Foundation
 
 enum RecordSportMode: String, CaseIterable, Identifiable, Equatable {
     case cycling
@@ -178,6 +179,35 @@ struct RecordWeatherWind: Equatable {
         default:
             return "바람 강함"
         }
+    }
+}
+
+struct RecordWeatherDetailSnapshot: Equatable {
+    let locationName: String
+    let temperatureText: String
+    let conditionText: String
+    let feelsLikeText: String
+    let windText: String
+    let fineDustText: String
+    let ultraFineDustText: String
+    let hourlyForecast: [String]
+    let dailyForecast: [String]
+    let isFallback: Bool
+
+    static func make(from snapshot: RecordWeatherSnapshot) -> RecordWeatherDetailSnapshot {
+        let temperature = snapshot.temperatureText
+        return RecordWeatherDetailSnapshot(
+            locationName: "현재 위치 근처",
+            temperatureText: temperature,
+            conditionText: snapshot.conditionText,
+            feelsLikeText: temperature,
+            windText: snapshot.windText ?? "바람 정보 없음",
+            fineDustText: "보통",
+            ultraFineDustText: "보통",
+            hourlyForecast: ["지금 \(temperature)", "1시간 뒤 \(temperature)", "2시간 뒤 \(temperature)", "3시간 뒤 \(temperature)"],
+            dailyForecast: ["오늘 \(snapshot.conditionText)", "내일 가벼운 흐림", "모레 맑음"],
+            isFallback: snapshot.isFallback
+        )
     }
 }
 
@@ -421,6 +451,357 @@ struct RecordLaunchRecommendation: Equatable {
         }
 
         return "\(weatherPrefix) · \(sportText)"
+    }
+
+    func guidanceText(for sport: RecordSportMode, weather: RecordWeatherSnapshot) -> String {
+        let sportText: String
+        switch sport {
+        case .cycling:
+            sportText = "Z2 40분으로 리듬을 이어가요."
+        case .running:
+            sportText = "30분 조깅으로 호흡을 맞춰요."
+        case .walking:
+            sportText = "25분 걷기로 몸을 깨워요."
+        }
+
+        guard let weatherPrefix = RecordWeatherRecommendationCopy.prefix(for: weather) else {
+            return sportText
+        }
+
+        return "\(weatherPrefix). \(sportText)"
+    }
+}
+
+enum RecordLaunchControl: String, CaseIterable, Equatable {
+    case weather
+    case routeRecommendation
+    case currentLocation
+
+    static let rightEdgeOrder: [RecordLaunchControl] = [
+        .weather,
+        .routeRecommendation,
+        .currentLocation
+    ]
+
+    var iconName: String {
+        switch self {
+        case .weather:
+            return "sun.max.fill"
+        case .routeRecommendation:
+            return "point.topleft.down.curvedto.point.bottomright.up"
+        case .currentLocation:
+            return "location.fill"
+        }
+    }
+}
+
+struct RecordMapHeaderFrames: Equatable {
+    let bannerFrame: CGRect
+    let backButtonCenter: CGPoint
+    let rightControlsFrame: CGRect
+    let rightControlCenters: [CGPoint]
+
+    var rightControlsTop: CGFloat {
+        rightControlsFrame.minY
+    }
+
+    var weatherButtonTop: CGFloat {
+        rightControlsFrame.minY
+    }
+}
+
+enum RecordMapHeaderLayout {
+    static let usesTopHeaderLayer = true
+    static let usesMapOverlayGuidanceCard = false
+    static let usesUnifiedFrameSource = true
+    static let topHeaderInsetBelowSafeArea: CGFloat = 12
+    static let guidanceHorizontalInset: CGFloat = 36
+    static let guidanceHeight: CGFloat = 78
+    static let guidanceMinHeight: CGFloat = 76
+    static let guidanceMaxHeight: CGFloat = 82
+    static let guidanceCornerRadius: CGFloat = 22
+    static let maxBodyLineCount = 2
+    static let showsRouteStripByDefault = false
+    static let routeRecommendationUsesRightControlOnly = true
+    static let maxVisualTopRatio: CGFloat = 0.12
+    static let maxVisualBottomRatio: CGFloat = 0.22
+    static let backButtonCenterX: CGFloat = 52
+    static let backButtonCenterSpacingBelowGuidance: CGFloat = 30
+    static let rightControlCenterTrailingInset: CGFloat = 54
+    static let rightControlsTopSpacingBelowGuidance: CGFloat = 12
+    static let controlSize: CGFloat = 46
+    static let controlSpacing: CGFloat = 10
+
+    static func guidanceTopY(safeAreaTop: CGFloat) -> CGFloat {
+        safeAreaTop + topHeaderInsetBelowSafeArea
+    }
+
+    static func guidanceBottomY(safeAreaTop: CGFloat) -> CGFloat {
+        guidanceTopY(safeAreaTop: safeAreaTop) + guidanceHeight
+    }
+
+    static func backButtonCenterY(safeAreaTop: CGFloat) -> CGFloat {
+        guidanceBottomY(safeAreaTop: safeAreaTop) + backButtonCenterSpacingBelowGuidance
+    }
+
+    static func rightControlsTopY(safeAreaTop: CGFloat) -> CGFloat {
+        guidanceBottomY(safeAreaTop: safeAreaTop) + rightControlsTopSpacingBelowGuidance
+    }
+
+    static var rightControlsStackHeight: CGFloat {
+        controlSize * 3 + controlSpacing * 2
+    }
+
+    static func visualTopRatio(safeAreaTop: CGFloat, screenHeight: CGFloat) -> CGFloat {
+        guard screenHeight > 0 else { return 0 }
+        return guidanceTopY(safeAreaTop: safeAreaTop) / screenHeight
+    }
+
+    static func visualBottomRatio(safeAreaTop: CGFloat, screenHeight: CGFloat) -> CGFloat {
+        guard screenHeight > 0 else { return 0 }
+        return guidanceBottomY(safeAreaTop: safeAreaTop) / screenHeight
+    }
+
+    static func frames(containerSize: CGSize, safeAreaTop: CGFloat) -> RecordMapHeaderFrames {
+        let bannerWidth = max(0, containerSize.width - guidanceHorizontalInset * 2)
+        let bannerFrame = CGRect(
+            x: guidanceHorizontalInset,
+            y: guidanceTopY(safeAreaTop: safeAreaTop),
+            width: bannerWidth,
+            height: guidanceHeight
+        )
+        let backButtonCenter = CGPoint(
+            x: backButtonCenterX,
+            y: backButtonCenterY(safeAreaTop: safeAreaTop)
+        )
+        let rightControlsTop = rightControlsTopY(safeAreaTop: safeAreaTop)
+        let rightControlsFrame = CGRect(
+            x: containerSize.width - rightControlCenterTrailingInset - controlSize / 2,
+            y: rightControlsTop,
+            width: controlSize,
+            height: rightControlsStackHeight
+        )
+        let rightControlCenters = RecordLaunchControl.rightEdgeOrder.enumerated().map { index, _ in
+            CGPoint(
+                x: rightControlsFrame.midX,
+                y: rightControlsTop + controlSize / 2 + CGFloat(index) * (controlSize + controlSpacing)
+            )
+        }
+
+        return RecordMapHeaderFrames(
+            bannerFrame: bannerFrame,
+            backButtonCenter: backButtonCenter,
+            rightControlsFrame: rightControlsFrame,
+            rightControlCenters: rightControlCenters
+        )
+    }
+}
+
+enum RecordMapOrnamentLayout {
+    static let bottomInset: CGFloat = 8
+    static let horizontalInset: CGFloat = 12
+}
+
+enum RecordCurrentLocationMarkerStyle {
+    static let dotRadius: Double = 8
+    static let fallbackDotRadius: Double = 6
+    static let staticHaloRadius: Double = 14
+    static let pulseStartRadius: Double = 20
+    static let pulseEndRadius: Double = 26
+    static let pulseStartOpacity: Double = 0.14
+    static let pulseDurationSeconds: TimeInterval = 1.9
+
+    static func pulseRadius(progress: Double) -> Double {
+        pulseStartRadius + (pulseEndRadius - pulseStartRadius) * max(0, min(1, progress))
+    }
+
+    static func pulseOpacity(progress: Double) -> Double {
+        pulseStartOpacity * (1 - max(0, min(1, progress)))
+    }
+
+    static func isPulseEnabled(canShowUserLocation: Bool, reduceMotionEnabled: Bool) -> Bool {
+        canShowUserLocation && !reduceMotionEnabled
+    }
+}
+
+enum RecordMapBottomFocusGradientLayout {
+    static let defaultHeight: CGFloat = 120
+    static let focusedHeight: CGFloat = 240
+    static let defaultMiddleOpacity = 0.045
+    static let defaultBottomOpacity = 0.09
+    static let focusedMiddleOpacity = 0.18
+    static let focusedBottomOpacity = 0.30
+}
+
+enum RecordReadyLaunchVisualLayout {
+    static let containerHeight: CGFloat = 214
+    static let buttonDiameter: CGFloat = 80
+    static let buttonCenterBottomOffset: CGFloat = 54
+    static let bottomPaddingExtra: CGFloat = 10
+    static let iconSize: CGFloat = 18
+    static let readyFontSize: CGFloat = 13
+    static let hintFontSize: CGFloat = 7
+    static let defaultShadowOpacity = 0.10
+    static let focusedShadowOpacity = 0.16
+    static let defaultShadowRadius: CGFloat = 8
+    static let focusedShadowRadius: CGFloat = 10
+    static let shadowYOffset: CGFloat = 7
+}
+
+struct RecordReadyRadialItem: Equatable {
+    let sport: RecordSportMode
+    let angleDegrees: Double
+    let center: CGPoint
+}
+
+enum RecordReadyRadialHapticEvent: Equatable {
+    case longPressStarted
+    case menuRevealed
+    case hoverChanged
+    case releaseConfirmed
+    case releaseCancelled
+}
+
+enum RecordReadyRadialLayout {
+    static let radius: CGFloat = 106
+    static let hitRadius: CGFloat = 42
+
+    static let sportAngles: [RecordSportMode: Double] = [
+        .cycling: 150,
+        .running: 90,
+        .walking: 30
+    ]
+
+    static func items(center: CGPoint, radius: CGFloat = Self.radius) -> [RecordReadyRadialItem] {
+        RecordSportMode.allCases.compactMap { sport in
+            guard let angle = sportAngles[sport] else { return nil }
+            return RecordReadyRadialItem(
+                sport: sport,
+                angleDegrees: angle,
+                center: point(center: center, radius: radius, angleDegrees: angle)
+            )
+        }
+    }
+
+    static func point(center: CGPoint, radius: CGFloat, angleDegrees: Double) -> CGPoint {
+        let radians = angleDegrees * .pi / 180
+        return CGPoint(
+            x: center.x + cos(radians) * radius,
+            y: center.y - sin(radians) * radius
+        )
+    }
+
+    static func hoveredSport(
+        at location: CGPoint,
+        readyCenter: CGPoint,
+        radius: CGFloat = Self.radius,
+        hitRadius: CGFloat = Self.hitRadius
+    ) -> RecordSportMode? {
+        let candidates = items(center: readyCenter, radius: radius)
+            .map { item -> (sport: RecordSportMode, distance: CGFloat) in
+                let dx = item.center.x - location.x
+                let dy = item.center.y - location.y
+                return (item.sport, sqrt(dx * dx + dy * dy))
+            }
+            .sorted { $0.distance < $1.distance }
+
+        guard let closest = candidates.first, closest.distance <= hitRadius else {
+            return nil
+        }
+
+        return closest.sport
+    }
+
+    static func isUpperSemicircle(angleDegrees: Double) -> Bool {
+        (0...180).contains(angleDegrees)
+    }
+
+    static func isAboveReadyCenter(item: RecordReadyRadialItem, readyCenter: CGPoint) -> Bool {
+        item.center.y < readyCenter.y
+    }
+}
+
+enum RecordReadyRadialInteraction {
+    static func begin() -> [RecordReadyRadialHapticEvent] {
+        [.longPressStarted, .menuRevealed]
+    }
+
+    static func hoverEvents(previous: RecordSportMode?, next: RecordSportMode?) -> [RecordReadyRadialHapticEvent] {
+        previous != next ? [.hoverChanged] : []
+    }
+
+    static func release(hoveredSport: RecordSportMode?) -> [RecordReadyRadialHapticEvent] {
+        hoveredSport == nil ? [.releaseCancelled] : [.releaseConfirmed]
+    }
+
+    static func shouldStartWorkout(isRadialSelectionActive: Bool, hoveredSport: RecordSportMode?) -> Bool {
+        isRadialSelectionActive && hoveredSport != nil
+    }
+}
+
+struct RecordRouteCatalogOption: Identifiable, Equatable {
+    let id: String
+    let route: RecordRouteRecommendation
+    let tag: String
+
+    static func mockOptions(for sport: RecordSportMode) -> [RecordRouteCatalogOption] {
+        [
+            RecordRouteCatalogOption(
+                id: "han-river-recovery",
+                route: .mockHanRiver,
+                tag: "Z2 추천"
+            ),
+            RecordRouteCatalogOption(
+                id: "tancheon-light-loop",
+                route: RecordRouteRecommendation(
+                    title: "탄천 가벼운 루프",
+                    distanceText: "12.4 km",
+                    durationText: sport == .running ? "65분" : "52분",
+                    reason: "바람 약한 날 추천",
+                    coordinates: [
+                        RecordMapCoordinate(latitude: 37.4950, longitude: 127.0810),
+                        RecordMapCoordinate(latitude: 37.4984, longitude: 127.0840),
+                        RecordMapCoordinate(latitude: 37.5022, longitude: 127.0878),
+                        RecordMapCoordinate(latitude: 37.5070, longitude: 127.0916),
+                        RecordMapCoordinate(latitude: 37.5128, longitude: 127.0945)
+                    ]
+                ),
+                tag: "가벼운 루프"
+            ),
+            RecordRouteCatalogOption(
+                id: "neighborhood-short",
+                route: RecordRouteRecommendation(
+                    title: "동네 짧은 코스",
+                    distanceText: "4.8 km",
+                    durationText: sport == .walking ? "55분" : "28분",
+                    reason: "회복 흐름에 맞는 짧은 코스",
+                    coordinates: [
+                        RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
+                        RecordMapCoordinate(latitude: 37.5272, longitude: 126.9300),
+                        RecordMapCoordinate(latitude: 37.5264, longitude: 126.9327),
+                        RecordMapCoordinate(latitude: 37.5251, longitude: 126.9341)
+                    ]
+                ),
+                tag: "회복 추천"
+            ),
+            RecordRouteCatalogOption(
+                id: "long-rhythm",
+                route: RecordRouteRecommendation(
+                    title: "장거리 리듬 코스",
+                    distanceText: "32 km",
+                    durationText: "1시간 45분",
+                    reason: "컨디션 좋을 때 이어가기",
+                    coordinates: [
+                        RecordMapCoordinate(latitude: 37.5291, longitude: 126.9561),
+                        RecordMapCoordinate(latitude: 37.5318, longitude: 126.9650),
+                        RecordMapCoordinate(latitude: 37.5342, longitude: 126.9758),
+                        RecordMapCoordinate(latitude: 37.5360, longitude: 126.9884),
+                        RecordMapCoordinate(latitude: 37.5384, longitude: 127.0015)
+                    ]
+                ),
+                tag: "컨디션 좋을 때"
+            )
+        ]
     }
 }
 

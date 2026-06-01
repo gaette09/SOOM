@@ -149,12 +149,15 @@ Record v1 should behave like a pre-workout launch surface:
 - Bottom Navigation and Floating Coach are hidden while the Record launch surface is active.
 - A top-left back control dismisses launch mode and returns to Feed by default.
 - A full-screen map anchors the user's current area. Record uses Mapbox when `MBX_ACCESS_TOKEN` is configured and falls back to the lightweight drawn surface when the token is missing or unresolved.
+- The initial camera should feel close to a launch map, roughly a 100m-scale neighborhood view. Prefer the current coordinate when available; otherwise center the sample route/fallback area without zooming out just to fit the entire route.
 - Record does not force a location permission prompt on entry. The current-location button is the user-initiated entry point for `When In Use` permission, GPS update, and camera recentering.
-- Recovery and sport recommendation are compressed into a small lower pill; weather sits at the top edge. Weather is live only after an authorized current coordinate exists and a weather API key is configured. Missing permission, missing key, or network failure keeps the calm fallback weather.
+- Recovery and sport recommendation live in a wide top guidance card. It sits above the back button and right controls, close to the safe-area top, with a neutral/readable surface and purple used only for the icon, border, and important state text.
+- The right edge control order is weather, route recommendation, then current-location recenter, and the column starts below the guidance card. Weather is live only after an authorized current coordinate exists and a weather API key is configured. Missing permission, missing key, or network failure keeps the calm fallback weather.
+- The weather control opens a detail sheet for hourly/daily forecast, wind, feels-like, fine dust, and ultra-fine dust. Fallback/mock values are acceptable until the live provider expands beyond the basic current-weather response.
 - Weather can lightly shape the recommendation copy: clear/low wind supports the default Z2 suggestion, rain/snow adds a short caution, and strong wind nudges the user toward safer route choices.
 - Import, HealthKit connection, and device connection actions belong to Activity or Profile, not Record.
-- Route has one circular icon control below weather; route context can remain as a map overlay without duplicating controls.
-- Sport selection sits directly above the start action and is icon-first.
+- Route has one circular icon control below weather; tapping it opens a mock route catalog and swaps the displayed sample route only. Mapbox Directions or route-search backend integration is deferred.
+- Sport selection is hidden by default. Tapping READY or the dimmed focus area must never start a workout. Long-pressing READY reveals cycling/running/walking in an upper semicircle; dragging while holding selects a sport, and releasing while a sport is hovered starts that sport. Sport icons must never appear below READY.
 - The main "READY" action belongs near the bottom center, large enough to start from but smaller than the map itself.
 - READY starts a local-first workout session foundation using the selected sport. Cycling maps to cycling, running maps to running, and walking maps to walking.
 - Workout start does not require location permission. If GPS is available, route capture can be prepared; if not, the session still starts as time-first local recording.

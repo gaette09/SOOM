@@ -103,6 +103,29 @@ final class RecordMapFoundationTests: XCTestCase {
         XCTAssertEqual(state, .fallback)
     }
 
+    func testLaunchCameraUsesCloseScaleTargetForRecordEntry() {
+        let state = RecordMapCameraState.launch(
+            currentCoordinate: nil,
+            routeCoordinates: RecordLaunchPlan.mockToday.route.coordinates
+        )
+
+        XCTAssertEqual(RecordMapCameraState.launchScaleTargetMeters, 100)
+        XCTAssertEqual(state.zoom, RecordMapCameraState.launchZoom)
+        XCTAssertGreaterThanOrEqual(state.zoom, 15.0)
+        XCTAssertLessThanOrEqual(state.zoom, 16.4)
+    }
+
+    func testLaunchCameraPrefersCurrentLocationWhenAvailable() {
+        let current = RecordMapCoordinate(latitude: 37.5312, longitude: 126.9321)
+        let state = RecordMapCameraState.launch(
+            currentCoordinate: current,
+            routeCoordinates: RecordLaunchPlan.mockToday.route.coordinates
+        )
+
+        XCTAssertEqual(state.center, current)
+        XCTAssertEqual(state.zoom, RecordMapCameraState.launchZoom)
+    }
+
     func testLocationStateDoesNotRequestPermissionOnEntry() {
         XCTAssertFalse(RecordLocationState.mockCurrent.shouldRequestPermissionOnEntry)
     }
@@ -158,5 +181,82 @@ final class RecordMapFoundationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(route.coordinates.count, 8)
         XCTAssertTrue(longitudeSteps.allSatisfy { $0 > 0 })
         XCTAssertLessThan((route.coordinates.map(\.latitude).max() ?? 0) - (route.coordinates.map(\.latitude).min() ?? 0), 0.004)
+    }
+
+    func testReadyRadialSportAnglesStayInUpperSemicircle() {
+        for angle in RecordReadyRadialLayout.sportAngles.values {
+            XCTAssertTrue(RecordReadyRadialLayout.isUpperSemicircle(angleDegrees: angle))
+        }
+    }
+
+    func testReadyRadialItemsAppearAboveReadyCenter() {
+        let readyCenter = CGPoint(x: 180, y: 220)
+        let items = RecordReadyRadialLayout.items(center: readyCenter)
+
+        XCTAssertEqual(items.count, RecordSportMode.allCases.count)
+        XCTAssertTrue(items.allSatisfy { RecordReadyRadialLayout.isAboveReadyCenter(item: $0, readyCenter: readyCenter) })
+    }
+
+    func testReadyRadialHoverSelectionUsesUpperSportTargets() {
+        let readyCenter = CGPoint(x: 180, y: 220)
+        let items = RecordReadyRadialLayout.items(center: readyCenter)
+
+        for item in items {
+            XCTAssertEqual(
+                RecordReadyRadialLayout.hoveredSport(at: item.center, readyCenter: readyCenter),
+                item.sport
+            )
+        }
+    }
+
+    func testReadyRadialInteractionHapticEvents() {
+        XCTAssertEqual(RecordReadyRadialInteraction.begin(), [.longPressStarted, .menuRevealed])
+        XCTAssertEqual(RecordReadyRadialInteraction.hoverEvents(previous: .cycling, next: .running), [.hoverChanged])
+        XCTAssertEqual(RecordReadyRadialInteraction.hoverEvents(previous: .cycling, next: .cycling), [])
+        XCTAssertEqual(RecordReadyRadialInteraction.release(hoveredSport: .walking), [.releaseConfirmed])
+        XCTAssertEqual(RecordReadyRadialInteraction.release(hoveredSport: nil), [.releaseCancelled])
+    }
+
+    func testCurrentLocationPulseOnlyRunsForActualLocationWhenMotionAllowed() {
+        XCTAssertTrue(
+            RecordCurrentLocationMarkerStyle.isPulseEnabled(
+                canShowUserLocation: true,
+                reduceMotionEnabled: false
+            )
+        )
+        XCTAssertFalse(
+            RecordCurrentLocationMarkerStyle.isPulseEnabled(
+                canShowUserLocation: false,
+                reduceMotionEnabled: false
+            )
+        )
+        XCTAssertFalse(
+            RecordCurrentLocationMarkerStyle.isPulseEnabled(
+                canShowUserLocation: true,
+                reduceMotionEnabled: true
+            )
+        )
+    }
+
+    func testCurrentLocationPulseExpandsAndFades() {
+        XCTAssertGreaterThanOrEqual(RecordCurrentLocationMarkerStyle.dotRadius * 2, 16)
+        XCTAssertLessThanOrEqual(RecordCurrentLocationMarkerStyle.dotRadius * 2, 18)
+        XCTAssertGreaterThanOrEqual(RecordCurrentLocationMarkerStyle.staticHaloRadius * 2, 26)
+        XCTAssertLessThanOrEqual(RecordCurrentLocationMarkerStyle.staticHaloRadius * 2, 30)
+        XCTAssertLessThanOrEqual(RecordCurrentLocationMarkerStyle.pulseEndRadius * 2, 52)
+        XCTAssertLessThanOrEqual(RecordCurrentLocationMarkerStyle.pulseStartOpacity, 0.14)
+        XCTAssertEqual(
+            RecordCurrentLocationMarkerStyle.pulseRadius(progress: 0),
+            RecordCurrentLocationMarkerStyle.pulseStartRadius
+        )
+        XCTAssertEqual(
+            RecordCurrentLocationMarkerStyle.pulseRadius(progress: 1),
+            RecordCurrentLocationMarkerStyle.pulseEndRadius
+        )
+        XCTAssertGreaterThan(
+            RecordCurrentLocationMarkerStyle.pulseOpacity(progress: 0),
+            RecordCurrentLocationMarkerStyle.pulseOpacity(progress: 1)
+        )
+        XCTAssertEqual(RecordCurrentLocationMarkerStyle.pulseOpacity(progress: 1), 0)
     }
 }

@@ -8,3 +8,6 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
+**/LocalSecrets.xcconfig
+**/Secrets.xcconfig
+**/*.local.xcconfig

@@ -5,6 +5,9 @@ struct RecordMapCameraState: Equatable {
     let center: RecordMapCoordinate
     let zoom: Double
 
+    static let launchScaleTargetMeters = 100
+    static let launchZoom = 15.8
+
     static let fallback = RecordMapCameraState(
         center: RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
         zoom: 12.8
@@ -29,6 +32,27 @@ struct RecordMapCameraState: Equatable {
 
         self.center = RecordMapCoordinate(latitude: latitude, longitude: longitude)
         self.zoom = Self.zoomEstimate(for: span)
+    }
+
+    static func launch(
+        currentCoordinate: RecordMapCoordinate?,
+        routeCoordinates: [RecordMapCoordinate],
+        fallback: RecordMapCameraState = .fallback
+    ) -> RecordMapCameraState {
+        if let currentCoordinate {
+            return RecordMapCameraState(center: currentCoordinate, zoom: launchZoom)
+        }
+
+        if !routeCoordinates.isEmpty {
+            let latitude = routeCoordinates.map(\.latitude).reduce(0, +) / Double(routeCoordinates.count)
+            let longitude = routeCoordinates.map(\.longitude).reduce(0, +) / Double(routeCoordinates.count)
+            return RecordMapCameraState(
+                center: RecordMapCoordinate(latitude: latitude, longitude: longitude),
+                zoom: launchZoom
+            )
+        }
+
+        return RecordMapCameraState(center: fallback.center, zoom: launchZoom)
     }
 
     var locationCoordinate: CLLocationCoordinate2D {

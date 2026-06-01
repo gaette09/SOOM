@@ -6,7 +6,11 @@ struct RecordView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var locationManager = RecordLocationManager()
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
-    @State private var isRoutePlaceholderPresented = false
+    @State private var selectedRoute = RecordLaunchPlan.mockToday.route
+    @State private var isWeatherDetailPresented = false
+    @State private var isRouteRecommendationPresented = false
+    @State private var isReadyFocusMode = false
+    @State private var hoveredSport: RecordSportMode?
     @State private var recenterTrigger = 0
     @State private var activeSession: RecordWorkoutSession?
     @State private var currentDate = Date()
@@ -40,46 +44,32 @@ struct RecordView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let headerFrames = RecordMapHeaderLayout.frames(
+                containerSize: proxy.size,
+                safeAreaTop: proxy.safeAreaInsets.top
+            )
+
             ZStack {
                 RecordMapView(
                     sport: selectedSport,
-                    route: plan.route,
+                    route: selectedRoute,
                     locationState: locationManager.state,
                     recenterTrigger: recenterTrigger
                 )
                     .ignoresSafeArea()
 
-                HStack {
-                    iconButton(
-                        icon: "location.viewfinder",
-                        accessibilityLabel: "현재 위치 다시 잡기",
-                        action: {
-                            locationManager.handleLocationButtonTap()
-                            if locationManager.state.recenterTarget != nil {
-                                recenterTrigger += 1
-                            }
-                        }
-                    )
+                bottomFocusGradient
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
 
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, proxy.safeAreaInsets.top + 142)
+                topControlsLayer(frames: headerFrames)
+                    .zIndex(4)
 
                 VStack(spacing: 0) {
-                    topBar
-                        .padding(.top, proxy.safeAreaInsets.top + 8)
-
                     Spacer(minLength: 0)
-
-                    VStack(spacing: 14) {
-                        recommendationPill
-                        sportSelector
-                        startButton
-                    }
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 18) + 28)
+                    readyLaunchControl(safeAreaInsets: proxy.safeAreaInsets)
                 }
-                .padding(.horizontal, 18)
+                .zIndex(1)
 
                 if let activeSession {
                     activeWorkoutOverlay(
@@ -92,10 +82,11 @@ struct RecordView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .alert("추천 루트", isPresented: $isRoutePlaceholderPresented) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("v1에서는 mock route preview만 보여주고, 실제 route recommendation backend는 아직 연결하지 않았어요.")
+        .sheet(isPresented: $isWeatherDetailPresented) {
+            weatherDetailSheet
+        }
+        .sheet(isPresented: $isRouteRecommendationPresented) {
+            routeRecommendationSheet
         }
         .onChange(of: locationManager.state) { _, newState in
             guard newState.recenterTarget != nil else { return }
@@ -117,21 +108,21 @@ struct RecordView: View {
         }
     }
 
-    private var topBar: some View {
-        HStack(alignment: .top, spacing: 10) {
+    private func topControlsLayer(frames: RecordMapHeaderFrames) -> some View {
+        ZStack(alignment: .topLeading) {
+            topGuidanceBanner
+                .frame(width: frames.bannerFrame.width, height: frames.bannerFrame.height)
+                .position(x: frames.bannerFrame.midX, y: frames.bannerFrame.midY)
+
             closeButton
+                .position(frames.backButtonCenter)
 
-            Spacer(minLength: 0)
-
-            VStack(spacing: 10) {
-                weatherPill
-                iconButton(
-                    icon: SOOMIcon.map,
-                    accessibilityLabel: "추천 루트 보기",
-                    action: { isRoutePlaceholderPresented = true }
-                )
-            }
+            rightEdgeControls
+                .frame(width: frames.rightControlsFrame.width, height: frames.rightControlsFrame.height)
+                .position(x: frames.rightControlsFrame.midX, y: frames.rightControlsFrame.midY)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .ignoresSafeArea(edges: .top)
     }
 
     private var closeButton: some View {
@@ -158,126 +149,525 @@ struct RecordView: View {
         .accessibilityLabel("Feed로 돌아가기")
     }
 
-    private var recommendationPill: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(plan.recommendation.recoveryLabel)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(SOOMColor.recovery)
-                .clipShape(Capsule())
+    private var topGuidanceBanner: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 7) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(SOOMColor.accent)
+                Text("오늘의 출발 기준")
+                    .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.accentInk)
+                    .textCase(.uppercase)
+            }
 
-            Text(shortRecommendationText)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.ink)
+            Text(plan.recommendation.recoveryLabel)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.accentInk)
                 .lineLimit(1)
+
+            Text(guidanceRecommendationText)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(RecordMapHeaderLayout.maxBodyLineCount)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(SOOMColor.surface.opacity(0.88))
-        .clipShape(Capsule())
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .frame(minHeight: RecordMapHeaderLayout.guidanceMinHeight, maxHeight: RecordMapHeaderLayout.guidanceMaxHeight, alignment: .center)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SOOMColor.surface.opacity(0.96))
+        .clipShape(RoundedRectangle(cornerRadius: RecordMapHeaderLayout.guidanceCornerRadius, style: .continuous))
         .overlay {
-            Capsule()
-                .stroke(SOOMColor.line, lineWidth: 1)
+            RoundedRectangle(cornerRadius: RecordMapHeaderLayout.guidanceCornerRadius, style: .continuous)
+                .stroke(SOOMColor.accentLine, lineWidth: 1)
         }
-        .shadow(color: SOOMColor.ink.opacity(0.045), radius: 10, x: 0, y: 6)
+        .shadow(color: SOOMColor.ink.opacity(0.045), radius: 8, x: 0, y: 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("오늘의 출발 기준")
+        .accessibilityValue("\(plan.recommendation.recoveryLabel). \(guidanceRecommendationText)")
+    }
+
+    private var rightEdgeControls: some View {
+        VStack(spacing: RecordMapHeaderLayout.controlSpacing) {
+            weatherPill
+            iconButton(
+                icon: RecordLaunchControl.routeRecommendation.iconName,
+                accessibilityLabel: "추천 코스 보기",
+                action: { isRouteRecommendationPresented = true }
+            )
+            iconButton(
+                icon: RecordLaunchControl.currentLocation.iconName,
+                accessibilityLabel: "현재 위치로 돌아가기",
+                action: {
+                    locationManager.handleLocationButtonTap()
+                    if locationManager.state.recenterTarget != nil {
+                        recenterTrigger += 1
+                    }
+                }
+            )
+        }
     }
 
     private var weatherPill: some View {
-        HStack(spacing: 8) {
-            Image(systemName: weatherSnapshot.conditionIconName)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(weatherIconTint)
+        Button {
+            SOOMHaptics.selection()
+            isWeatherDetailPresented = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 2) {
+                    Image(systemName: weatherSnapshot.conditionIconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(weatherIconTint)
 
-            Text(weatherSnapshot.temperatureText)
-                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.ink)
+                    Text(weatherSnapshot.temperatureText)
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.ink)
+                        .monospacedDigit()
+                }
+                .frame(width: RecordMapHeaderLayout.controlSize, height: RecordMapHeaderLayout.controlSize)
+                .background(SOOMColor.surface.opacity(0.94))
+                .clipShape(Circle())
+                .overlay {
+                    Circle()
+                        .stroke(SOOMColor.line.opacity(0.86), lineWidth: 1)
+                }
+                .shadow(color: SOOMColor.ink.opacity(0.05), radius: 9, x: 0, y: 5)
 
-            if isFetchingWeather {
-                ProgressView()
-                    .controlSize(.mini)
-                    .tint(SOOMColor.secondaryInk)
+                if isFetchingWeather {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(SOOMColor.secondaryInk)
+                        .offset(x: 4, y: -3)
+                }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(SOOMColor.surface.opacity(0.94))
-        .clipShape(Capsule())
-        .overlay {
-            Capsule()
-                .stroke(SOOMColor.line, lineWidth: 1)
-        }
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("날씨")
         .accessibilityValue(weatherSnapshot.pillText)
     }
 
-    private var sportSelector: some View {
-        HStack(spacing: 10) {
-            ForEach(RecordSportMode.allCases) { sport in
-                Button {
-                    selectedSport = sport
-                    SOOMHaptics.selection()
-                } label: {
-                    Image(systemName: sport.iconName)
-                        .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(selectedSport == sport ? SOOMColor.selectedInk : SOOMColor.ink)
-                    .frame(width: 48, height: 48)
-                    .background(selectedSport == sport ? SOOMColor.selectedSurface : SOOMColor.surface.opacity(0.90))
-                    .clipShape(Capsule())
-                    .overlay {
-                        Capsule()
-                            .stroke(selectedSport == sport ? Color.clear : SOOMColor.line, lineWidth: 1)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(sport.title) 선택")
-            }
-        }
-        .padding(5)
-        .background(SOOMColor.surface.opacity(0.78))
-        .clipShape(Capsule())
-        .overlay {
-            Capsule()
-                .stroke(SOOMColor.line.opacity(0.8), lineWidth: 1)
+    private var bottomFocusGradient: some View {
+        VStack {
+            Spacer()
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    SOOMColor.ink.opacity(
+                        isReadyFocusMode
+                            ? RecordMapBottomFocusGradientLayout.focusedMiddleOpacity
+                            : RecordMapBottomFocusGradientLayout.defaultMiddleOpacity
+                    ),
+                    SOOMColor.ink.opacity(
+                        isReadyFocusMode
+                            ? RecordMapBottomFocusGradientLayout.focusedBottomOpacity
+                            : RecordMapBottomFocusGradientLayout.defaultBottomOpacity
+                    )
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(
+                height: isReadyFocusMode
+                    ? RecordMapBottomFocusGradientLayout.focusedHeight
+                    : RecordMapBottomFocusGradientLayout.defaultHeight
+            )
+            .animation(.easeInOut(duration: 0.22), value: isReadyFocusMode)
         }
     }
 
-    private var startButton: some View {
-        Button {
-            SOOMHaptics.softImpact()
-            withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
-                resetFinishedShareState()
-                activeSession = sessionStarter.start(
-                    sport: selectedSport,
-                    locationState: locationManager.state
-                )
+    private func readyLaunchControl(safeAreaInsets: EdgeInsets) -> some View {
+        GeometryReader { geometry in
+            let readyCenter = CGPoint(
+                x: geometry.size.width / 2,
+                y: geometry.size.height - RecordReadyLaunchVisualLayout.buttonCenterBottomOffset
+            )
+
+            ZStack {
+                if isReadyFocusMode {
+                    ForEach(RecordReadyRadialLayout.items(center: readyCenter), id: \.sport.rawValue) { item in
+                        radialSportButton(item: item, readyCenter: readyCenter)
+                            .position(item.center)
+                            .transition(.scale(scale: 0.78).combined(with: .opacity))
+                    }
+                }
+
+                readyButtonSurface(for: selectedSport)
+                    .position(readyCenter)
             }
-        } label: {
-            VStack(spacing: 6) {
-                Image(systemName: selectedSport.iconName)
-                    .font(.system(size: 24, weight: .bold))
-                Text("READY")
-                    .font(SOOMFont.displayMedium(16, relativeTo: .headline))
-                    .tracking(1.0)
-            }
-            .foregroundStyle(SOOMColor.white)
-            .frame(width: 104, height: 104)
-            .background(
-                Circle()
-                    .fill(SOOMColor.accent)
-                    .overlay {
-                        Circle()
-                            .stroke(SOOMColor.white.opacity(0.75), lineWidth: 1.4)
-                            .padding(8)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .onChanged { value in
+                        guard isReadyFocusMode else { return }
+                        updateHoveredSport(at: value.location, readyCenter: readyCenter)
+                    }
+                    .onEnded { value in
+                        if isReadyFocusMode {
+                            updateHoveredSport(at: value.location, readyCenter: readyCenter)
+                            finishReadyRadialSelection()
+                        } else {
+                            SOOMHaptics.typingTick()
+                        }
                     }
             )
-            .shadow(color: SOOMColor.accent.opacity(0.26), radius: 18, x: 0, y: 12)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.30)
+                    .onEnded { _ in
+                        beginReadyRadialSelection()
+                    }
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("READY")
+            .accessibilityHint("길게 누른 뒤 위쪽 반원의 운동 종류로 드래그하고 손을 떼면 시작해요.")
+        }
+        .frame(height: RecordReadyLaunchVisualLayout.containerHeight)
+        .padding(.bottom, max(safeAreaInsets.bottom, 18) + RecordReadyLaunchVisualLayout.bottomPaddingExtra)
+    }
+
+    private func readyButtonSurface(for sport: RecordSportMode) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: sport.iconName)
+                .font(.system(size: RecordReadyLaunchVisualLayout.iconSize, weight: .bold))
+            Text("READY")
+                .font(SOOMFont.displayMedium(RecordReadyLaunchVisualLayout.readyFontSize, relativeTo: .headline))
+                .tracking(1.0)
+            Text("길게 눌러 선택")
+                .font(SOOMFont.body(RecordReadyLaunchVisualLayout.hintFontSize, weight: .bold, relativeTo: .caption2))
+                .tracking(0.1)
+                .opacity(0.68)
+        }
+        .foregroundStyle(SOOMColor.white)
+        .frame(
+            width: RecordReadyLaunchVisualLayout.buttonDiameter,
+            height: RecordReadyLaunchVisualLayout.buttonDiameter
+        )
+        .background(
+            Circle()
+                .fill(SOOMColor.accent)
+                .overlay {
+                    Circle()
+                        .stroke(SOOMColor.white.opacity(0.48), lineWidth: 1.0)
+                        .padding(9)
+                }
+        )
+        .scaleEffect(isReadyFocusMode ? 0.94 : 1.0)
+        .shadow(
+            color: SOOMColor.accent.opacity(
+                isReadyFocusMode
+                    ? RecordReadyLaunchVisualLayout.focusedShadowOpacity
+                    : RecordReadyLaunchVisualLayout.defaultShadowOpacity
+            ),
+            radius: isReadyFocusMode
+                ? RecordReadyLaunchVisualLayout.focusedShadowRadius
+                : RecordReadyLaunchVisualLayout.defaultShadowRadius,
+            x: 0,
+            y: RecordReadyLaunchVisualLayout.shadowYOffset
+        )
+        .animation(.spring(response: 0.28, dampingFraction: 0.84), value: isReadyFocusMode)
+    }
+
+    private func radialSportButton(item: RecordReadyRadialItem, readyCenter: CGPoint) -> some View {
+        let isHovered = hoveredSport == item.sport
+
+        return VStack(spacing: 5) {
+            Image(systemName: item.sport.iconName)
+                .font(.system(size: 19, weight: .bold))
+            Text(item.sport.title)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+        }
+        .foregroundStyle(isHovered ? SOOMColor.white : SOOMColor.ink)
+        .frame(width: 68, height: 68)
+        .background(isHovered ? SOOMColor.accent : SOOMColor.surface.opacity(0.96))
+        .clipShape(Circle())
+        .overlay {
+            Circle()
+                .stroke(isHovered ? SOOMColor.white.opacity(0.72) : SOOMColor.line.opacity(0.9), lineWidth: 1)
+        }
+        .shadow(color: SOOMColor.ink.opacity(isHovered ? 0.18 : 0.10), radius: isHovered ? 16 : 10, x: 0, y: 8)
+        .scaleEffect(isHovered ? 1.08 : 1.0)
+        .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isHovered)
+        .accessibilityHidden(!RecordReadyRadialLayout.isAboveReadyCenter(item: item, readyCenter: readyCenter))
+    }
+
+    @MainActor
+    private func beginReadyRadialSelection() {
+        guard !isReadyFocusMode else { return }
+
+        RecordReadyRadialInteraction.begin().forEach(playReadyHaptic)
+        withAnimation(.spring(response: 0.30, dampingFraction: 0.84)) {
+            hoveredSport = nil
+            isReadyFocusMode = true
+        }
+    }
+
+    @MainActor
+    private func updateHoveredSport(at location: CGPoint, readyCenter: CGPoint) {
+        let nextSport = RecordReadyRadialLayout.hoveredSport(at: location, readyCenter: readyCenter)
+        let events = RecordReadyRadialInteraction.hoverEvents(previous: hoveredSport, next: nextSport)
+        hoveredSport = nextSport
+        events.forEach(playReadyHaptic)
+    }
+
+    @MainActor
+    private func finishReadyRadialSelection() {
+        let wasSelecting = isReadyFocusMode
+        let sportToStart = hoveredSport
+
+        RecordReadyRadialInteraction.release(hoveredSport: sportToStart).forEach(playReadyHaptic)
+        withAnimation(.spring(response: 0.26, dampingFraction: 0.88)) {
+            isReadyFocusMode = false
+            hoveredSport = nil
+        }
+
+        if RecordReadyRadialInteraction.shouldStartWorkout(
+            isRadialSelectionActive: wasSelecting,
+            hoveredSport: sportToStart
+        ), let sportToStart {
+            selectedSport = sportToStart
+            startWorkout(with: sportToStart)
+        }
+    }
+
+    private func playReadyHaptic(_ event: RecordReadyRadialHapticEvent) {
+        switch event {
+        case .longPressStarted, .releaseConfirmed:
+            SOOMHaptics.softImpact()
+        case .menuRevealed, .hoverChanged:
+            SOOMHaptics.selection()
+        case .releaseCancelled:
+            SOOMHaptics.typingTick()
+        }
+    }
+
+    @MainActor
+    private func startWorkout(with sport: RecordSportMode) {
+        SOOMHaptics.softImpact()
+        withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+            resetFinishedShareState()
+            activeSession = sessionStarter.start(
+                sport: sport,
+                locationState: locationManager.state
+            )
+        }
+    }
+
+    private var weatherDetailSheet: some View {
+        let detail = RecordWeatherDetailSnapshot.make(from: weatherSnapshot)
+
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("현재 날씨")
+                            .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                        Text(detail.locationName)
+                            .font(SOOMFont.displayMedium(24, relativeTo: .title2))
+                            .foregroundStyle(SOOMColor.ink)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        SOOMHaptics.selection()
+                        isWeatherDetailPresented = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .frame(width: 34, height: 34)
+                            .background(SOOMColor.background)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("날씨 닫기")
+                }
+
+                HStack(alignment: .bottom, spacing: 12) {
+                    Image(systemName: weatherSnapshot.conditionIconName)
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(weatherIconTint)
+                    Text(detail.temperatureText)
+                        .font(SOOMFont.displayMedium(46, relativeTo: .largeTitle))
+                        .foregroundStyle(SOOMColor.ink)
+                        .monospacedDigit()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(detail.conditionText)
+                            .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                            .foregroundStyle(SOOMColor.ink)
+                        Text("체감 \(detail.feelsLikeText)")
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    weatherDetailMetric(title: "바람", value: detail.windText, icon: "wind")
+                    weatherDetailMetric(title: "미세먼지", value: detail.fineDustText, icon: "aqi.medium")
+                    weatherDetailMetric(title: "초미세먼지", value: detail.ultraFineDustText, icon: "circle.hexagongrid.fill")
+                }
+
+                forecastSection(title: "시간별", values: detail.hourlyForecast)
+                forecastSection(title: "일별", values: detail.dailyForecast)
+
+                if detail.isFallback {
+                    Text("위치나 날씨 API가 준비되지 않으면 안전한 fallback 날씨를 보여줘요.")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.tertiaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(22)
+        }
+        .background(SOOMColor.surface)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var routeRecommendationSheet: some View {
+        let options = RecordRouteCatalogOption.mockOptions(for: selectedSport)
+
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("추천 코스")
+                            .font(SOOMFont.displayMedium(24, relativeTo: .title2))
+                            .foregroundStyle(SOOMColor.ink)
+                        Text("실제 Directions 없이 mock catalog로 출발 전 코스를 고르는 foundation이에요.")
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        SOOMHaptics.selection()
+                        isRouteRecommendationPresented = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .frame(width: 34, height: 34)
+                            .background(SOOMColor.background)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("추천 코스 닫기")
+                }
+
+                ForEach(options) { option in
+                    routeCatalogRow(option)
+                }
+            }
+            .padding(22)
+        }
+        .background(SOOMColor.surface)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func weatherDetailMetric(title: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(SOOMColor.accent)
+            Text(value)
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+            Text(title)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(SOOMColor.background)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func forecastSection(title: String, values: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(values, id: \.self) { value in
+                        Text(value)
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(SOOMColor.background)
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+    }
+
+    private func routeCatalogRow(_ option: RecordRouteCatalogOption) -> some View {
+        let isSelected = option.route.title == selectedRoute.title
+
+        return Button {
+            SOOMHaptics.softImpact()
+            selectedRoute = option.route
+            isRouteRecommendationPresented = false
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? SOOMColor.accentSurface : SOOMColor.background)
+                        .frame(width: 48, height: 48)
+                    Image(systemName: RecordLaunchControl.routeRecommendation.iconName)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(isSelected ? SOOMColor.accent : SOOMColor.secondaryInk)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Text(option.route.title)
+                            .font(SOOMFont.body(15, weight: .bold, relativeTo: .headline))
+                            .foregroundStyle(SOOMColor.ink)
+                            .lineLimit(1)
+                        Text(option.tag)
+                            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                            .foregroundStyle(SOOMColor.accentInk)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(SOOMColor.accentSurface)
+                            .clipShape(Capsule())
+                    }
+
+                    Text("\(option.route.distanceText) · \(option.route.durationText) · \(option.route.reason)")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(SOOMColor.accent)
+                }
+            }
+            .padding(14)
+            .background(SOOMColor.background)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? SOOMColor.accentLine : SOOMColor.line.opacity(0.82), lineWidth: 1)
+            }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(selectedSport.startTitle)
-        .accessibilityHint("선택한 운동 모드로 기록을 시작합니다.")
     }
 
     private func activeWorkoutOverlay(
@@ -664,8 +1054,8 @@ struct RecordView: View {
         return formatter.string(from: date)
     }
 
-    private var shortRecommendationText: String {
-        plan.recommendation.compactText(for: selectedSport, weather: weatherSnapshot)
+    private var guidanceRecommendationText: String {
+        plan.recommendation.guidanceText(for: selectedSport, weather: weatherSnapshot)
     }
 
     private var weatherIconTint: Color {
@@ -713,27 +1103,39 @@ struct RecordView: View {
         isFetchingWeather = false
     }
 
-    private func iconButton(icon: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(
+        icon: String,
+        tint: Color = SOOMColor.ink,
+        background: Color = SOOMColor.surface.opacity(0.88),
+        stroke: Color = SOOMColor.line.opacity(0.86),
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button {
             SOOMHaptics.selection()
             action()
         } label: {
-            iconSurface(icon: icon)
+            iconSurface(icon: icon, tint: tint, background: background, stroke: stroke)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private func iconSurface(icon: String) -> some View {
+    private func iconSurface(
+        icon: String,
+        tint: Color,
+        background: Color,
+        stroke: Color
+    ) -> some View {
         Image(systemName: icon)
             .font(.system(size: 17, weight: .bold))
-            .foregroundStyle(SOOMColor.ink)
-            .frame(width: 46, height: 46)
-            .background(SOOMColor.surface.opacity(0.88))
+            .foregroundStyle(tint)
+            .frame(width: RecordMapHeaderLayout.controlSize, height: RecordMapHeaderLayout.controlSize)
+            .background(background)
             .clipShape(Circle())
             .overlay {
                 Circle()
-                    .stroke(SOOMColor.line.opacity(0.86), lineWidth: 1)
+                    .stroke(stroke, lineWidth: 1)
             }
             .shadow(color: SOOMColor.ink.opacity(0.05), radius: 9, x: 0, y: 5)
     }
@@ -845,14 +1247,14 @@ struct RecordMapFallbackSurface: View {
     private var currentLocationMarker: some View {
         ZStack {
             Circle()
-                .fill(SOOMColor.blue.opacity(0.12))
+                .fill(SOOMColor.accent.opacity(0.10))
                 .frame(width: 72, height: 72)
             Circle()
                 .fill(SOOMColor.white)
                 .frame(width: 22, height: 22)
                 .shadow(color: SOOMColor.ink.opacity(0.16), radius: 7, x: 0, y: 4)
             Circle()
-                .fill(SOOMColor.blue)
+                .fill(SOOMColor.accent)
                 .frame(width: 12, height: 12)
         }
     }

@@ -30,9 +30,9 @@ struct RecordMapView: View {
                     sport: sport,
                     route: route,
                     locationState: locationState,
-                    cameraState: RecordMapCameraState(
-                        routeCoordinates: route.coordinates,
-                        fallback: RecordMapCameraState(center: locationState.displayCoordinate, zoom: 13.1)
+                    cameraState: RecordMapCameraState.launch(
+                        currentCoordinate: locationState.canShowUserLocation ? locationState.coordinate : nil,
+                        routeCoordinates: route.coordinates
                     ),
                     recenterTrigger: recenterTrigger
                 )
@@ -91,8 +91,17 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                 styleURI: .light
             )
         )
-        mapView.ornaments.options.logo.margins = CGPoint(x: 12, y: 16)
-        mapView.ornaments.options.attributionButton.margins = CGPoint(x: 12, y: 16)
+        mapView.ornaments.options.scaleBar.visibility = .hidden
+        mapView.ornaments.options.logo.position = .bottomLeading
+        mapView.ornaments.options.logo.margins = CGPoint(
+            x: RecordMapOrnamentLayout.horizontalInset,
+            y: RecordMapOrnamentLayout.bottomInset
+        )
+        mapView.ornaments.options.attributionButton.position = .bottomTrailing
+        mapView.ornaments.options.attributionButton.margins = CGPoint(
+            x: RecordMapOrnamentLayout.horizontalInset,
+            y: RecordMapOrnamentLayout.bottomInset
+        )
         mapView.gestures.options.rotateEnabled = false
         mapView.gestures.options.pitchEnabled = false
         context.coordinator.configure(
@@ -137,6 +146,13 @@ private struct RecordMapboxSurface: UIViewRepresentable {
         private var locationManager: CircleAnnotationManager?
         private var lastSignature: String?
         private var lastRecenterTrigger: Int?
+        private var currentLocationState: RecordLocationState?
+        private var pulseTimer: Timer?
+        private var pulseStartedAt: Date?
+
+        deinit {
+            pulseTimer?.invalidate()
+        }
 
         func configure(
             mapView: MapView,
@@ -171,19 +187,12 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                 routeManager?.annotations = []
             }
 
-            let displayCoordinate = locationState.displayCoordinate.locationCoordinate
-            var halo = CircleAnnotation(id: "record-current-location-halo", centerCoordinate: displayCoordinate)
-            halo.circleRadius = locationState.canShowUserLocation ? 22 : 16
-            halo.circleColor = StyleColor(UIColor(markerTint(for: locationState).opacity(locationState.canShowUserLocation ? 0.16 : 0.09)))
-            halo.circleStrokeColor = StyleColor(UIColor(SOOMColor.white.opacity(0.55)))
-            halo.circleStrokeWidth = 1
-
-            var dot = CircleAnnotation(id: "record-current-location-dot", centerCoordinate: displayCoordinate)
-            dot.circleRadius = locationState.canShowUserLocation ? 7 : 6
-            dot.circleColor = StyleColor(UIColor(markerTint(for: locationState)))
-            dot.circleStrokeColor = StyleColor(UIColor.white)
-            dot.circleStrokeWidth = 2
-            locationManager?.annotations = [halo, dot]
+            currentLocationState = locationState
+            locationManager?.annotations = locationAnnotations(
+                for: locationState,
+                pulseProgress: 0
+            )
+            updatePulseTimerIfNeeded()
 
             setCamera(on: mapView, cameraState: cameraState)
         }
@@ -202,7 +211,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                 to: CameraOptions(
                     center: center,
                     padding: UIEdgeInsets(top: 96, left: 32, bottom: 190, right: 32),
-                    zoom: max(fallbackCamera.zoom, 13.2),
+                    zoom: max(fallbackCamera.zoom, RecordMapCameraState.launchZoom),
                     bearing: 0,
                     pitch: 0
                 )
@@ -221,8 +230,71 @@ private struct RecordMapboxSurface: UIViewRepresentable {
             )
         }
 
+        private func updatePulseTimerIfNeeded() {
+            guard let currentLocationState,
+                  RecordCurrentLocationMarkerStyle.isPulseEnabled(
+                    canShowUserLocation: currentLocationState.canShowUserLocation,
+                    reduceMotionEnabled: UIAccessibility.isReduceMotionEnabled
+                  ) else {
+                pulseTimer?.invalidate()
+                pulseTimer = nil
+                pulseStartedAt = nil
+                return
+            }
+
+            guard pulseTimer == nil else { return }
+            pulseStartedAt = Date()
+            pulseTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 24.0, repeats: true) { [weak self] _ in
+                guard let self,
+                      let currentLocationState = self.currentLocationState,
+                      let pulseStartedAt = self.pulseStartedAt else { return }
+
+                let elapsed = Date().timeIntervalSince(pulseStartedAt)
+                let progress = elapsed.truncatingRemainder(dividingBy: RecordCurrentLocationMarkerStyle.pulseDurationSeconds) / RecordCurrentLocationMarkerStyle.pulseDurationSeconds
+                self.locationManager?.annotations = self.locationAnnotations(
+                    for: currentLocationState,
+                    pulseProgress: progress
+                )
+            }
+        }
+
+        private func locationAnnotations(
+            for locationState: RecordLocationState,
+            pulseProgress: Double
+        ) -> [CircleAnnotation] {
+            let displayCoordinate = locationState.displayCoordinate.locationCoordinate
+            let tint = markerTint(for: locationState)
+            var annotations: [CircleAnnotation] = []
+
+            if RecordCurrentLocationMarkerStyle.isPulseEnabled(
+                canShowUserLocation: locationState.canShowUserLocation,
+                reduceMotionEnabled: UIAccessibility.isReduceMotionEnabled
+            ) {
+                var pulse = CircleAnnotation(id: "record-current-location-pulse", centerCoordinate: displayCoordinate)
+                pulse.circleRadius = RecordCurrentLocationMarkerStyle.pulseRadius(progress: pulseProgress)
+                pulse.circleColor = StyleColor(UIColor(tint.opacity(RecordCurrentLocationMarkerStyle.pulseOpacity(progress: pulseProgress))))
+                annotations.append(pulse)
+            }
+
+            var halo = CircleAnnotation(id: "record-current-location-halo", centerCoordinate: displayCoordinate)
+            halo.circleRadius = locationState.canShowUserLocation ? RecordCurrentLocationMarkerStyle.staticHaloRadius : 16
+            halo.circleColor = StyleColor(UIColor(tint.opacity(locationState.canShowUserLocation ? 0.18 : 0.08)))
+            halo.circleStrokeColor = StyleColor(UIColor(SOOMColor.white.opacity(0.55)))
+            halo.circleStrokeWidth = 1
+            annotations.append(halo)
+
+            var dot = CircleAnnotation(id: "record-current-location-dot", centerCoordinate: displayCoordinate)
+            dot.circleRadius = locationState.canShowUserLocation ? RecordCurrentLocationMarkerStyle.dotRadius : RecordCurrentLocationMarkerStyle.fallbackDotRadius
+            dot.circleColor = StyleColor(UIColor(tint))
+            dot.circleStrokeColor = StyleColor(UIColor.white)
+            dot.circleStrokeWidth = 2
+            annotations.append(dot)
+
+            return annotations
+        }
+
         private func markerTint(for locationState: RecordLocationState) -> Color {
-            locationState.canShowUserLocation ? SOOMColor.blue : SOOMColor.secondaryInk
+            locationState.canShowUserLocation ? SOOMColor.accent : SOOMColor.secondaryInk
         }
     }
 }

@@ -1,0 +1,8 @@
+// Debug build configuration.
+// LocalSecrets.xcconfig is ignored by git and may contain real local tokens.
+
+MBX_ACCESS_TOKEN =
+OPENWEATHER_API_KEY =
+WEATHER_API_KEY = $(OPENWEATHER_API_KEY)
+
+#include? "LocalSecrets.xcconfig"
