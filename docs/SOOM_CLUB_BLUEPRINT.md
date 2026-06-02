@@ -404,7 +404,9 @@ Join/leave v1:
 
 - Recommended clubs can be joined locally.
 - Joined clubs can be left locally unless they are owned clubs.
-- Member count and membership state update in memory only.
+- Member count and membership state update locally.
+- TestFlight v1 persists created clubs and join/leave state on-device by overlaying local state onto seed club data.
+- User-facing copy should say the club is saved on this device, not expose `local-first`, `mock`, `backend`, or `remote sync` terminology.
 
 Deferred:
 

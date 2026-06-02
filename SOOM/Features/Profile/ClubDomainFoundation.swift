@@ -43,8 +43,8 @@ enum ClubMembershipState: Hashable {
     var placeholderTitle: String {
         switch self {
         case .joined: return "클럽 연결 상태를 관리합니다."
-        case .recommended: return "클럽 가입은 local-first foundation으로 준비됐어요."
-        case .owned: return "클럽 관리는 backend 단계에서 더 확장됩니다."
+        case .recommended: return "가입하면 내 클럽 목록에 저장돼요."
+        case .owned: return "클럽 관리는 곧 더 자세히 연결될 예정이에요."
         }
     }
 }
@@ -818,13 +818,134 @@ enum ClubServiceError: Error, Equatable {
     case clubNotFound
 }
 
+final class LocalClubPersistence {
+    private struct StoredState: Codable, Equatable {
+        var createdClubs: [StoredCreatedClub] = []
+        var membershipOverrides: [String: String] = [:]
+    }
+
+    private struct StoredCreatedClub: Codable, Equatable {
+        let name: String
+        let purpose: String
+        let sportFocus: String
+        let visibility: String
+
+        var input: ClubCreateInput {
+            ClubCreateInput(
+                name: name,
+                purpose: purpose,
+                sportFocus: sportFocus,
+                visibility: visibility == "private" ? .private : .open
+            )
+        }
+    }
+
+    private let userDefaults: UserDefaults
+    private let key: String
+
+    init(
+        userDefaults: UserDefaults = .standard,
+        key: String = "soom.club.local.persistence.v1"
+    ) {
+        self.userDefaults = userDefaults
+        self.key = key
+    }
+
+    func loadCreatedClubDetails() -> [ClubDetail] {
+        loadState().createdClubs.map { ClubDetail.localCreated(input: $0.input) }
+    }
+
+    func loadMembershipOverrides() -> [String: ClubMembershipState] {
+        loadState().membershipOverrides.compactMapValues(Self.membershipState(from:))
+    }
+
+    func saveCreatedClub(input: ClubCreateInput) {
+        var state = loadState()
+        let stored = StoredCreatedClub(
+            name: input.name,
+            purpose: input.purpose,
+            sportFocus: input.sportFocus,
+            visibility: input.visibility == .private ? "private" : "open"
+        )
+        state.createdClubs.removeAll { ClubDetail.localCreated(input: $0.input).id == ClubDetail.localCreated(input: input).id }
+        state.createdClubs.insert(stored, at: 0)
+        saveState(state)
+    }
+
+    func saveMembershipState(_ membershipState: ClubMembershipState, for clubId: String) {
+        var state = loadState()
+        state.membershipOverrides[clubId] = Self.rawValue(for: membershipState)
+        saveState(state)
+    }
+
+    func reset() {
+        userDefaults.removeObject(forKey: key)
+    }
+
+    private func loadState() -> StoredState {
+        guard let data = userDefaults.data(forKey: key) else {
+            return StoredState()
+        }
+
+        do {
+            return try JSONDecoder().decode(StoredState.self, from: data)
+        } catch {
+            return StoredState()
+        }
+    }
+
+    private func saveState(_ state: StoredState) {
+        guard let data = try? JSONEncoder().encode(state) else { return }
+        userDefaults.set(data, forKey: key)
+    }
+
+    private static func rawValue(for membershipState: ClubMembershipState) -> String {
+        switch membershipState {
+        case .joined: return "joined"
+        case .recommended: return "recommended"
+        case .owned: return "owned"
+        }
+    }
+
+    private static func membershipState(from rawValue: String) -> ClubMembershipState? {
+        switch rawValue {
+        case "joined": return .joined
+        case "recommended": return .recommended
+        case "owned": return .owned
+        default: return nil
+        }
+    }
+}
+
 final class InMemoryClubService: ClubService {
     private var detailsByID: [String: ClubDetail]
     private var orderedIDs: [String]
+    private let persistence: LocalClubPersistence?
 
-    init(details: [ClubDetail] = InMemoryClubService.seedDetails) {
-        self.detailsByID = Dictionary(uniqueKeysWithValues: details.map { ($0.id, $0) })
-        self.orderedIDs = details.map(\.id)
+    init(
+        details: [ClubDetail] = InMemoryClubService.seedDetails,
+        persistence: LocalClubPersistence? = nil
+    ) {
+        self.persistence = persistence
+        var mergedDetails = details
+
+        if let persistence {
+            for createdDetail in persistence.loadCreatedClubDetails().reversed() {
+                mergedDetails.removeAll { $0.id == createdDetail.id }
+                mergedDetails.insert(createdDetail, at: 0)
+            }
+
+            let overrides = persistence.loadMembershipOverrides()
+            mergedDetails = mergedDetails.map { detail in
+                guard let override = overrides[detail.id], detail.membershipState != .owned else {
+                    return detail
+                }
+                return detail.withMembershipState(override)
+            }
+        }
+
+        self.detailsByID = Dictionary(uniqueKeysWithValues: mergedDetails.map { ($0.id, $0) })
+        self.orderedIDs = mergedDetails.map(\.id)
     }
 
     func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
@@ -844,6 +965,7 @@ final class InMemoryClubService: ClubService {
         if !orderedIDs.contains(detail.id) {
             orderedIDs.insert(detail.id, at: 0)
         }
+        persistence?.saveCreatedClub(input: input)
         return detail.club
     }
 
@@ -852,6 +974,7 @@ final class InMemoryClubService: ClubService {
             throw ClubServiceError.clubNotFound
         }
         detailsByID[clubId] = detail.withMembershipState(.joined)
+        persistence?.saveMembershipState(.joined, for: clubId)
     }
 
     func leaveClub(clubId: String) async throws {
@@ -863,6 +986,7 @@ final class InMemoryClubService: ClubService {
             return
         }
         detailsByID[clubId] = detail.withMembershipState(.recommended)
+        persistence?.saveMembershipState(.recommended, for: clubId)
     }
 
     func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] {
@@ -951,7 +1075,7 @@ final class ClubsViewModel: ObservableObject {
 
     private let service: ClubService
 
-    init(service: ClubService = InMemoryClubService()) {
+    init(service: ClubService = InMemoryClubService(persistence: LocalClubPersistence())) {
         self.service = service
     }
 

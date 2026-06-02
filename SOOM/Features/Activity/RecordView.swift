@@ -23,7 +23,7 @@ struct RecordView: View {
     @State private var weatherSnapshot = RecordWeatherSnapshot.fallbackClear
     @State private var weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
     @State private var isFetchingWeather = false
-    @State private var lastWeatherCoordinateKey: String?
+    @State private var weatherRetryState = RecordWeatherRetryState()
     @State private var isBottomGradientBreathing = false
     @State private var readyInteractionState = RecordReadyWaveInteractionState.idle
 
@@ -93,6 +93,7 @@ struct RecordView: View {
             routeRecommendationSheet
         }
         .onChange(of: locationManager.state) { _, newState in
+            recordLocationIfNeeded(from: newState)
             guard newState.recenterTarget != nil else { return }
             recenterTrigger += 1
             Task {
@@ -211,6 +212,9 @@ struct RecordView: View {
                     if locationManager.state.recenterTarget != nil {
                         recenterTrigger += 1
                     }
+                    Task {
+                        await fetchWeatherIfPossible(for: locationManager.state, forceRefresh: true)
+                    }
                 }
             )
         }
@@ -219,6 +223,9 @@ struct RecordView: View {
     private var weatherPill: some View {
         Button {
             SOOMHaptics.selection()
+            Task {
+                await fetchWeatherIfPossible(for: locationManager.state, forceRefresh: true)
+            }
             isWeatherDetailPresented = true
         } label: {
             ZStack(alignment: .topTrailing) {
@@ -663,7 +670,7 @@ struct RecordView: View {
                 dailyForecastSection(detail.dailyForecasts)
 
                 if detail.isFallback {
-                    Text("위치나 날씨 API가 준비되지 않으면 안전한 fallback 날씨를 보여줘요.")
+                    Text("최신 날씨를 준비하는 중이에요. 지금은 안전한 기본 날씨로 안내해요.")
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.tertiaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -687,7 +694,7 @@ struct RecordView: View {
                         Text("추천 코스")
                             .font(SOOMFont.displayMedium(24, relativeTo: .title2))
                             .foregroundStyle(SOOMColor.ink)
-                        Text("실제 Directions 없이 mock catalog로 출발 전 코스를 고르는 foundation이에요.")
+                        Text("오늘 컨디션과 종목에 맞춰 가볍게 시작할 코스를 미리 골라볼 수 있어요.")
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1088,7 +1095,11 @@ struct RecordView: View {
                         summaryPill(title: "종료", value: timeText(summary.endedAt))
                         summaryPill(
                             title: "Route",
-                            value: summary.capturedRoute ? "기록 준비" : "없음"
+                            value: summary.capturedRoute ? "경로 저장" : "없음"
+                        )
+                        summaryPill(
+                            title: "거리",
+                            value: summary.distanceText
                         )
                     }
 
@@ -1228,7 +1239,8 @@ struct RecordView: View {
 
         do {
             let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-            let saver = RecordWorkoutSaver(store: store)
+            let routeStore = SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+            let saver = RecordWorkoutSaver(store: store, routeStore: routeStore)
             let workout = try await saver.save(summary)
             isSavingWorkout = false
             savedWorkoutForShare = workout
@@ -1293,14 +1305,26 @@ struct RecordView: View {
         isCreatingShareDraft = false
     }
 
+    @MainActor
+    private func recordLocationIfNeeded(from state: RecordLocationState) {
+        guard let coordinate = state.coordinate,
+              var session = activeSession,
+              session.state == .active else {
+            return
+        }
+
+        session = session.recordingLocation(coordinate, at: currentDate)
+        activeSession = session
+    }
+
     private func sessionSubtitle(for session: RecordWorkoutSession) -> String {
         if session.state == .finished {
             return "요약을 확인하고 로컬 기록으로 저장할 수 있어요."
         }
 
         return session.startedWithLocation
-            ? "현재 위치를 바탕으로 route 기록 준비 중"
-            : "위치 권한 없이도 local-first로 시간 기록을 시작했어요."
+            ? "현재 위치를 바탕으로 경로 기록을 준비 중이에요."
+            : "위치 없이도 시간 기록을 시작했어요."
     }
 
     private func elapsedText(for session: RecordWorkoutSession) -> String {
@@ -1341,7 +1365,7 @@ struct RecordView: View {
     }
 
     @MainActor
-    private func fetchWeatherIfPossible(for state: RecordLocationState) async {
+    private func fetchWeatherIfPossible(for state: RecordLocationState, forceRefresh: Bool = false) async {
         guard state.canShowUserLocation,
               let coordinate = state.coordinate else {
             weatherSnapshot = .fallbackClear
@@ -1351,7 +1375,7 @@ struct RecordView: View {
         }
 
         let coordinateKey = String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude)
-        guard coordinateKey != lastWeatherCoordinateKey else { return }
+        guard weatherRetryState.shouldAttemptFetch(for: coordinateKey, forceRefresh: forceRefresh) else { return }
         guard RecordWeatherFetchPolicy.shouldAttemptLiveFetch(locationState: state) else {
             weatherSnapshot = .fallbackClear
             weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
@@ -1359,7 +1383,7 @@ struct RecordView: View {
             return
         }
 
-        lastWeatherCoordinateKey = coordinateKey
+        weatherRetryState.markAttempt(for: coordinateKey)
         isFetchingWeather = true
 
         do {
@@ -1372,9 +1396,11 @@ struct RecordView: View {
                 latitude: coordinate.latitude,
                 longitude: coordinate.longitude
             )) ?? RecordWeatherDetailSnapshot.make(from: snapshot)
+            weatherRetryState.markSuccess(for: coordinateKey)
         } catch {
             weatherSnapshot = .fallbackClear
             weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
+            weatherRetryState.markFailure(for: coordinateKey)
         }
 
         isFetchingWeather = false
@@ -1478,7 +1504,7 @@ struct RecordMapFallbackSurface: View {
 
                 VStack {
                     Spacer()
-                    Text("mock map surface · 위치 권한 요청 없음")
+                    Text("현재 위치를 준비 중이에요")
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.tertiaryInk)
                         .padding(.bottom, 12)

@@ -62,6 +62,70 @@ final class RecordWorkoutSessionTests: XCTestCase {
         XCTAssertFalse(session.startedWithLocation)
     }
 
+    func testStartWithAuthorizedLocationSeedsRouteCapture() throws {
+        let coordinate = RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271)
+        let state = RecordLocationState(
+            authorization: .authorized,
+            coordinate: coordinate,
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let starter = RecordWorkoutSessionStarter(
+            idProvider: { self.fixedID },
+            dateProvider: { self.fixedDate }
+        )
+
+        let session = starter.start(sport: .cycling, locationState: state)
+
+        XCTAssertTrue(session.startedWithLocation)
+        XCTAssertEqual(session.capturedRoute?.coordinates.count, 1)
+        XCTAssertEqual(session.startedCoordinate?.latitude, coordinate.latitude)
+        XCTAssertEqual(session.lastCoordinate?.longitude, coordinate.longitude)
+        XCTAssertEqual(session.accumulatedDistanceMeters, 0)
+    }
+
+    func testDistanceAccumulatesAcrossCoordinatesAndRouteAppends() {
+        let state = RecordLocationState(
+            authorization: .authorized,
+            coordinate: RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let starter = RecordWorkoutSessionStarter(
+            idProvider: { self.fixedID },
+            dateProvider: { self.fixedDate }
+        )
+
+        let started = starter.start(sport: .running, locationState: state)
+        let moved = started
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5272, longitude: 126.9280), at: fixedDate.addingTimeInterval(30))
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5280, longitude: 126.9290), at: fixedDate.addingTimeInterval(60))
+
+        XCTAssertEqual(moved.capturedRoute?.coordinates.count, 3)
+        XCTAssertGreaterThan(moved.accumulatedDistanceMeters, 0)
+        XCTAssertEqual(moved.capturedRoute?.distanceMeters, moved.accumulatedDistanceMeters)
+    }
+
+    func testPausedSessionDoesNotAppendRouteCoordinates() {
+        let state = RecordLocationState(
+            authorization: .authorized,
+            coordinate: RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let session = RecordWorkoutSessionStarter(
+            idProvider: { self.fixedID },
+            dateProvider: { self.fixedDate }
+        )
+        .start(sport: .walking, locationState: state)
+        .paused(at: fixedDate.addingTimeInterval(10))
+
+        let movedWhilePaused = session.recordingLocation(
+            RecordMapCoordinate(latitude: 37.5280, longitude: 126.9290),
+            at: fixedDate.addingTimeInterval(60)
+        )
+
+        XCTAssertEqual(movedWhilePaused.capturedRoute?.coordinates.count, 1)
+        XCTAssertEqual(movedWhilePaused.accumulatedDistanceMeters, 0)
+    }
+
     func testPauseResumeAndFinishKeepSessionLocalOnly() {
         let starter = RecordWorkoutSessionStarter(
             idProvider: { self.fixedID },

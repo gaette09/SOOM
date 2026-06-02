@@ -627,3 +627,12 @@ Privacy boundary:
 - 기본 공개 공유 카드에는 심박, 세부 위치, 회복 점수, fatigue/readiness/raw guidance를 넣지 않는다.
 - route preview는 start/end masking을 유지한다.
 - 투명 export에는 배경, 카드 surface, border, checkerboard, metadata, privacy chip을 넣지 않는다.
+
+## TestFlight Share Polish v1
+
+Share target copy should not promise direct social-network API integration.
+
+- The Instagram target label is `Instagram으로 공유`.
+- The target opens the iOS share sheet; helper copy should tell the user to choose Instagram in the system share UI.
+- `Copy Link` remains hidden until public URL, remote publish, and link permission policy exist.
+- Public share cards remain user-initiated only and keep sensitive recovery/readiness/fatigue guidance out of default exports.

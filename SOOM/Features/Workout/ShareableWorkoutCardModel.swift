@@ -101,7 +101,7 @@ enum ShareTarget: String, CaseIterable, Identifiable, Equatable {
     var title: String {
         switch self {
         case .instagramStory:
-            return "Instagram Story"
+            return "Instagram으로 공유"
         case .saveImage:
             return "Save Image"
         case .more:

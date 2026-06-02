@@ -48,7 +48,8 @@ struct WorkoutDetailView: View {
             workout: workout,
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
-            recoveryImpact: recoveryImpact
+            recoveryImpact: recoveryImpact,
+            route: detailMapRoute
         )
     }
 

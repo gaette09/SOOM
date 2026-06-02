@@ -89,6 +89,32 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertEqual(snapshot.pillText, "26° · 맑음 · 바람 약함")
     }
 
+    func testWeatherRetryStateDoesNotBlockRetryAfterFailure() {
+        let coordinateKey = "37.5266,126.9271"
+        var retryState = RecordWeatherRetryState()
+
+        XCTAssertTrue(retryState.shouldAttemptFetch(for: coordinateKey))
+        retryState.markAttempt(for: coordinateKey)
+        retryState.markFailure(for: coordinateKey)
+
+        XCTAssertEqual(retryState.lastAttemptCoordinateKey, coordinateKey)
+        XCTAssertNil(retryState.lastSuccessfulCoordinateKey)
+        XCTAssertTrue(retryState.shouldAttemptFetch(for: coordinateKey))
+    }
+
+    func testWeatherRetryStateOnlySkipsAfterSuccessUnlessForced() {
+        let coordinateKey = "37.5266,126.9271"
+        var retryState = RecordWeatherRetryState()
+
+        retryState.markAttempt(for: coordinateKey)
+        retryState.markSuccess(for: coordinateKey)
+
+        XCTAssertEqual(retryState.lastAttemptCoordinateKey, coordinateKey)
+        XCTAssertEqual(retryState.lastSuccessfulCoordinateKey, coordinateKey)
+        XCTAssertFalse(retryState.shouldAttemptFetch(for: coordinateKey))
+        XCTAssertTrue(retryState.shouldAttemptFetch(for: coordinateKey, forceRefresh: true))
+    }
+
     func testWeatherAPIKeyValidationRejectsPlaceholders() {
         XCTAssertNil(RecordWeatherServiceFactory.usableAPIKey(nil))
         XCTAssertNil(RecordWeatherServiceFactory.usableAPIKey(""))

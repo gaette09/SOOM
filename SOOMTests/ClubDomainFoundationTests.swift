@@ -46,6 +46,35 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertFalse(directory.recommendedClubs.contains { $0.id == "hangang-riders" })
     }
 
+    func testJoinStatePersistsAcrossServiceReload() async throws {
+        let persistence = makePersistence()
+        let service = InMemoryClubService(persistence: persistence)
+
+        try await service.joinClub(clubId: "hangang-riders")
+
+        let reloadedService = InMemoryClubService(persistence: persistence)
+        let detail = try await reloadedService.fetchClubDetail(clubId: "hangang-riders")
+        let directory = try await reloadedService.fetchClubDirectory()
+
+        XCTAssertEqual(detail.membershipState, .joined)
+        XCTAssertTrue(directory.joinedClubs.contains { $0.id == "hangang-riders" })
+    }
+
+    func testLeaveStatePersistsAcrossServiceReload() async throws {
+        let persistence = makePersistence()
+        let service = InMemoryClubService(persistence: persistence)
+
+        try await service.leaveClub(clubId: "soom-riders")
+
+        let reloadedService = InMemoryClubService(persistence: persistence)
+        let detail = try await reloadedService.fetchClubDetail(clubId: "soom-riders")
+        let directory = try await reloadedService.fetchClubDirectory()
+
+        XCTAssertEqual(detail.membershipState, .recommended)
+        XCTAssertFalse(directory.joinedClubs.contains { $0.id == "soom-riders" })
+        XCTAssertTrue(directory.recommendedClubs.contains { $0.id == "soom-riders" })
+    }
+
     func testCreateClubAddsCreatedClub() async throws {
         let service = InMemoryClubService()
 
@@ -60,6 +89,38 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(club.name, "Night Riders")
         XCTAssertEqual(club.membershipState, .owned)
         XCTAssertTrue(directory.createdClubs.contains { $0.id == club.id })
+    }
+
+    func testCreateClubPersistsAcrossServiceReload() async throws {
+        let persistence = makePersistence()
+        let service = InMemoryClubService(persistence: persistence)
+
+        let club = try await service.createClub(input: ClubCreateInput(
+            name: "Night Riders",
+            purpose: "밤에도 무리하지 않고 리듬을 유지합니다.",
+            sportFocus: "자전거",
+            visibility: .private
+        ))
+
+        let reloadedService = InMemoryClubService(persistence: persistence)
+        let directory = try await reloadedService.fetchClubDirectory()
+        let detail = try await reloadedService.fetchClubDetail(clubId: club.id)
+
+        XCTAssertTrue(directory.createdClubs.contains { $0.id == club.id })
+        XCTAssertEqual(detail.membershipState, .owned)
+        XCTAssertEqual(detail.privacy, .private)
+    }
+
+    func testCorruptedClubPersistenceFallsBackToSeedData() async throws {
+        let userDefaults = makeUserDefaults()
+        userDefaults.set(Data("not-json".utf8), forKey: "club-test")
+        let persistence = LocalClubPersistence(userDefaults: userDefaults, key: "club-test")
+        let service = InMemoryClubService(persistence: persistence)
+
+        let directory = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
+        XCTAssertEqual(directory.createdClubs.map(\.name), ["Recovery Crew"])
     }
 
     func testRankingMetricSwitchReturnsExpectedEntries() async throws {
@@ -151,5 +212,16 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedClub?.id, "soom-riders")
         XCTAssertFalse(viewModel.rankings.isEmpty)
         XCTAssertFalse(viewModel.challenges.isEmpty)
+    }
+
+    private func makePersistence() -> LocalClubPersistence {
+        LocalClubPersistence(userDefaults: makeUserDefaults(), key: "club-test")
+    }
+
+    private func makeUserDefaults() -> UserDefaults {
+        let suiteName = "club-domain-\(UUID().uuidString)"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        userDefaults.removePersistentDomain(forName: suiteName)
+        return userDefaults
     }
 }

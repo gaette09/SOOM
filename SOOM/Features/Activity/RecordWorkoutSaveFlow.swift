@@ -9,9 +9,22 @@ struct RecordWorkoutSummary: Equatable, Identifiable {
     let durationSeconds: TimeInterval
     let distanceMeters: Double?
     let capturedRoute: Bool
+    let routeCapture: RecordRouteCapture?
 
     var isTimeOnly: Bool {
         distanceMeters == nil
+    }
+
+    var workoutRoute: WorkoutRoute? {
+        routeCapture?.workoutRoute(workoutId: id, createdAt: startedAt)
+    }
+
+    var distanceText: String {
+        guard let distanceMeters, distanceMeters > 0 else {
+            return "시간 기록"
+        }
+
+        return String(format: "%.2fkm", distanceMeters / 1_000)
     }
 }
 
@@ -28,8 +41,9 @@ enum RecordWorkoutSummaryBuilder {
             startedAt: session.startedAt,
             endedAt: endedAt,
             durationSeconds: session.elapsedTime(referenceDate: endedAt),
-            distanceMeters: nil,
-            capturedRoute: session.startedWithLocation
+            distanceMeters: session.accumulatedDistanceMeters > 0 ? session.accumulatedDistanceMeters : nil,
+            capturedRoute: session.capturedRoute?.hasRoute == true,
+            routeCapture: session.capturedRoute?.hasRoute == true ? session.capturedRoute : nil
         )
     }
 }
@@ -52,7 +66,9 @@ struct RecordWorkoutSaveMapper {
             activeEnergyKcal: nil,
             averageHeartRate: nil,
             maxHeartRate: nil,
-            averageSpeedMetersPerSecond: nil,
+            averageSpeedMetersPerSecond: summary.durationSeconds > 0
+                ? summary.distanceMeters.map { $0 / summary.durationSeconds }
+                : nil,
             elevationGainMeters: nil,
             dataQuality: .partial,
             isExcludedFromAnalysis: false,
@@ -64,11 +80,15 @@ struct RecordWorkoutSaveMapper {
 
 struct RecordWorkoutSaver {
     let store: any UnifiedWorkoutStore
+    var routeStore: (any WorkoutRoutePersistenceStoring)? = nil
     var mapper = RecordWorkoutSaveMapper()
 
     func save(_ summary: RecordWorkoutSummary) async throws -> UnifiedWorkout {
         let workout = mapper.makeWorkout(from: summary)
         try await store.saveWorkout(workout)
+        if let route = summary.workoutRoute {
+            try await routeStore?.saveRoute(route)
+        }
         return workout
     }
 }

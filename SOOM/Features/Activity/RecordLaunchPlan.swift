@@ -675,6 +675,28 @@ enum RecordWeatherFetchPolicy {
     }
 }
 
+struct RecordWeatherRetryState: Equatable {
+    private(set) var lastAttemptCoordinateKey: String?
+    private(set) var lastSuccessfulCoordinateKey: String?
+
+    func shouldAttemptFetch(for coordinateKey: String, forceRefresh: Bool = false) -> Bool {
+        forceRefresh || coordinateKey != lastSuccessfulCoordinateKey
+    }
+
+    mutating func markAttempt(for coordinateKey: String) {
+        lastAttemptCoordinateKey = coordinateKey
+    }
+
+    mutating func markSuccess(for coordinateKey: String) {
+        lastAttemptCoordinateKey = coordinateKey
+        lastSuccessfulCoordinateKey = coordinateKey
+    }
+
+    mutating func markFailure(for coordinateKey: String) {
+        lastAttemptCoordinateKey = coordinateKey
+    }
+}
+
 enum RecordWeatherResolver {
     static func snapshot(
         for locationState: RecordLocationState,

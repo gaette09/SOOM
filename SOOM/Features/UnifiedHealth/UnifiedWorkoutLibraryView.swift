@@ -181,6 +181,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     let onToggleExcluded: () -> Void
+    @State private var hasPersistedRoute = false
 
     var body: some View {
         SOOMCard {
@@ -222,6 +223,9 @@ private struct UnifiedWorkoutLibraryRow: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .task(id: workout.id) {
+            hasPersistedRoute = await detailRouteContextProvider?.route(for: workout.id) != nil
+        }
     }
 
     private var rowSummary: some View {
@@ -254,6 +258,16 @@ private struct UnifiedWorkoutLibraryRow: View {
                 Text("\(dateText) · \(timeText)")
                     .font(SOOMFont.body(13, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.secondaryInk)
+
+                if hasPersistedRoute {
+                    Text("경로 저장")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.accentInk)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(SOOMColor.accentSurface)
+                        .clipShape(Capsule())
+                }
 
                 HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                     LibraryMetricPill(title: "거리", value: distanceText)

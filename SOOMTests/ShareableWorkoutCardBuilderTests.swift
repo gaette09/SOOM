@@ -181,11 +181,12 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
 
     func testCurrentShareTargetsHideCopyLinkUntilPublicURLBackendExists() {
         XCTAssertEqual(ShareTarget.currentTargets.map(\.title), [
-            "Instagram Story",
+            "Instagram으로 공유",
             "Save Image",
             "More"
         ])
         XCTAssertFalse(ShareTarget.currentTargets.map(\.title).contains("Copy Link"))
+        XCTAssertFalse(ShareTarget.currentTargets.map(\.title).contains("Instagram Story"))
         XCTAssertTrue(ShareTarget.instagramStory.usesSystemShareSheet)
         XCTAssertTrue(ShareTarget.saveImage.usesSystemShareSheet)
         XCTAssertTrue(ShareTarget.more.usesSystemShareSheet)

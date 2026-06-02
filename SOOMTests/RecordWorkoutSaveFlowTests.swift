@@ -18,8 +18,22 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         XCTAssertEqual(summary?.startedAt, startedAt)
         XCTAssertEqual(summary?.endedAt, endedAt)
         XCTAssertEqual(summary?.durationSeconds, 3_600)
-        XCTAssertTrue(summary?.capturedRoute == true)
+        XCTAssertFalse(summary?.capturedRoute == true)
         XCTAssertTrue(summary?.isTimeOnly == true)
+    }
+
+    func testStopCreatesSummaryWithDistanceAndRouteWhenCaptured() throws {
+        let session = finishedRouteSession(sport: .cycling)
+
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: session))
+
+        XCTAssertFalse(summary.isTimeOnly)
+        XCTAssertTrue(summary.capturedRoute)
+        XCTAssertNotNil(summary.routeCapture?.startCoordinate)
+        XCTAssertNotNil(summary.routeCapture?.endCoordinate)
+        XCTAssertGreaterThan(summary.distanceMeters ?? 0, 0)
+        XCTAssertNotNil(summary.workoutRoute)
+        XCTAssertEqual(summary.workoutRoute?.coordinates.count, 3)
     }
 
     func testSummaryIsOnlyCreatedForFinishedSession() {
@@ -61,6 +75,32 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.count, 1)
     }
 
+    func testSaveFlowPersistsDistanceAndRoute() async throws {
+        let store = FakeUnifiedWorkoutStore()
+        let routeStore = FakeWorkoutRoutePersistenceStore()
+        let saver = RecordWorkoutSaver(
+            store: store,
+            routeStore: routeStore,
+            mapper: RecordWorkoutSaveMapper(dateProvider: { self.now })
+        )
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(
+            from: finishedRouteSession(sport: .running)
+        ))
+
+        let workout = try await saver.save(summary)
+        let route = try await routeStore.fetchRoute(workoutId: workout.id)
+
+        XCTAssertEqual(workout.id, fixedID)
+        XCTAssertEqual(workout.source, .soomLocal)
+        XCTAssertGreaterThan(workout.distanceMeters ?? 0, 0)
+        XCTAssertGreaterThan(workout.averageSpeedMetersPerSecond ?? 0, 0)
+        XCTAssertEqual(workout.dataQuality, .partial)
+        XCTAssertNotNil(route)
+        XCTAssertEqual(route?.workoutId, workout.id)
+        XCTAssertEqual(route?.coordinates.count, 3)
+        XCTAssertEqual(try XCTUnwrap(route?.totalDistanceMeters), try XCTUnwrap(summary.distanceMeters), accuracy: 0.001)
+    }
+
     func testSavedWorkoutAppearsInActivityStoreRecentWorkouts() async throws {
         let store = FakeUnifiedWorkoutStore()
         let saver = RecordWorkoutSaver(store: store)
@@ -89,16 +129,19 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
 
     func testTimeOnlyWorkoutCanBeSavedWithoutLocationPermission() async throws {
         let store = FakeUnifiedWorkoutStore()
-        let saver = RecordWorkoutSaver(store: store)
+        let routeStore = FakeWorkoutRoutePersistenceStore()
+        let saver = RecordWorkoutSaver(store: store, routeStore: routeStore)
         let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(
             from: finishedSession(sport: .running, startedWithLocation: false)
         ))
 
         let workout = try await saver.save(summary)
+        let route = try await routeStore.fetchRoute(workoutId: workout.id)
 
         XCTAssertFalse(summary.capturedRoute)
         XCTAssertNil(workout.distanceMeters)
         XCTAssertEqual(workout.source, .soomLocal)
+        XCTAssertNil(route)
     }
 
     func testSelectedSportPersistsIntoSavedWorkout() async throws {
@@ -145,6 +188,23 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
             endedAt: endedAt
         )
     }
+
+    private func finishedRouteSession(sport: RecordSportMode) -> RecordWorkoutSession {
+        let starter = RecordWorkoutSessionStarter(
+            idProvider: { self.fixedID },
+            dateProvider: { self.startedAt }
+        )
+        let state = RecordLocationState(
+            authorization: .authorized,
+            coordinate: RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+
+        return starter.start(sport: sport, locationState: state)
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5272, longitude: 126.9280), at: startedAt.addingTimeInterval(900))
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5280, longitude: 126.9290), at: startedAt.addingTimeInterval(1_800))
+            .finished(at: endedAt)
+    }
 }
 
 private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
@@ -178,5 +238,25 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
 
     func deleteWorkout(id: UUID) async throws {
         savedWorkouts.removeAll { $0.id == id }
+    }
+}
+
+private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStoring {
+    private var routesByWorkoutId: [UUID: WorkoutRoute] = [:]
+
+    func saveRoute(_ route: WorkoutRoute) async throws {
+        routesByWorkoutId[route.workoutId] = route
+    }
+
+    func fetchRoute(workoutId: UUID) async throws -> WorkoutRoute? {
+        routesByWorkoutId[workoutId]
+    }
+
+    func fetchRoutes(workoutIds: [UUID]) async throws -> [WorkoutRoute] {
+        workoutIds.compactMap { routesByWorkoutId[$0] }
+    }
+
+    func deleteRoute(workoutId: UUID) async throws {
+        routesByWorkoutId.removeValue(forKey: workoutId)
     }
 }

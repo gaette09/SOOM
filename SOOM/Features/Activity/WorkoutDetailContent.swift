@@ -672,7 +672,7 @@ private struct ShareCardComposer: View {
 
         switch target {
         case .instagramStory:
-            shareTargetMessage = "Instagram Story는 iOS 공유 시트에서 선택할 수 있어요."
+            shareTargetMessage = "iOS 공유 화면에서 Instagram을 선택하세요."
             share(card)
         case .saveImage:
             shareTargetMessage = "Save Image는 iOS 공유 시트의 이미지 저장 액션을 사용해요."

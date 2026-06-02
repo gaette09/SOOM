@@ -64,6 +64,32 @@ struct ShareableWorkoutCardBuilder {
         sessionSummary: WorkoutSessionSummary,
         growthSummary: WorkoutGrowthSummary,
         recoveryImpact: WorkoutRecoveryImpact,
+        route: WorkoutRoute?,
+        visibility: ShareableWorkoutVisibility = .privateOnly
+    ) -> ShareableWorkoutCardModel {
+        let routePreview = route.map {
+            staticRoutePreviewBuilder.build(
+                route: $0,
+                workoutType: UnifiedWorkoutType(shareableSport: workout.sport),
+                privacyPolicy: .defaultShare
+            )
+        }
+
+        return build(
+            workout: workout,
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            visibility: visibility,
+            staticRoutePreview: routePreview
+        )
+    }
+
+    func build(
+        workout: Workout,
+        sessionSummary: WorkoutSessionSummary,
+        growthSummary: WorkoutGrowthSummary,
+        recoveryImpact: WorkoutRecoveryImpact,
         visibility: ShareableWorkoutVisibility = .privateOnly,
         staticRoutePreview: StaticRoutePreview? = nil
     ) -> ShareableWorkoutCardModel {

@@ -66,6 +66,20 @@ Live detail weather uses OpenWeather foundations:
 
 If One Call fails, SOOM keeps the fallback detail snapshot. If Air Pollution fails but weather succeeds, SOOM keeps weather detail and uses fallback air-quality values.
 
+## TestFlight Retry And Copy Polish
+
+Weather retry:
+
+- SOOM tracks the last attempted coordinate separately from the last successful coordinate.
+- Failed fetches do not block another attempt for the same coordinate.
+- Weather button and current-location button taps can force a retry when the app has an authorized coordinate.
+- Success updates the successful coordinate key; failure only records the attempt.
+
+User-facing copy:
+
+- Product UI should describe the state as "최신 날씨를 준비하는 중이에요" instead of exposing API or fallback terminology.
+- Engineering terms can remain in DEBUG logging, tests, and docs, but not in the visible Record sheet copy.
+
 ## Deferred
 
 - Provider selection UI.

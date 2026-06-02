@@ -180,6 +180,8 @@ Secret safety rules:
 - READY starts the local-first workout session foundation only after the long-press drag-select release confirmation. Location is optional at start; when a coordinate is available the route capture path can be prepared, and without it the app starts a time-first local session.
 - Stop opens a finish summary with sport, elapsed time, start/end time, route-capture status, Save, and Discard actions.
 - Save stores a local-first `UnifiedWorkout` and returns to Activity; discard keeps the workout out of local storage and returns to the Record launch map.
+- Record route persistence is local-first. When foreground location updates produce at least two coordinates, save should persist distance, start/end coordinates, and a linked local `WorkoutRoute`; when coordinates are unavailable, SOOM must still save a time-only workout.
+- Activity and Activity Detail should prefer the saved local route when it exists. Share cards should also prefer the saved route over fallback/generated route previews. Profile aggregation from these saved distances/routes is deferred to a later sprint.
 - HealthKit write remains deferred. TestFlight QA should verify that starting or saving from Record does not force HealthKit authorization, cloud sync, or feed sharing.
 - Feed share draft creation is also deferred; saved workouts stay private/local until a future explicit share flow is added.
 - `NSLocationWhenInUseUsageDescription`: explains current-location display and nearby course guidance before starting a workout.
@@ -348,6 +350,34 @@ Before TestFlight review, verify the Club domain foundation stays local-first:
 - Verify ranking motivation is scoped inside the selected club and does not read like a global leaderboard.
 - No Supabase Club schema or remote write is expected in v1.
 - Recovery score/private coach guidance is not used for Club rankings by default.
+
+## TestFlight Readiness Fix v1
+
+This pass reduces prototype smell before adding larger data features.
+
+User-facing copy:
+
+- Product UI must not expose `mock`, `fallback`, `placeholder`, `sample`, `demo`, `foundation`, `local-only`, `Directions 없음`, `API 없음`, or `backend 없음`.
+- Technical terms can remain in DEBUG logs, tests, and engineering docs.
+- Record map/weather/route states should read as calm product states such as "현재 위치를 준비 중이에요", "최신 날씨를 준비하는 중이에요", and "추천 코스".
+
+Record weather:
+
+- Weather fetch keeps separate attempt and success coordinate keys.
+- A network failure must not permanently block another fetch for the same coordinate.
+- Weather and current-location taps may force a refresh attempt when an authorized coordinate exists.
+- API keys must never be printed or committed.
+
+Club local persistence:
+
+- Club create/join/leave state is local-first and stored on-device with a seed-data overlay.
+- Corrupted local Club persistence must fall back to seed clubs without crashing.
+- Supabase Club schema, remote write, invite flows, and real rank calculation remain deferred.
+
+Deferred for the next sprint:
+
+- Profile workout aggregation from saved local workouts.
+- Production GPS smoothing, background tracking, and remote route sync.
 
 ## Validation Log
 
