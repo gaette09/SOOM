@@ -217,6 +217,16 @@ SOOM needs one dependable place for identity and trust, but Profile should make 
 Avoid:
 Making Profile a settings drawer, a marketing page, a recent workout list, or another Activity screen.
 
+Implementation hierarchy:
+Movement Identity Card -> Movement Pattern -> Personal Best -> Badge Showcase -> Signature Routes -> Connections -> Account/Settings support. Activity remains the workout library and answers "what did I do?"; Profile answers "who am I as a mover?"
+
+Profile Hero v2:
+
+- The hero leads with avatar/name and one representative identity phrase such as "리듬을 지키는 라이더".
+- One representative badge or identity emblem appears inside the hero so identity is visible before numeric summary.
+- Moved days, total distance, and representative sport are compact supporting evidence. They should not become the first-read layer.
+- Current month state, setup status, and connections remain below the hero or in support sections when they are not essential to identity.
+
 ## Feed-first UX Structure
 
 Feed should be the first screen after launch and the default selected tab.
@@ -510,11 +520,15 @@ Profile is the movement identity center. Activity answers "what did I do?" Profi
 
 Profile sections:
 
-1. Profile hero
+1. Movement Identity Card
    - display name
    - handle
    - profile image
-   - short intro or personal motto
+   - representative identity phrase
+   - representative sport
+   - active days
+   - total distance
+   - current month activity state
    - local/remote account state
 2. Movement Identity
    - representative sport
@@ -532,9 +546,9 @@ Profile sections:
    - longest run
    - fastest 10 km
    - only representative records, not a full history
-5. Favorite Routes
+5. Signature Routes
    - representative routes only
-   - compact count or identity cue
+   - identity cue, not frequency-first history
 6. Badge Showcase
    - 3-5 representative badges
    - club-connected achievements

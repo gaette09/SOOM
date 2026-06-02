@@ -336,6 +336,22 @@ The Floating Recovery Coach is a companion layer:
 
 It is not a warning system, modal blocker, or dashboard replacement.
 
+## Profile Identity Surface
+
+Profile is the movement identity surface, not the app's first settings drawer:
+
+- Lead with a Movement Identity Card: avatar, name, handle, one representative identity phrase, one representative badge or emblem, and only then compact supporting stats.
+- Profile Hero starts with identity, not metrics. The phrase ("리듬을 지키는 라이더", "회복을 아는 러너", or similar) should be the first emotional read after the user's name.
+- Representative badge belongs in the hero as a visible identity marker. Use purple on the badge icon, state, or small accent line, not as a full-card fill.
+- Active days, total distance, and representative sport support the identity in one compact row. Current month state and setup status should not lead the hero unless they explain identity.
+- Activity owns calendars, recent workouts, workout lists, and workout detail. Profile must not show a recent workout list.
+- Movement Pattern should use compact cards or chips for human traits such as morning, recovery-friendly, consistency-centered, or weekend long-distance. Use purple only for representative traits.
+- Personal Best is a showcase, not a history table. Keep it to three representative records with value, context, and icon.
+- Badge Showcase should show 3-4 representative badges with state/progress and a Club-compatible structure.
+- Signature Routes are identity markers. Use route names with meaning labels such as 대표 코스, 회복 루프, or 도전 지점 instead of turning this into Activity's frequency list.
+- Connections and Settings live below identity: HealthKit, Strava future, Garmin future, Weather/location permissions, account, ownership, training baselines, privacy, notifications, and app info are support surfaces.
+- Empty Profile states should say the user is building their movement rhythm and that the first workout will create representative sport and pattern, without feeling like a setup checklist.
+
 ## Record Map Start Surface
 
 Record is not a settings-like list of start options. It is a full-screen pre-workout launch mode.
