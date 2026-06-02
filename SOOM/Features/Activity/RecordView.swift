@@ -4,6 +4,7 @@ import SwiftUI
 struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var locationManager = RecordLocationManager()
     @State private var selectedSport: RecordSportMode = RecordLaunchPlan.mockToday.defaultSport
     @State private var selectedRoute = RecordLaunchPlan.mockToday.route
@@ -20,8 +21,11 @@ struct RecordView: View {
     @State private var isCreatingShareDraft = false
     @State private var shareDraftErrorMessage: String?
     @State private var weatherSnapshot = RecordWeatherSnapshot.fallbackClear
+    @State private var weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
     @State private var isFetchingWeather = false
     @State private var lastWeatherCoordinateKey: String?
+    @State private var isBottomGradientBreathing = false
+    @State private var readyInteractionState = RecordReadyWaveInteractionState.idle
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
@@ -105,6 +109,9 @@ struct RecordView: View {
                 currentDate = Date()
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
+        }
+        .onChange(of: readyInteractionState) { _, newState in
+            handleReadyInteractionStateChange(newState)
         }
     }
 
@@ -249,31 +256,107 @@ struct RecordView: View {
     }
 
     private var bottomFocusGradient: some View {
-        VStack {
-            Spacer()
-            LinearGradient(
-                colors: [
-                    Color.clear,
-                    SOOMColor.ink.opacity(
-                        isReadyFocusMode
-                            ? RecordMapBottomFocusGradientLayout.focusedMiddleOpacity
-                            : RecordMapBottomFocusGradientLayout.defaultMiddleOpacity
-                    ),
-                    SOOMColor.ink.opacity(
-                        isReadyFocusMode
-                            ? RecordMapBottomFocusGradientLayout.focusedBottomOpacity
-                            : RecordMapBottomFocusGradientLayout.defaultBottomOpacity
-                    )
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(
-                height: isReadyFocusMode
-                    ? RecordMapBottomFocusGradientLayout.focusedHeight
-                    : RecordMapBottomFocusGradientLayout.defaultHeight
-            )
-            .animation(.easeInOut(duration: 0.22), value: isReadyFocusMode)
+        RecordBreathingBottomWaveView(
+            progress: bottomWaveProgress,
+            opacity: bottomWaveOpacity,
+            yOffset: bottomWaveOffset,
+            isInteracting: readyInteractionState.weakensWave
+        )
+        .onAppear(perform: startBottomGradientBreathingIfNeeded)
+        .onChange(of: reduceMotion) { _, _ in
+            startBottomGradientBreathingIfNeeded()
+        }
+    }
+
+    private var bottomWaveProgress: CGFloat {
+        if readyInteractionState.weakensWave {
+            return RecordBreathingBottomWaveLayout.interactionProgress
+        }
+
+        if reduceMotion {
+            return RecordBreathingBottomWaveLayout.reducedMotionProgress
+        }
+
+        return isBottomGradientBreathing
+            ? RecordBreathingBottomWaveLayout.exhaleProgress
+            : RecordBreathingBottomWaveLayout.inhaleProgress
+    }
+
+    private var bottomWaveOpacity: Double {
+        if readyInteractionState.weakensWave {
+            return RecordBreathingBottomWaveLayout.interactionOpacity
+        }
+
+        if reduceMotion {
+            return RecordBreathingBottomWaveLayout.reducedMotionOpacity
+        }
+
+        return isBottomGradientBreathing
+            ? RecordBreathingBottomWaveLayout.exhaleOpacity
+            : RecordBreathingBottomWaveLayout.inhaleOpacity
+    }
+
+    private var bottomWaveOffset: CGFloat {
+        if readyInteractionState.weakensWave {
+            return RecordBreathingBottomWaveLayout.interactionYOffset
+        }
+
+        if reduceMotion {
+            return RecordBreathingBottomWaveLayout.reducedMotionYOffset
+        }
+
+        return isBottomGradientBreathing
+            ? RecordBreathingBottomWaveLayout.exhaleYOffset
+            : RecordBreathingBottomWaveLayout.inhaleYOffset
+    }
+
+    private func startBottomGradientBreathingIfNeeded() {
+        if reduceMotion {
+            isBottomGradientBreathing = false
+            return
+        }
+
+        guard !isBottomGradientBreathing else { return }
+        withAnimation(
+            .easeInOut(duration: RecordBreathingBottomWaveLayout.breathingDuration)
+                .repeatForever(autoreverses: true)
+        ) {
+            isBottomGradientBreathing = true
+        }
+    }
+
+    @MainActor
+    private func pauseBottomGradientBreathingForInteraction() {
+        guard !reduceMotion else {
+            isBottomGradientBreathing = false
+            return
+        }
+
+        withAnimation(.easeOut(duration: RecordBreathingBottomWaveLayout.transitionDuration)) {
+            isBottomGradientBreathing = false
+        }
+    }
+
+    @MainActor
+    private func restartBottomGradientBreathing() {
+        guard !reduceMotion else {
+            isBottomGradientBreathing = false
+            return
+        }
+
+        isBottomGradientBreathing = false
+        Task { @MainActor in
+            await Task.yield()
+            startBottomGradientBreathingIfNeeded()
+        }
+    }
+
+    @MainActor
+    private func handleReadyInteractionStateChange(_ state: RecordReadyWaveInteractionState) {
+        if state.weakensWave {
+            pauseBottomGradientBreathingForInteraction()
+        } else if state.restoresBreathing {
+            restartBottomGradientBreathing()
         }
     }
 
@@ -285,76 +368,89 @@ struct RecordView: View {
             )
 
             ZStack {
-                if isReadyFocusMode {
-                    ForEach(RecordReadyRadialLayout.items(center: readyCenter), id: \.sport.rawValue) { item in
-                        radialSportButton(item: item, readyCenter: readyCenter)
-                            .position(item.center)
-                            .transition(.scale(scale: 0.78).combined(with: .opacity))
-                    }
+                ForEach(RecordReadyRadialLayout.items(center: readyCenter), id: \.sport.rawValue) { item in
+                    radialSportButton(item: item, readyCenter: readyCenter)
+                        .position(
+                            RecordReadyRadialLayout.displayCenter(
+                                for: item,
+                                readyCenter: readyCenter,
+                                isRevealed: isReadyFocusMode
+                            )
+                        )
+                        .opacity(isReadyFocusMode ? 1 : 0)
+                        .scaleEffect(isReadyFocusMode ? RecordReadyRadialLayout.sportIconFinalScale : RecordReadyRadialLayout.sportIconInitialScale)
+                        .animation(
+                            .spring(response: 0.34, dampingFraction: 0.78)
+                                .delay(isReadyFocusMode ? (RecordReadyRadialLayout.revealDelays[item.sport] ?? 0) : 0),
+                            value: isReadyFocusMode
+                        )
+                        .allowsHitTesting(false)
                 }
 
                 readyButtonSurface(for: selectedSport)
                     .position(readyCenter)
+                    .contentShape(Circle())
+                    .gesture(readyDragGesture(readyCenter: readyCenter))
             }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                    .onChanged { value in
-                        guard isReadyFocusMode else { return }
-                        updateHoveredSport(at: value.location, readyCenter: readyCenter)
-                    }
-                    .onEnded { value in
-                        if isReadyFocusMode {
-                            updateHoveredSport(at: value.location, readyCenter: readyCenter)
-                            finishReadyRadialSelection()
-                        } else {
-                            SOOMHaptics.typingTick()
-                        }
-                    }
-            )
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.30)
-                    .onEnded { _ in
-                        beginReadyRadialSelection()
-                    }
-            )
+            .coordinateSpace(name: RecordReadyLaunchVisualLayout.coordinateSpaceName)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("READY")
-            .accessibilityHint("길게 누른 뒤 위쪽 반원의 운동 종류로 드래그하고 손을 떼면 시작해요.")
+            .accessibilityHint("누르면 운동 종류가 보이고, 위쪽 반원의 운동 종류로 드래그한 뒤 손을 떼면 시작해요.")
         }
         .frame(height: RecordReadyLaunchVisualLayout.containerHeight)
         .padding(.bottom, max(safeAreaInsets.bottom, 18) + RecordReadyLaunchVisualLayout.bottomPaddingExtra)
     }
 
-    private func readyButtonSurface(for sport: RecordSportMode) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: sport.iconName)
-                .font(.system(size: RecordReadyLaunchVisualLayout.iconSize, weight: .bold))
-            Text("READY")
-                .font(SOOMFont.displayMedium(RecordReadyLaunchVisualLayout.readyFontSize, relativeTo: .headline))
-                .tracking(1.0)
-            Text("길게 눌러 선택")
-                .font(SOOMFont.body(RecordReadyLaunchVisualLayout.hintFontSize, weight: .bold, relativeTo: .caption2))
-                .tracking(0.1)
-                .opacity(0.68)
+    private func readyDragGesture(readyCenter: CGPoint) -> some Gesture {
+        DragGesture(
+            minimumDistance: RecordReadyRadialLayout.touchRevealMinimumDistance,
+            coordinateSpace: .named(RecordReadyLaunchVisualLayout.coordinateSpaceName)
+        )
+        .onChanged { value in
+            guard isReadyFocusMode || RecordReadyRadialInteraction.isTouchInsideReadyButton(
+                location: value.startLocation,
+                readyCenter: readyCenter
+            ) else {
+                return
+            }
+
+            if !isReadyFocusMode {
+                beginReadyRadialSelection()
+            }
+            updateHoveredSport(at: value.location, readyCenter: readyCenter)
         }
-        .foregroundStyle(SOOMColor.white)
+        .onEnded { value in
+            guard isReadyFocusMode else { return }
+            updateHoveredSport(at: value.location, readyCenter: readyCenter)
+            finishReadyRadialSelection()
+        }
+    }
+
+    private func readyButtonSurface(for sport: RecordSportMode) -> some View {
+        Image(systemName: RecordReadyLaunchVisualLayout.primaryIconName)
+            .font(.system(size: RecordReadyLaunchVisualLayout.playIconSize, weight: .black))
+            .symbolRenderingMode(.hierarchical)
+            .offset(x: 2)
+        .foregroundStyle(SOOMColor.white.opacity(0.92))
         .frame(
             width: RecordReadyLaunchVisualLayout.buttonDiameter,
             height: RecordReadyLaunchVisualLayout.buttonDiameter
         )
         .background(
             Circle()
-                .fill(SOOMColor.accent)
+                .fill(SOOMColor.ink)
+                .overlay {
+                    readyBreathingRing
+                }
                 .overlay {
                     Circle()
-                        .stroke(SOOMColor.white.opacity(0.48), lineWidth: 1.0)
-                        .padding(9)
+                        .stroke(SOOMColor.white.opacity(0.18), lineWidth: 1.2)
+                        .padding(8)
                 }
         )
-        .scaleEffect(isReadyFocusMode ? 0.94 : 1.0)
+        .scaleEffect(isReadyFocusMode ? 0.96 : 1.0)
         .shadow(
-            color: SOOMColor.accent.opacity(
+            color: SOOMColor.ink.opacity(
                 isReadyFocusMode
                     ? RecordReadyLaunchVisualLayout.focusedShadowOpacity
                     : RecordReadyLaunchVisualLayout.defaultShadowOpacity
@@ -366,6 +462,40 @@ struct RecordView: View {
             y: RecordReadyLaunchVisualLayout.shadowYOffset
         )
         .animation(.spring(response: 0.28, dampingFraction: 0.84), value: isReadyFocusMode)
+    }
+
+    private var readyBreathingRing: some View {
+        let isBreathing = isBottomGradientBreathing && !reduceMotion && !isReadyFocusMode
+        let opacity: Double
+        if reduceMotion {
+            opacity = RecordReadyLaunchVisualLayout.ringMinOpacity
+        } else if isReadyFocusMode {
+            opacity = RecordReadyLaunchVisualLayout.focusedRingOpacity
+        } else {
+            opacity = isBreathing
+                ? RecordReadyLaunchVisualLayout.ringMaxOpacity
+                : RecordReadyLaunchVisualLayout.ringMinOpacity
+        }
+
+        let scale: CGFloat
+        if reduceMotion || isReadyFocusMode {
+            scale = RecordReadyLaunchVisualLayout.ringMinScale
+        } else {
+            scale = isBreathing
+                ? RecordReadyLaunchVisualLayout.ringMaxScale
+                : RecordReadyLaunchVisualLayout.ringMinScale
+        }
+
+        return Circle()
+            .stroke(SOOMColor.white.opacity(opacity), lineWidth: RecordReadyLaunchVisualLayout.ringLineWidth)
+            .scaleEffect(scale)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .easeInOut(duration: RecordReadyLaunchVisualLayout.ringDuration)
+                        .repeatForever(autoreverses: true),
+                value: isBottomGradientBreathing
+            )
     }
 
     private func radialSportButton(item: RecordReadyRadialItem, readyCenter: CGPoint) -> some View {
@@ -386,7 +516,7 @@ struct RecordView: View {
                 .stroke(isHovered ? SOOMColor.white.opacity(0.72) : SOOMColor.line.opacity(0.9), lineWidth: 1)
         }
         .shadow(color: SOOMColor.ink.opacity(isHovered ? 0.18 : 0.10), radius: isHovered ? 16 : 10, x: 0, y: 8)
-        .scaleEffect(isHovered ? 1.08 : 1.0)
+        .scaleEffect(isHovered ? RecordReadyRadialLayout.hoveredScale : 1.0)
         .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isHovered)
         .accessibilityHidden(!RecordReadyRadialLayout.isAboveReadyCenter(item: item, readyCenter: readyCenter))
     }
@@ -398,12 +528,16 @@ struct RecordView: View {
         RecordReadyRadialInteraction.begin().forEach(playReadyHaptic)
         withAnimation(.spring(response: 0.30, dampingFraction: 0.84)) {
             hoveredSport = nil
+            readyInteractionState = .revealing
             isReadyFocusMode = true
         }
     }
 
     @MainActor
     private func updateHoveredSport(at location: CGPoint, readyCenter: CGPoint) {
+        if isReadyFocusMode, readyInteractionState == .revealing {
+            readyInteractionState = .dragging
+        }
         let nextSport = RecordReadyRadialLayout.hoveredSport(at: location, readyCenter: readyCenter)
         let events = RecordReadyRadialInteraction.hoverEvents(previous: hoveredSport, next: nextSport)
         hoveredSport = nextSport
@@ -414,19 +548,32 @@ struct RecordView: View {
     private func finishReadyRadialSelection() {
         let wasSelecting = isReadyFocusMode
         let sportToStart = hoveredSport
+        let shouldStart = RecordReadyRadialInteraction.shouldStartWorkout(
+            isRadialSelectionActive: wasSelecting,
+            hoveredSport: sportToStart
+        )
 
         RecordReadyRadialInteraction.release(hoveredSport: sportToStart).forEach(playReadyHaptic)
         withAnimation(.spring(response: 0.26, dampingFraction: 0.88)) {
             isReadyFocusMode = false
             hoveredSport = nil
+            readyInteractionState = shouldStart ? .confirmed : .cancelled
         }
 
-        if RecordReadyRadialInteraction.shouldStartWorkout(
-            isRadialSelectionActive: wasSelecting,
-            hoveredSport: sportToStart
-        ), let sportToStart {
+        restoreReadyInteractionToIdle()
+
+        if shouldStart, let sportToStart {
             selectedSport = sportToStart
             startWorkout(with: sportToStart)
+        }
+    }
+
+    @MainActor
+    private func restoreReadyInteractionToIdle() {
+        Task { @MainActor in
+            await Task.yield()
+            guard !isReadyFocusMode else { return }
+            readyInteractionState = .idle
         }
     }
 
@@ -454,16 +601,16 @@ struct RecordView: View {
     }
 
     private var weatherDetailSheet: some View {
-        let detail = RecordWeatherDetailSnapshot.make(from: weatherSnapshot)
+        let detail = weatherDetailSnapshot
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("현재 날씨")
+                        Text(detail.locationName)
                             .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
-                        Text(detail.locationName)
+                        Text("현재 날씨")
                             .font(SOOMFont.displayMedium(24, relativeTo: .title2))
                             .foregroundStyle(SOOMColor.ink)
                     }
@@ -485,9 +632,9 @@ struct RecordView: View {
                     .accessibilityLabel("날씨 닫기")
                 }
 
-                HStack(alignment: .bottom, spacing: 12) {
-                    Image(systemName: weatherSnapshot.conditionIconName)
-                        .font(.system(size: 30, weight: .semibold))
+                HStack(alignment: .center, spacing: 16) {
+                    Image(systemName: detail.conditionIconName)
+                        .font(.system(size: 42, weight: .semibold))
                         .foregroundStyle(weatherIconTint)
                     Text(detail.temperatureText)
                         .font(SOOMFont.displayMedium(46, relativeTo: .largeTitle))
@@ -497,20 +644,23 @@ struct RecordView: View {
                         Text(detail.conditionText)
                             .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
                             .foregroundStyle(SOOMColor.ink)
-                        Text("체감 \(detail.feelsLikeText)")
+                        Text("체감 \(detail.feelsLikeText) · \(detail.windText)")
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
+                            .lineLimit(2)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 10) {
                     weatherDetailMetric(title: "바람", value: detail.windText, icon: "wind")
-                    weatherDetailMetric(title: "미세먼지", value: detail.fineDustText, icon: "aqi.medium")
-                    weatherDetailMetric(title: "초미세먼지", value: detail.ultraFineDustText, icon: "circle.hexagongrid.fill")
+                    airQualityMetric(title: "미세", value: detail.fineDustText, level: detail.airQuality.pm10Level)
+                    airQualityMetric(title: "초미세", value: detail.ultraFineDustText, level: detail.airQuality.pm25Level)
                 }
 
-                forecastSection(title: "시간별", values: detail.hourlyForecast)
-                forecastSection(title: "일별", values: detail.dailyForecast)
+                weatherGuideCard(for: detail)
+                hourlyForecastSection(detail.hourlyForecasts)
+                dailyForecastSection(detail.dailyForecasts)
 
                 if detail.isFallback {
                     Text("위치나 날씨 API가 준비되지 않으면 안전한 fallback 날씨를 보여줘요.")
@@ -522,8 +672,9 @@ struct RecordView: View {
             .padding(22)
         }
         .background(SOOMColor.surface)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .presentationDetents([.height(RecordFixedSheetLayout.weatherHeight)])
+        .presentationDragIndicator(.hidden)
+        .interactiveDismissDisabled(false)
     }
 
     private var routeRecommendationSheet: some View {
@@ -566,8 +717,9 @@ struct RecordView: View {
             .padding(22)
         }
         .background(SOOMColor.surface)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .presentationDetents([.height(RecordFixedSheetLayout.routeRecommendationHeight)])
+        .presentationDragIndicator(.hidden)
+        .interactiveDismissDisabled(false)
     }
 
     private func weatherDetailMetric(title: String, value: String, icon: String) -> some View {
@@ -590,25 +742,142 @@ struct RecordView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func forecastSection(title: String, values: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func airQualityMetric(title: String, value: String, level: RecordAirQualityLevel) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Image(systemName: title == "미세" ? "aqi.medium" : "circle.hexagongrid.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(airQualityColor(level))
+            Text(value)
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
             Text(title)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(airQualityColor(level).opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(airQualityColor(level).opacity(0.22), lineWidth: 1)
+        }
+    }
+
+    private func weatherGuideCard(for detail: RecordWeatherDetailSnapshot) -> some View {
+        let text = weatherGuideText(for: detail)
+
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "sparkle")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(SOOMColor.accent)
+                .frame(width: 26, height: 26)
+                .background(SOOMColor.accentSurface)
+                .clipShape(Circle())
+
+            Text(text)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(SOOMColor.background)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func hourlyForecastSection(_ forecasts: [RecordHourlyWeather]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("시간별")
                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.ink)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(values, id: \.self) { value in
-                        Text(value)
-                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(SOOMColor.background)
-                            .clipShape(Capsule())
+                    ForEach(forecasts) { forecast in
+                        VStack(spacing: 8) {
+                            Text(forecast.timeLabel)
+                                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                                .foregroundStyle(SOOMColor.tertiaryInk)
+                            Image(systemName: forecast.iconName)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(SOOMColor.accent)
+                            Text(forecast.temperatureText)
+                                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                                .foregroundStyle(SOOMColor.ink)
+                        }
+                        .frame(width: 64)
+                        .padding(.vertical, 12)
+                        .background(SOOMColor.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                 }
             }
+        }
+    }
+
+    private func dailyForecastSection(_ forecasts: [RecordDailyWeather]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("일별")
+                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.ink)
+
+            VStack(spacing: 8) {
+                ForEach(forecasts) { forecast in
+                    HStack(spacing: 12) {
+                        Text(forecast.dayLabel)
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.ink)
+                            .frame(width: 44, alignment: .leading)
+                        Image(systemName: forecast.iconName)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(SOOMColor.accent)
+                            .frame(width: 24)
+                        Text(forecast.conditionLabel)
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                        Spacer(minLength: 0)
+                        Text(forecast.rangeText)
+                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SOOMColor.ink)
+                            .monospacedDigit()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 11)
+                    .background(SOOMColor.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private func airQualityColor(_ level: RecordAirQualityLevel) -> Color {
+        switch level {
+        case .good:
+            return SOOMColor.blue
+        case .moderate:
+            return SOOMColor.recovery
+        case .bad:
+            return SOOMColor.warning
+        case .veryBad:
+            return Color.red
+        }
+    }
+
+    private func weatherGuideText(for detail: RecordWeatherDetailSnapshot) -> String {
+        if detail.airQuality.pm10Level == .bad || detail.airQuality.pm10Level == .veryBad ||
+            detail.airQuality.pm25Level == .bad || detail.airQuality.pm25Level == .veryBad {
+            return "미세먼지가 높을 땐 강도를 낮추고 호흡이 편한 코스로 시작해요."
+        }
+
+        switch weatherSnapshot.condition {
+        case .rain, .snow, .storm:
+            return "노면이 미끄러울 수 있어요. 오늘은 짧게 움직이고 안전을 먼저 봐요."
+        case .clear where (weatherSnapshot.temperatureCelsius ?? 0) >= 28:
+            return "햇볕이 강한 날엔 물을 먼저 챙기고 초반 페이스를 낮춰요."
+        case .clear, .cloudy, .unknown:
+            return "날씨 흐름은 무난해요. READY에서 종목을 골라 가볍게 시작해요."
         }
     }
 
@@ -1076,6 +1345,7 @@ struct RecordView: View {
         guard state.canShowUserLocation,
               let coordinate = state.coordinate else {
             weatherSnapshot = .fallbackClear
+            weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
             isFetchingWeather = false
             return
         }
@@ -1084,6 +1354,7 @@ struct RecordView: View {
         guard coordinateKey != lastWeatherCoordinateKey else { return }
         guard RecordWeatherFetchPolicy.shouldAttemptLiveFetch(locationState: state) else {
             weatherSnapshot = .fallbackClear
+            weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
             isFetchingWeather = false
             return
         }
@@ -1092,12 +1363,18 @@ struct RecordView: View {
         isFetchingWeather = true
 
         do {
-            weatherSnapshot = try await weatherService.fetchWeather(
+            let snapshot = try await weatherService.fetchWeather(
                 latitude: coordinate.latitude,
                 longitude: coordinate.longitude
             )
+            weatherSnapshot = snapshot
+            weatherDetailSnapshot = (try? await weatherService.fetchWeatherDetail(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )) ?? RecordWeatherDetailSnapshot.make(from: snapshot)
         } catch {
             weatherSnapshot = .fallbackClear
+            weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
         }
 
         isFetchingWeather = false
@@ -1248,7 +1525,7 @@ struct RecordMapFallbackSurface: View {
         ZStack {
             Circle()
                 .fill(SOOMColor.accent.opacity(0.10))
-                .frame(width: 72, height: 72)
+                .frame(width: RecordCurrentLocationMarkerStyle.fallbackStaticHaloDiameter, height: RecordCurrentLocationMarkerStyle.fallbackStaticHaloDiameter)
             Circle()
                 .fill(SOOMColor.white)
                 .frame(width: 22, height: 22)
@@ -1257,6 +1534,10 @@ struct RecordMapFallbackSurface: View {
                 .fill(SOOMColor.accent)
                 .frame(width: 12, height: 12)
         }
+        .offset(
+            x: RecordCurrentLocationMarkerStyle.anchorOffset.width,
+            y: RecordCurrentLocationMarkerStyle.anchorOffset.height
+        )
     }
 
     private func routeEndpoint(at point: CGPoint, color: Color) -> some View {
@@ -1336,5 +1617,42 @@ struct RecordMapFallbackSurface: View {
                 control2: CGPoint(x: size.width * 0.50, y: size.height * 0.58)
             )
         }
+    }
+}
+
+private struct RecordBreathingBottomWaveView: View {
+    let progress: CGFloat
+    let opacity: Double
+    let yOffset: CGFloat
+    let isInteracting: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            let blobWidth = RecordBreathingBottomWaveLayout.blobWidth(for: geometry.size.width)
+            let blobHeight = RecordBreathingBottomWaveLayout.blobFrameHeight(for: geometry.size.width)
+            let blobCenterY = geometry.size.height + RecordBreathingBottomWaveLayout.blobCenterYOffset + yOffset
+            let endRadius = RecordBreathingBottomWaveLayout.blobEndRadius(for: geometry.size.width)
+            let blobScale = isInteracting
+                ? RecordBreathingBottomWaveLayout.blobInteractionScale
+                : RecordBreathingBottomWaveLayout.blobScale(progress: progress)
+
+            radialBlob(endRadius: endRadius)
+                .frame(width: blobWidth, height: blobHeight)
+                .scaleEffect(blobScale, anchor: .center)
+                .opacity(opacity)
+                .position(x: geometry.size.width / 2, y: blobCenterY)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func radialBlob(endRadius: CGFloat) -> RadialGradient {
+        RadialGradient(
+            stops: RecordBreathingBottomWaveLayout.radialBlobOpacityStops.map { stop in
+                .init(color: SOOMColor.accent.opacity(stop.opacity), location: stop.location)
+            },
+            center: .center,
+            startRadius: 0,
+            endRadius: endRadius
+        )
     }
 }

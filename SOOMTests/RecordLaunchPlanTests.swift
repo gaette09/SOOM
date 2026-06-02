@@ -280,18 +280,191 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertEqual(RecordMapOrnamentLayout.horizontalInset, 12)
     }
 
-    func testReadyAndBottomGradientAreReducedForMapVisibility() {
-        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 82)
-        XCTAssertLessThan(RecordReadyLaunchVisualLayout.buttonDiameter, 88)
-        XCTAssertEqual(RecordReadyLaunchVisualLayout.buttonCenterBottomOffset, 54)
+    func testReadyDefaultVisualUsesStrongerStartButton() {
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 100)
+        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 104)
+        XCTAssertEqual(
+            RecordReadyLaunchVisualLayout.interactiveHitDiameter,
+            RecordReadyLaunchVisualLayout.buttonDiameter
+        )
+        XCTAssertLessThanOrEqual(
+            RecordReadyLaunchVisualLayout.interactiveHitDiameter,
+            RecordReadyLaunchVisualLayout.maxInteractiveHitDiameter
+        )
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.usesCircleContentShape)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.attachesGestureToButtonOnly)
+        XCTAssertFalse(RecordReadyLaunchVisualLayout.containerUsesRectangularContentShape)
+        XCTAssertFalse(RecordReadyLaunchVisualLayout.decorativeLayersAllowHitTesting)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.allowsHitTesting)
+        XCTAssertGreaterThanOrEqual(
+            RecordReadyLaunchVisualLayout.buttonCenterBottomOffset - RecordReadyLaunchVisualLayout.previousButtonCenterBottomOffset,
+            20
+        )
+        XCTAssertLessThanOrEqual(
+            RecordReadyLaunchVisualLayout.buttonCenterBottomOffset - RecordReadyLaunchVisualLayout.previousButtonCenterBottomOffset,
+            30
+        )
         XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.containerHeight, 214)
-        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.defaultShadowOpacity, 0.10)
-        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.defaultShadowRadius, 8)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.usesBlackSurface)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.hidesSportIconInButton)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.hidesReadyText)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.hidesStartHintInButton)
+        XCTAssertEqual(RecordReadyLaunchVisualLayout.primaryIconName, "play.fill")
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.primaryLabel.isEmpty)
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.playIconSize, 30)
+        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.playIconSize, 36)
+        XCTAssertGreaterThan(RecordReadyLaunchVisualLayout.defaultShadowOpacity, RecordReadyLaunchVisualLayout.focusedShadowOpacity)
+    }
 
-        XCTAssertLessThanOrEqual(RecordMapBottomFocusGradientLayout.defaultHeight, 130)
-        XCTAssertLessThanOrEqual(RecordMapBottomFocusGradientLayout.focusedHeight, 245)
-        XCTAssertLessThanOrEqual(RecordMapBottomFocusGradientLayout.defaultBottomOpacity, 0.09)
-        XCTAssertLessThanOrEqual(RecordMapBottomFocusGradientLayout.focusedBottomOpacity, 0.30)
+    func testReadyButtonHasSubtleBreathingRing() {
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.hasBreathingRing)
+        XCTAssertEqual(RecordReadyLaunchVisualLayout.ringMinScale, 1.0)
+        XCTAssertEqual(RecordReadyLaunchVisualLayout.ringMaxScale, 1.06)
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.ringMinOpacity, 0.22)
+        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.ringMaxOpacity, 0.38)
+        XCTAssertLessThan(RecordReadyLaunchVisualLayout.focusedRingOpacity, RecordReadyLaunchVisualLayout.ringMinOpacity)
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.ringDuration, 3.0)
+        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.ringDuration, 3.6)
+        XCTAssertTrue(RecordReadyLaunchVisualLayout.disablesRingBreathingForReduceMotion)
+    }
+
+    func testReadyHitAreaIsLimitedToVisibleButtonCircle() {
+        let readyCenter = CGPoint(x: 180, y: 140)
+        let radius = RecordReadyLaunchVisualLayout.interactiveHitDiameter / 2
+
+        XCTAssertTrue(
+            RecordReadyRadialInteraction.isTouchInsideReadyButton(
+                location: readyCenter,
+                readyCenter: readyCenter
+            )
+        )
+        XCTAssertTrue(
+            RecordReadyRadialInteraction.isTouchInsideReadyButton(
+                location: CGPoint(x: readyCenter.x + radius, y: readyCenter.y),
+                readyCenter: readyCenter
+            )
+        )
+        XCTAssertFalse(
+            RecordReadyRadialInteraction.isTouchInsideReadyButton(
+                location: CGPoint(x: readyCenter.x + radius + 1, y: readyCenter.y),
+                readyCenter: readyCenter
+            )
+        )
+        XCTAssertFalse(
+            RecordReadyRadialInteraction.isTouchInsideReadyButton(
+                location: CGPoint(x: readyCenter.x, y: readyCenter.y + radius + 8),
+                readyCenter: readyCenter
+            )
+        )
+    }
+
+    func testBottomWaveUsesOversizedRadialBlobWithoutShapeEdge() {
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesLegacyBottomGradient)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesReferenceWaveView)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesBottomBlobWaveView)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.usesRecordBreathingBottomWaveView)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesCustomProgressShape)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesCustomBezierWaveShape)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesCircleOrEllipseGeometry)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.usesRadialBlobFill)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.usesRadialGradientFill)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesEllipticalRadialFade)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesAlphaMaskFade)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.alphaMaskUsesSolidPurpleFill)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.usesOversizedRadialBlob)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.usesDirectRadialBlobGradient)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.clipsToCustomWaveShape)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesCustomShapeClippingEdge)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.visibleShapeEdgeCanReachScreen)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesLinearGradientFill)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesBlurOverlay)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesSolidRectangleLayer)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesLinearGradientBackground)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesRectangularTopEdge)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesTopStrokeOrBorder)
+        XCTAssertFalse(RecordBreathingBottomWaveLayout.usesTopShadowOrOverlay)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.waveBottomFullyOpaque)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.waveOutsideTransparent)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.waveHeight, 360)
+    }
+
+    func testBottomWaveRadialBlobGeometryAndFadeAreLargeEnough() {
+        let screenWidth: CGFloat = 393
+        let blobWidth = RecordBreathingBottomWaveLayout.blobWidth(for: screenWidth)
+        let blobHeight = RecordBreathingBottomWaveLayout.blobHeight(for: screenWidth)
+        let blobFrameHeight = RecordBreathingBottomWaveLayout.blobFrameHeight(for: screenWidth)
+        let opacityStops = RecordBreathingBottomWaveLayout.radialBlobOpacityStops
+
+        XCTAssertEqual(opacityStops.count, 5)
+        XCTAssertEqual(opacityStops[0].location, 0.00)
+        XCTAssertEqual(opacityStops[0].opacity, 1.0)
+        XCTAssertEqual(opacityStops[1].location, 0.45)
+        XCTAssertEqual(opacityStops[1].opacity, 0.95)
+        XCTAssertEqual(opacityStops[2].location, 0.65)
+        XCTAssertEqual(opacityStops[2].opacity, 0.55)
+        XCTAssertEqual(opacityStops[3].location, 0.82)
+        XCTAssertEqual(opacityStops[3].opacity, 0.18)
+        XCTAssertEqual(opacityStops[4].location, 1.00)
+        XCTAssertEqual(opacityStops[4].opacity, 0.0)
+        XCTAssertGreaterThanOrEqual(blobWidth, screenWidth * 2.4)
+        XCTAssertGreaterThanOrEqual(blobHeight, 520)
+        XCTAssertLessThanOrEqual(RecordBreathingBottomWaveLayout.blobCenterYOffset, 320)
+        XCTAssertGreaterThanOrEqual(RecordBreathingBottomWaveLayout.blobCenterYOffset, 250)
+        XCTAssertGreaterThan(blobFrameHeight, blobHeight)
+        XCTAssertGreaterThan(RecordBreathingBottomWaveLayout.blobEndRadius(for: screenWidth), 0)
+    }
+
+    func testBottomWaveBreathesByChangingBlobScaleAndYOffset() {
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.inhaleProgress, 0)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.exhaleProgress, 1)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.inhaleOpacity, 0.82)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.exhaleOpacity, 1.0)
+        XCTAssertGreaterThan(RecordBreathingBottomWaveLayout.inhaleYOffset, RecordBreathingBottomWaveLayout.previousInhaleYOffset)
+        XCTAssertGreaterThan(RecordBreathingBottomWaveLayout.exhaleYOffset, RecordBreathingBottomWaveLayout.previousExhaleYOffset)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.inhaleYOffset, 30)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.exhaleYOffset, 8)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.breathingDuration, 3.2)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.repeatForeverAutoreverses)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.breathingChangesShape)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.breathingLoopsBetweenTwoStates)
+        XCTAssertTrue(RecordBreathingBottomWaveLayout.disablesBreathingForReduceMotion)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.blobScaleInhale, 0.98)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.blobScaleExhale, 1.05)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.blobInteractionScale, 0.96)
+        XCTAssertNotEqual(
+            RecordBreathingBottomWaveLayout.blobScale(progress: 0),
+            RecordBreathingBottomWaveLayout.blobScale(progress: 1)
+        )
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.reducedMotionProgress, 0.5)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.interactionProgress, 0)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.interactionOpacity, 0.45)
+        XCTAssertEqual(RecordBreathingBottomWaveLayout.interactionYOffset, 42)
+        XCTAssertGreaterThan(
+            RecordBreathingBottomWaveLayout.exhaleOpacity,
+            RecordBreathingBottomWaveLayout.inhaleOpacity
+        )
+        XCTAssertLessThan(
+            RecordBreathingBottomWaveLayout.exhaleYOffset,
+            RecordBreathingBottomWaveLayout.inhaleYOffset
+        )
+        XCTAssertGreaterThanOrEqual(RecordBreathingBottomWaveLayout.transitionDuration, 0.18)
+        XCTAssertLessThanOrEqual(RecordBreathingBottomWaveLayout.transitionDuration, 0.25)
+    }
+
+    func testReadyWaveInteractionStateControlsBreathingRecovery() {
+        XCTAssertTrue(RecordReadyWaveInteractionState.idle.isIdleBreathingActive)
+        XCTAssertTrue(RecordReadyWaveInteractionState.idle.restoresBreathing)
+        XCTAssertFalse(RecordReadyWaveInteractionState.idle.weakensWave)
+
+        XCTAssertTrue(RecordReadyWaveInteractionState.revealing.weakensWave)
+        XCTAssertFalse(RecordReadyWaveInteractionState.revealing.restoresBreathing)
+        XCTAssertTrue(RecordReadyWaveInteractionState.dragging.weakensWave)
+        XCTAssertFalse(RecordReadyWaveInteractionState.dragging.restoresBreathing)
+
+        XCTAssertFalse(RecordReadyWaveInteractionState.cancelled.weakensWave)
+        XCTAssertTrue(RecordReadyWaveInteractionState.cancelled.restoresBreathing)
+        XCTAssertFalse(RecordReadyWaveInteractionState.confirmed.weakensWave)
+        XCTAssertTrue(RecordReadyWaveInteractionState.confirmed.restoresBreathing)
     }
 
     func testReadyTapOrDimmedTapDoesNotStartWorkout() {
@@ -338,9 +511,40 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertEqual(detail.temperatureText, "26°")
         XCTAssertEqual(detail.fineDustText, "보통")
         XCTAssertEqual(detail.ultraFineDustText, "보통")
-        XCTAssertFalse(detail.hourlyForecast.isEmpty)
-        XCTAssertFalse(detail.dailyForecast.isEmpty)
+        XCTAssertFalse(detail.hourlyForecasts.isEmpty)
+        XCTAssertFalse(detail.dailyForecasts.isEmpty)
         XCTAssertTrue(detail.isFallback)
+    }
+
+    func testWeatherDetailIncludesHourlyDailyAndAirQualityFoundation() {
+        let detail = RecordWeatherDetailSnapshot.make(from: .liveClear)
+
+        XCTAssertEqual(detail.conditionIconName, RecordWeatherCondition.clear.iconName)
+        XCTAssertGreaterThanOrEqual(detail.hourlyForecasts.count, 4)
+        XCTAssertGreaterThanOrEqual(detail.dailyForecasts.count, 3)
+        XCTAssertEqual(detail.airQuality.pm10Level, .moderate)
+        XCTAssertEqual(detail.airQuality.pm25Level, .moderate)
+        XCTAssertEqual(detail.airQuality.fineDustText, "보통")
+        XCTAssertEqual(detail.airQuality.ultraFineDustText, "보통")
+    }
+
+    func testAirQualityLevelMapsOpenWeatherAQI() {
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 1), .good)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 2), .moderate)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 3), .moderate)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 4), .bad)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 5), .veryBad)
+    }
+
+    func testRecordSheetsUseSingleFixedDetentPolicy() {
+        XCTAssertTrue(RecordFixedSheetLayout.usesSingleFixedDetent)
+        XCTAssertTrue(RecordFixedSheetLayout.usesInternalScrollOnly)
+        XCTAssertGreaterThanOrEqual(RecordFixedSheetLayout.weatherHeight, 580)
+        XCTAssertLessThanOrEqual(RecordFixedSheetLayout.weatherHeight, 620)
+        XCTAssertGreaterThanOrEqual(RecordFixedSheetLayout.routeRecommendationHeight, 460)
+        XCTAssertLessThanOrEqual(RecordFixedSheetLayout.routeRecommendationHeight, 520)
+        XCTAssertGreaterThanOrEqual(RecordFixedSheetLayout.coachDetailHeight, 380)
+        XCTAssertLessThanOrEqual(RecordFixedSheetLayout.coachDetailHeight, 460)
     }
 
     func testRouteCatalogProvidesMockOptionsWithoutDirectionsBackend() {

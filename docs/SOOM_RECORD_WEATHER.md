@@ -38,9 +38,36 @@ The recommendation pill can include a short weather lead:
 - `비가 오면 짧게, 미끄럼만 조심해요 · 조깅 25분`
 - `맑지만 바람이 강해요 · Z2 40분`
 
+## Detail Sheet
+
+The Record weather sheet is fixed height and internal-scroll only. It should not expose multiple detents or allow drag expansion.
+
+The detail layout includes:
+
+- Current location label, current weather icon, temperature, condition, feels-like, and wind.
+- Air quality cards for PM10 and PM2.5.
+- Hourly forecast rows.
+- Daily forecast rows.
+- A short guide card for air quality, rain/snow/wind, or heat.
+
+Air quality uses a simple readable color system:
+
+- `좋음`: blue
+- `보통`: green
+- `나쁨`: orange
+- `매우 나쁨`: red
+
+## Provider Foundation
+
+Live detail weather uses OpenWeather foundations:
+
+- One Call API 3.0 for current, hourly, and daily weather.
+- Air Pollution API for AQI, PM10, and PM2.5.
+
+If One Call fails, SOOM keeps the fallback detail snapshot. If Air Pollution fails but weather succeeds, SOOM keeps weather detail and uses fallback air-quality values.
+
 ## Deferred
 
 - Provider selection UI.
-- Forecast instead of current conditions.
 - Weather-aware route recommendation backend.
 - Weather history stored with completed workouts.

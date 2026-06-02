@@ -182,30 +182,138 @@ struct RecordWeatherWind: Equatable {
     }
 }
 
+enum RecordAirQualityLevel: String, Equatable {
+    case good
+    case moderate
+    case bad
+    case veryBad
+
+    var label: String {
+        switch self {
+        case .good:
+            return "좋음"
+        case .moderate:
+            return "보통"
+        case .bad:
+            return "나쁨"
+        case .veryBad:
+            return "매우 나쁨"
+        }
+    }
+
+    init(openWeatherAQI: Int) {
+        switch openWeatherAQI {
+        case 1:
+            self = .good
+        case 2, 3:
+            self = .moderate
+        case 4:
+            self = .bad
+        default:
+            self = .veryBad
+        }
+    }
+}
+
+struct RecordAirQualitySnapshot: Equatable {
+    let aqi: Int?
+    let pm10: Double?
+    let pm25: Double?
+    let pm10Level: RecordAirQualityLevel
+    let pm25Level: RecordAirQualityLevel
+
+    var fineDustText: String {
+        guard let pm10 else { return pm10Level.label }
+        return "\(Int(pm10.rounded())) · \(pm10Level.label)"
+    }
+
+    var ultraFineDustText: String {
+        guard let pm25 else { return pm25Level.label }
+        return "\(Int(pm25.rounded())) · \(pm25Level.label)"
+    }
+
+    static let fallback = RecordAirQualitySnapshot(
+        aqi: nil,
+        pm10: nil,
+        pm25: nil,
+        pm10Level: .moderate,
+        pm25Level: .moderate
+    )
+}
+
+struct RecordHourlyWeather: Equatable, Identifiable {
+    let id: String
+    let timeLabel: String
+    let iconName: String
+    let temperatureCelsius: Double?
+
+    var temperatureText: String {
+        guard let temperatureCelsius else { return "--°" }
+        return "\(Int(temperatureCelsius.rounded()))°"
+    }
+}
+
+struct RecordDailyWeather: Equatable, Identifiable {
+    let id: String
+    let dayLabel: String
+    let iconName: String
+    let minTempCelsius: Double?
+    let maxTempCelsius: Double?
+    let conditionLabel: String
+
+    var rangeText: String {
+        let minText = minTempCelsius.map { "\(Int($0.rounded()))°" } ?? "--°"
+        let maxText = maxTempCelsius.map { "\(Int($0.rounded()))°" } ?? "--°"
+        return "\(minText) / \(maxText)"
+    }
+}
+
 struct RecordWeatherDetailSnapshot: Equatable {
     let locationName: String
     let temperatureText: String
     let conditionText: String
+    let conditionIconName: String
     let feelsLikeText: String
     let windText: String
-    let fineDustText: String
-    let ultraFineDustText: String
-    let hourlyForecast: [String]
-    let dailyForecast: [String]
+    let airQuality: RecordAirQualitySnapshot
+    let hourlyForecasts: [RecordHourlyWeather]
+    let dailyForecasts: [RecordDailyWeather]
+    let updatedAt: Date
     let isFallback: Bool
+
+    var fineDustText: String {
+        airQuality.fineDustText
+    }
+
+    var ultraFineDustText: String {
+        airQuality.ultraFineDustText
+    }
 
     static func make(from snapshot: RecordWeatherSnapshot) -> RecordWeatherDetailSnapshot {
         let temperature = snapshot.temperatureText
+        let hourlyForecasts = [
+            RecordHourlyWeather(id: "now", timeLabel: "지금", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
+            RecordHourlyWeather(id: "plus-1", timeLabel: "1시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
+            RecordHourlyWeather(id: "plus-2", timeLabel: "2시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
+            RecordHourlyWeather(id: "plus-3", timeLabel: "3시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius)
+        ]
+        let dailyForecasts = [
+            RecordDailyWeather(id: "today", dayLabel: "오늘", iconName: snapshot.conditionIconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 2 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 2 }, conditionLabel: snapshot.conditionText),
+            RecordDailyWeather(id: "tomorrow", dayLabel: "내일", iconName: RecordWeatherCondition.cloudy.iconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 3 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 1 }, conditionLabel: "가벼운 흐림"),
+            RecordDailyWeather(id: "plus-2", dayLabel: "모레", iconName: RecordWeatherCondition.clear.iconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 1 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 3 }, conditionLabel: "맑음")
+        ]
+
         return RecordWeatherDetailSnapshot(
             locationName: "현재 위치 근처",
             temperatureText: temperature,
             conditionText: snapshot.conditionText,
+            conditionIconName: snapshot.conditionIconName,
             feelsLikeText: temperature,
             windText: snapshot.windText ?? "바람 정보 없음",
-            fineDustText: "보통",
-            ultraFineDustText: "보통",
-            hourlyForecast: ["지금 \(temperature)", "1시간 뒤 \(temperature)", "2시간 뒤 \(temperature)", "3시간 뒤 \(temperature)"],
-            dailyForecast: ["오늘 \(snapshot.conditionText)", "내일 가벼운 흐림", "모레 맑음"],
+            airQuality: .fallback,
+            hourlyForecasts: hourlyForecasts,
+            dailyForecasts: dailyForecasts,
+            updatedAt: snapshot.observedAt,
             isFallback: snapshot.isFallback
         )
     }
@@ -213,6 +321,14 @@ struct RecordWeatherDetailSnapshot: Equatable {
 
 protocol RecordWeatherService {
     func fetchWeather(latitude: Double, longitude: Double) async throws -> RecordWeatherSnapshot
+    func fetchWeatherDetail(latitude: Double, longitude: Double) async throws -> RecordWeatherDetailSnapshot
+}
+
+extension RecordWeatherService {
+    func fetchWeatherDetail(latitude: Double, longitude: Double) async throws -> RecordWeatherDetailSnapshot {
+        let snapshot = try await fetchWeather(latitude: latitude, longitude: longitude)
+        return RecordWeatherDetailSnapshot.make(from: snapshot)
+    }
 }
 
 struct FallbackRecordWeatherService: RecordWeatherService {
@@ -224,6 +340,10 @@ struct FallbackRecordWeatherService: RecordWeatherService {
 
     func fetchWeather(latitude: Double, longitude: Double) async throws -> RecordWeatherSnapshot {
         snapshot
+    }
+
+    func fetchWeatherDetail(latitude: Double, longitude: Double) async throws -> RecordWeatherDetailSnapshot {
+        RecordWeatherDetailSnapshot.make(from: snapshot)
     }
 }
 
@@ -262,6 +382,120 @@ struct URLSessionRecordWeatherService: RecordWeatherService {
             isFallback: false
         )
     }
+
+    func fetchWeatherDetail(latitude: Double, longitude: Double) async throws -> RecordWeatherDetailSnapshot {
+        async let oneCallPayload = fetchOneCall(latitude: latitude, longitude: longitude)
+        async let airPayload = fetchAirPollution(latitude: latitude, longitude: longitude)
+
+        let payload = try await oneCallPayload
+        let airQuality = (try? await airPayload)?.airQuality ?? .fallback
+        let currentCondition = RecordWeatherCondition(openWeatherConditionId: payload.current.weather.first?.id ?? 0)
+        let snapshot = RecordWeatherSnapshot(
+            temperatureCelsius: payload.current.temp,
+            condition: currentCondition,
+            wind: payload.current.windSpeed.map(RecordWeatherWind.init(speedMps:)),
+            observedAt: Date(timeIntervalSince1970: TimeInterval(payload.current.dt)),
+            source: "openweather-one-call",
+            isFallback: false
+        )
+
+        let hourlyForecasts = payload.hourly.prefix(8).enumerated().map { index, hour in
+            RecordHourlyWeather(
+                id: "hour-\(index)-\(hour.dt)",
+                timeLabel: Self.hourLabel(from: hour.dt),
+                iconName: RecordWeatherCondition(openWeatherConditionId: hour.weather.first?.id ?? 0).iconName,
+                temperatureCelsius: hour.temp
+            )
+        }
+
+        let dailyForecasts = payload.daily.prefix(5).enumerated().map { index, day in
+            let condition = RecordWeatherCondition(openWeatherConditionId: day.weather.first?.id ?? 0)
+            return RecordDailyWeather(
+                id: "day-\(index)-\(day.dt)",
+                dayLabel: Self.dayLabel(from: day.dt, index: index),
+                iconName: condition.iconName,
+                minTempCelsius: day.temp.min,
+                maxTempCelsius: day.temp.max,
+                conditionLabel: condition.label
+            )
+        }
+
+        return RecordWeatherDetailSnapshot(
+            locationName: "현재 위치 근처",
+            temperatureText: snapshot.temperatureText,
+            conditionText: snapshot.conditionText,
+            conditionIconName: snapshot.conditionIconName,
+            feelsLikeText: payload.current.feelsLike.map { "\(Int($0.rounded()))°" } ?? snapshot.temperatureText,
+            windText: snapshot.windText ?? "바람 정보 없음",
+            airQuality: airQuality,
+            hourlyForecasts: hourlyForecasts.isEmpty ? RecordWeatherDetailSnapshot.make(from: snapshot).hourlyForecasts : hourlyForecasts,
+            dailyForecasts: dailyForecasts.isEmpty ? RecordWeatherDetailSnapshot.make(from: snapshot).dailyForecasts : dailyForecasts,
+            updatedAt: snapshot.observedAt,
+            isFallback: false
+        )
+    }
+
+    private func fetchOneCall(latitude: Double, longitude: Double) async throws -> OpenWeatherOneCallResponse {
+        var components = URLComponents(string: "https://api.openweathermap.org/data/3.0/onecall")
+        components?.queryItems = [
+            URLQueryItem(name: "lat", value: String(latitude)),
+            URLQueryItem(name: "lon", value: String(longitude)),
+            URLQueryItem(name: "appid", value: apiKey),
+            URLQueryItem(name: "units", value: "metric"),
+            URLQueryItem(name: "lang", value: "kr"),
+            URLQueryItem(name: "exclude", value: "minutely,alerts")
+        ]
+
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+
+        let (data, response) = try await session.data(from: url)
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200..<300).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(OpenWeatherOneCallResponse.self, from: data)
+    }
+
+    private func fetchAirPollution(latitude: Double, longitude: Double) async throws -> OpenWeatherAirPollutionResponse {
+        var components = URLComponents(string: "https://api.openweathermap.org/data/2.5/air_pollution")
+        components?.queryItems = [
+            URLQueryItem(name: "lat", value: String(latitude)),
+            URLQueryItem(name: "lon", value: String(longitude)),
+            URLQueryItem(name: "appid", value: apiKey)
+        ]
+
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+
+        let (data, response) = try await session.data(from: url)
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200..<300).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(OpenWeatherAirPollutionResponse.self, from: data)
+    }
+
+    private static func hourLabel(from timestamp: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH시"
+        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+    }
+
+    private static func dayLabel(from timestamp: Int, index: Int) -> String {
+        if index == 0 { return "오늘" }
+        if index == 1 { return "내일" }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "E"
+        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+    }
 }
 
 private struct OpenWeatherResponse: Decodable {
@@ -281,6 +515,113 @@ private struct OpenWeatherResponse: Decodable {
     let main: Main
     let wind: Wind?
     let dt: Int
+}
+
+private struct OpenWeatherOneCallResponse: Decodable {
+    struct Weather: Decodable {
+        let id: Int
+    }
+
+    struct Current: Decodable {
+        let dt: Int
+        let temp: Double?
+        let feelsLike: Double?
+        let windSpeed: Double?
+        let weather: [Weather]
+
+        enum CodingKeys: String, CodingKey {
+            case dt
+            case temp
+            case feelsLike = "feels_like"
+            case windSpeed = "wind_speed"
+            case weather
+        }
+    }
+
+    struct Hourly: Decodable {
+        let dt: Int
+        let temp: Double?
+        let weather: [Weather]
+    }
+
+    struct DailyTemp: Decodable {
+        let min: Double?
+        let max: Double?
+    }
+
+    struct Daily: Decodable {
+        let dt: Int
+        let temp: DailyTemp
+        let weather: [Weather]
+    }
+
+    let current: Current
+    let hourly: [Hourly]
+    let daily: [Daily]
+}
+
+private struct OpenWeatherAirPollutionResponse: Decodable {
+    struct Main: Decodable {
+        let aqi: Int
+    }
+
+    struct Components: Decodable {
+        let pm10: Double?
+        let pm25: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case pm10
+            case pm25 = "pm2_5"
+        }
+    }
+
+    struct Item: Decodable {
+        let main: Main
+        let components: Components
+    }
+
+    let list: [Item]
+
+    var airQuality: RecordAirQualitySnapshot {
+        guard let item = list.first else { return .fallback }
+        let pm10Level = Self.level(forPM10: item.components.pm10, fallbackAQI: item.main.aqi)
+        let pm25Level = Self.level(forPM25: item.components.pm25, fallbackAQI: item.main.aqi)
+        return RecordAirQualitySnapshot(
+            aqi: item.main.aqi,
+            pm10: item.components.pm10,
+            pm25: item.components.pm25,
+            pm10Level: pm10Level,
+            pm25Level: pm25Level
+        )
+    }
+
+    private static func level(forPM10 value: Double?, fallbackAQI: Int) -> RecordAirQualityLevel {
+        guard let value else { return RecordAirQualityLevel(openWeatherAQI: fallbackAQI) }
+        switch value {
+        case ..<31:
+            return .good
+        case ..<81:
+            return .moderate
+        case ..<151:
+            return .bad
+        default:
+            return .veryBad
+        }
+    }
+
+    private static func level(forPM25 value: Double?, fallbackAQI: Int) -> RecordAirQualityLevel {
+        guard let value else { return RecordAirQualityLevel(openWeatherAQI: fallbackAQI) }
+        switch value {
+        case ..<16:
+            return .good
+        case ..<36:
+            return .moderate
+        case ..<76:
+            return .bad
+        default:
+            return .veryBad
+        }
+    }
 }
 
 enum RecordWeatherServiceFactory {
@@ -607,9 +948,11 @@ enum RecordCurrentLocationMarkerStyle {
     static let fallbackDotRadius: Double = 6
     static let staticHaloRadius: Double = 14
     static let pulseStartRadius: Double = 20
-    static let pulseEndRadius: Double = 26
-    static let pulseStartOpacity: Double = 0.14
+    static let pulseEndRadius: Double = 25
+    static let pulseStartOpacity: Double = 0.13
     static let pulseDurationSeconds: TimeInterval = 1.9
+    static let fallbackStaticHaloDiameter: CGFloat = 56
+    static let anchorOffset = CGSize(width: 0, height: 0)
 
     static func pulseRadius(progress: Double) -> Double {
         pulseStartRadius + (pulseEndRadius - pulseStartRadius) * max(0, min(1, progress))
@@ -624,28 +967,177 @@ enum RecordCurrentLocationMarkerStyle {
     }
 }
 
-enum RecordMapBottomFocusGradientLayout {
-    static let defaultHeight: CGFloat = 120
-    static let focusedHeight: CGFloat = 240
-    static let defaultMiddleOpacity = 0.045
-    static let defaultBottomOpacity = 0.09
-    static let focusedMiddleOpacity = 0.18
-    static let focusedBottomOpacity = 0.30
+enum RecordBreathingBottomWaveLayout {
+    static let waveHeight: CGFloat = 360
+    static let blobWidthMultiplier: CGFloat = 2.4
+    static let blobBaseHeight: CGFloat = 620
+    static let blobFrameHeightMultiplier: CGFloat = 1.8
+    static let blobCenterYOffset: CGFloat = 270
+    static let blobEndRadiusMultiplier: CGFloat = 0.84
+    static let blobScaleInhale: CGFloat = 0.98
+    static let blobScaleExhale: CGFloat = 1.05
+    static let blobInteractionScale: CGFloat = 0.96
+    static let radialBlobOpacityStops: [(location: CGFloat, opacity: Double)] = [
+        (0.00, 1.0),
+        (0.45, 0.95),
+        (0.65, 0.55),
+        (0.82, 0.18),
+        (1.00, 0.0)
+    ]
+    static let inhaleProgress: CGFloat = 0
+    static let exhaleProgress: CGFloat = 1
+    static let reducedMotionProgress: CGFloat = 0.5
+    static let interactionProgress: CGFloat = 0
+    static let inhaleOpacity = 0.82
+    static let exhaleOpacity = 1.0
+    static let reducedMotionOpacity = 0.91
+    static let interactionOpacity = 0.45
+    static let previousInhaleYOffset: CGFloat = 22
+    static let previousExhaleYOffset: CGFloat = -4
+    static let inhaleYOffset: CGFloat = 30
+    static let exhaleYOffset: CGFloat = 8
+    static let reducedMotionYOffset: CGFloat = 20
+    static let interactionYOffset: CGFloat = 42
+    static let breathingDuration: TimeInterval = 3.2
+    static let transitionDuration: TimeInterval = 0.22
+    static let usesLegacyBottomGradient = false
+    static let usesReferenceWaveView = false
+    static let usesBottomBlobWaveView = false
+    static let usesRecordBreathingBottomWaveView = true
+    static let usesCustomProgressShape = false
+    static let usesCustomBezierWaveShape = false
+    static let usesCircleOrEllipseGeometry = false
+    static let usesRadialBlobFill = true
+    static let usesRadialGradientFill = true
+    static let usesEllipticalRadialFade = false
+    static let usesAlphaMaskFade = false
+    static let alphaMaskUsesSolidPurpleFill = false
+    static let usesOversizedRadialBlob = true
+    static let usesDirectRadialBlobGradient = true
+    static let clipsToCustomWaveShape = false
+    static let visibleShapeEdgeCanReachScreen = false
+    static let usesLinearGradientFill = false
+    static let usesBlurOverlay = false
+    static let usesSolidRectangleLayer = false
+    static let usesLinearGradientBackground = false
+    static let usesRectangularTopEdge = false
+    static let usesTopStrokeOrBorder = false
+    static let usesTopShadowOrOverlay = false
+    static let usesCustomShapeClippingEdge = false
+    static let allowsHitTesting = false
+    static let waveBottomFullyOpaque = true
+    static let waveOutsideTransparent = true
+    static let breathingLoopsBetweenTwoStates = true
+    static let breathingChangesShape = true
+    static let disablesBreathingForReduceMotion = true
+    static let repeatForeverAutoreverses = true
+
+    static func blobScale(progress: CGFloat) -> CGFloat {
+        interpolate(from: blobScaleInhale, to: blobScaleExhale, progress: progress)
+    }
+
+    static func blobHeight(for screenWidth: CGFloat) -> CGFloat {
+        max(blobBaseHeight, screenWidth * 1.32)
+    }
+
+    static func blobWidth(for screenWidth: CGFloat) -> CGFloat {
+        max(screenWidth * blobWidthMultiplier, blobHeight(for: screenWidth))
+    }
+
+    static func blobFrameHeight(for screenWidth: CGFloat) -> CGFloat {
+        blobHeight(for: screenWidth) * blobFrameHeightMultiplier
+    }
+
+    static func blobEndRadius(for screenWidth: CGFloat) -> CGFloat {
+        blobHeight(for: screenWidth) * blobEndRadiusMultiplier
+    }
+
+    static func opacity(progress: CGFloat) -> Double {
+        Double(interpolate(from: CGFloat(inhaleOpacity), to: CGFloat(exhaleOpacity), progress: progress))
+    }
+
+    static func yOffset(progress: CGFloat) -> CGFloat {
+        interpolate(from: inhaleYOffset, to: exhaleYOffset, progress: progress)
+    }
+
+    private static func interpolate(from start: CGFloat, to end: CGFloat, progress: CGFloat) -> CGFloat {
+        let clampedProgress = max(0, min(1, progress))
+        return start + (end - start) * clampedProgress
+    }
+}
+
+enum RecordReadyWaveInteractionState: CaseIterable, Equatable {
+    case idle
+    case revealing
+    case dragging
+    case confirmed
+    case cancelled
+
+    var weakensWave: Bool {
+        switch self {
+        case .revealing, .dragging:
+            return true
+        case .idle, .confirmed, .cancelled:
+            return false
+        }
+    }
+
+    var restoresBreathing: Bool {
+        switch self {
+        case .idle, .confirmed, .cancelled:
+            return true
+        case .revealing, .dragging:
+            return false
+        }
+    }
+
+    var isIdleBreathingActive: Bool {
+        self == .idle
+    }
 }
 
 enum RecordReadyLaunchVisualLayout {
+    static let coordinateSpaceName = "record-ready-launch-control"
     static let containerHeight: CGFloat = 214
-    static let buttonDiameter: CGFloat = 80
-    static let buttonCenterBottomOffset: CGFloat = 54
+    static let buttonDiameter: CGFloat = 104
+    static let interactiveHitDiameter: CGFloat = buttonDiameter
+    static let maxInteractiveHitDiameter: CGFloat = 112
+    static let usesCircleContentShape = true
+    static let attachesGestureToButtonOnly = true
+    static let containerUsesRectangularContentShape = false
+    static let decorativeLayersAllowHitTesting = false
+    static let buttonCenterBottomOffset: CGFloat = 80
+    static let previousButtonCenterBottomOffset: CGFloat = 54
     static let bottomPaddingExtra: CGFloat = 10
-    static let iconSize: CGFloat = 18
-    static let readyFontSize: CGFloat = 13
-    static let hintFontSize: CGFloat = 7
-    static let defaultShadowOpacity = 0.10
-    static let focusedShadowOpacity = 0.16
-    static let defaultShadowRadius: CGFloat = 8
-    static let focusedShadowRadius: CGFloat = 10
-    static let shadowYOffset: CGFloat = 7
+    static let primaryIconName = "play.fill"
+    static let primaryLabel = ""
+    static let playIconSize: CGFloat = 34
+    static let usesBlackSurface = true
+    static let hidesSportIconInButton = true
+    static let hidesReadyText = true
+    static let hidesStartHintInButton = true
+    static let defaultShadowOpacity = 0.18
+    static let focusedShadowOpacity = 0.08
+    static let defaultShadowRadius: CGFloat = 12
+    static let focusedShadowRadius: CGFloat = 7
+    static let shadowYOffset: CGFloat = 8
+    static let hasBreathingRing = true
+    static let ringMinScale: CGFloat = 1.0
+    static let ringMaxScale: CGFloat = 1.06
+    static let ringMinOpacity = 0.22
+    static let ringMaxOpacity = 0.38
+    static let focusedRingOpacity = 0.12
+    static let ringLineWidth: CGFloat = 1.35
+    static let ringDuration: TimeInterval = 3.25
+    static let disablesRingBreathingForReduceMotion = true
+}
+
+enum RecordFixedSheetLayout {
+    static let weatherHeight: CGFloat = 600
+    static let routeRecommendationHeight: CGFloat = 500
+    static let coachDetailHeight: CGFloat = 420
+    static let usesSingleFixedDetent = true
+    static let usesInternalScrollOnly = true
 }
 
 struct RecordReadyRadialItem: Equatable {
@@ -665,11 +1157,21 @@ enum RecordReadyRadialHapticEvent: Equatable {
 enum RecordReadyRadialLayout {
     static let radius: CGFloat = 106
     static let hitRadius: CGFloat = 42
+    static let touchRevealMinimumDistance: CGFloat = 0
+    static let sportIconInitialScale: CGFloat = 0.30
+    static let sportIconFinalScale: CGFloat = 1.0
+    static let hoveredScale: CGFloat = 1.14
 
     static let sportAngles: [RecordSportMode: Double] = [
         .cycling: 150,
         .running: 90,
         .walking: 30
+    ]
+
+    static let revealDelays: [RecordSportMode: Double] = [
+        .cycling: 0.00,
+        .running: 0.05,
+        .walking: 0.10
     ]
 
     static func items(center: CGPoint, radius: CGFloat = Self.radius) -> [RecordReadyRadialItem] {
@@ -719,9 +1221,24 @@ enum RecordReadyRadialLayout {
     static func isAboveReadyCenter(item: RecordReadyRadialItem, readyCenter: CGPoint) -> Bool {
         item.center.y < readyCenter.y
     }
+
+    static func displayCenter(for item: RecordReadyRadialItem, readyCenter: CGPoint, isRevealed: Bool) -> CGPoint {
+        isRevealed ? item.center : readyCenter
+    }
 }
 
 enum RecordReadyRadialInteraction {
+    static func isTouchInsideReadyButton(
+        location: CGPoint,
+        readyCenter: CGPoint,
+        hitDiameter: CGFloat = RecordReadyLaunchVisualLayout.interactiveHitDiameter
+    ) -> Bool {
+        let dx = location.x - readyCenter.x
+        let dy = location.y - readyCenter.y
+        let distance = hypot(dx, dy)
+        return distance <= hitDiameter / 2
+    }
+
     static func begin() -> [RecordReadyRadialHapticEvent] {
         [.longPressStarted, .menuRevealed]
     }

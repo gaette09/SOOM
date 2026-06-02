@@ -197,6 +197,25 @@ final class RecordMapFoundationTests: XCTestCase {
         XCTAssertTrue(items.allSatisfy { RecordReadyRadialLayout.isAboveReadyCenter(item: $0, readyCenter: readyCenter) })
     }
 
+    func testReadyTouchDownRevealsIconsFromReadyCenter() {
+        let readyCenter = CGPoint(x: 180, y: 220)
+        let items = RecordReadyRadialLayout.items(center: readyCenter)
+
+        XCTAssertEqual(RecordReadyRadialLayout.touchRevealMinimumDistance, 0)
+        XCTAssertEqual(RecordReadyRadialLayout.sportIconInitialScale, 0.30)
+        XCTAssertEqual(RecordReadyRadialLayout.sportIconFinalScale, 1.0)
+        XCTAssertEqual(RecordReadyRadialLayout.displayCenter(for: items[0], readyCenter: readyCenter, isRevealed: false), readyCenter)
+        XCTAssertEqual(RecordReadyRadialLayout.displayCenter(for: items[0], readyCenter: readyCenter, isRevealed: true), items[0].center)
+    }
+
+    func testReadySportIconRevealUsesStaggerAndHoverScale() {
+        XCTAssertEqual(RecordReadyRadialLayout.revealDelays[.cycling], 0.00)
+        XCTAssertEqual(RecordReadyRadialLayout.revealDelays[.running], 0.05)
+        XCTAssertEqual(RecordReadyRadialLayout.revealDelays[.walking], 0.10)
+        XCTAssertGreaterThanOrEqual(RecordReadyRadialLayout.hoveredScale, 1.12)
+        XCTAssertLessThanOrEqual(RecordReadyRadialLayout.hoveredScale, 1.16)
+    }
+
     func testReadyRadialHoverSelectionUsesUpperSportTargets() {
         let readyCenter = CGPoint(x: 180, y: 220)
         let items = RecordReadyRadialLayout.items(center: readyCenter)
@@ -258,5 +277,15 @@ final class RecordMapFoundationTests: XCTestCase {
             RecordCurrentLocationMarkerStyle.pulseOpacity(progress: 1)
         )
         XCTAssertEqual(RecordCurrentLocationMarkerStyle.pulseOpacity(progress: 1), 0)
+    }
+
+    func testCurrentLocationMarkerIsCenterAnchored() {
+        XCTAssertEqual(RecordCurrentLocationMarkerStyle.anchorOffset.width, 0)
+        XCTAssertEqual(RecordCurrentLocationMarkerStyle.anchorOffset.height, 0)
+        XCTAssertEqual(
+            RecordCurrentLocationMarkerStyle.pulseRadius(progress: 0.5),
+            RecordCurrentLocationMarkerStyle.pulseStartRadius
+                + (RecordCurrentLocationMarkerStyle.pulseEndRadius - RecordCurrentLocationMarkerStyle.pulseStartRadius) * 0.5
+        )
     }
 }

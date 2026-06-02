@@ -173,12 +173,10 @@ private struct FloatingRecoveryCoach: View {
     @State private var didScheduleInitialPreview = false
     @State private var typedCoachMessage = ""
     @State private var typingTask: Task<Void, Never>?
-    @State private var selectedSheetDetent: PresentationDetent = .height(368)
     @State private var isDetailExpanded = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let compactSheetDetent: PresentationDetent = .height(368)
-    private static let expandedSheetDetent: PresentationDetent = .fraction(0.70)
+    private static let fixedSheetDetent: PresentationDetent = .height(RecordFixedSheetLayout.coachDetailHeight)
 
     private var summary: RecoverySummary {
         .mockToday
@@ -189,7 +187,7 @@ private struct FloatingRecoveryCoach: View {
     }
 
     private var sheetDetents: Set<PresentationDetent> {
-        [Self.compactSheetDetent, Self.expandedSheetDetent]
+        [Self.fixedSheetDetent]
     }
 
     private var isDismissed: Bool {
@@ -219,8 +217,8 @@ private struct FloatingRecoveryCoach: View {
             }
             .sheet(isPresented: $isExpanded) {
                 coachSheet
-                    .presentationDetents(sheetDetents, selection: $selectedSheetDetent)
-                    .presentationDragIndicator(.visible)
+                    .presentationDetents(sheetDetents)
+                    .presentationDragIndicator(.hidden)
             }
             .animation(reduceMotion ? nil : SOOMMotion.coachSpring, value: isPreviewVisible)
             .animation(reduceMotion ? nil : SOOMMotion.coachSpring, value: isDismissed)
@@ -276,7 +274,6 @@ private struct FloatingRecoveryCoach: View {
         Button {
             collapsePreview()
             SOOMHaptics.softImpact()
-            selectedSheetDetent = Self.compactSheetDetent
             isDetailExpanded = false
             isExpanded = true
         } label: {
@@ -453,7 +450,6 @@ private struct FloatingRecoveryCoach: View {
         .onDisappear {
             stopTypingCoachMessage(reset: true)
             isDetailExpanded = false
-            selectedSheetDetent = Self.compactSheetDetent
         }
     }
 
@@ -505,7 +501,6 @@ private struct FloatingRecoveryCoach: View {
             SOOMHaptics.softImpact()
             withAnimation(reduceMotion ? nil : SOOMMotion.coachSpring) {
                 isDetailExpanded = true
-                selectedSheetDetent = Self.expandedSheetDetent
             }
         } label: {
             Text(isDetailExpanded ? "자세히 보는 중" : "자세히 보기")
