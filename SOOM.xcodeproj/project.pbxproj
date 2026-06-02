@@ -29,6 +29,7 @@
 		010517 /* RecordWorkoutSaveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020517 /* RecordWorkoutSaveFlow.swift */; };
 		010014 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020014 /* FeedView.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
+		010524 /* ClubDomainFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020524 /* ClubDomainFoundation.swift */; };
 		010016 /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020016 /* DetailViews.swift */; };
 		010017 /* GmarketSansTTFMedium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020019 /* GmarketSansTTFMedium.ttf */; };
 		010018 /* GmarketSansTTFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 020020 /* GmarketSansTTFBold.ttf */; };
@@ -348,6 +349,7 @@
 		010324 /* WorkoutSplitInsightBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020324 /* WorkoutSplitInsightBuilderTests.swift */; };
 		010325 /* WorkoutDetailSectionGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020325 /* WorkoutDetailSectionGroup.swift */; };
 		010326 /* WorkoutDetailSectionGroupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020326 /* WorkoutDetailSectionGroupTests.swift */; };
+		010525 /* ClubDomainFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020525 /* ClubDomainFoundationTests.swift */; };
 		010327 /* WorkoutSplitMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020327 /* WorkoutSplitMetric.swift */; };
 		010328 /* WorkoutSplitStreamBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020328 /* WorkoutSplitStreamBuilder.swift */; };
 		010329 /* WorkoutSplitDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020329 /* WorkoutSplitDataProvider.swift */; };
@@ -485,6 +487,7 @@
 		020517 /* RecordWorkoutSaveFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSaveFlow.swift; sourceTree = "<group>"; };
 		020014 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
+		020524 /* ClubDomainFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDomainFoundation.swift; sourceTree = "<group>"; };
 		020016 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
 		020017 /* SOOM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SOOM.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		020018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -805,6 +808,7 @@
 		020324 /* WorkoutSplitInsightBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitInsightBuilderTests.swift; sourceTree = "<group>"; };
 		020325 /* WorkoutDetailSectionGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailSectionGroup.swift; sourceTree = "<group>"; };
 		020326 /* WorkoutDetailSectionGroupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailSectionGroupTests.swift; sourceTree = "<group>"; };
+		020525 /* ClubDomainFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDomainFoundationTests.swift; sourceTree = "<group>"; };
 		020327 /* WorkoutSplitMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitMetric.swift; sourceTree = "<group>"; };
 		020328 /* WorkoutSplitStreamBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilder.swift; sourceTree = "<group>"; };
 		020329 /* WorkoutSplitDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProvider.swift; sourceTree = "<group>"; };
@@ -1261,6 +1265,7 @@
 			isa = PBXGroup;
 			children = (
 				020015 /* ClubsView.swift */,
+				020524 /* ClubDomainFoundation.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -1551,6 +1556,7 @@
 				020330 /* WorkoutSplitStreamBuilderTests.swift */,
 				020331 /* WorkoutSplitDataProviderTests.swift */,
 				020326 /* WorkoutDetailSectionGroupTests.swift */,
+				020525 /* ClubDomainFoundationTests.swift */,
 				020269 /* WorkoutRouteTests.swift */,
 				020270 /* WorkoutZoneBuilderTests.swift */,
 				020289 /* WorkoutZoneSectionTests.swift */,
@@ -1780,6 +1786,7 @@
 				010521 /* FeedShareDraftStore.swift in Sources */,
 				010014 /* FeedView.swift in Sources */,
 				010015 /* ClubsView.swift in Sources */,
+				010524 /* ClubDomainFoundation.swift in Sources */,
 				010016 /* DetailViews.swift in Sources */,
 				010021 /* WorkoutMapSheetScaffold.swift in Sources */,
 				010033 /* WorkoutSheetState.swift in Sources */,
@@ -2110,6 +2117,7 @@
 				010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */,
 				010331 /* WorkoutSplitDataProviderTests.swift in Sources */,
 				010326 /* WorkoutDetailSectionGroupTests.swift in Sources */,
+				010525 /* ClubDomainFoundationTests.swift in Sources */,
 				010268 /* WorkoutRouteTests.swift in Sources */,
 				010269 /* WorkoutZoneBuilderTests.swift in Sources */,
 				010289 /* WorkoutZoneSectionTests.swift in Sources */,

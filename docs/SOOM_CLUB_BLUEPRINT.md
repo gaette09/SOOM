@@ -203,6 +203,42 @@ Rules:
 - Ranking should feel competitive but not hostile.
 - Avoid exaggerated winner language.
 
+## Club Motivation Layer
+
+Club Detail should not stop at "where am I ranked?" It should also answer "why should I stay here this week?"
+
+The local-first domain layer includes `ClubMotivationSummary`:
+
+- current rank
+- previous rank
+- rank delta
+- weekly contribution distance and count
+- contribution percent toward the club goal
+- next rank target
+- active members this week
+- new badges this week
+- completed challenges this week
+- club goal progress
+- one short motivation line
+
+Presentation rules:
+
+- Show rank movement as a calm cue, not a shame mechanic.
+- Show contribution as belonging: "I helped fill this club goal."
+- Show the next achievable step, such as "11위까지 3.4km".
+- Keep the motivation layer compact and close to the hero/ranking area.
+- If rank drops or is unavailable, use language such as "이번 주는 숨 고르는 중" or "첫 기여를 시작해보세요".
+- Motivation summaries are local-first in v1. Supabase persistence and real ranking algorithms are deferred.
+
+Next Goal Card:
+
+- Appears near ranking.
+- Converts the selected ranking metric into a small next action.
+- Distance ranking may use remaining kilometers.
+- Workout count may use one more session.
+- Consistency may use one more day or score step.
+- The card should feel achievable, never punitive.
+
 ## Club Challenge
 
 Purpose:
@@ -218,6 +254,9 @@ Challenge types:
 Rules:
 
 - Use progress bars and contribution cues.
+- Every challenge card should show a remaining action label.
+- Examples: "2회 운동 남음", "12.4km 남음", "3일 더 유지", "목표 달성까지 27%".
+- Pair progress with one next action line so the user sees what to do next, not only how far the bar has moved.
 - Show what one more workout would add.
 - Default to opt-in or low-pressure participation.
 - Avoid making recovery-friendly users feel behind.
@@ -297,26 +336,33 @@ Avoid:
 - Notification overload
 - Leaderboard shame
 
-## Mock Foundation v1
+## Local-first Domain Foundation v1
 
-v1 can use mock data:
+v1 now uses local-first domain data instead of view-local mock arrays. The UI still renders a mock-like product surface, but data flows through Club domain models and a service boundary.
 
-- Mock club home
-- Mock joined clubs
-- Mock created clubs
-- Mock recommended clubs
-- Mock weekly rank
-- Mock contribution distance
-- Mock challenge progress
-- Mock badge states
-- Mock activity pulse
+Domain objects:
+
+- `Club`
+- `ClubMember`
+- `ClubChallenge`
+- `ClubRankingEntry`
+- `ClubBadge`
+- `ClubDetail`
+- `ClubDirectorySnapshot`
+
+Service boundary:
+
+- `ClubService` owns directory, detail, create, join, leave, ranking, and challenge fetch operations.
+- `InMemoryClubService` is the v1 implementation.
+- `ClubsViewModel` is the UI-facing store.
+- Supabase schema, remote writes, invite graph, and durable persistence are deferred.
 
 The Club tab UI foundation should render the blueprint as a real product surface even before backend support:
 
 1. Club Home
    - my clubs, created clubs, joined clubs, recommended clubs, and create club entry
    - club cards show sport, member count, current user's weekly rank when joined, and goal progress
-   - recommended clubs are preview-only in v1
+   - recommended clubs can open detail and can be joined locally in v1
 2. Selected Club Detail
    - the dashboard opens only after the user taps a club
    - each mock club can have different ranking, challenge, badge, and pulse data
@@ -350,15 +396,21 @@ The empty state should say that the user has no club yet, show recommended clubs
 Create club v1:
 
 - The entry exists from Club Home.
+- Name, purpose, sport focus, and visibility are captured as `ClubCreateInput`.
 - Backend creation is deferred.
-- Placeholder copy should say: "Club creation is coming soon."
+- The local service adds the created club to `createdClubs` for the current session.
+
+Join/leave v1:
+
+- Recommended clubs can be joined locally.
+- Joined clubs can be left locally unless they are owned clubs.
+- Member count and membership state update in memory only.
 
 Deferred:
 
 - Real club backend
-- Real club creation
 - Invite/member management
-- Real join/leave/manage actions
+- Durable join/leave/manage actions
 - Real rank calculation
 - Badge engine
 - Challenge persistence

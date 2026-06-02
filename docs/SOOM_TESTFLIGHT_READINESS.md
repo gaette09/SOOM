@@ -336,6 +336,19 @@ Before TestFlight review, run the local-first draft path on simulator and one de
 - Confirm drafts do not expose Recovery score, Recovery Coach guidance, or readiness/fatigue advice.
 - Confirm no Supabase network write is expected for this v1 flow.
 
+## Club Local-first QA
+
+Before TestFlight review, verify the Club domain foundation stays local-first:
+
+- Club Home loads joined, created, and recommended clubs from `InMemoryClubService`.
+- Opening a club shows rankings, challenges, badges, members, and pulse scoped to that club.
+- Joining a recommended club updates membership state and moves it into joined clubs for the current session.
+- Creating a club captures name, purpose, sport focus, and visibility, then adds it to created clubs locally.
+- Club Detail shows local motivation state: rank movement, contribution percent, next goal, pulse, and challenge remaining action.
+- Verify ranking motivation is scoped inside the selected club and does not read like a global leaderboard.
+- No Supabase Club schema or remote write is expected in v1.
+- Recovery score/private coach guidance is not used for Club rankings by default.
+
 ## Validation Log
 
 ### 2026-05-27

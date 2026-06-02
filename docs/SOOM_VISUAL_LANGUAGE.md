@@ -292,6 +292,10 @@ Club is SOOM's online belonging and contribution space:
 - Club Detail hierarchy is identity -> visual status -> members -> ranking -> challenges -> badges -> pulse.
 - Club Detail must explain identity before ranking, but the explanation should be compact: one intro, one short purpose line, mood tags, rule chips, and member preview.
 - Favor graphs over explanatory copy. Club goal, weekly activity, contribution, challenges, and rank position should be shown with rings, bars, stat tiles, avatar cards, and progress cards before paragraphs.
+- Club Detail should include a motivation layer: rank movement, personal contribution, next achievable goal, and challenge remaining action.
+- Motivation copy should answer "why stay in this club this week?" through belonging and next action, not pressure.
+- Show the next step near ranking, such as `11위까지 3.4km`, but avoid shame language when rank drops or is unavailable.
+- Challenge cards should show what remains, not only a progress bar.
 - Member previews should show roles such as owner, top ranked, consistency leader, recent member, or similar pace; avoid turning this into a full directory in v1.
 - Purpose and rules should make competition feel bounded and fair before showing the leaderboard, using check cards or compact rule chips instead of long bullet lists.
 - Ranking copy must name or imply the selected club scope, such as "SOOM Riders 내 이번 주 랭킹"; avoid global leaderboard language in v1.

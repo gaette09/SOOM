@@ -766,6 +766,44 @@ Principles:
 - Recovery Coach guidance remains private and does not appear in public/draft feed payloads.
 - Editing, photo attachment, visibility selection, and Supabase publish are future steps.
 
+## Club Domain Foundation
+
+Club is an online belonging, ranking, badge, and challenge space. It now has a local-first domain boundary so the UI no longer owns raw mock arrays.
+
+Structure:
+
+- Club Home shows joined, created, and recommended clubs.
+- Club Detail shows identity, member preview, scoped rankings, challenges, badges, and activity pulse for the selected club only.
+- `ClubService` is the future backend seam for directory/detail/create/join/leave/ranking/challenge operations.
+- `InMemoryClubService` keeps v1 local and session-scoped.
+
+Boundaries:
+
+- Supabase Club schema and remote writes are deferred.
+- Ranking algorithms are deferred; v1 uses scoped local data.
+- Club contribution must remain separate from Feed publishing and private recovery guidance.
+
+## Club Motivation Layer
+
+Club Detail should show why the user should stay active inside a selected club, not only the leaderboard.
+
+The v1 motivation layer adds:
+
+- rank movement from previous week to current week
+- weekly personal contribution
+- contribution percent toward the club goal
+- the next achievable rank/action
+- active member, badge, challenge, and goal pulse
+- challenge remaining action copy
+
+IA rule:
+
+- Club Home remains a club directory.
+- Club Detail owns motivation, ranking, challenge, badge, and pulse.
+- Ranking remains scoped to the selected club.
+- Motivation language should create belonging and next action, not shame.
+- Supabase Club schema, remote writes, and actual ranking algorithms remain deferred.
+
 ## Current UX Completion Estimate
 
 Current UX completion: 68%.
