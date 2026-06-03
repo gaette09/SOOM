@@ -429,7 +429,7 @@ private struct ActivityDetailSummaryCard: View {
 
     private var summaryMetrics: [ActivityDetailMetric] {
         var metrics = [
-            ActivityDetailMetric(label: "거리", value: workout.distanceMeters > 0 ? workout.formattedDistance : "기록 없음"),
+            ActivityDetailMetric(label: "거리", value: ActivityDetailDistanceCopy.value(distanceMeters: workout.distanceMeters, formattedDistance: workout.formattedDistance)),
             ActivityDetailMetric(label: "시간", value: workout.formattedDuration),
             ActivityDetailMetric(label: workout.sport == .bike ? "평균 속도" : "평균 페이스", value: workout.formattedPace)
         ]
@@ -672,10 +672,10 @@ private struct ShareCardComposer: View {
 
         switch target {
         case .instagramStory:
-            shareTargetMessage = "iOS 공유 화면에서 Instagram을 선택하세요."
+            shareTargetMessage = ShareTarget.instagramStory.helperText
             share(card)
         case .saveImage:
-            shareTargetMessage = "Save Image는 iOS 공유 시트의 이미지 저장 액션을 사용해요."
+            shareTargetMessage = ShareTarget.saveImage.helperText
             share(card)
         case .more:
             share(card)
@@ -849,7 +849,7 @@ private struct ShareBackgroundToggle: View {
     var body: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                SOOMSectionHeader("배경", caption: "투명은 preview에서만 checkerboard로 표시돼요.")
+                SOOMSectionHeader("배경", caption: "투명 이미지는 앱에 따라 배경이 다르게 보일 수 있어요.")
 
                 HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
                     ForEach(ShareCardBackgroundOption.allCases) { option in
@@ -999,6 +999,12 @@ private struct ActivityDetailMetric: Identifiable {
     let id = UUID()
     let label: String
     let value: String
+}
+
+enum ActivityDetailDistanceCopy {
+    static func value(distanceMeters: Double, formattedDistance: String) -> String {
+        distanceMeters > 0 ? formattedDistance : "거리 준비 중"
+    }
 }
 
 private struct WorkoutDetailSectionContainer<Content: View>: View {

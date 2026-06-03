@@ -34,8 +34,8 @@ final class ShareableWeeklyProgressCardBuilderTests: XCTestCase {
     func testInsufficientDataBuildsSafeShareCopy() {
         let card = builder.build(progress: insufficientProgress)
 
-        XCTAssertEqual(card.totalDistanceText, "거리 기록 없음")
-        XCTAssertEqual(card.totalDurationText, "시간 기록 없음")
+        XCTAssertEqual(card.totalDistanceText, "거리 준비 중")
+        XCTAssertEqual(card.totalDurationText, "시간 준비 중")
         XCTAssertEqual(card.workoutCountText, "0회")
         XCTAssertTrue(card.progressMessage.contains("기록"))
         XCTAssertFalse(card.motivationText.isEmpty)

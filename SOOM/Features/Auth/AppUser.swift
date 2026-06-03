@@ -16,9 +16,9 @@ enum AuthProvider: String, Codable, Equatable, CaseIterable {
         case .google:
             return "Google 로그인"
         case .supabase:
-            return "Supabase 계정"
+            return "원격 계정"
         case .supabaseFuture:
-            return "Supabase 연결 예정"
+            return "계정 연결 준비 중"
         }
     }
 }

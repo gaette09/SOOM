@@ -207,7 +207,7 @@ struct ProfileWorkoutAggregator {
                 representativeBadgeID: representativeBadgeID(for: aggregate),
                 representativeSport: representativeSportStatText(for: aggregate),
                 activeDays: aggregate.activeDays > 0 ? "\(aggregate.activeDays)일 움직임" : "0일",
-                totalDistance: distanceText(aggregate.totalDistanceMeters),
+                totalDistance: heroDistanceText(for: aggregate),
                 monthlyState: aggregate.recent90DayWorkoutCount > 0 ? "최근 90일 \(aggregate.recent90DayWorkoutCount)회" : "리듬 준비 중"
             ),
             patterns: patterns.enumerated().map { index, pattern in
@@ -255,6 +255,14 @@ struct ProfileWorkoutAggregator {
         default:
             return primarySport.profileTitle
         }
+    }
+
+    private func heroDistanceText(for aggregate: ProfileWorkoutAggregate) -> String {
+        if aggregate.workoutCount > 0 && aggregate.totalDistanceMeters <= 0 {
+            return "거리 준비 중"
+        }
+
+        return distanceText(aggregate.totalDistanceMeters)
     }
 
     private func badges(from aggregate: ProfileWorkoutAggregate) -> [ProfileIdentitySystem.Badge] {

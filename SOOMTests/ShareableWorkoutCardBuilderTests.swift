@@ -190,6 +190,8 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertTrue(ShareTarget.instagramStory.usesSystemShareSheet)
         XCTAssertTrue(ShareTarget.saveImage.usesSystemShareSheet)
         XCTAssertTrue(ShareTarget.more.usesSystemShareSheet)
+        XCTAssertEqual(ShareTarget.instagramStory.helperText, "공유 화면에서 Instagram을 선택하세요.")
+        XCTAssertFalse(ShareTarget.instagramStory.helperText.contains("Story"))
     }
 
     func testShareCardOptionLabelsUseUserFacingCardCopy() {

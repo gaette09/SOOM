@@ -1094,8 +1094,8 @@ struct RecordView: View {
                         summaryPill(title: "시작", value: timeText(summary.startedAt))
                         summaryPill(title: "종료", value: timeText(summary.endedAt))
                         summaryPill(
-                            title: "Route",
-                            value: summary.capturedRoute ? "경로 저장" : "없음"
+                            title: "경로",
+                            value: summary.capturedRoute ? "경로 저장" : "시간 기록"
                         )
                         summaryPill(
                             title: "거리",

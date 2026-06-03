@@ -126,7 +126,7 @@ struct ShareableWorkoutCardBuilder {
 
     private func distanceText(from input: WorkoutGrowthInput) -> String {
         guard let distanceKm = input.distanceKm, distanceKm > 0 else {
-            return "거리 기록 없음"
+            return "거리 준비 중"
         }
 
         return String(format: "%.2f km", distanceKm)

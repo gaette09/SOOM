@@ -32,13 +32,13 @@ struct ShareableWeeklyProgressCardBuilder {
     }
 
     private func distanceText(_ distanceKm: Double) -> String {
-        guard distanceKm > 0 else { return "거리 기록 없음" }
+        guard distanceKm > 0 else { return "거리 준비 중" }
         return String(format: "%.1f km", distanceKm)
     }
 
     private func durationText(_ durationMinutes: Int) -> String {
         let minutes = max(durationMinutes, 0)
-        guard minutes > 0 else { return "시간 기록 없음" }
+        guard minutes > 0 else { return "시간 준비 중" }
 
         if minutes >= 60 {
             let hours = minutes / 60

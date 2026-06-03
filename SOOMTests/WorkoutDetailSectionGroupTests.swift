@@ -26,6 +26,11 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
     func testGroupsAreFutureReadyWithoutEnablingCollapse() {
         XCTAssertTrue(WorkoutDetailSectionGroup.ordered.allSatisfy { !$0.isCollapsibleReady })
     }
+
+    func testActivityDetailDistanceCopyAvoidsZeroKilometerPlaceholder() {
+        XCTAssertEqual(ActivityDetailDistanceCopy.value(distanceMeters: 0, formattedDistance: "0.0 km"), "거리 준비 중")
+        XCTAssertEqual(ActivityDetailDistanceCopy.value(distanceMeters: 1_240, formattedDistance: "1.2 km"), "1.2 km")
+    }
 }
 
 final class ClubUIFoundationTests: XCTestCase {

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ClubsView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var clubViewModel: ClubsViewModel
     @State private var isCreateSheetPresented = false
 
@@ -64,7 +65,12 @@ struct ClubsView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task {
+        .task(id: authViewModel.session.currentUser?.id) {
+            clubViewModel.configure(service: ClubServiceResolver.makeDefaultService(
+                currentUserID: authViewModel.session.currentUser?.authProvider == .supabase
+                    ? authViewModel.session.currentUser?.id
+                    : nil
+            ))
             await clubViewModel.loadDirectory()
         }
         .sheet(isPresented: $isCreateSheetPresented) {
@@ -150,7 +156,7 @@ private struct ClubDashboardDetailView: View {
             Task {
                 await viewModel.joinClub(clubId: clubId)
             }
-        case .joined, .owned:
+        case .joined, .owned, .admin:
             isMembershipSheetPresented = true
         }
     }
@@ -616,7 +622,7 @@ private struct ClubWeeklyRankingSection: View {
 
     var body: some View {
         SOOMCard {
-            SOOMSectionHeader("\(clubName) 내 이번 주 랭킹", caption: "내 위치: \(motivationSummary.currentRank)위 · \(motivationSummary.nextGoalText)")
+            SOOMSectionHeader("\(clubName) 내 이번 주 랭킹", caption: rankingCaption)
 
             HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
                 ForEach(ClubRankingCategory.allCases) { category in
@@ -644,6 +650,14 @@ private struct ClubWeeklyRankingSection: View {
             }
         }
     }
+
+    private var rankingCaption: String {
+        guard motivationSummary.currentRank > 0 else {
+            return "첫 기여가 생기면 내 위치가 만들어져요."
+        }
+
+        return "내 위치: \(motivationSummary.currentRank)위 · \(motivationSummary.nextGoalText)"
+    }
 }
 
 private struct ClubNextGoalCard: View {
@@ -651,9 +665,13 @@ private struct ClubNextGoalCard: View {
     let rankingCategory: ClubRankingCategory
 
     private var nextActionText: String {
+        if summary.currentRank <= 1 && summary.weeklyContributionDistance > 0 {
+            return "오늘은 무리해서 올리기보다 지금의 기준을 유지해도 좋아요."
+        }
+
         switch rankingCategory {
         case .distance:
-            if let distance = summary.nextRankTargetDistance {
+            if let distance = summary.nextRankTargetDistance, distance > 0 {
                 return "오늘 20분만 더 움직이면 \(String(format: "%.1f", distance))km만큼 가까워져요."
             }
             return "첫 거리를 쌓으면 클럽 안 내 위치가 생겨요."
@@ -1045,7 +1063,7 @@ private struct ClubCreateSheet: View {
                 onCreate(input)
                 dismiss()
             } label: {
-                Text("local 클럽 만들기")
+                Text("클럽 만들기")
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
@@ -1093,18 +1111,18 @@ private struct ClubMembershipPlaceholderSheet: View {
                 Text(state.placeholderTitle)
                     .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
                     .foregroundStyle(SOOMColor.ink)
-                Text("클럽 상태는 이 기기에 저장돼요. 초대와 세부 관리는 곧 더 자세히 연결됩니다.")
+                Text("클럽 상태와 세부 관리는 곧 더 자세히 연결됩니다.")
                     .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if state == .joined, let onLeave {
+            if (state == .joined || state == .admin), let onLeave {
                 Button {
                     onLeave()
                     dismiss()
                 } label: {
-                    Text("local에서 탈퇴")
+                    Text("클럽 나가기")
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.accent)
                         .frame(maxWidth: .infinity)

@@ -41,7 +41,7 @@ final class SupabaseAppUserMapperTests: XCTestCase {
         let user = mapper.map(snapshot: snapshot)
 
         XCTAssertEqual(user?.id, userId)
-        XCTAssertEqual(user?.displayName, "Supabase 55555555")
+        XCTAssertEqual(user?.displayName, "SOOM 55555555")
         XCTAssertNil(user?.email)
         XCTAssertEqual(user?.authProvider, .supabase)
     }

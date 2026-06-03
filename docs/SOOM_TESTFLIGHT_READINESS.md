@@ -379,6 +379,80 @@ Deferred for the next sprint:
 - Production GPS smoothing, background tracking, and remote route sync.
 - Full badge engine and signature route aggregation from persisted route identities.
 
+## TestFlight Readiness Pass v2
+
+This pass focuses on reducing beta-user friction rather than adding major features.
+
+User-facing copy guard:
+
+- Product UI should not expose engineering words such as `mock`, `fallback`, `placeholder`, `sample`, `demo`, `foundation`, `local-only`, `backend`, `deferred`, `debug`, `Supabase`, `API 없음`, or `Directions 없음`.
+- Technical terms may remain in DEBUG logs, tests, internal type names, and engineering docs.
+- User copy should use SOOM product language: rhythm, breath, 기준, 유지, 준비 중, and calm local-first state language.
+
+Share real-device QA:
+
+- `Instagram으로 공유` uses the system share sheet. It should not imply a direct Instagram Story API integration.
+- Helper copy should say: "공유 화면에서 Instagram을 선택하세요."
+- `Copy Link` remains hidden until a public URL backend exists.
+- Transparent card QA must verify that the preview communicates transparency, while exported images do not include checkerboard or preview-only chips.
+- Transparent images can appear differently depending on the receiving app; help text should set that expectation.
+
+Record QA:
+
+- READY tap must not start a workout.
+- Long press, drag to a sport, and release on the hovered sport is the only start path.
+- Release without a hovered sport cancels and returns the breathing wave to idle animation.
+- Location denied or unavailable should still allow time-only save.
+- Time-only summaries should read as time-focused records, not `0km` failures.
+- Weather retry should work after a failed request when the user taps weather/current-location again.
+- Route/distance persistence should save route only when at least two foreground coordinates exist.
+
+Activity and Profile QA:
+
+- Activity Detail should show `거리 준비 중` for distance-less workouts instead of `0km` or a broken placeholder.
+- Route badges and route-first views should appear only when a saved route exists.
+- Profile empty state may show `0km`, but time-only workout aggregates should show `거리 준비 중`.
+- Profile must remain cumulative identity, not a recent workout list.
+
+Club QA:
+
+- Club create/join/leave state is local-first and should persist across service reloads.
+- Corrupted local persistence must fall back to seed clubs without user-facing technical copy.
+- Rank 1 should show maintenance copy such as `지금은 기준을 지키는 중`, not a negative or zero next-target.
+- New/empty clubs should invite a first contribution without implying a global leaderboard.
+- Supabase Club foundation may be enabled only when Supabase configuration and a remote user session are present.
+- Remote Club failure should fall back to the local Club service without surfacing technical copy.
+- Club ranking and challenge progress are still foundation-only; no real calculation engine is expected in TestFlight v2.
+
+Known deferred items:
+
+- Weather/AQI provider expansion.
+- Club ranking engine, challenge progress engine, invite flows, and moderation tools.
+- HealthKit write on workout save.
+- Background GPS smoothing and production route sync.
+- Direct Instagram Story integration.
+
+## Club Supabase Foundation v1
+
+This pass adds the first remote Club boundary without changing the product IA:
+
+- `supabase/club_foundation_v1.sql` documents the Club migration foundation. It is not automatically applied by the app.
+- Runtime resolution is Supabase-first only when Supabase is configured and a remote user id exists.
+- `InMemoryClubService` and local persistence remain the fallback path.
+- Create maps to `clubs` insert plus owner membership insert.
+- Join maps to `club_members` insert.
+- Leave maps to `club_members` delete.
+- Member lookup maps `club_members` rows into membership state and member preview.
+- Ranking and challenge progress remain deferred calculation engines.
+
+Manual QA:
+
+- Sign in with a configured Supabase user and confirm Club Home still loads.
+- Create a Club and verify it appears as an owned club.
+- Join an open Club and verify membership state changes.
+- Leave a joined Club and verify it returns to recommended state.
+- Disconnect network or use an unconfigured environment and confirm local Club fallback still loads.
+
 ## Validation Log
 
 ### 2026-05-27

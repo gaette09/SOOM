@@ -20,6 +20,8 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         XCTAssertEqual(summary?.durationSeconds, 3_600)
         XCTAssertFalse(summary?.capturedRoute == true)
         XCTAssertTrue(summary?.isTimeOnly == true)
+        XCTAssertEqual(summary?.distanceText, "시간 기록")
+        XCTAssertNotEqual(summary?.distanceText, "0km")
     }
 
     func testStopCreatesSummaryWithDistanceAndRouteWhenCaptured() throws {

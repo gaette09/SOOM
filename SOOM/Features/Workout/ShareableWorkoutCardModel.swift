@@ -120,6 +120,17 @@ enum ShareTarget: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
+    var helperText: String {
+        switch self {
+        case .instagramStory:
+            return "공유 화면에서 Instagram을 선택하세요."
+        case .saveImage:
+            return "공유 화면에서 이미지 저장을 선택하세요."
+        case .more:
+            return "공유 화면에서 원하는 앱을 선택하세요."
+        }
+    }
+
     var usesSystemShareSheet: Bool {
         true
     }

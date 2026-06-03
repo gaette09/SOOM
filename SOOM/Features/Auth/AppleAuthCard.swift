@@ -63,7 +63,7 @@ struct AppleAuthCard: View {
             return "계정은 연결됐지만 로컬 운동 기록의 소유권 이전과 동기화는 아직 진행하지 않아요."
         }
 
-        return "Apple 로그인은 Supabase 세션 연결까지만 수행하고, 로컬 운동 기록은 그대로 유지합니다."
+        return "Apple 로그인은 계정 연결 상태만 확인하고, 로컬 운동 기록은 그대로 유지합니다."
     }
 }
 

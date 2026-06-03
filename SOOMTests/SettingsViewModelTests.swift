@@ -75,6 +75,14 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.settings.privacyDefault, .privateOnly)
     }
 
+    func testAccountProviderTitlesUseProductCopy() {
+        let titles = AuthProvider.allCases.map(\.title)
+
+        XCTAssertEqual(AuthProvider.supabase.title, "원격 계정")
+        XCTAssertEqual(AuthProvider.supabaseFuture.title, "계정 연결 준비 중")
+        XCTAssertFalse(titles.contains { $0.localizedCaseInsensitiveContains("Supabase") })
+    }
+
     func testProfileHeroExposesMovementIdentity() {
         let identity = ProfileIdentitySystem.foundation
 
@@ -226,6 +234,15 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(identity.personalBests.map(\.value), ["42.0km", "9.2km", "53.6km"])
         XCTAssertEqual(identity.badges.first { $0.id == "first-workout" }?.state, "획득")
         XCTAssertEqual(identity.badges.first { $0.id == "thirty-days" }?.state, "진행중")
+    }
+
+    func testProfileTimeOnlyAggregateUsesWarmDistanceCopy() {
+        let identity = makeAggregator().profileIdentity(from: [
+            workout(type: .running, daysAgo: 1, hour: 7, duration: 1_800, distance: nil)
+        ])
+
+        XCTAssertEqual(identity.compactHeroStats.map(\.value), ["1일 움직임", "거리 준비 중", "러닝 중심"])
+        XCTAssertTrue(identity.personalBests.allSatisfy { $0.value == "기록 준비 중" })
     }
 
     func testProfileAggregationKeepsActivityBoundary() {

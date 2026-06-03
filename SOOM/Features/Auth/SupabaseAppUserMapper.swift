@@ -44,10 +44,10 @@ struct SupabaseAppUserMapper {
 
         let trimmedId = fallbackUserId.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedId.count >= 8 {
-            return "Supabase \(trimmedId.prefix(8))"
+            return "SOOM \(trimmedId.prefix(8))"
         }
 
-        return "Supabase 사용자"
+        return "SOOM 사용자"
     }
 
     private func userIdentifier(from userId: String) -> UUID? {

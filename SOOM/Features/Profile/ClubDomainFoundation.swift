@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 import SwiftUI
 
 struct ClubDomain: Identifiable, Equatable {
@@ -31,12 +32,23 @@ enum ClubMembershipState: Hashable {
     case joined
     case recommended
     case owned
+    case admin
+
+    var isMember: Bool {
+        switch self {
+        case .joined, .owned, .admin:
+            return true
+        case .recommended:
+            return false
+        }
+    }
 
     var actionTitle: String {
         switch self {
         case .joined: return "가입됨"
         case .recommended: return "가입하기"
         case .owned: return "관리"
+        case .admin: return "관리"
         }
     }
 
@@ -45,6 +57,7 @@ enum ClubMembershipState: Hashable {
         case .joined: return "클럽 연결 상태를 관리합니다."
         case .recommended: return "가입하면 내 클럽 목록에 저장돼요."
         case .owned: return "클럽 관리는 곧 더 자세히 연결될 예정이에요."
+        case .admin: return "운영 권한은 곧 더 자세히 연결될 예정이에요."
         }
     }
 }
@@ -408,7 +421,11 @@ struct ClubMotivationSummary: Equatable {
     }
 
     var nextGoalText: String {
-        if let nextRankTargetDistance {
+        if currentRank <= 1 {
+            return "지금은 기준을 지키는 중"
+        }
+
+        if let nextRankTargetDistance, nextRankTargetDistance > 0 {
             return "\(currentRank - 1)위까지 \(Self.formattedDistance(nextRankTargetDistance))km"
         }
         return nextRankTargetLabel
@@ -446,7 +463,9 @@ struct ClubMotivationSummary: Equatable {
             weeklyContributionCount: max(weeklyContributionCount, 0),
             contributionPercent: goalProgress > 0 ? min(max((contributionDistanceKm / max(goalProgress * 800, 1)), 0), 0.16) : 0,
             nextRankTargetDistance: nextTarget,
-            nextRankTargetLabel: currentRank > 0 ? "다음 순위까지 조금만 더" : "첫 기여를 시작해보세요",
+            nextRankTargetLabel: currentRank <= 1
+                ? "지금은 기준을 지키는 중"
+                : (currentRank > 0 ? "다음 순위까지 조금만 더" : "첫 기여를 시작해보세요"),
             activeMembersThisWeek: activeMembersThisWeek,
             newBadgesThisWeek: newBadgesThisWeek,
             completedChallengesThisWeek: completedChallengesThisWeek,
@@ -610,7 +629,7 @@ struct ClubDetail: Identifiable, Equatable {
             ownerId: ownerId,
             memberCount: memberCount,
             createdAt: createdAt,
-            isJoined: membershipState == .joined || membershipState == .owned,
+            isJoined: membershipState.isMember,
             membershipState: membershipState
         )
     }
@@ -627,8 +646,8 @@ struct ClubDetail: Identifiable, Equatable {
     typealias MembershipState = ClubMembershipState
 
     func withMembershipState(_ state: ClubMembershipState) -> ClubDetail {
-        let joinedNow = membershipState == .joined || membershipState == .owned
-        let joinedNext = state == .joined || state == .owned
+        let joinedNow = membershipState.isMember
+        let joinedNext = state.isMember
         let adjustedMemberCount = max(0, memberCount + (joinedNext && !joinedNow ? 1 : 0) - (!joinedNext && joinedNow ? 1 : 0))
         let adjustedSummary = ClubSummary(
             id: summary.id,
@@ -818,6 +837,735 @@ enum ClubServiceError: Error, Equatable {
     case clubNotFound
 }
 
+enum ClubSupabaseServiceError: Error, Equatable {
+    case unconfigured
+    case missingCreatedClub
+}
+
+struct SupabaseClubRow: Codable, Equatable {
+    let id: String
+    let name: String
+    let intro: String?
+    let purpose: String?
+    let sportFocus: String?
+    let visibility: String?
+    let ownerUserID: String
+    let createdAt: String?
+    let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case intro
+        case purpose
+        case sportFocus = "sport_focus"
+        case visibility
+        case ownerUserID = "owner_user_id"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct SupabaseClubMemberRow: Codable, Equatable {
+    let id: String
+    let clubID: String
+    let userID: String
+    let role: String
+    let joinedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case clubID = "club_id"
+        case userID = "user_id"
+        case role
+        case joinedAt = "joined_at"
+    }
+}
+
+struct SupabaseClubChallengeRow: Codable, Equatable {
+    let id: String
+    let clubID: String
+    let title: String
+    let description: String?
+    let metricType: String?
+    let targetValue: Double?
+    let startsAt: String?
+    let endsAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case clubID = "club_id"
+        case title
+        case description
+        case metricType = "metric_type"
+        case targetValue = "target_value"
+        case startsAt = "starts_at"
+        case endsAt = "ends_at"
+    }
+}
+
+struct SupabaseClubBadgeRow: Codable, Equatable {
+    let id: String
+    let clubID: String?
+    let title: String
+    let description: String?
+    let rarity: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case clubID = "club_id"
+        case title
+        case description
+        case rarity
+    }
+}
+
+struct SupabaseClubInsertRequest: Encodable, Equatable {
+    let name: String
+    let intro: String
+    let purpose: String
+    let sportFocus: String
+    let visibility: String
+    let ownerUserID: String
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case intro
+        case purpose
+        case sportFocus = "sport_focus"
+        case visibility
+        case ownerUserID = "owner_user_id"
+    }
+}
+
+struct SupabaseClubMemberInsertRequest: Encodable, Equatable {
+    let clubID: String
+    let userID: String
+    let role: String
+
+    enum CodingKeys: String, CodingKey {
+        case clubID = "club_id"
+        case userID = "user_id"
+        case role
+    }
+}
+
+struct SupabaseClubDirectoryPayload: Equatable {
+    let clubs: [SupabaseClubRow]
+    let memberships: [SupabaseClubMemberRow]
+    let memberRows: [SupabaseClubMemberRow]
+}
+
+struct SupabaseClubDetailPayload: Equatable {
+    let club: SupabaseClubRow
+    let membership: SupabaseClubMemberRow?
+    let members: [SupabaseClubMemberRow]
+    let challenges: [SupabaseClubChallengeRow]
+    let badges: [SupabaseClubBadgeRow]
+}
+
+protocol SupabaseClubRemoteClienting {
+    func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload
+    func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload
+    func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow
+    func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws
+    func leaveClub(clubID: String, userID: String) async throws
+}
+
+struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
+    func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload {
+        let clubs: [SupabaseClubRow] = try await client
+            .from("clubs")
+            .select()
+            .execute()
+            .value
+
+        let memberships: [SupabaseClubMemberRow] = try await client
+            .from("club_members")
+            .select()
+            .eq("user_id", value: currentUserID)
+            .execute()
+            .value
+
+        let memberRows: [SupabaseClubMemberRow] = try await client
+            .from("club_members")
+            .select()
+            .execute()
+            .value
+
+        return SupabaseClubDirectoryPayload(clubs: clubs, memberships: memberships, memberRows: memberRows)
+    }
+
+    func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload {
+        let clubs: [SupabaseClubRow] = try await client
+            .from("clubs")
+            .select()
+            .eq("id", value: clubID)
+            .execute()
+            .value
+
+        guard let club = clubs.first else {
+            throw ClubServiceError.clubNotFound
+        }
+
+        let memberships: [SupabaseClubMemberRow] = try await client
+            .from("club_members")
+            .select()
+            .eq("club_id", value: clubID)
+            .eq("user_id", value: currentUserID)
+            .execute()
+            .value
+
+        let members: [SupabaseClubMemberRow] = try await client
+            .from("club_members")
+            .select()
+            .eq("club_id", value: clubID)
+            .execute()
+            .value
+
+        let challenges: [SupabaseClubChallengeRow] = try await client
+            .from("club_challenges")
+            .select()
+            .eq("club_id", value: clubID)
+            .execute()
+            .value
+
+        let badges: [SupabaseClubBadgeRow] = try await client
+            .from("club_badges")
+            .select()
+            .eq("club_id", value: clubID)
+            .execute()
+            .value
+
+        return SupabaseClubDetailPayload(
+            club: club,
+            membership: memberships.first,
+            members: members,
+            challenges: challenges,
+            badges: badges
+        )
+    }
+
+    func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow {
+        let clubs: [SupabaseClubRow] = try await client
+            .from("clubs")
+            .insert(request)
+            .select()
+            .execute()
+            .value
+
+        guard let club = clubs.first else {
+            throw ClubSupabaseServiceError.missingCreatedClub
+        }
+        return club
+    }
+
+    func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws {
+        try await client
+            .from("club_members")
+            .insert(request)
+            .execute()
+    }
+
+    func leaveClub(clubID: String, userID: String) async throws {
+        try await client
+            .from("club_members")
+            .delete()
+            .eq("club_id", value: clubID)
+            .eq("user_id", value: userID)
+            .execute()
+    }
+}
+
+final class SupabaseClubService: ClubService {
+    private let remoteClient: any SupabaseClubRemoteClienting
+    private let currentUserID: String
+    private let now: () -> Date
+
+    init(
+        remoteClient: any SupabaseClubRemoteClienting,
+        currentUserID: String,
+        now: @escaping () -> Date = Date.init
+    ) {
+        self.remoteClient = remoteClient
+        self.currentUserID = currentUserID
+        self.now = now
+    }
+
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        let payload = try await remoteClient.fetchClubDirectory(currentUserID: currentUserID)
+        let membershipByClub = Dictionary(uniqueKeysWithValues: payload.memberships.map { ($0.clubID, $0) })
+        let memberCounts = Dictionary(grouping: payload.memberRows, by: \.clubID).mapValues(\.count)
+        let details = payload.clubs.map { row in
+            makeDetail(
+                club: row,
+                membership: membershipByClub[row.id],
+                members: payload.memberRows.filter { $0.clubID == row.id },
+                challenges: [],
+                badges: [],
+                memberCountOverride: memberCounts[row.id]
+            )
+        }
+
+        return ClubDirectorySnapshot(
+            joinedClubs: details.filter { $0.membershipState == .joined || $0.membershipState == .admin },
+            createdClubs: details.filter { $0.membershipState == .owned },
+            recommendedClubs: details.filter { $0.membershipState == .recommended }.map(\.summary)
+        )
+    }
+
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail {
+        let payload = try await remoteClient.fetchClubDetail(clubID: clubId, currentUserID: currentUserID)
+        return makeDetail(
+            club: payload.club,
+            membership: payload.membership,
+            members: payload.members,
+            challenges: payload.challenges,
+            badges: payload.badges,
+            memberCountOverride: payload.members.count
+        )
+    }
+
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        let request = SupabaseClubInsertRequest(
+            name: input.name,
+            intro: input.purpose,
+            purpose: input.purpose,
+            sportFocus: input.sportFocus,
+            visibility: input.visibility.remoteValue,
+            ownerUserID: currentUserID
+        )
+        let club = try await remoteClient.createClub(request)
+        try await remoteClient.joinClub(SupabaseClubMemberInsertRequest(
+            clubID: club.id,
+            userID: currentUserID,
+            role: ClubMemberRole.owner.rawValue
+        ))
+        return makeDetail(
+            club: club,
+            membership: SupabaseClubMemberRow(
+                id: "\(club.id)-owner-\(currentUserID)",
+                clubID: club.id,
+                userID: currentUserID,
+                role: ClubMemberRole.owner.rawValue,
+                joinedAt: nil
+            ),
+            members: [],
+            challenges: [],
+            badges: [],
+            memberCountOverride: 1
+        ).club
+    }
+
+    func joinClub(clubId: String) async throws {
+        try await remoteClient.joinClub(SupabaseClubMemberInsertRequest(
+            clubID: clubId,
+            userID: currentUserID,
+            role: ClubMemberRole.member.rawValue
+        ))
+    }
+
+    func leaveClub(clubId: String) async throws {
+        try await remoteClient.leaveClub(clubID: clubId, userID: currentUserID)
+    }
+
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] {
+        let detail = try await fetchClubDetail(clubId: clubId)
+        return detail.ranking
+            .sorted { lhs, rhs in
+                lhs.rankingValue(for: metric) == rhs.rankingValue(for: metric)
+                    ? lhs.rank < rhs.rank
+                    : lhs.rankingValue(for: metric) > rhs.rankingValue(for: metric)
+            }
+            .enumerated()
+            .map { index, entry in
+                ClubRankingEntry(
+                    id: "\(entry.clubId)-remote-\(metric.rawValue)-\(entry.userId)",
+                    clubId: entry.clubId,
+                    userId: entry.userId,
+                    displayName: entry.displayName,
+                    rank: index + 1,
+                    previousRank: entry.previousRank,
+                    metricType: metric,
+                    value: entry.rankingValue(for: metric),
+                    unit: metric.unit,
+                    name: entry.displayName,
+                    distanceKm: entry.distanceKm,
+                    sessions: entry.sessions,
+                    consistencyDays: entry.consistencyDays,
+                    isCurrentUser: entry.isCurrentUser
+                )
+            }
+    }
+
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] {
+        let detail = try await fetchClubDetail(clubId: clubId)
+        return detail.challenges
+    }
+
+    private func makeDetail(
+        club: SupabaseClubRow,
+        membership: SupabaseClubMemberRow?,
+        members: [SupabaseClubMemberRow],
+        challenges: [SupabaseClubChallengeRow],
+        badges: [SupabaseClubBadgeRow],
+        memberCountOverride: Int?
+    ) -> ClubDetail {
+        let membershipState = membershipState(for: club, membership: membership)
+        let memberCount = max(memberCountOverride ?? members.count, membershipState.isMember ? 1 : 0)
+        let goalProgress = 0.0
+        let weeklyRank = membershipState.isMember ? 1 : 0
+        let memberPreview = makeMemberPreview(from: members)
+        let ranking = makeRanking(from: members, clubID: club.id, membershipState: membershipState)
+        let mappedChallenges = challenges.map(makeChallenge)
+        let mappedBadges = badges.map(makeBadge)
+        let sport = club.sportFocus ?? "혼합"
+        let purpose = club.purpose ?? club.intro ?? "클럽의 리듬을 함께 만드는 중이에요."
+        let summary = ClubSummary(
+            id: club.id,
+            name: club.name,
+            sport: sport,
+            memberCount: memberCount,
+            weeklyRank: membershipState.isMember ? weeklyRank : nil,
+            contributionText: membershipState.isMember ? "이번 주 기여를 준비 중" : "가입하면 이번 주 기여가 시작돼요",
+            goalPercent: Int((goalProgress * 100).rounded()),
+            tagline: club.intro ?? purpose
+        )
+
+        return ClubDetail(
+            summary: summary,
+            name: club.name,
+            intro: club.intro ?? purpose,
+            purpose: purpose,
+            sport: sport,
+            owner: ownerName(for: club, members: members),
+            ownerId: club.ownerUserID,
+            privacy: ClubVisibility(remoteValue: club.visibility),
+            activeMembersThisWeek: memberCount,
+            rules: [
+                "클럽 안 랭킹만 표시합니다.",
+                "서로의 페이스를 존중합니다.",
+                "공개 운동 기록만 기여에 반영합니다."
+            ],
+            memberPreview: memberPreview.isEmpty
+                ? [ClubMemberPreview(name: membershipState.isMember ? "나" : "운영자", role: membershipState == .owned ? "운영자" : "멤버", activityText: "리듬 준비 중", tone: .ink)]
+                : memberPreview,
+            members: members.map(makeMember),
+            identityTags: [sport, ClubVisibility(remoteValue: club.visibility).text, membershipState.actionTitle],
+            membershipState: membershipState,
+            memberCount: memberCount,
+            weeklyRank: weeklyRank,
+            rankMovement: 0,
+            contributionDistanceKm: 0,
+            goalProgress: goalProgress,
+            ranking: ranking,
+            challenges: mappedChallenges.isEmpty ? defaultChallenges(clubID: club.id) : mappedChallenges,
+            badges: mappedBadges.isEmpty ? defaultBadges(clubID: club.id) : mappedBadges,
+            pulses: [
+                ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 \(memberCount)명이 클럽 리듬을 준비 중이에요", tone: .ink),
+                ClubActivityPulse(icon: SOOMIcon.trendUp, message: "랭킹과 챌린지 계산은 곧 더 정교해져요", tone: .bike)
+            ],
+            motivationSummary: membershipState == .recommended
+                ? ClubDetail.hangangRiders.withMembershipState(.recommended).motivationSummary
+                : .emptyNewClub,
+            createdAt: SupabaseClubDateParser.date(from: club.createdAt) ?? now()
+        )
+    }
+
+    private func membershipState(for club: SupabaseClubRow, membership: SupabaseClubMemberRow?) -> ClubMembershipState {
+        if club.ownerUserID == currentUserID {
+            return .owned
+        }
+
+        guard let role = membership.flatMap({ ClubMemberRole(rawValue: $0.role) }) else {
+            return .recommended
+        }
+
+        switch role {
+        case .owner:
+            return .owned
+        case .admin:
+            return .admin
+        case .member:
+            return .joined
+        }
+    }
+
+    private func makeMemberPreview(from members: [SupabaseClubMemberRow]) -> [ClubMemberPreview] {
+        members.prefix(4).enumerated().map { index, member in
+            let role = ClubMemberRole(rawValue: member.role) ?? .member
+            return ClubMemberPreview(
+                name: member.userID == currentUserID ? "나" : "멤버 \(index + 1)",
+                role: role.previewText,
+                activityText: "리듬 준비 중",
+                tone: member.userID == currentUserID ? .ink : .bike
+            )
+        }
+    }
+
+    private func makeMember(_ row: SupabaseClubMemberRow) -> ClubMember {
+        ClubMember(
+            id: row.id,
+            clubId: row.clubID,
+            userId: row.userID,
+            displayName: row.userID == currentUserID ? "나" : "멤버",
+            handle: "@member",
+            role: ClubMemberRole(rawValue: row.role) ?? .member,
+            joinedAt: SupabaseClubDateParser.date(from: row.joinedAt) ?? now(),
+            weeklyDistance: 0,
+            weeklyWorkoutCount: 0,
+            consistencyScore: 0,
+            avatarStyle: "ink"
+        )
+    }
+
+    private func makeRanking(
+        from members: [SupabaseClubMemberRow],
+        clubID: String,
+        membershipState: ClubMembershipState
+    ) -> [ClubRankingEntry] {
+        let source = members.isEmpty && membershipState.isMember
+            ? [SupabaseClubMemberRow(id: "\(clubID)-current-user", clubID: clubID, userID: currentUserID, role: "member", joinedAt: nil)]
+            : members
+
+        return source.enumerated().map { index, member in
+            ClubRankingEntry(
+                id: "\(clubID)-remote-ranking-\(member.userID)",
+                clubId: clubID,
+                userId: member.userID,
+                displayName: member.userID == currentUserID ? "나" : "멤버 \(index + 1)",
+                rank: index + 1,
+                metricType: .distance,
+                value: 0,
+                unit: ClubRankingMetric.distance.unit,
+                name: member.userID == currentUserID ? "나" : "멤버 \(index + 1)",
+                distanceKm: 0,
+                sessions: 0,
+                consistencyDays: 0,
+                isCurrentUser: member.userID == currentUserID
+            )
+        }
+    }
+
+    private func makeChallenge(_ row: SupabaseClubChallengeRow) -> ClubChallenge {
+        ClubChallenge(
+            id: row.id,
+            clubId: row.clubID,
+            title: row.title,
+            description: row.description,
+            metricType: ClubChallengeMetricType(rawValue: row.metricType ?? "") ?? .distance,
+            targetValue: row.targetValue ?? 0,
+            currentValue: 0,
+            unit: ClubChallengeMetricType(rawValue: row.metricType ?? "") == .workoutCount ? "회" : "km",
+            startsAt: SupabaseClubDateParser.date(from: row.startsAt) ?? ClubSeedDate.weekStart,
+            endsAt: SupabaseClubDateParser.date(from: row.endsAt) ?? ClubSeedDate.weekEnd,
+            subtitle: row.description ?? "이번 주 클럽 목표를 준비 중이에요"
+        )
+    }
+
+    private func makeBadge(_ row: SupabaseClubBadgeRow) -> ClubBadge {
+        ClubBadge(
+            id: row.id,
+            clubId: row.clubID,
+            title: row.title,
+            description: row.description,
+            subtitle: "준비 중",
+            icon: SOOMIcon.medal,
+            state: .locked,
+            progress: 0,
+            rarity: ClubBadgeRarity(rawValue: row.rarity ?? "") ?? .common
+        )
+    }
+
+    private func defaultChallenges(clubID: String) -> [ClubChallenge] {
+        [
+            ClubChallenge(
+                clubId: clubID,
+                title: "첫 주 3회 움직이기",
+                metricType: .workoutCount,
+                progress: 0,
+                target: 3,
+                unit: "회",
+                subtitle: "클럽의 첫 리듬을 만듭니다."
+            )
+        ]
+    }
+
+    private func defaultBadges(clubID: String) -> [ClubBadge] {
+        [
+            ClubBadge(clubId: clubID, title: "첫 기여", subtitle: "준비 중", icon: SOOMIcon.medal, state: .locked, progress: 0)
+        ]
+    }
+
+    private func ownerName(for club: SupabaseClubRow, members: [SupabaseClubMemberRow]) -> String {
+        if club.ownerUserID == currentUserID {
+            return "나"
+        }
+        if members.contains(where: { $0.userID == club.ownerUserID }) {
+            return "운영자"
+        }
+        return "운영자"
+    }
+}
+
+final class FallbackClubService: ClubService {
+    private let primary: any ClubService
+    private let fallback: any ClubService
+
+    init(primary: any ClubService, fallback: any ClubService) {
+        self.primary = primary
+        self.fallback = fallback
+    }
+
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        do {
+            return try await primary.fetchClubDirectory()
+        } catch {
+            return try await fallback.fetchClubDirectory()
+        }
+    }
+
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail {
+        do {
+            return try await primary.fetchClubDetail(clubId: clubId)
+        } catch {
+            return try await fallback.fetchClubDetail(clubId: clubId)
+        }
+    }
+
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        do {
+            return try await primary.createClub(input: input)
+        } catch {
+            return try await fallback.createClub(input: input)
+        }
+    }
+
+    func joinClub(clubId: String) async throws {
+        do {
+            try await primary.joinClub(clubId: clubId)
+        } catch {
+            try await fallback.joinClub(clubId: clubId)
+        }
+    }
+
+    func leaveClub(clubId: String) async throws {
+        do {
+            try await primary.leaveClub(clubId: clubId)
+        } catch {
+            try await fallback.leaveClub(clubId: clubId)
+        }
+    }
+
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] {
+        do {
+            return try await primary.fetchRankings(clubId: clubId, metric: metric)
+        } catch {
+            return try await fallback.fetchRankings(clubId: clubId, metric: metric)
+        }
+    }
+
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] {
+        do {
+            return try await primary.fetchChallenges(clubId: clubId)
+        } catch {
+            return try await fallback.fetchChallenges(clubId: clubId)
+        }
+    }
+}
+
+struct ClubServiceResolver {
+    static func makeDefaultService(
+        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
+        currentUserID: UUID? = nil,
+        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence())
+    ) -> any ClubService {
+        makeService(
+            clientProvider: SupabaseClientProvider(environment: authEnvironment),
+            currentUserID: currentUserID?.uuidString,
+            fallback: fallback
+        )
+    }
+
+    static func makeService(
+        clientProvider: SupabaseClientProvider,
+        currentUserID: String?,
+        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence())
+    ) -> any ClubService {
+        guard
+            clientProvider.state == .ready,
+            let currentUserID,
+            let client = clientProvider.makeClient()
+        else {
+            return fallback
+        }
+
+        let remote = SupabaseClubRemoteClient(client: client)
+        let primary = SupabaseClubService(remoteClient: remote, currentUserID: currentUserID)
+        return FallbackClubService(primary: primary, fallback: fallback)
+    }
+
+    static func makeService(
+        remoteClient: (any SupabaseClubRemoteClienting)?,
+        currentUserID: String?,
+        fallback: any ClubService
+    ) -> any ClubService {
+        guard let remoteClient, let currentUserID else {
+            return fallback
+        }
+        return FallbackClubService(
+            primary: SupabaseClubService(remoteClient: remoteClient, currentUserID: currentUserID),
+            fallback: fallback
+        )
+    }
+}
+
+private enum SupabaseClubDateParser {
+    static func date(from rawValue: String?) -> Date? {
+        guard let rawValue else { return nil }
+        if let date = iso8601.date(from: rawValue) {
+            return date
+        }
+        return fractionalISO8601.date(from: rawValue)
+    }
+
+    private static let iso8601 = ISO8601DateFormatter()
+    private static let fractionalISO8601: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+}
+
+private extension ClubVisibility {
+    init(remoteValue: String?) {
+        self = remoteValue == "private" ? .private : .open
+    }
+
+    var remoteValue: String {
+        switch self {
+        case .open: return "open"
+        case .private: return "private"
+        }
+    }
+}
+
+private extension ClubMemberRole {
+    var previewText: String {
+        switch self {
+        case .owner: return "운영자"
+        case .admin: return "운영"
+        case .member: return "멤버"
+        }
+    }
+}
+
 final class LocalClubPersistence {
     private struct StoredState: Codable, Equatable {
         var createdClubs: [StoredCreatedClub] = []
@@ -904,6 +1652,7 @@ final class LocalClubPersistence {
         case .joined: return "joined"
         case .recommended: return "recommended"
         case .owned: return "owned"
+        case .admin: return "admin"
         }
     }
 
@@ -912,6 +1661,7 @@ final class LocalClubPersistence {
         case "joined": return .joined
         case "recommended": return .recommended
         case "owned": return .owned
+        case "admin": return .admin
         default: return nil
         }
     }
@@ -1046,7 +1796,7 @@ final class InMemoryClubService: ClubService {
             .filter { $0.membershipState == .recommended }
             .map(\.summary)
         return ClubDirectorySnapshot(
-            joinedClubs: seed.filter { $0.membershipState == .joined },
+            joinedClubs: seed.filter { $0.membershipState == .joined || $0.membershipState == .admin },
             createdClubs: seed.filter { $0.membershipState == .owned },
             recommendedClubs: recommended
         )
@@ -1055,7 +1805,7 @@ final class InMemoryClubService: ClubService {
     private var directorySnapshot: ClubDirectorySnapshot {
         let values = orderedIDs.compactMap { detailsByID[$0] }
         return ClubDirectorySnapshot(
-            joinedClubs: values.filter { $0.membershipState == .joined },
+            joinedClubs: values.filter { $0.membershipState == .joined || $0.membershipState == .admin },
             createdClubs: values.filter { $0.membershipState == .owned },
             recommendedClubs: values.filter { $0.membershipState == .recommended }.map(\.summary)
         )
@@ -1073,9 +1823,13 @@ final class ClubsViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var selectedRankingMetric: ClubRankingMetric = .distance
 
-    private let service: ClubService
+    private var service: ClubService
 
-    init(service: ClubService = InMemoryClubService(persistence: LocalClubPersistence())) {
+    init(service: ClubService = ClubServiceResolver.makeDefaultService()) {
+        self.service = service
+    }
+
+    func configure(service: ClubService) {
         self.service = service
     }
 

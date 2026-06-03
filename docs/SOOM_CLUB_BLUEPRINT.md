@@ -353,9 +353,11 @@ Domain objects:
 Service boundary:
 
 - `ClubService` owns directory, detail, create, join, leave, ranking, and challenge fetch operations.
-- `InMemoryClubService` is the v1 implementation.
+- `InMemoryClubService` remains the local fallback implementation.
+- `SupabaseClubService` is the remote foundation for club directory, detail, create, join, and leave.
+- `ClubServiceResolver` chooses Supabase first only when Supabase is configured and a remote user id is available, then falls back to local service on failure.
 - `ClubsViewModel` is the UI-facing store.
-- Supabase schema, remote writes, invite graph, and durable persistence are deferred.
+- Invite graph, moderation, real ranking, and challenge progress engines are deferred.
 
 The Club tab UI foundation should render the blueprint as a real product surface even before backend support:
 
@@ -397,22 +399,38 @@ Create club v1:
 
 - The entry exists from Club Home.
 - Name, purpose, sport focus, and visibility are captured as `ClubCreateInput`.
-- Backend creation is deferred.
-- The local service adds the created club to `createdClubs` for the current session.
+- When Supabase is configured and a remote user is signed in, create maps to a `clubs` insert and an owner `club_members` insert.
+- If remote creation fails, the local service adds the created club to `createdClubs`.
 
 Join/leave v1:
 
-- Recommended clubs can be joined locally.
-- Joined clubs can be left locally unless they are owned clubs.
-- Member count and membership state update locally.
-- TestFlight v1 persists created clubs and join/leave state on-device by overlaying local state onto seed club data.
+- Recommended clubs can be joined through `club_members` insert when Supabase is available.
+- Joined clubs can be left through `club_members` delete unless they are owned clubs.
+- Member count and membership state map from remote membership rows when available.
+- Local persistence remains the fallback overlay for created clubs and join/leave state.
 - User-facing copy should say the club is saved on this device, not expose `local-first`, `mock`, `backend`, or `remote sync` terminology.
+
+## Club Supabase Foundation
+
+The SQL foundation lives in `supabase/club_foundation_v1.sql`. It is a migration draft only and should not be applied automatically by the app.
+
+Tables:
+
+- `clubs`: club identity, owner, sport focus, visibility, timestamps
+- `club_members`: user membership and role
+- `club_challenges`: challenge catalog foundation
+- `club_badges`: badge catalog foundation
+
+Runtime strategy:
+
+- Supabase configured + signed-in remote user: use `SupabaseClubService` first.
+- Remote failure, missing configuration, or no remote user: use `InMemoryClubService`.
+- Ranking rows are still derived as a display foundation; no real ranking algorithm exists in this pass.
+- Challenge progress remains catalog-level; no progress engine exists in this pass.
 
 Deferred:
 
-- Real club backend
 - Invite/member management
-- Durable join/leave/manage actions
 - Real rank calculation
 - Badge engine
 - Challenge persistence

@@ -142,7 +142,7 @@ struct SettingsView: View {
                 AppleAuthCard(authViewModel: authViewModel)
 
                 if authViewModel.session.currentUser?.authProvider == .supabase {
-                    SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "Supabase 세션을 확인했어요. 로컬 기록 동기화는 다음 단계입니다.", tint: SOOMColor.accent)
+                    SOOMActionRow(icon: "checkmark.seal", title: "계정 연결됨", subtitle: "원격 계정 상태를 확인했어요. 로컬 기록 동기화는 단계적으로 준비합니다.", tint: SOOMColor.accent)
 
                     if let ownershipPlanNotice {
                         SOOMActionRow(icon: "externaldrive.badge.person.crop", title: "기록 소유권", subtitle: ownershipPlanNotice, tint: SOOMColor.secondaryInk)
@@ -352,18 +352,17 @@ struct SettingsView: View {
     private var appInfoSection: some View {
         SOOMCard {
             SOOMSectionHeader("앱 정보")
-            SOOMActionRow(icon: "info.circle", title: "SOOM Foundation", subtitle: "Recovery, Growth, HealthKit 데이터 신뢰 구조를 실험 중입니다.", tint: SOOMColor.secondaryInk)
+            SOOMActionRow(icon: "info.circle", title: "SOOM 리듬 시스템", subtitle: "회복, 성장, 건강 데이터의 신뢰 구조를 준비하고 있어요.", tint: SOOMColor.secondaryInk)
             SOOMActionRow(icon: "lock.shield", title: "계정 환경", subtitle: authEnvironmentStatusText, tint: SOOMColor.secondaryInk)
-            SOOMActionRow(icon: "person.badge.key", title: "Supabase 세션", subtitle: authSessionSmokeStatusText, tint: SOOMColor.secondaryInk)
+            SOOMActionRow(icon: "person.badge.key", title: "원격 계정 상태", subtitle: authSessionSmokeStatusText, tint: SOOMColor.secondaryInk)
         }
     }
 
     private var authEnvironmentStatusText: String {
-        let sdkStatus = "SDK 준비됨"
-        let supabaseStatus = authEnvironment.isSupabaseConfigured ? "환경 설정됨" : "환경 미설정"
-        let redirectStatus = authEnvironment.isRedirectConfigured ? "Redirect 준비됨" : "Redirect 미설정"
-        let appleStatus = authEnvironment.isSupabaseConfigured ? "Apple 로그인 준비됨" : "Apple 로그인 환경 미설정"
-        return "\(authEnvironment.environment.title) · \(sdkStatus) · \(supabaseStatus) · \(redirectStatus) · \(appleStatus)"
+        let accountStatus = authEnvironment.isSupabaseConfigured ? "계정 연결 준비됨" : "계정 연결 준비 중"
+        let redirectStatus = authEnvironment.isRedirectConfigured ? "돌아오기 경로 준비됨" : "돌아오기 경로 준비 중"
+        let appleStatus = authEnvironment.isSupabaseConfigured ? "Apple 로그인 준비됨" : "Apple 로그인 준비 중"
+        return "\(authEnvironment.environment.title) · \(accountStatus) · \(redirectStatus) · \(appleStatus)"
     }
 
     private var authSessionSmokeStatusText: String {
@@ -373,7 +372,7 @@ struct SettingsView: View {
         } else if authViewModel.session.currentUser?.authProvider == .supabase {
             sessionStatus = "계정 연결됨"
         } else {
-            sessionStatus = authEnvironment.isSupabaseConfigured ? "세션 복원 준비됨" : "미설정"
+            sessionStatus = authEnvironment.isSupabaseConfigured ? "계정 복원 준비됨" : "계정 연결 준비 중"
         }
         return "\(sessionStatus) · 로컬 기록 동기화는 다음 단계입니다."
     }

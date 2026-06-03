@@ -175,6 +175,24 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertTrue(challenge.nextActionLine.contains("한 번"))
     }
 
+    func testRankOneNextGoalUsesMaintenanceCopy() {
+        let summary = ClubMotivationSummary.defaultSummary(
+            currentRank: 1,
+            rankMovement: 0,
+            contributionDistanceKm: 88,
+            weeklyContributionCount: 4,
+            activeMembersThisWeek: 24,
+            newBadgesThisWeek: 2,
+            completedChallengesThisWeek: 1,
+            goalProgress: 0.72,
+            motivationLine: "이번 주 기준을 잘 지키고 있어요."
+        )
+
+        XCTAssertNil(summary.nextRankTargetDistance)
+        XCTAssertEqual(summary.nextGoalText, "지금은 기준을 지키는 중")
+        XCTAssertFalse(summary.nextGoalText.contains("0위"))
+    }
+
     func testCreateClubReturnsDefaultMotivationState() async throws {
         let service = InMemoryClubService()
 
@@ -214,6 +232,178 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertFalse(viewModel.challenges.isEmpty)
     }
 
+    func testSupabaseClubServiceMapsClubRows() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.directoryPayload = SupabaseClubDirectoryPayload(
+            clubs: [
+                SupabaseClubRow(
+                    id: "remote-riders",
+                    name: "Remote Riders",
+                    intro: "같은 리듬으로 움직이는 라이더",
+                    purpose: "주 3회 움직임을 이어갑니다.",
+                    sportFocus: "자전거",
+                    visibility: "open",
+                    ownerUserID: "owner-user",
+                    createdAt: "2026-06-01T00:00:00Z",
+                    updatedAt: "2026-06-01T00:00:00Z"
+                )
+            ],
+            memberships: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil)
+            ],
+            memberRows: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+                SupabaseClubMemberRow(id: "member-other", clubID: "remote-riders", userID: "other-user", role: "member", joinedAt: nil)
+            ]
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let directory = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(directory.joinedClubs.count, 1)
+        XCTAssertEqual(directory.joinedClubs.first?.name, "Remote Riders")
+        XCTAssertEqual(directory.joinedClubs.first?.memberCount, 2)
+        XCTAssertEqual(directory.joinedClubs.first?.membershipState, .joined)
+        XCTAssertEqual(directory.joinedClubs.first?.sport, "자전거")
+    }
+
+    func testSupabaseClubServiceMapsOwnerMembershipState() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "owned-club",
+                name: "Owned Club",
+                intro: "내가 만든 클럽",
+                purpose: "기준을 함께 세웁니다.",
+                sportFocus: "러닝",
+                visibility: "private",
+                ownerUserID: "current-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "owner-row", clubID: "owned-club", userID: "current-user", role: "owner", joinedAt: nil),
+            members: [],
+            challenges: [],
+            badges: []
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let detail = try await service.fetchClubDetail(clubId: "owned-club")
+
+        XCTAssertEqual(detail.membershipState, .owned)
+        XCTAssertEqual(detail.privacy, .private)
+        XCTAssertEqual(detail.summary.weeklyRank, 1)
+    }
+
+    func testClubServiceResolverReturnsFallbackWithoutRemoteClient() async throws {
+        let fallback = InMemoryClubService()
+        let service = ClubServiceResolver.makeService(
+            remoteClient: nil,
+            currentUserID: "current-user",
+            fallback: fallback
+        )
+
+        let directory = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
+    }
+
+    func testSupabaseClubServiceCreateJoinLeaveRequestMapping() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.createdClubRow = SupabaseClubRow(
+            id: "remote-created",
+            name: "Night Riders",
+            intro: "밤에도 리듬을 이어갑니다.",
+            purpose: "밤에도 리듬을 이어갑니다.",
+            sportFocus: "자전거",
+            visibility: "private",
+            ownerUserID: "current-user",
+            createdAt: nil,
+            updatedAt: nil
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let club = try await service.createClub(input: ClubCreateInput(
+            name: "Night Riders",
+            purpose: "밤에도 리듬을 이어갑니다.",
+            sportFocus: "자전거",
+            visibility: .private
+        ))
+        try await service.joinClub(clubId: "remote-riders")
+        try await service.leaveClub(clubId: "remote-riders")
+
+        XCTAssertEqual(club.id, "remote-created")
+        XCTAssertEqual(remote.createdClubRequests.first?.visibility, "private")
+        XCTAssertEqual(remote.createdClubRequests.first?.ownerUserID, "current-user")
+        XCTAssertEqual(remote.joinRequests.first?.role, "owner")
+        XCTAssertEqual(remote.joinRequests.last?.role, "member")
+        XCTAssertEqual(remote.leftClubIDs, ["remote-riders"])
+    }
+
+    func testFallbackClubServiceUsesLocalWhenRemoteFails() async throws {
+        let failingRemote = FailingSupabaseClubRemoteClient()
+        let service = FallbackClubService(
+            primary: SupabaseClubService(remoteClient: failingRemote, currentUserID: "current-user"),
+            fallback: InMemoryClubService()
+        )
+
+        let directory = try await service.fetchClubDirectory()
+        let created = try await service.createClub(input: ClubCreateInput(
+            name: "Fallback Club",
+            purpose: "원격 연결이 어려워도 클럽 흐름을 이어갑니다.",
+            sportFocus: "걷기",
+            visibility: .open
+        ))
+
+        XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
+        XCTAssertEqual(created.name, "Fallback Club")
+        XCTAssertEqual(created.membershipState, .owned)
+    }
+
+    func testRemoteClubMappingKeepsMotivationLayerFoundation() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "remote-riders",
+                name: "Remote Riders",
+                intro: "같은 리듬으로 움직이는 라이더",
+                purpose: "주 3회 움직임을 이어갑니다.",
+                sportFocus: "자전거",
+                visibility: "open",
+                ownerUserID: "owner-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+            members: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil)
+            ],
+            challenges: [
+                SupabaseClubChallengeRow(
+                    id: "challenge-1",
+                    clubID: "remote-riders",
+                    title: "이번 주 3회 움직이기",
+                    description: "클럽의 첫 리듬을 만듭니다.",
+                    metricType: "workoutCount",
+                    targetValue: 3,
+                    startsAt: nil,
+                    endsAt: nil
+                )
+            ],
+            badges: [
+                SupabaseClubBadgeRow(id: "badge-1", clubID: "remote-riders", title: "첫 기여", description: "첫 기록을 기다리는 중", rarity: "common")
+            ]
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let detail = try await service.fetchClubDetail(clubId: "remote-riders")
+
+        XCTAssertFalse(detail.motivationSummary.motivationLine.isEmpty)
+        XCTAssertFalse(detail.ranking.isEmpty)
+        XCTAssertEqual(detail.challenges.first?.remainingLabel, "3회 운동 남음")
+        XCTAssertEqual(detail.badges.first?.title, "첫 기여")
+    }
+
     private func makePersistence() -> LocalClubPersistence {
         LocalClubPersistence(userDefaults: makeUserDefaults(), key: "club-test")
     }
@@ -223,5 +413,70 @@ final class ClubDomainFoundationTests: XCTestCase {
         let userDefaults = UserDefaults(suiteName: suiteName)!
         userDefaults.removePersistentDomain(forName: suiteName)
         return userDefaults
+    }
+}
+
+private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
+    var directoryPayload = SupabaseClubDirectoryPayload(clubs: [], memberships: [], memberRows: [])
+    var detailPayload: SupabaseClubDetailPayload?
+    var createdClubRow = SupabaseClubRow(
+        id: "created-club",
+        name: "Created Club",
+        intro: nil,
+        purpose: nil,
+        sportFocus: nil,
+        visibility: "open",
+        ownerUserID: "current-user",
+        createdAt: nil,
+        updatedAt: nil
+    )
+    var createdClubRequests: [SupabaseClubInsertRequest] = []
+    var joinRequests: [SupabaseClubMemberInsertRequest] = []
+    var leftClubIDs: [String] = []
+
+    func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload {
+        directoryPayload
+    }
+
+    func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload {
+        if let detailPayload {
+            return detailPayload
+        }
+        throw ClubServiceError.clubNotFound
+    }
+
+    func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow {
+        createdClubRequests.append(request)
+        return createdClubRow
+    }
+
+    func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws {
+        joinRequests.append(request)
+    }
+
+    func leaveClub(clubID: String, userID: String) async throws {
+        leftClubIDs.append(clubID)
+    }
+}
+
+private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
+    func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func leaveClub(clubID: String, userID: String) async throws {
+        throw ClubSupabaseServiceError.unconfigured
     }
 }
