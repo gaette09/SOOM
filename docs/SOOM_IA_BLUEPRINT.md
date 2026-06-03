@@ -226,6 +226,8 @@ Profile Hero v2:
 - One representative badge or identity emblem appears inside the hero so identity is visible before numeric summary.
 - Moved days, total distance, and representative sport are compact supporting evidence. They should not become the first-read layer.
 - Current month state, setup status, and connections remain below the hero or in support sections when they are not essential to identity.
+- Profile aggregation v1 derives hero stats, representative sport, PBs, and simple badge thresholds from `UnifiedWorkoutStore`.
+- Record-saved route/distance workouts can now contribute to Profile identity through local aggregate data. Activity remains the workout list/detail surface; Profile remains cumulative identity over time.
 
 ## Feed-first UX Structure
 
@@ -517,6 +519,8 @@ Shared routes:
 ## Profile Structure
 
 Profile is the movement identity center. Activity answers "what did I do?" Profile answers "what kind of athlete am I?"
+
+Profile identity is derived from saved `UnifiedWorkout` aggregate data when available. Time-only workouts count toward movement days and total duration; distance-bearing workouts also contribute to total distance, dominant sport, PBs, and simple badge thresholds.
 
 Profile sections:
 

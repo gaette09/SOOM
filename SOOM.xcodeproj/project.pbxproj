@@ -331,6 +331,7 @@
 		010306 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020305 /* SettingsViewModel.swift */; };
 		010307 /* ProfileSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020306 /* ProfileSummaryCard.swift */; };
 		010308 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020307 /* SettingsView.swift */; };
+		010800 /* ProfileWorkoutAggregation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020800 /* ProfileWorkoutAggregation.swift */; };
 		010309 /* TrainingSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020308 /* TrainingSettingsStoreTests.swift */; };
 		010310 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020309 /* SettingsViewModelTests.swift */; };
 		010311 /* PersonalizedZoneBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020310 /* PersonalizedZoneBaseline.swift */; };
@@ -790,6 +791,7 @@
 		020305 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		020306 /* ProfileSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSummaryCard.swift; sourceTree = "<group>"; };
 		020307 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		020800 /* ProfileWorkoutAggregation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileWorkoutAggregation.swift; sourceTree = "<group>"; };
 		020308 /* TrainingSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsStoreTests.swift; sourceTree = "<group>"; };
 		020309 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		020310 /* PersonalizedZoneBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalizedZoneBaseline.swift; sourceTree = "<group>"; };
@@ -1297,6 +1299,7 @@
 				020305 /* SettingsViewModel.swift */,
 				020306 /* ProfileSummaryCard.swift */,
 				020307 /* SettingsView.swift */,
+				020800 /* ProfileWorkoutAggregation.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1968,6 +1971,7 @@
 				010306 /* SettingsViewModel.swift in Sources */,
 				010307 /* ProfileSummaryCard.swift in Sources */,
 				010308 /* SettingsView.swift in Sources */,
+				010800 /* ProfileWorkoutAggregation.swift in Sources */,
 				010373 /* AppUser.swift in Sources */,
 				010374 /* AuthSession.swift in Sources */,
 				010375 /* AuthSessionStore.swift in Sources */,

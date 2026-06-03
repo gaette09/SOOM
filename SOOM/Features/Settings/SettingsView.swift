@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var isShowingDisconnectConfirmation = false
     @State private var localDataPresence: LocalDataPresence = .empty
+    @State private var profileIdentity: ProfileIdentitySystem = .foundation
     private let authEnvironment: AuthEnvironment
 
     init(
@@ -49,9 +50,11 @@ struct SettingsView: View {
         .task {
             viewModel.load()
             await refreshLocalDataPresence()
+            await refreshProfileIdentity()
         }
         .task(id: authViewModel.session.currentUser?.id) {
             await refreshLocalDataPresence()
+            await refreshProfileIdentity()
         }
         .alert(
             "설정 값을 확인해주세요",
@@ -88,10 +91,6 @@ struct SettingsView: View {
         }
 
         return authViewModel.session.isLocalOnly ? "로컬 사용자" : "로그인 준비 중"
-    }
-
-    private var profileIdentity: ProfileIdentitySystem {
-        ProfileIdentitySystem.foundation
     }
 
     private var header: some View {
@@ -394,6 +393,13 @@ struct SettingsView: View {
     private func refreshLocalDataPresence() async {
         let detector = LocalDataDetector.live(modelContext: modelContext)
         localDataPresence = await detector.detect()
+    }
+
+    @MainActor
+    private func refreshProfileIdentity() async {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let workouts = (try? await store.fetchRecentWorkouts(days: 3_650)) ?? []
+        profileIdentity = ProfileWorkoutAggregator().profileIdentity(from: workouts)
     }
 
     private func settingInputRow(

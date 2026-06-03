@@ -181,7 +181,7 @@ Secret safety rules:
 - Stop opens a finish summary with sport, elapsed time, start/end time, route-capture status, Save, and Discard actions.
 - Save stores a local-first `UnifiedWorkout` and returns to Activity; discard keeps the workout out of local storage and returns to the Record launch map.
 - Record route persistence is local-first. When foreground location updates produce at least two coordinates, save should persist distance, start/end coordinates, and a linked local `WorkoutRoute`; when coordinates are unavailable, SOOM must still save a time-only workout.
-- Activity and Activity Detail should prefer the saved local route when it exists. Share cards should also prefer the saved route over fallback/generated route previews. Profile aggregation from these saved distances/routes is deferred to a later sprint.
+- Activity and Activity Detail should prefer the saved local route when it exists. Share cards should also prefer the saved route over fallback/generated route previews. Profile should aggregate saved `UnifiedWorkout` distance and activity data into identity stats without becoming a recent workout list.
 - HealthKit write remains deferred. TestFlight QA should verify that starting or saving from Record does not force HealthKit authorization, cloud sync, or feed sharing.
 - Feed share draft creation is also deferred; saved workouts stay private/local until a future explicit share flow is added.
 - `NSLocationWhenInUseUsageDescription`: explains current-location display and nearby course guidance before starting a workout.
@@ -376,8 +376,8 @@ Club local persistence:
 
 Deferred for the next sprint:
 
-- Profile workout aggregation from saved local workouts.
 - Production GPS smoothing, background tracking, and remote route sync.
+- Full badge engine and signature route aggregation from persisted route identities.
 
 ## Validation Log
 

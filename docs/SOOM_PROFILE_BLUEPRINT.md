@@ -75,6 +75,9 @@ Rules:
 - This is cumulative identity, not recent history.
 - Avoid recent workout cards.
 - Avoid overloading with all possible stats.
+- In v1, identity is derived from `UnifiedWorkoutStore` aggregate data when local workouts exist.
+- Record-saved distance and route workouts feed the aggregate distance, active days, representative sport, and PB foundation.
+- Distance-less/time-only workouts still count toward workout count, active days, and total time.
 
 ## Movement Pattern
 
@@ -91,7 +94,8 @@ Example patterns:
 Rules:
 
 - Pattern labels should feel human.
-- Pattern labels can be mock/foundation until the classifier exists.
+- Pattern labels are partially aggregate-driven in v1: morning ratio, consistency, weekend long tendency, and dominant sport can shape the cards.
+- Intensity/recovery-friendly classification remains foundation-level until richer effort data exists.
 - Do not make the user feel judged.
 - Use compact cards or chips. Purple accent is reserved for the primary/representative patterns.
 
@@ -110,6 +114,7 @@ Examples:
 Rules:
 
 - Show only representative records, with a max of 3 in the primary showcase.
+- v1 uses aggregate values for longest ride, longest run, and best weekly distance.
 - Full workout history stays in Activity.
 - Detailed analysis stays in workout detail.
 
@@ -147,6 +152,7 @@ Rules:
 - Do not render a full badge inventory here.
 - Rare and new badges can be highlighted, but keep the tone calm.
 - Badge cards should show status/progress visually so they can connect to Club later without becoming a full badge engine.
+- v1 can reflect simple aggregate thresholds such as first workout, 30 active days, and 1000 km.
 
 ## Connections
 
@@ -200,8 +206,8 @@ The empty state should point toward first movement and trust setup without makin
 ## Deferred
 
 - Real movement identity classifier
-- Real PB aggregation
 - Real badge engine
 - External Garmin/Strava connections
 - Editable profile bio/avatar
 - Public profile sharing
+- Signature route aggregation from persisted route identity
