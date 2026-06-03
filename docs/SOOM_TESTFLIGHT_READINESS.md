@@ -444,6 +444,10 @@ This pass adds the first remote Club boundary without changing the product IA:
 - Leave maps to `club_members` delete.
 - Member lookup maps `club_members` rows into membership state and member preview.
 - Ranking and challenge progress remain deferred calculation engines.
+- Club RLS hardening removes direct `club_members` self-reference from member policies.
+- Owner-only write policy is used for club update/delete and challenge/badge writes in v1.
+- `clubs.updated_at` is backed by a before-update trigger in the migration draft.
+- The migration still has not been applied; staging RLS smoke test is required first.
 
 Manual QA:
 
@@ -452,6 +456,16 @@ Manual QA:
 - Join an open Club and verify membership state changes.
 - Leave a joined Club and verify it returns to recommended state.
 - Disconnect network or use an unconfigured environment and confirm local Club fallback still loads.
+
+Staging migration QA:
+
+- Confirm non-members can read open club metadata but cannot read full member lists.
+- Confirm members can read scoped member rows.
+- Confirm private club metadata is hidden from non-members.
+- Confirm owners can update/delete clubs.
+- Confirm admins cannot update clubs in v1.
+- Confirm owners can create/update/delete club challenges and badges.
+- Confirm rollback order from `docs/SOOM_CLUB_SUPABASE_RLS_REVIEW.md`.
 
 ## Validation Log
 

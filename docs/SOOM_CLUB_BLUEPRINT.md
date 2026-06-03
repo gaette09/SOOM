@@ -428,6 +428,24 @@ Runtime strategy:
 - Ranking rows are still derived as a display foundation; no real ranking algorithm exists in this pass.
 - Challenge progress remains catalog-level; no progress engine exists in this pass.
 
+## Club RLS Hardening v1
+
+`club_members` RLS no longer uses a direct self-reference. Membership checks are routed through `SECURITY DEFINER` helpers:
+
+- `public.is_club_member(target_club_id uuid)`
+- `public.is_club_owner(target_club_id uuid)`
+- `public.is_club_admin(target_club_id uuid)`
+
+Policy direction:
+
+- Open club metadata is readable by authenticated users.
+- Member lists are scoped to the current user's row, club members, owners, and admins.
+- Club update/delete is owner-only in v1.
+- Challenge and badge writes are owner-only in v1.
+- Admin write privileges remain deferred until column-level constraints or RPC boundaries are designed.
+
+Review note: see `docs/SOOM_CLUB_SUPABASE_RLS_REVIEW.md`.
+
 Deferred:
 
 - Invite/member management

@@ -404,6 +404,54 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(detail.badges.first?.title, "첫 기여")
     }
 
+    func testClubMigrationContainsSecurityDefinerHelpers() throws {
+        let sql = try clubMigrationSQL()
+
+        XCTAssertTrue(sql.contains("create or replace function public.is_club_member(target_club_id uuid)"))
+        XCTAssertTrue(sql.contains("create or replace function public.is_club_owner(target_club_id uuid)"))
+        XCTAssertTrue(sql.contains("create or replace function public.is_club_admin(target_club_id uuid)"))
+        XCTAssertGreaterThanOrEqual(sql.components(separatedBy: "security definer").count - 1, 3)
+        XCTAssertTrue(sql.contains("set search_path = public"))
+    }
+
+    func testClubMembersPolicyDoesNotDirectlySelfReferenceMembersTable() throws {
+        let sql = try clubMigrationSQL()
+        let policy = try sqlBlock(
+            in: sql,
+            from: "create policy \"club_members_select_scoped\"",
+            to: "drop policy if exists \"club_members_insert_join_open\""
+        )
+
+        XCTAssertFalse(policy.contains("from public.club_members"))
+        XCTAssertTrue(policy.contains("public.is_club_member(club_id)"))
+        XCTAssertTrue(policy.contains("public.is_club_admin(club_id)"))
+    }
+
+    func testClubMigrationHasOwnerOnlyWritesAndDeletePolicy() throws {
+        let sql = try clubMigrationSQL()
+
+        XCTAssertTrue(sql.contains("create policy \"clubs_update_owner\""))
+        XCTAssertTrue(sql.contains("using (owner_user_id = auth.uid())"))
+        XCTAssertTrue(sql.contains("create policy \"clubs_delete_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_challenges_insert_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_challenges_update_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_challenges_delete_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_badges_insert_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_badges_update_owner\""))
+        XCTAssertTrue(sql.contains("create policy \"club_badges_delete_owner\""))
+    }
+
+    func testClubMigrationHasUpdatedAtTriggerAndRollbackForHelpers() throws {
+        let sql = try clubMigrationSQL()
+
+        XCTAssertTrue(sql.contains("create or replace function public.set_updated_at()"))
+        XCTAssertTrue(sql.contains("drop trigger if exists clubs_set_updated_at on public.clubs"))
+        XCTAssertTrue(sql.contains("create trigger clubs_set_updated_at"))
+        XCTAssertTrue(sql.contains("drop function if exists public.is_club_admin(uuid)"))
+        XCTAssertTrue(sql.contains("drop function if exists public.is_club_owner(uuid)"))
+        XCTAssertTrue(sql.contains("drop function if exists public.is_club_member(uuid)"))
+    }
+
     private func makePersistence() -> LocalClubPersistence {
         LocalClubPersistence(userDefaults: makeUserDefaults(), key: "club-test")
     }
@@ -413,6 +461,27 @@ final class ClubDomainFoundationTests: XCTestCase {
         let userDefaults = UserDefaults(suiteName: suiteName)!
         userDefaults.removePersistentDomain(forName: suiteName)
         return userDefaults
+    }
+
+    private func clubMigrationSQL(
+        file: StaticString = #filePath
+    ) throws -> String {
+        let testFileURL = URL(fileURLWithPath: "\(file)")
+        let repoRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sqlURL = repoRoot.appendingPathComponent("supabase/club_foundation_v1.sql")
+        return try String(contentsOf: sqlURL, encoding: .utf8)
+    }
+
+    private func sqlBlock(in sql: String, from startMarker: String, to endMarker: String) throws -> String {
+        guard
+            let startRange = sql.range(of: startMarker),
+            let endRange = sql.range(of: endMarker, range: startRange.upperBound..<sql.endIndex)
+        else {
+            throw NSError(domain: "ClubDomainFoundationTests", code: 1)
+        }
+        return String(sql[startRange.lowerBound..<endRange.lowerBound])
     }
 }
 

@@ -57,6 +57,80 @@ create index if not exists club_members_user_id_idx on public.club_members(user_
 create index if not exists club_challenges_club_id_idx on public.club_challenges(club_id);
 create index if not exists club_badges_club_id_idx on public.club_badges(club_id);
 
+-- SECURITY DEFINER helpers avoid self-referencing RLS recursion in policies.
+-- Keep these functions narrow, stable, and bound to public search_path.
+-- They use auth.uid() only and should be owned by a trusted migration owner.
+create or replace function public.is_club_member(target_club_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.club_members cm
+    where cm.club_id = target_club_id
+      and cm.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_club_owner(target_club_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.clubs c
+    where c.id = target_club_id
+      and c.owner_user_id = auth.uid()
+  )
+  or exists (
+    select 1
+    from public.club_members cm
+    where cm.club_id = target_club_id
+      and cm.user_id = auth.uid()
+      and cm.role = 'owner'
+  );
+$$;
+
+create or replace function public.is_club_admin(target_club_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.is_club_owner(target_club_id)
+  or exists (
+    select 1
+    from public.club_members cm
+    where cm.club_id = target_club_id
+      and cm.user_id = auth.uid()
+      and cm.role = 'admin'
+  );
+$$;
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists clubs_set_updated_at on public.clubs;
+create trigger clubs_set_updated_at
+before update on public.clubs
+for each row
+execute function public.set_updated_at();
+
 alter table public.clubs enable row level security;
 alter table public.club_members enable row level security;
 alter table public.club_challenges enable row level security;
@@ -69,11 +143,7 @@ to authenticated
 using (
   visibility = 'open'
   or owner_user_id = auth.uid()
-  or exists (
-    select 1 from public.club_members cm
-    where cm.club_id = clubs.id
-      and cm.user_id = auth.uid()
-  )
+  or public.is_club_member(id)
 );
 
 drop policy if exists "clubs_insert_owner" on public.clubs;
@@ -83,27 +153,18 @@ to authenticated
 with check (owner_user_id = auth.uid());
 
 drop policy if exists "clubs_update_owner_admin" on public.clubs;
-create policy "clubs_update_owner_admin"
+drop policy if exists "clubs_update_owner" on public.clubs;
+create policy "clubs_update_owner"
 on public.clubs for update
 to authenticated
-using (
-  owner_user_id = auth.uid()
-  or exists (
-    select 1 from public.club_members cm
-    where cm.club_id = clubs.id
-      and cm.user_id = auth.uid()
-      and cm.role in ('owner', 'admin')
-  )
-)
-with check (
-  owner_user_id = auth.uid()
-  or exists (
-    select 1 from public.club_members cm
-    where cm.club_id = clubs.id
-      and cm.user_id = auth.uid()
-      and cm.role in ('owner', 'admin')
-  )
-);
+using (owner_user_id = auth.uid())
+with check (owner_user_id = auth.uid());
+
+drop policy if exists "clubs_delete_owner" on public.clubs;
+create policy "clubs_delete_owner"
+on public.clubs for delete
+to authenticated
+using (owner_user_id = auth.uid());
 
 drop policy if exists "club_members_select_scoped" on public.club_members;
 create policy "club_members_select_scoped"
@@ -111,16 +172,8 @@ on public.club_members for select
 to authenticated
 using (
   user_id = auth.uid()
-  or exists (
-    select 1 from public.clubs c
-    where c.id = club_members.club_id
-      and c.visibility = 'open'
-  )
-  or exists (
-    select 1 from public.club_members cm
-    where cm.club_id = club_members.club_id
-      and cm.user_id = auth.uid()
-  )
+  or public.is_club_member(club_id)
+  or public.is_club_admin(club_id)
 );
 
 drop policy if exists "club_members_insert_join_open" on public.club_members;
@@ -165,14 +218,29 @@ using (
       and (
         c.visibility = 'open'
         or c.owner_user_id = auth.uid()
-        or exists (
-          select 1 from public.club_members cm
-          where cm.club_id = c.id
-            and cm.user_id = auth.uid()
-        )
+        or public.is_club_member(c.id)
       )
   )
 );
+
+drop policy if exists "club_challenges_insert_owner" on public.club_challenges;
+create policy "club_challenges_insert_owner"
+on public.club_challenges for insert
+to authenticated
+with check (public.is_club_owner(club_id));
+
+drop policy if exists "club_challenges_update_owner" on public.club_challenges;
+create policy "club_challenges_update_owner"
+on public.club_challenges for update
+to authenticated
+using (public.is_club_owner(club_id))
+with check (public.is_club_owner(club_id));
+
+drop policy if exists "club_challenges_delete_owner" on public.club_challenges;
+create policy "club_challenges_delete_owner"
+on public.club_challenges for delete
+to authenticated
+using (public.is_club_owner(club_id));
 
 drop policy if exists "club_badges_select_visible_club" on public.club_badges;
 create policy "club_badges_select_visible_club"
@@ -186,11 +254,53 @@ using (
       and (
         c.visibility = 'open'
         or c.owner_user_id = auth.uid()
-        or exists (
-          select 1 from public.club_members cm
-          where cm.club_id = c.id
-            and cm.user_id = auth.uid()
-        )
+        or public.is_club_member(c.id)
       )
   )
 );
+
+drop policy if exists "club_badges_insert_owner" on public.club_badges;
+create policy "club_badges_insert_owner"
+on public.club_badges for insert
+to authenticated
+with check (club_id is not null and public.is_club_owner(club_id));
+
+drop policy if exists "club_badges_update_owner" on public.club_badges;
+create policy "club_badges_update_owner"
+on public.club_badges for update
+to authenticated
+using (club_id is not null and public.is_club_owner(club_id))
+with check (club_id is not null and public.is_club_owner(club_id));
+
+drop policy if exists "club_badges_delete_owner" on public.club_badges;
+create policy "club_badges_delete_owner"
+on public.club_badges for delete
+to authenticated
+using (club_id is not null and public.is_club_owner(club_id));
+
+-- Rollback reference:
+-- drop policy if exists "club_badges_delete_owner" on public.club_badges;
+-- drop policy if exists "club_badges_update_owner" on public.club_badges;
+-- drop policy if exists "club_badges_insert_owner" on public.club_badges;
+-- drop policy if exists "club_badges_select_visible_club" on public.club_badges;
+-- drop policy if exists "club_challenges_delete_owner" on public.club_challenges;
+-- drop policy if exists "club_challenges_update_owner" on public.club_challenges;
+-- drop policy if exists "club_challenges_insert_owner" on public.club_challenges;
+-- drop policy if exists "club_challenges_select_visible_club" on public.club_challenges;
+-- drop policy if exists "club_members_delete_self_non_owner" on public.club_members;
+-- drop policy if exists "club_members_insert_join_open" on public.club_members;
+-- drop policy if exists "club_members_select_scoped" on public.club_members;
+-- drop policy if exists "clubs_delete_owner" on public.clubs;
+-- drop policy if exists "clubs_update_owner" on public.clubs;
+-- drop policy if exists "clubs_update_owner_admin" on public.clubs;
+-- drop policy if exists "clubs_insert_owner" on public.clubs;
+-- drop policy if exists "clubs_select_open_or_member" on public.clubs;
+-- drop trigger if exists clubs_set_updated_at on public.clubs;
+-- drop function if exists public.set_updated_at();
+-- drop function if exists public.is_club_admin(uuid);
+-- drop function if exists public.is_club_owner(uuid);
+-- drop function if exists public.is_club_member(uuid);
+-- drop table if exists public.club_badges;
+-- drop table if exists public.club_challenges;
+-- drop table if exists public.club_members;
+-- drop table if exists public.clubs;
