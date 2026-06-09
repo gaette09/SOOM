@@ -49,11 +49,11 @@ enum SOOMCardDepth {
     var background: Color {
         switch self {
         case .primary:
-            return SOOMColor.surface
+            return SOOMColor.surfacePrimary
         case .secondary:
-            return SOOMColor.surfaceAmbient
+            return SOOMColor.surfacePrimary
         case .ambient:
-            return SOOMColor.surfaceMuted
+            return SOOMColor.surfaceSecondary
         }
     }
 

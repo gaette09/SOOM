@@ -168,13 +168,13 @@ Secret safety rules:
 - Debug/simulator runs may also provide `MBX_ACCESS_TOKEN` or `MAPBOX_ACCESS_TOKEN` as a process environment value; token values must never be logged or committed.
 - Record's initial Mapbox camera should open near a 100m-scale launch view, centered on the current coordinate when available or the sample/fallback area when location is unavailable.
 - Record should not show an automatic location permission prompt on entry. Device QA should verify the location button is the only trigger for `When In Use` permission, GPS update, and recenter behavior.
-- Record overlay QA should confirm the guidance UI is rendered as a separate compact top notification header, not as a map overlay card. It should sit just below the status bar near `safeAreaTop + 8-14pt`, use 34-38pt side insets, stay around 76-82pt tall, include one short daily movement recommendation, and keep its bottom in the upper header zone. There should be no persistent route strip under the header; route recommendations should open from the right-edge route icon. Back should sit about 28-32pt under the header bottom, and right-edge controls should start about 10-14pt below it in this order: weather, route recommendation, then current-location recenter.
+- Record overlay QA should confirm the guidance UI is rendered as a separate compact top notification header, not as a map overlay card. It should sit just below the status bar near `safeAreaTop + 8-14pt`, use 34-38pt side insets, stay around 76-82pt tall, include one short daily movement recommendation, and keep its bottom in the upper header zone. There should be no persistent route strip under the header. Route recommendation entry points are deferred in v1; right-edge controls should expose only weather and current-location recenter. Back should sit about 28-32pt under the header bottom, and right-edge controls should start about 10-14pt below it.
 - Record layout QA should confirm the guidance banner, back button, and right-edge controls come from the same computed frame source. Separate overlay stacks, legacy route-strip spacing, hard-coded large top padding, or extra offsets should not control the final render positions.
 - Mapbox ornament QA should confirm logo/attribution remain visible near the bottom safe area and do not float into the middle of the Record map, READY area, or bottom focus overlay.
 - Current-location QA should confirm the recenter button remains neutral while the actual map marker uses a center-anchored compact SOOM purple dot/ring/halo with a small 48-50pt max pulse; Reduce Motion should leave the marker static and fallback/sample markers should not use a strong pulse.
 - READY visual QA should confirm the default state uses `RecordBreathingBottomWaveView` as a single oversized radial SOOM-purple blob placed below the screen, not a custom clipped path, alpha-masked wave shape, linear gradient, fog, blur, or rectangle stack. The blob frame should be much larger than the screen, and its outer radial stop should be fully transparent so no visible top edge or path boundary can appear. Breathing must be visible through blob scale, y-position, and opacity changes over 3.2s with autoreverse, not through opacity alone. During sport selection, the blob should move lower, scale down slightly, and fade to about 0.45 opacity so sport icons stay readable. The black primary circular button should sit inside the purple field, contain only a centered `play.fill` icon, and use only a subtle breathing outer ring; it should not show the selected sport icon, "READY", or "길게 눌러 시작" inside the button.
 - READY QA should confirm tap does not start a workout, tapping the dimmed area does not start a workout, long press reveals sport choices only above READY, drag hover changes selection with subtle haptics, release on a hovered sport starts that sport, and release without a hovered sport cancels.
-- Route recommendation QA should confirm the route button opens a mock route catalog and does not call Mapbox Directions or any route backend.
+- Route recommendation QA should confirm Record v1 does not expose a route button, route strip, or route catalog sheet entry. The domain/catalog foundation remains in code for v2 and must not call Mapbox Directions or any route backend in v1.
 - Record weather is optional and fallback-first. Live weather should be requested only after the current-location button produces an authorized coordinate and `OPENWEATHER_API_KEY` or `WEATHER_API_KEY` is supplied through local/CI secrets. Missing key, denied permission, or network failure must keep the fallback weather pill and must not block workout start.
 - Weather detail QA should confirm the weather button opens hourly/daily, wind, feels-like, fine dust, and ultra-fine dust rows, with fallback/mock values allowed when the live provider does not supply them.
 - READY starts the local-first workout session foundation only after the long-press drag-select release confirmation. Location is optional at start; when a coordinate is available the route capture path can be prepared, and without it the app starts a time-first local session.
@@ -359,7 +359,7 @@ User-facing copy:
 
 - Product UI must not expose `mock`, `fallback`, `placeholder`, `sample`, `demo`, `foundation`, `local-only`, `Directions 없음`, `API 없음`, or `backend 없음`.
 - Technical terms can remain in DEBUG logs, tests, and engineering docs.
-- Record map/weather/route states should read as calm product states such as "현재 위치를 준비 중이에요", "최신 날씨를 준비하는 중이에요", and "추천 코스".
+- Record map/weather states should read as calm product states such as "현재 위치를 준비 중이에요" and "최신 날씨를 준비하는 중이에요". Route recommendation copy is deferred from the Record UI until v2.
 
 Record weather:
 
@@ -466,6 +466,20 @@ Staging migration QA:
 - Confirm admins cannot update clubs in v1.
 - Confirm owners can create/update/delete club challenges and badges.
 - Confirm rollback order from `docs/SOOM_CLUB_SUPABASE_RLS_REVIEW.md`.
+
+## Global Visual System QA
+
+TestFlight visual checks:
+
+- Major app surfaces render on white, not warm beige or large purple panels.
+- Secondary rows and compact cards use `#F7F7F7` only for low-emphasis grouping.
+- Primary values and key metrics use near-black text and do not depend on purple backgrounds.
+- Purple is limited to selected states, CTA, active icons, progress, badges, rank movement, and identity highlights.
+- Activity Detail metrics follow label/value hierarchy: gray label, bold black value, restrained unit.
+- Profile hero leads with identity phrase and representative badge; stats are compact supporting metrics.
+- Club rankings use black numbers, purple only for the current-user highlight, progress, and positive rank delta.
+- Feed body copy stays black, metadata gray, and emphasis purple.
+- Share card exports keep their own story-card brand system; this refresh applies to internal app UI and composer surfaces.
 
 ## Validation Log
 

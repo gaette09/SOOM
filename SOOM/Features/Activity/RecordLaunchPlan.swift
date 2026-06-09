@@ -842,7 +842,6 @@ enum RecordLaunchControl: String, CaseIterable, Equatable {
 
     static let rightEdgeOrder: [RecordLaunchControl] = [
         .weather,
-        .routeRecommendation,
         .currentLocation
     ]
 
@@ -885,7 +884,7 @@ enum RecordMapHeaderLayout {
     static let guidanceCornerRadius: CGFloat = 22
     static let maxBodyLineCount = 2
     static let showsRouteStripByDefault = false
-    static let routeRecommendationUsesRightControlOnly = true
+    static let routeRecommendationEntryPointVisible = false
     static let maxVisualTopRatio: CGFloat = 0.12
     static let maxVisualBottomRatio: CGFloat = 0.22
     static let backButtonCenterX: CGFloat = 52
@@ -912,7 +911,9 @@ enum RecordMapHeaderLayout {
     }
 
     static var rightControlsStackHeight: CGFloat {
-        controlSize * 3 + controlSpacing * 2
+        let controlCount = CGFloat(RecordLaunchControl.rightEdgeOrder.count)
+        guard controlCount > 0 else { return 0 }
+        return controlSize * controlCount + controlSpacing * max(0, controlCount - 1)
     }
 
     static func visualTopRatio(safeAreaTop: CGFloat, screenHeight: CGFloat) -> CGFloat {
@@ -957,6 +958,32 @@ enum RecordMapHeaderLayout {
             rightControlsFrame: rightControlsFrame,
             rightControlCenters: rightControlCenters
         )
+    }
+}
+
+enum RecordActiveHUDLayerLayout {
+    static let mapZIndex: Double = 0
+    static let readyControlZIndex: Double = 1
+    static let compactHUDZIndex: Double = 3
+    static let topBannerZIndex: Double = 50
+    static let rightControlsZIndex: Double = 40
+    static let expandedHUDZIndex: Double = 100
+    static let hidesTopBannerWhenExpanded = true
+    static let hidesRightControlsWhenExpanded = true
+    static let hidesCompassWhenExpanded = true
+    static let compactModeKeepsTopOverlays = true
+
+    static func hudZIndex(for mode: RecordActiveHUDMode) -> Double {
+        switch mode {
+        case .compact:
+            return compactHUDZIndex
+        case .expanded:
+            return expandedHUDZIndex
+        }
+    }
+
+    static func topControlsOpacity(isExpanded: Bool) -> Double {
+        isExpanded ? 0 : 1
     }
 }
 

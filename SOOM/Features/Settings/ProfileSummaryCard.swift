@@ -44,7 +44,7 @@ struct ProfileSummaryCard: View {
         SOOMCard(depth: .primary) {
             ZStack(alignment: .topTrailing) {
                 Circle()
-                    .fill(SOOMColor.accentSurface.opacity(0.72))
+                    .stroke(SOOMColor.accentLine, lineWidth: 1.5)
                     .frame(width: 132, height: 132)
                     .offset(x: 44, y: -58)
                     .accessibilityHidden(true)
@@ -160,8 +160,8 @@ struct ProfileSummaryCard: View {
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.tertiaryInk)
                     Text(stat.value)
-                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                 }

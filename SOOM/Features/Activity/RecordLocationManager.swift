@@ -7,6 +7,7 @@ final class RecordLocationManager: NSObject, ObservableObject, CLLocationManager
 
     private let manager: CLLocationManager
     private let fallbackCoordinate: RecordMapCoordinate
+    private var headingState: RecordHeadingState = .unavailable
 
     init(
         manager: CLLocationManager = CLLocationManager(),
@@ -19,12 +20,26 @@ final class RecordLocationManager: NSObject, ObservableObject, CLLocationManager
             coordinate: manager.location.map {
                 RecordMapCoordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
             },
-            fallbackCoordinate: fallbackCoordinate
+            fallbackCoordinate: fallbackCoordinate,
+            heading: RecordHeadingState(
+                trueHeadingDegrees: nil,
+                courseBearingDegrees: manager.location?.course,
+                speedMetersPerSecond: manager.location?.speed
+            )
         )
         super.init()
         self.manager.delegate = self
         self.manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         self.manager.distanceFilter = 10
+        self.manager.headingFilter = 5
+
+        if self.state.authorization == .authorized {
+            startHeadingUpdatesIfAvailable()
+        }
+    }
+
+    deinit {
+        manager.stopUpdatingHeading()
     }
 
     var shouldRequestPermissionOnEntry: Bool {
@@ -40,6 +55,7 @@ final class RecordLocationManager: NSObject, ObservableObject, CLLocationManager
             manager.requestWhenInUseAuthorization()
         case .updateCurrentLocation:
             manager.requestLocation()
+            startHeadingUpdatesIfAvailable()
         case .keepFallback:
             break
         }
@@ -53,6 +69,9 @@ final class RecordLocationManager: NSObject, ObservableObject, CLLocationManager
 
         if state.authorization == .authorized {
             manager.requestLocation()
+            startHeadingUpdatesIfAvailable()
+        } else {
+            manager.stopUpdatingHeading()
         }
     }
 
@@ -70,14 +89,38 @@ final class RecordLocationManager: NSObject, ObservableObject, CLLocationManager
         )
     }
 
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        let trueHeading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : nil
+        headingState = RecordHeadingState(
+            trueHeadingDegrees: trueHeading,
+            courseBearingDegrees: headingState.courseBearingDegrees,
+            speedMetersPerSecond: headingState.speedMetersPerSecond
+        )
+        updateState(
+            authorization: RecordLocationAuthorizationState(manager.authorizationStatus),
+            location: manager.location
+        )
+    }
+
     private func updateState(authorization: RecordLocationAuthorizationState, location: CLLocation?) {
         let coordinate = location.map {
             RecordMapCoordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
         }
+        headingState = RecordHeadingState(
+            trueHeadingDegrees: headingState.trueHeadingDegrees,
+            courseBearingDegrees: location?.course ?? headingState.courseBearingDegrees,
+            speedMetersPerSecond: location?.speed ?? headingState.speedMetersPerSecond
+        )
         state = RecordLocationState(
             authorization: authorization,
             coordinate: coordinate,
-            fallbackCoordinate: fallbackCoordinate
+            fallbackCoordinate: fallbackCoordinate,
+            heading: headingState
         )
+    }
+
+    private func startHeadingUpdatesIfAvailable() {
+        guard CLLocationManager.headingAvailable() else { return }
+        manager.startUpdatingHeading()
     }
 }

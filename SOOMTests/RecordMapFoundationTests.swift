@@ -126,6 +126,174 @@ final class RecordMapFoundationTests: XCTestCase {
         XCTAssertEqual(state.zoom, RecordMapCameraState.launchZoom)
     }
 
+    func testHeadingPolicyKeepsNorthUpBeforeWorkoutStarts() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 123,
+            courseBearingDegrees: 201,
+            speedMetersPerSecond: 4
+        )
+
+        let bearing = RecordMapHeadingCameraPolicy.bearing(
+            heading: heading,
+            sessionState: nil,
+            lastBearing: 44
+        )
+
+        XCTAssertEqual(bearing, 0)
+    }
+
+    func testHeadingPolicyPrefersCourseDuringActiveWorkout() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: 222,
+            speedMetersPerSecond: RecordMapHeadingCameraPolicy.courseSpeedThresholdMetersPerSecond + 0.2
+        )
+
+        let bearing = RecordMapHeadingCameraPolicy.bearing(
+            heading: heading,
+            sessionState: .active,
+            lastBearing: 20
+        )
+
+        XCTAssertEqual(bearing, 222)
+    }
+
+    func testHeadingPolicyFallsBackToTrueHeadingWhenCourseIsUnavailable() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: nil,
+            speedMetersPerSecond: RecordMapHeadingCameraPolicy.courseSpeedThresholdMetersPerSecond + 0.2
+        )
+
+        let bearing = RecordMapHeadingCameraPolicy.bearing(
+            heading: heading,
+            sessionState: .active,
+            lastBearing: 20
+        )
+
+        XCTAssertEqual(bearing, 184)
+    }
+
+    func testHeadingPolicyFreezesBearingAtLowSpeed() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: 222,
+            speedMetersPerSecond: RecordMapHeadingCameraPolicy.courseSpeedThresholdMetersPerSecond
+        )
+
+        let bearing = RecordMapHeadingCameraPolicy.bearing(
+            heading: heading,
+            sessionState: .active,
+            lastBearing: 72
+        )
+
+        XCTAssertEqual(RecordMapHeadingCameraPolicy.courseSpeedThresholdKilometersPerHour, 3.6, accuracy: 0.01)
+        XCTAssertEqual(bearing, 72)
+    }
+
+    func testHeadingPolicyKeepsLastBearingWhilePaused() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: 222,
+            speedMetersPerSecond: 5
+        )
+
+        XCTAssertEqual(
+            RecordMapHeadingCameraPolicy.bearing(
+                heading: heading,
+                sessionState: .paused,
+                lastBearing: 72
+            ),
+            72
+        )
+    }
+
+    func testHeadingPolicyResetsAfterWorkoutFinishesOrCancels() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: 222,
+            speedMetersPerSecond: 5
+        )
+
+        XCTAssertEqual(
+            RecordMapHeadingCameraPolicy.bearing(
+                heading: heading,
+                sessionState: .finished,
+                lastBearing: 72
+            ),
+            0
+        )
+        XCTAssertEqual(
+            RecordMapHeadingCameraPolicy.bearing(
+                heading: heading,
+                sessionState: .cancelled,
+                lastBearing: 72
+            ),
+            0
+        )
+    }
+
+    func testReduceMotionDoesNotDisableHeadingFollowOnlyCameraAnimation() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: 184,
+            courseBearingDegrees: 222,
+            speedMetersPerSecond: 5
+        )
+
+        XCTAssertEqual(
+            RecordMapHeadingCameraPolicy.bearing(
+                heading: heading,
+                sessionState: .active,
+                lastBearing: 72
+            ),
+            222
+        )
+        XCTAssertEqual(RecordMapHeadingCameraPolicy.cameraAnimationDuration(reduceMotionEnabled: true), 0)
+        XCTAssertGreaterThan(RecordMapHeadingCameraPolicy.cameraAnimationDuration(reduceMotionEnabled: false), 0)
+    }
+
+    func testNavigationConeIsVisibleOnlyDuringWorkoutWithActualLocation() {
+        XCTAssertTrue(
+            RecordNavigationPuckStyle.usesNavigationCone(
+                sessionState: .active,
+                canShowUserLocation: true
+            )
+        )
+        XCTAssertTrue(
+            RecordNavigationPuckStyle.usesNavigationCone(
+                sessionState: .paused,
+                canShowUserLocation: true
+            )
+        )
+        XCTAssertFalse(
+            RecordNavigationPuckStyle.usesNavigationCone(
+                sessionState: nil,
+                canShowUserLocation: true
+            )
+        )
+        XCTAssertFalse(
+            RecordNavigationPuckStyle.usesNavigationCone(
+                sessionState: .active,
+                canShowUserLocation: false
+            )
+        )
+        XCTAssertGreaterThanOrEqual(RecordNavigationPuckStyle.coneWidth, 40)
+        XCTAssertGreaterThanOrEqual(RecordNavigationPuckStyle.coneHeight, 52)
+    }
+
+    func testHeadingStateRejectsInvalidCourseTrueHeadingAndNegativeSpeed() {
+        let heading = RecordHeadingState(
+            trueHeadingDegrees: -1,
+            courseBearingDegrees: 361,
+            speedMetersPerSecond: -1
+        )
+
+        XCTAssertNil(heading.trueHeadingDegrees)
+        XCTAssertNil(heading.courseBearingDegrees)
+        XCTAssertNil(heading.speedMetersPerSecond)
+        XCTAssertFalse(heading.canFollowHeading)
+    }
+
     func testLocationStateDoesNotRequestPermissionOnEntry() {
         XCTAssertFalse(RecordLocationState.mockCurrent.shouldRequestPermissionOnEntry)
     }
@@ -157,13 +325,15 @@ final class RecordMapFoundationTests: XCTestCase {
         let authorized = RecordLocationState(
             authorization: .authorized,
             coordinate: coordinate,
-            fallbackCoordinate: fallback
+            fallbackCoordinate: fallback,
+            heading: RecordHeadingState(trueHeadingDegrees: 91, speedMetersPerSecond: 2)
         )
 
         XCTAssertTrue(authorized.canShowUserLocation)
         XCTAssertEqual(authorized.displayCoordinate, coordinate)
         XCTAssertEqual(authorized.locationButtonAction, .updateCurrentLocation)
         XCTAssertEqual(authorized.recenterTarget, coordinate)
+        XCTAssertEqual(authorized.heading.trueHeadingDegrees, 91)
     }
 
     func testAuthorizationStatusMapping() {

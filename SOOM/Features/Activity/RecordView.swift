@@ -26,6 +26,7 @@ struct RecordView: View {
     @State private var weatherRetryState = RecordWeatherRetryState()
     @State private var isBottomGradientBreathing = false
     @State private var readyInteractionState = RecordReadyWaveInteractionState.idle
+    @State private var activeHUDMode: RecordActiveHUDMode = .defaultMode
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
@@ -33,6 +34,10 @@ struct RecordView: View {
     private let onDismiss: (() -> Void)?
     private let onSaveComplete: (() -> Void)?
     private let onShareDraftComplete: (() -> Void)?
+
+    private var isExpandedHUDPresented: Bool {
+        activeSession != nil && activeHUDMode == .expanded
+    }
 
     init(
         weatherService: any RecordWeatherService = RecordWeatherServiceFactory.make(),
@@ -58,22 +63,29 @@ struct RecordView: View {
                     sport: selectedSport,
                     route: selectedRoute,
                     locationState: locationManager.state,
-                    recenterTrigger: recenterTrigger
+                    recenterTrigger: recenterTrigger,
+                    sessionState: activeSession?.state,
+                    reduceMotionEnabled: reduceMotion,
+                    hidesCompass: isExpandedHUDPresented
                 )
                     .ignoresSafeArea()
+                    .zIndex(RecordActiveHUDLayerLayout.mapZIndex)
 
                 bottomFocusGradient
                     .ignoresSafeArea(edges: .bottom)
                     .allowsHitTesting(false)
 
                 topControlsLayer(frames: headerFrames)
-                    .zIndex(4)
+                    .opacity(RecordActiveHUDLayerLayout.topControlsOpacity(isExpanded: isExpandedHUDPresented))
+                    .allowsHitTesting(!isExpandedHUDPresented)
+                    .animation(.easeOut(duration: 0.18), value: isExpandedHUDPresented)
+                    .zIndex(RecordActiveHUDLayerLayout.topBannerZIndex)
 
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     readyLaunchControl(safeAreaInsets: proxy.safeAreaInsets)
                 }
-                .zIndex(1)
+                .zIndex(RecordActiveHUDLayerLayout.readyControlZIndex)
 
                 if let activeSession {
                     activeWorkoutOverlay(
@@ -81,16 +93,13 @@ struct RecordView: View {
                         safeAreaInsets: proxy.safeAreaInsets
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(3)
+                    .zIndex(RecordActiveHUDLayerLayout.hudZIndex(for: activeHUDMode))
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isWeatherDetailPresented) {
             weatherDetailSheet
-        }
-        .sheet(isPresented: $isRouteRecommendationPresented) {
-            routeRecommendationSheet
         }
         .onChange(of: locationManager.state) { _, newState in
             recordLocationIfNeeded(from: newState)
@@ -121,13 +130,16 @@ struct RecordView: View {
             topGuidanceBanner
                 .frame(width: frames.bannerFrame.width, height: frames.bannerFrame.height)
                 .position(x: frames.bannerFrame.midX, y: frames.bannerFrame.midY)
+                .zIndex(RecordActiveHUDLayerLayout.topBannerZIndex)
 
             closeButton
                 .position(frames.backButtonCenter)
+                .zIndex(RecordActiveHUDLayerLayout.rightControlsZIndex)
 
             rightEdgeControls
                 .frame(width: frames.rightControlsFrame.width, height: frames.rightControlsFrame.height)
                 .position(x: frames.rightControlsFrame.midX, y: frames.rightControlsFrame.midY)
+                .zIndex(RecordActiveHUDLayerLayout.rightControlsZIndex)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .ignoresSafeArea(edges: .top)
@@ -198,14 +210,22 @@ struct RecordView: View {
 
     private var rightEdgeControls: some View {
         VStack(spacing: RecordMapHeaderLayout.controlSpacing) {
+            ForEach(RecordLaunchControl.rightEdgeOrder, id: \.self) { control in
+                rightEdgeControl(control)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rightEdgeControl(_ control: RecordLaunchControl) -> some View {
+        switch control {
+        case .weather:
             weatherPill
+        case .routeRecommendation:
+            EmptyView()
+        case .currentLocation:
             iconButton(
-                icon: RecordLaunchControl.routeRecommendation.iconName,
-                accessibilityLabel: "추천 코스 보기",
-                action: { isRouteRecommendationPresented = true }
-            )
-            iconButton(
-                icon: RecordLaunchControl.currentLocation.iconName,
+                icon: control.iconName,
                 accessibilityLabel: "현재 위치로 돌아가기",
                 action: {
                     locationManager.handleLocationButtonTap()
@@ -600,6 +620,7 @@ struct RecordView: View {
         SOOMHaptics.softImpact()
         withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
             resetFinishedShareState()
+            activeHUDMode = .defaultMode
             activeSession = sessionStarter.start(
                 sport: sport,
                 locationState: locationManager.state
@@ -950,84 +971,291 @@ struct RecordView: View {
         session: RecordWorkoutSession,
         safeAreaInsets: EdgeInsets
     ) -> some View {
-        VStack {
+        let hud = RecordActiveHUDLayout.make(session: session, referenceDate: currentDate)
+
+        return VStack {
             Spacer(minLength: 0)
 
-            VStack(spacing: 16) {
-                HStack(alignment: .top, spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(sportTint(for: session.sport).opacity(0.14))
-                            .frame(width: 46, height: 46)
-                        Image(systemName: session.sport.iconName)
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundStyle(sportTint(for: session.sport))
-                    }
-
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(session.title)
-                            .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
-                            .foregroundStyle(SOOMColor.ink)
-                        Text(sessionSubtitle(for: session))
-                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .lineLimit(2)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Text(session.statusLabel)
-                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.recovery)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
-                        .background((session.state == .paused ? SOOMColor.warning : SOOMColor.recovery).opacity(0.12))
-                        .clipShape(Capsule())
-                }
-
-                HStack(alignment: .bottom, spacing: 22) {
-                    metricBlock(
-                        value: elapsedText(for: session),
-                        label: "경과 시간"
-                    )
-                    metricBlock(
-                        value: "-- km",
-                        label: session.startedWithLocation ? "거리 측정 준비" : "위치 없이 시작"
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
+            VStack(spacing: activeHUDMode == .compact ? 14 : 18) {
                 if session.state == .finished {
+                    activeHUDHeader(session: session, elapsed: hud.elapsed)
+                    activeHUDPrimaryMetric(hud.primaryMetric)
+                    activeHUDMetricGrid(hud.secondaryMetrics)
                     finishedSummaryContent(for: session)
                 } else {
+                    if activeHUDMode == .expanded {
+                        expandedActiveHUDContent(session: session, hud: hud)
+                            .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                    } else {
+                        compactActiveHUDContent(session: session, hud: hud)
+                            .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                    }
+
                     activeSessionActions(for: session)
                 }
             }
-            .padding(18)
-            .background(SOOMColor.surface.opacity(0.96))
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .padding(.horizontal, activeHUDMode == .compact && session.state != .finished ? 16 : 18)
+            .padding(.top, activeHUDMode == .compact && session.state != .finished ? 14 : 16)
+            .padding(.bottom, activeHUDMode == .compact && session.state != .finished ? 16 : 18)
+            .background(SOOMColor.surfacePrimary.opacity(0.98))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(SOOMColor.line.opacity(0.9), lineWidth: 1)
             }
             .shadow(color: SOOMColor.ink.opacity(0.14), radius: 28, x: 0, y: 16)
             .padding(.horizontal, 16)
             .padding(.bottom, max(safeAreaInsets.bottom, 16) + 8)
+            .animation(.spring(response: 0.34, dampingFraction: 0.86), value: activeHUDMode)
         }
     }
 
-    private func metricBlock(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(SOOMFont.displayMedium(28, relativeTo: .title))
-                .foregroundStyle(SOOMColor.ink)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-            Text(label)
-                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.secondaryInk)
+    private func compactActiveHUDContent(
+        session: RecordWorkoutSession,
+        hud: RecordActiveHUDLayout
+    ) -> some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                activeHUDSportStatusChip(session: session)
+
+                Spacer(minLength: 0)
+
+                activeHUDModeButton(
+                    systemName: "arrow.up.left.and.arrow.down.right",
+                    accessibilityLabel: "운동 정보 펼치기"
+                ) {
+                    SOOMHaptics.selection()
+                    activeHUDMode = RecordActiveHUDModeTransition.expand(from: activeHUDMode)
+                }
+            }
+
+            activeHUDCenteredMetric(
+                hud.elapsed,
+                valueSize: 46,
+                unitSize: 14,
+                labelFirst: false
+            )
+
+            activeHUDCenteredMetric(
+                hud.primaryMetric,
+                valueSize: 64,
+                unitSize: 17,
+                labelFirst: true
+            )
         }
+    }
+
+    private func expandedActiveHUDContent(
+        session: RecordWorkoutSession,
+        hud: RecordActiveHUDLayout
+    ) -> some View {
+        VStack(spacing: 16) {
+            HStack(alignment: .center, spacing: 10) {
+                activeHUDSportStatusChip(session: session)
+
+                Spacer(minLength: 0)
+
+                activeHUDModeButton(
+                    systemName: "arrow.down.right.and.arrow.up.left",
+                    accessibilityLabel: "운동 정보 접기"
+                ) {
+                    SOOMHaptics.selection()
+                    activeHUDMode = RecordActiveHUDModeTransition.collapse(from: activeHUDMode)
+                }
+            }
+
+            activeHUDCenteredMetric(
+                hud.elapsed,
+                valueSize: 42,
+                unitSize: 14,
+                labelFirst: false
+            )
+
+            activeHUDPrimaryMetric(hud.primaryMetric)
+
+            activeHUDMetricGrid(hud.secondaryMetrics)
+        }
+    }
+
+    private func activeHUDModeButton(
+        systemName: String,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(SOOMColor.accent)
+                .frame(width: 36, height: 36)
+                .background(SOOMColor.accentSurface)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func activeHUDSportStatusChip(session: RecordWorkoutSession) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: session.sport.iconName)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(SOOMColor.accent)
+
+            Text(session.sport.title)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.textPrimary)
+
+            Text(session.statusLabel)
+                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.textSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((session.state == .paused ? SOOMColor.warning : SOOMColor.surfaceSecondary).opacity(session.state == .paused ? 0.12 : 1))
+                .clipShape(Capsule())
+        }
+        .lineLimit(1)
+    }
+
+    private func activeHUDCenteredMetric(
+        _ metric: RecordActiveHUDMetric,
+        valueSize: CGFloat,
+        unitSize: CGFloat,
+        labelFirst: Bool
+    ) -> some View {
+        VStack(spacing: 5) {
+            if labelFirst {
+                Text(metric.label)
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.textSecondary)
+            }
+
+            HStack(alignment: .lastTextBaseline, spacing: 7) {
+                Text(metric.value)
+                    .font(SOOMFont.displayMedium(valueSize, relativeTo: .largeTitle))
+                    .foregroundStyle(SOOMColor.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
+
+                if let unit = metric.unit {
+                    Text(unit)
+                        .font(SOOMFont.body(unitSize, weight: .bold, relativeTo: .headline))
+                        .foregroundStyle(SOOMColor.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            if !labelFirst {
+                Text(metric.label)
+                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func activeHUDHeader(
+        session: RecordWorkoutSession,
+        elapsed: RecordActiveHUDMetric
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(elapsed.value)
+                    .font(SOOMFont.displayMedium(32, relativeTo: .title))
+                    .foregroundStyle(SOOMColor.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                Text(elapsed.label)
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 7) {
+                HStack(spacing: 7) {
+                    Image(systemName: session.sport.iconName)
+                        .font(.system(size: 12, weight: .bold))
+                    Text(session.sport.title)
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                }
+                .foregroundStyle(SOOMColor.accent)
+
+                Text(session.statusLabel)
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.textSecondary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background((session.state == .paused ? SOOMColor.warning : SOOMColor.surfaceSecondary).opacity(session.state == .paused ? 0.12 : 1))
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    private func activeHUDPrimaryMetric(_ metric: RecordActiveHUDMetric) -> some View {
+        VStack(spacing: 4) {
+            Text(metric.label)
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .foregroundStyle(SOOMColor.textSecondary)
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text(metric.value)
+                    .font(SOOMFont.displayMedium(58, relativeTo: .largeTitle))
+                    .foregroundStyle(SOOMColor.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                if let unit = metric.unit {
+                    Text(unit)
+                        .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                        .foregroundStyle(SOOMColor.textSecondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+    }
+
+    private func activeHUDMetricGrid(_ metrics: [RecordActiveHUDMetric]) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10)
+            ],
+            spacing: 10
+        ) {
+            ForEach(Array(metrics.enumerated()), id: \.offset) { _, metric in
+                activeHUDMetricCard(metric)
+            }
+        }
+    }
+
+    private func activeHUDMetricCard(_ metric: RecordActiveHUDMetric) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(metric.label)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.textSecondary)
+                .lineLimit(1)
+
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text(metric.value)
+                    .font(SOOMFont.body(22, weight: .bold, relativeTo: .title3))
+                    .foregroundStyle(SOOMColor.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if let unit = metric.unit {
+                    Text(unit)
+                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(SOOMColor.surfaceSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func activeSessionActions(for session: RecordWorkoutSession) -> some View {
@@ -1051,6 +1279,7 @@ struct RecordView: View {
             Button {
                 SOOMHaptics.softImpact()
                 withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
+                    activeHUDMode = RecordActiveHUDModeTransition.modeAfterFinish(activeHUDMode)
                     activeSession = session.finished(at: currentDate)
                 }
             } label: {
@@ -1068,6 +1297,7 @@ struct RecordView: View {
                 SOOMHaptics.selection()
                 withAnimation(.easeOut(duration: 0.22)) {
                     resetFinishedShareState()
+                    activeHUDMode = .defaultMode
                     activeSession = nil
                 }
             } label: {
@@ -1277,6 +1507,7 @@ struct RecordView: View {
     private func finishSavedWorkoutFlow(shareCompleted: Bool) {
         savedWorkoutForShare = nil
         shareDraftErrorMessage = nil
+        activeHUDMode = .defaultMode
         activeSession = nil
 
         if shareCompleted, let onShareDraftComplete {
@@ -1292,6 +1523,7 @@ struct RecordView: View {
     private func discardFinishedSession() {
         resetFinishedShareState()
         withAnimation(.easeOut(duration: 0.22)) {
+            activeHUDMode = .defaultMode
             activeSession = nil
         }
     }
@@ -1313,7 +1545,11 @@ struct RecordView: View {
             return
         }
 
-        session = session.recordingLocation(coordinate, at: currentDate)
+        session = session.recordingLocation(
+            coordinate,
+            at: currentDate,
+            speedMetersPerSecond: state.heading.speedMetersPerSecond
+        )
         activeSession = session
     }
 

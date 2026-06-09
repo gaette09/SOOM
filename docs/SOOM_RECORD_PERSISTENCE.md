@@ -48,6 +48,28 @@ Share cards prefer the persisted route over generated fallback route previews wh
 
 Profile aggregation remains deferred. The saved distance and route foundation is ready for a later profile identity aggregation pass.
 
+## Map Heading
+
+Record map direction is automatic in v1.
+
+- Before a workout starts, the map stays north-up.
+- During an active workout, SOOM follows movement direction automatically using `CLLocation.course` first, then device true heading when course is unavailable.
+- When speed is very low, the map keeps the last usable bearing instead of snapping back north.
+- Paused workouts keep the last active bearing.
+- Finished, saved, or cancelled workouts reset the map to north-up.
+
+There is no user-facing map direction toggle in v1.
+
+## Active HUD
+
+Record active sessions default to a compact HUD so the map stays visible during movement.
+
+- Compact HUD: elapsed time plus one primary metric.
+- Cycling and walking use current speed. Running uses current pace.
+- Expanded HUD: full sport-specific metric grid with distance, average metrics, heart rate/cadence placeholders, elevation, and other available fields.
+- Pause/resume preserves compact or expanded mode for the same session.
+- Finish/save/cancel and new starts reset HUD mode to compact.
+
 ## Privacy
 
 Route coordinates are not uploaded to Supabase in this version.

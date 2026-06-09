@@ -748,7 +748,15 @@ private struct ProfilePatternCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(pattern.isPrimary ? SOOMColor.accentSurface.opacity(0.72) : SOOMColor.surfaceMuted)
+        .background(SOOMColor.surfaceMuted)
+        .overlay(alignment: .leading) {
+            if pattern.isPrimary {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(SOOMColor.accent)
+                    .frame(width: 3)
+                    .padding(.vertical, 12)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
 }

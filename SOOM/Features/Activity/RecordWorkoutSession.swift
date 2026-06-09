@@ -121,6 +121,8 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     var lastCoordinate: RecordRouteCoordinate?
     var startedCoordinate: RecordRouteCoordinate?
     var endedCoordinate: RecordRouteCoordinate?
+    var currentSpeedMetersPerSecond: Double?
+    var maxSpeedMetersPerSecond: Double?
 
     init(
         id: UUID,
@@ -135,7 +137,9 @@ struct RecordWorkoutSession: Identifiable, Equatable {
         accumulatedDistanceMeters: Double = 0,
         lastCoordinate: RecordRouteCoordinate? = nil,
         startedCoordinate: RecordRouteCoordinate? = nil,
-        endedCoordinate: RecordRouteCoordinate? = nil
+        endedCoordinate: RecordRouteCoordinate? = nil,
+        currentSpeedMetersPerSecond: Double? = nil,
+        maxSpeedMetersPerSecond: Double? = nil
     ) {
         self.id = id
         self.sport = sport
@@ -150,6 +154,8 @@ struct RecordWorkoutSession: Identifiable, Equatable {
         self.lastCoordinate = lastCoordinate
         self.startedCoordinate = startedCoordinate
         self.endedCoordinate = endedCoordinate
+        self.currentSpeedMetersPerSecond = currentSpeedMetersPerSecond
+        self.maxSpeedMetersPerSecond = maxSpeedMetersPerSecond
     }
 
     var title: String {
@@ -211,17 +217,191 @@ struct RecordWorkoutSession: Identifiable, Equatable {
         return copy
     }
 
-    func recordingLocation(_ coordinate: RecordMapCoordinate, at date: Date) -> RecordWorkoutSession {
+    func recordingLocation(
+        _ coordinate: RecordMapCoordinate,
+        at date: Date,
+        speedMetersPerSecond: Double? = nil
+    ) -> RecordWorkoutSession {
         guard state == .active else { return self }
 
         let routeCoordinate = RecordRouteCoordinate(mapCoordinate: coordinate, timestamp: date)
         let nextCapture = (capturedRoute ?? RecordRouteCapture(recordedAt: date)).appending(routeCoordinate)
+        let sanitizedSpeed = speedMetersPerSecond.flatMap { $0 >= 0 ? $0 : nil }
         var copy = self
         copy.capturedRoute = nextCapture
         copy.accumulatedDistanceMeters = nextCapture.distanceMeters
         copy.lastCoordinate = nextCapture.endCoordinate
         copy.startedCoordinate = nextCapture.startCoordinate
+        copy.currentSpeedMetersPerSecond = sanitizedSpeed ?? currentSpeedMetersPerSecond
+        if let sanitizedSpeed {
+            copy.maxSpeedMetersPerSecond = max(maxSpeedMetersPerSecond ?? 0, sanitizedSpeed)
+        }
         return copy
+    }
+}
+
+struct RecordActiveHUDMetric: Equatable {
+    let label: String
+    let value: String
+    let unit: String?
+
+    init(label: String, value: String, unit: String? = nil) {
+        self.label = label
+        self.value = value
+        self.unit = unit
+    }
+}
+
+struct RecordActiveHUDLayout: Equatable {
+    let sport: RecordSportMode
+    let elapsed: RecordActiveHUDMetric
+    let primaryMetric: RecordActiveHUDMetric
+    let secondaryMetrics: [RecordActiveHUDMetric]
+
+    var compactMetrics: [RecordActiveHUDMetric] {
+        [elapsed, primaryMetric]
+    }
+
+    static func make(session: RecordWorkoutSession, referenceDate: Date) -> RecordActiveHUDLayout {
+        let elapsedSeconds = session.elapsedTime(referenceDate: referenceDate)
+        let distanceMeters = session.accumulatedDistanceMeters
+        let averageSpeed = averageSpeedMetersPerSecond(
+            distanceMeters: distanceMeters,
+            elapsedSeconds: elapsedSeconds
+        )
+
+        switch session.sport {
+        case .cycling:
+            return RecordActiveHUDLayout(
+                sport: .cycling,
+                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                primaryMetric: speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
+                secondaryMetrics: [
+                    distanceMetric(distanceMeters),
+                    speedMetric(label: "평균 속도", speedMetersPerSecond: averageSpeed),
+                    speedMetric(label: "최대 속도", speedMetersPerSecond: session.maxSpeedMetersPerSecond),
+                    unavailableMetric(label: "심박수", unit: "bpm"),
+                    unavailableMetric(label: "케이던스", unit: "rpm"),
+                    RecordActiveHUDMetric(label: "경사도", value: "0", unit: "%"),
+                    RecordActiveHUDMetric(label: "상승고도", value: "0", unit: "m")
+                ]
+            )
+        case .running:
+            return RecordActiveHUDLayout(
+                sport: .running,
+                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                primaryMetric: paceMetric(label: "현재 페이스", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
+                secondaryMetrics: [
+                    distanceMetric(distanceMeters),
+                    paceMetric(label: "평균 페이스", speedMetersPerSecond: averageSpeed),
+                    speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
+                    unavailableMetric(label: "심박수", unit: "bpm"),
+                    unavailableMetric(label: "케이던스", unit: "spm"),
+                    RecordActiveHUDMetric(label: "상승고도", value: "0", unit: "m")
+                ]
+            )
+        case .walking:
+            return RecordActiveHUDLayout(
+                sport: .walking,
+                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                primaryMetric: speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
+                secondaryMetrics: [
+                    distanceMetric(distanceMeters),
+                    speedMetric(label: "평균 속도", speedMetersPerSecond: averageSpeed),
+                    unavailableMetric(label: "현재 고도", unit: "m"),
+                    unavailableMetric(label: "심박수", unit: "bpm")
+                ]
+            )
+        }
+    }
+
+    private static func averageSpeedMetersPerSecond(
+        distanceMeters: Double,
+        elapsedSeconds: TimeInterval
+    ) -> Double? {
+        guard distanceMeters > 0, elapsedSeconds > 0 else { return nil }
+        return distanceMeters / elapsedSeconds
+    }
+
+    private static func distanceMetric(_ distanceMeters: Double) -> RecordActiveHUDMetric {
+        RecordActiveHUDMetric(
+            label: "거리",
+            value: String(format: "%.2f", distanceMeters / 1_000),
+            unit: "km"
+        )
+    }
+
+    private static func speedMetric(
+        label: String,
+        speedMetersPerSecond: Double?
+    ) -> RecordActiveHUDMetric {
+        guard let speedMetersPerSecond else {
+            return unavailableMetric(label: label, unit: "km/h")
+        }
+
+        return RecordActiveHUDMetric(
+            label: label,
+            value: String(format: "%.1f", speedMetersPerSecond * 3.6),
+            unit: "km/h"
+        )
+    }
+
+    private static func paceMetric(
+        label: String,
+        speedMetersPerSecond: Double?
+    ) -> RecordActiveHUDMetric {
+        guard let speedMetersPerSecond, speedMetersPerSecond > 0.5 else {
+            return unavailableMetric(label: label, unit: "/km")
+        }
+
+        let paceSeconds = Int((1_000 / speedMetersPerSecond).rounded())
+        return RecordActiveHUDMetric(
+            label: label,
+            value: String(format: "%d'%02d\"", paceSeconds / 60, paceSeconds % 60),
+            unit: "/km"
+        )
+    }
+
+    private static func unavailableMetric(label: String, unit: String? = nil) -> RecordActiveHUDMetric {
+        RecordActiveHUDMetric(label: label, value: "--", unit: unit)
+    }
+
+    private static func elapsedText(_ elapsedSeconds: TimeInterval) -> String {
+        let elapsed = Int(max(0, elapsedSeconds))
+        let hours = elapsed / 3600
+        let minutes = (elapsed % 3600) / 60
+        let seconds = elapsed % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+enum RecordActiveHUDMode: Equatable {
+    case compact
+    case expanded
+
+    static let defaultMode: RecordActiveHUDMode = .compact
+}
+
+enum RecordActiveHUDModeTransition {
+    static func expand(from mode: RecordActiveHUDMode) -> RecordActiveHUDMode {
+        .expanded
+    }
+
+    static func collapse(from mode: RecordActiveHUDMode) -> RecordActiveHUDMode {
+        .compact
+    }
+
+    static func modeAfterPauseResume(_ mode: RecordActiveHUDMode) -> RecordActiveHUDMode {
+        mode
+    }
+
+    static func modeAfterFinish(_ mode: RecordActiveHUDMode) -> RecordActiveHUDMode {
+        .compact
     }
 }
 
@@ -282,7 +462,9 @@ struct RecordWorkoutSessionStarter {
             accumulatedDistanceMeters: 0,
             lastCoordinate: initialCoordinate,
             startedCoordinate: initialCoordinate,
-            endedCoordinate: nil
+            endedCoordinate: nil,
+            currentSpeedMetersPerSecond: locationState.heading.speedMetersPerSecond,
+            maxSpeedMetersPerSecond: locationState.heading.speedMetersPerSecond
         )
     }
 }

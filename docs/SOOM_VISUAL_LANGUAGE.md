@@ -368,10 +368,10 @@ Record is not a settings-like list of start options. It is a full-screen pre-wor
 - Record must not force a location permission prompt on entry. If location is unavailable, show a subtle fallback/current-area marker and keep the launch flow usable.
 - Keep text minimal on the map itself: a top notification header, weather temperature, and the black READY start control are enough by default.
 - Record guidance is a separate top header layer, not a floating card inside the map overlay stack. It sits just below the status bar with about `safeAreaTop + 8-14pt` visual top padding, 34-38pt side insets, and a compact 76-82pt height. The header owns the daily recommendation copy: label, recovery state, and one short body line about how to move today.
-- Do not show a persistent route strip under the guidance header. Recommended routes are accessed only from the right-edge route icon and route recommendation catalog, so the launch map keeps a single top message instead of stacked information pills.
+- Do not show a persistent route strip under the guidance header. Route recommendation is deferred from the Record v1 surface, so the launch map keeps a single top message instead of stacked information pills.
 - Back and right-edge controls belong directly under the compact header, never drifting into the map center or reserving removed route-strip space. Back sits roughly 28-32pt below the header bottom; the right control column starts roughly 10-14pt below it. Use a neutral surface for readability, with `SOOMColor.accent`, `accentInk`, and `accentLine` reserved for the icon, key state, and border.
 - Record top controls must use one computed frame source for the guidance banner, back button, and right-edge controls. Avoid separate `padding`, `offset`, or legacy route-strip spacing paths that can make tests and actual render positions diverge.
-- Right-edge controls stack in this order: weather, route recommendation, current-location recenter. Weather opens a detail sheet, route opens a mock catalog, and recenter is the only location-permission entry point.
+- Right-edge controls stack in this order: weather, current-location recenter. Weather opens a detail sheet, and recenter is the only location-permission entry point. Route recommendation entry points return in v2 after recovery-aware routing, saved route history, and directions integration are ready.
 - Controls should sit on corners or edges as small circular icon buttons. Labels are primarily accessibility labels.
 - The recenter button icon and the map's current-location marker are separate concepts. Keep the button neutral; the actual map marker uses SOOM purple.
 - Mapbox logo/attribution must remain visible and low. Keep ornament bottom inset small enough that logo/info stay near the bottom safe area instead of floating near READY.
@@ -384,8 +384,8 @@ Record is not a settings-like list of start options. It is a full-screen pre-wor
 - Haptics should mark no-op tap, long press, reveal, hover changes, confirmed release, and cancellation without feeling like a game control.
 - The main start button sits near the bottom center as a black primary control floating inside a SOOM-purple bottom field. Render this field with an oversized radial blob placed below the screen, not a custom clipped path, alpha-masked shape, linear gradient, fog, blur, or rectangle stack. The blob frame must be much larger than the screen, with its visual edge created only by radial opacity falloff from bottom-center purple to fully transparent outer edge, so no shape top edge can appear. The blob breathes by animating scale, y-position, and opacity over 3.2s with autoreverse. Reduce Motion keeps a static middle state. The READY control itself is icon-only: a black circular button with centered `play.fill`, no selected sport icon, no "READY" text, and no "길게 눌러 시작" text inside the button. A subtle outer ring may breathe separately from the button surface, but the play icon stays steady. When the user touches/reveals sport choices, the blob moves lower, scales down slightly, and fades to about 0.45 opacity so the map and upper sport icons stay readable. Tap still never starts a workout; release must happen over a hovered sport.
 - The breathing blob is always active in idle launch state. READY interaction may temporarily weaken or pause the blob while the sport selector is revealed, but every cancel, tap-only release, selector close, or confirmed start transition must return the wave to idle breathing rather than leaving it frozen.
-- Route recommendation is a foundation layer: sample route overlay and mock route catalog first, route/search backend later, and recovery/weather/time-aware recommendations only after the basic flow is stable. Feed cards must not embed live Mapbox maps.
-- Record weather, route recommendation, and recovery coach sheets use fixed single-height presentations. The sheet container should not expand or collapse through drag gestures; only the inner `ScrollView` should scroll.
+- Route recommendation is a preserved foundation layer for v2: sample route overlay and catalog models can stay in code, but Record v1 should not expose a route button, route strip, or route catalog sheet. Re-enable only after recovery-aware routing, saved route history, Mapbox Directions/search, and SOOM coach recommendation logic are connected. Feed cards must not embed live Mapbox maps.
+- Record weather and recovery coach sheets use fixed single-height presentations. The sheet container should not expand or collapse through drag gestures; only the inner `ScrollView` should scroll.
 
 ## Motion Principles
 
@@ -526,3 +526,52 @@ Target rules:
 - Instagram Story, Save Image, and More use the iOS share sheet unless a future native integration is explicitly added.
 - Copy Link requires a published remote object and public URL backend, so it should not be exposed in the current UI.
 - Share targets should not imply automatic public posting.
+
+## Global Typography & Surface Refresh v1
+
+SOOM uses a white-first app surface with Strava-like information hierarchy and SOOM purple as a restrained accent.
+
+Color tokens:
+
+- `SOOMColor.textPrimary`: `#111111` for titles, primary metrics, scores, and key numbers.
+- `SOOMColor.textSecondary`: `#666666` for explanations, dates, supporting labels, and state copy.
+- `SOOMColor.textTertiary`: `#999999` for helper text, empty metadata, and quiet UI hints.
+- `SOOMColor.surfacePrimary`: `#FFFFFF` for major screens and cards.
+- `SOOMColor.surfaceSecondary`: `#F7F7F7` for secondary rows, compact chips, and low-emphasis panels.
+- `SOOMColor.accent`: SOOM purple for selected states, CTA, active icons, progress, badges, positive rank movement, and identity highlights.
+
+Surface rules:
+
+- Major screen backgrounds should be white.
+- Cards should be white unless they are intentionally low-emphasis secondary controls.
+- Avoid purple hero cards, purple section blocks, and broad purple backgrounds.
+- Purple should read as a signal, not as a page color. Keep purple area visually below 15% of a normal screen.
+
+Metric hierarchy:
+
+- Use a small gray label above or beside the value.
+- Use a larger, semibold or bold black value.
+- Keep units visually attached to the value but lower in emphasis when needed.
+- Activity, Profile, and Club metrics should lead with readable numeric hierarchy rather than colored containers.
+
+## Record Map Direction
+
+Record map direction is automatic, not a visible setting.
+
+- Launch and finished states are north-up.
+- Active recording follows the user's movement direction using course first and true heading as a fallback.
+- Slow movement freezes the last stable bearing so the map does not twitch.
+- Reduce Motion shortens or removes camera animation, but it does not disable heading follow.
+- Route recommendation sheets are not user-facing in Record v1. If the foundation is inspected internally, it should still not expose a north-up / heading-up selector.
+
+## Record Active HUD
+
+Record should prioritize the map while a workout is running.
+
+- Active workouts open in compact HUD mode by default.
+- Compact mode sits above the pause/finish controls and shows only elapsed time plus the sport's primary live metric: cycling speed, running pace, or walking speed.
+- The compact HUD uses a white card, black bold values, gray labels, and only a small SOOM purple accent for the sport/icon or expand control.
+- Expanded mode is user-initiated from the HUD expand button and shows the full sport-specific metric grid.
+- Collapse returns to compact mode. Pause/resume preserves the user's current HUD mode, while finishing or starting a new session resets the HUD to compact.
+- Expanded HUD behaves like a partial modal layer: it sits above the top guidance header, right-edge controls, compass, and all map overlays. While expanded, the guidance header and right controls fade out so the HUD does not look trapped behind launch UI.
+- Missing live metrics should show `--`, never forced zero values.

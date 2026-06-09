@@ -69,3 +69,62 @@ struct RecordMapCameraState: Equatable {
         }
     }
 }
+
+enum RecordMapHeadingCameraPolicy {
+    static let courseSpeedThresholdMetersPerSecond = 1.0
+    static let courseSpeedThresholdKilometersPerHour = courseSpeedThresholdMetersPerSecond * 3.6
+    static let animatedBearingDuration = 0.18
+    static let reducedMotionBearingDuration = 0.0
+
+    static func bearing(
+        heading: RecordHeadingState,
+        sessionState: RecordWorkoutSessionState?,
+        lastBearing: Double?
+    ) -> Double {
+        switch sessionState {
+        case nil:
+            return 0
+        case .active:
+            if let speed = heading.speedMetersPerSecond,
+               speed <= courseSpeedThresholdMetersPerSecond {
+                return lastBearing ?? 0
+            }
+            if let courseBearingDegrees = heading.courseBearingDegrees,
+               (heading.speedMetersPerSecond ?? 0) > courseSpeedThresholdMetersPerSecond {
+                return courseBearingDegrees
+            }
+            if let trueHeadingDegrees = heading.trueHeadingDegrees {
+                return trueHeadingDegrees
+            }
+            return lastBearing ?? 0
+        case .paused:
+            return lastBearing ?? 0
+        case .finished, .cancelled:
+            return 0
+        }
+    }
+
+    static func cameraAnimationDuration(reduceMotionEnabled: Bool) -> Double {
+        reduceMotionEnabled ? reducedMotionBearingDuration : animatedBearingDuration
+    }
+}
+
+enum RecordNavigationPuckStyle {
+    static let coneWidth: CGFloat = 44
+    static let coneHeight: CGFloat = 56
+    static let shadowBlur: CGFloat = 6
+
+    static func usesNavigationCone(
+        sessionState: RecordWorkoutSessionState?,
+        canShowUserLocation: Bool
+    ) -> Bool {
+        guard canShowUserLocation else { return false }
+
+        switch sessionState {
+        case .active, .paused:
+            return true
+        case nil, .finished, .cancelled:
+            return false
+        }
+    }
+}

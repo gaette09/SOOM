@@ -142,11 +142,12 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertTrue(recommendation.guidanceText(for: .cycling, weather: .rainy).contains("비가 오면"))
     }
 
-    func testRecordRightEdgeControlsOrderWeatherRouteThenLocation() {
+    func testRecordRightEdgeControlsExposeWeatherAndLocationOnlyInV1() {
         XCTAssertEqual(
             RecordLaunchControl.rightEdgeOrder,
-            [.weather, .routeRecommendation, .currentLocation]
+            [.weather, .currentLocation]
         )
+        XCTAssertFalse(RecordLaunchControl.rightEdgeOrder.contains(.routeRecommendation))
         XCTAssertEqual(
             RecordLaunchControl.routeRecommendation.iconName,
             "point.topleft.down.curvedto.point.bottomright.up"
@@ -259,21 +260,51 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertEqual(frames.rightControlCenters.first?.y, frames.weatherButtonTop + RecordMapHeaderLayout.controlSize / 2)
         XCTAssertEqual(
             frames.rightControlCenters.last?.y,
-            frames.weatherButtonTop + RecordMapHeaderLayout.controlSize / 2 + CGFloat(2) * (RecordMapHeaderLayout.controlSize + RecordMapHeaderLayout.controlSpacing)
+            frames.weatherButtonTop + RecordMapHeaderLayout.controlSize / 2 + CGFloat(RecordLaunchControl.rightEdgeOrder.count - 1) * (RecordMapHeaderLayout.controlSize + RecordMapHeaderLayout.controlSpacing)
         )
         XCTAssertEqual(frames.backButtonCenter.x, RecordMapHeaderLayout.backButtonCenterX)
         XCTAssertGreaterThanOrEqual(frames.backButtonCenter.y, bannerBottom + 28)
         XCTAssertLessThanOrEqual(frames.backButtonCenter.y, bannerBottom + 32)
     }
 
-    func testRecordRouteRecommendationIsNotAlwaysVisibleAndUsesRightControl() {
+    func testRecordRouteRecommendationEntryPointIsDeferredInV1() {
         XCTAssertFalse(RecordMapHeaderLayout.showsRouteStripByDefault)
-        XCTAssertTrue(RecordMapHeaderLayout.routeRecommendationUsesRightControlOnly)
-        XCTAssertEqual(RecordLaunchControl.rightEdgeOrder[1], .routeRecommendation)
+        XCTAssertFalse(RecordMapHeaderLayout.routeRecommendationEntryPointVisible)
+        XCTAssertFalse(RecordLaunchControl.rightEdgeOrder.contains(.routeRecommendation))
         XCTAssertEqual(
             RecordLaunchControl.routeRecommendation.iconName,
             "point.topleft.down.curvedto.point.bottomright.up"
         )
+        XCTAssertFalse(RecordRouteCatalogOption.mockOptions(for: .cycling).isEmpty)
+    }
+
+    func testExpandedActiveHUDUsesHighestLayerAndModalOverlayPolicy() {
+        XCTAssertGreaterThan(
+            RecordActiveHUDLayerLayout.expandedHUDZIndex,
+            RecordActiveHUDLayerLayout.topBannerZIndex
+        )
+        XCTAssertGreaterThan(
+            RecordActiveHUDLayerLayout.topBannerZIndex,
+            RecordActiveHUDLayerLayout.rightControlsZIndex
+        )
+        XCTAssertGreaterThan(
+            RecordActiveHUDLayerLayout.rightControlsZIndex,
+            RecordActiveHUDLayerLayout.mapZIndex
+        )
+        XCTAssertEqual(
+            RecordActiveHUDLayerLayout.hudZIndex(for: .expanded),
+            RecordActiveHUDLayerLayout.expandedHUDZIndex
+        )
+        XCTAssertEqual(
+            RecordActiveHUDLayerLayout.hudZIndex(for: .compact),
+            RecordActiveHUDLayerLayout.compactHUDZIndex
+        )
+        XCTAssertTrue(RecordActiveHUDLayerLayout.hidesTopBannerWhenExpanded)
+        XCTAssertTrue(RecordActiveHUDLayerLayout.hidesRightControlsWhenExpanded)
+        XCTAssertTrue(RecordActiveHUDLayerLayout.hidesCompassWhenExpanded)
+        XCTAssertTrue(RecordActiveHUDLayerLayout.compactModeKeepsTopOverlays)
+        XCTAssertEqual(RecordActiveHUDLayerLayout.topControlsOpacity(isExpanded: true), 0)
+        XCTAssertEqual(RecordActiveHUDLayerLayout.topControlsOpacity(isExpanded: false), 1)
     }
 
     func testGuidanceBannerIncludesRecommendationCopyWithoutRouteName() {

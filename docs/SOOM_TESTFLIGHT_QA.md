@@ -9,9 +9,17 @@ Purpose: manual QA checklist for the first internal TestFlight build. This plan 
 - Long-press READY. Expected: sport selector appears.
 - Drag to cycling/running/walking and release. Expected: workout starts with selected sport.
 - Release without hovering a sport. Expected: no workout starts.
+- Start a workout. Expected: active HUD opens compact, with elapsed time and the sport's primary metric only.
+- Tap the HUD expand icon. Expected: full sport metric grid appears.
+- Tap the collapse icon. Expected: compact HUD returns.
+- Pause and resume. Expected: current HUD mode is preserved.
 - Tap current location. Expected: permission prompt appears only after user action if needed.
 - Deny location. Expected: time-only workout can still be started and saved.
 - Grant location. Expected: current location recenter and route capture foundation can run.
+- Start an active workout on device and move above walking/jogging threshold. Expected: map camera follows movement direction automatically.
+- Pause workout. Expected: map keeps the last movement bearing.
+- Finish, save, or cancel. Expected: map returns to north-up.
+- Confirm no route recommendation button or sheet entry appears in Record v1. Expected: route recommendation remains deferred while weather and current-location controls stay available.
 - Confirm weather pill shows live weather when key/location/network are available.
 - Disconnect network and retry weather. Expected: app keeps product-language weather state.
 - Stop workout and save. Expected: Activity shows the saved workout.

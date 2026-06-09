@@ -421,7 +421,13 @@ private struct ClubMotivationSummaryStrip: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .background(SOOMColor.accentSurface.opacity(0.48))
+        .background(SOOMColor.surfaceSecondary)
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(SOOMColor.accent)
+                .frame(width: 3)
+                .padding(.vertical, 12)
+        }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("클럽 동기부여 요약")
@@ -505,7 +511,7 @@ private struct ClubStatTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(tint.opacity(0.09))
+        .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
     }
@@ -551,7 +557,7 @@ private struct ClubRuleChip: View {
         }
         .frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
         .padding(10)
-        .background(SOOMColor.accentSurface.opacity(0.56))
+        .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
     }
@@ -631,10 +637,10 @@ private struct ClubWeeklyRankingSection: View {
                     } label: {
                         Text(category.title)
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(selectedCategory == category ? SOOMColor.white : SOOMColor.secondaryInk)
+                            .foregroundStyle(selectedCategory == category ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
                             .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
                             .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
-                            .background(selectedCategory == category ? SOOMColor.accent : SOOMColor.surfaceMuted)
+                            .background(selectedCategory == category ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -754,7 +760,7 @@ private struct ClubRankingGraph: View {
             }
         }
         .padding(12)
-        .background(SOOMColor.accentSurface.opacity(0.42))
+        .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("클럽 내 랭킹 비교 그래프")
@@ -769,9 +775,9 @@ private struct ClubRankingRow: View {
         HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
             Text("#\(entry.rank)")
                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(entry.isCurrentUser ? SOOMColor.white : SOOMColor.secondaryInk)
+                .foregroundStyle(entry.isCurrentUser ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
                 .frame(width: 42, height: 34)
-                .background(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.surfaceMuted)
+                .background(entry.isCurrentUser ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -792,7 +798,7 @@ private struct ClubRankingRow: View {
                 .foregroundStyle(entry.isCurrentUser ? SOOMColor.accent : SOOMColor.secondaryInk)
         }
         .padding(SOOMLayout.Metrics.pillPadding)
-        .background(entry.isCurrentUser ? SOOMColor.accentSurface : SOOMColor.surfaceAmbient)
+        .background(entry.isCurrentUser ? SOOMColor.selectedSurface : SOOMColor.surfaceAmbient)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(entry.rank)위 \(entry.name)")
