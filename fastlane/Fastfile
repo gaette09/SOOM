@@ -1,0 +1,18 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build SOOM archive locally without uploading"
+  lane :archive do
+    build_app(
+      project: "SOOM.xcodeproj",
+      scheme: "SOOM",
+      configuration: "Release",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "SOOM.ipa",
+      skip_package_ipa: true,
+      build_path: "build/archive"
+    )
+  end
+end
