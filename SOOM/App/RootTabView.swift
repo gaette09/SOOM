@@ -1455,9 +1455,9 @@ private struct SOOMBottomTabBar: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                SOOMColor.white.opacity(0.46),
-                                SOOMColor.white.opacity(0.18),
-                                SOOMColor.white.opacity(0.06)
+                                SOOMColor.white.opacity(0.34),
+                                SOOMColor.white.opacity(0.14),
+                                SOOMColor.white.opacity(0.04)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -1468,9 +1468,9 @@ private struct SOOMBottomTabBar: View {
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                SOOMColor.white.opacity(0.52),
+                                SOOMColor.white.opacity(0.42),
                                 SOOMColor.ink.opacity(0.05),
-                                SOOMColor.white.opacity(0.24)
+                                SOOMColor.white.opacity(0.18)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -1482,14 +1482,14 @@ private struct SOOMBottomTabBar: View {
         }
         .overlay(alignment: .top) {
             Capsule(style: .continuous)
-                .fill(SOOMColor.white.opacity(0.48))
+                .fill(SOOMColor.white.opacity(0.30))
                 .frame(height: SOOMLayout.TabBar.topHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.topHighlightHorizontalPadding)
                 .offset(y: 1.5)
         }
         .overlay(alignment: .bottom) {
             Capsule(style: .continuous)
-                .fill(SOOMColor.ink.opacity(0.04))
+                .fill(SOOMColor.ink.opacity(0.025))
                 .frame(height: SOOMLayout.TabBar.bottomHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.bottomHighlightHorizontalPadding)
                 .offset(y: -1)
@@ -1522,8 +1522,8 @@ private struct SOOMBottomTabItem: View {
                                 LinearGradient(
                                     colors: [
                                         SOOMColor.accentSurface.opacity(0.80),
-                                        SOOMColor.white.opacity(0.30),
-                                        SOOMColor.accent.opacity(0.08)
+                                        SOOMColor.white.opacity(0.22),
+                                        SOOMColor.accent.opacity(0.05)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -1532,9 +1532,9 @@ private struct SOOMBottomTabItem: View {
                     }
                     .overlay {
                         Capsule(style: .continuous)
-                            .strokeBorder(SOOMColor.white.opacity(0.56), lineWidth: 1)
+                            .strokeBorder(SOOMColor.white.opacity(0.42), lineWidth: 1)
                     }
-                    .shadow(color: SOOMColor.accent.opacity(0.10), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 4)
+                    .shadow(color: SOOMColor.accent.opacity(0.07), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 3)
                     .matchedGeometryEffect(id: "selectedLiquidTab", in: namespace)
             }
 
@@ -1546,7 +1546,7 @@ private struct SOOMBottomTabItem: View {
                     .scaleEffect(isSelected ? SOOMLayout.TabBar.selectedIconScale : SOOMLayout.TabBar.normalIconScale)
 
                 Text(tab.title)
-                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                    .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
                     .lineLimit(1)
                     .opacity(isSelected ? 1 : 0.74)
             }
@@ -1569,18 +1569,18 @@ private struct SOOMBottomTabItem: View {
                     Circle()
                         .stroke(SOOMColor.white.opacity(0.72), lineWidth: 1)
                 }
-                .shadow(color: SOOMColor.accent.opacity(isSelected ? 0.28 : 0.16), radius: 10, x: 0, y: 5)
+                .shadow(color: SOOMColor.accent.opacity(isSelected ? 0.20 : 0.11), radius: 7, x: 0, y: 4)
 
             Image(systemName: tab.iconName)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 23, weight: .bold))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(SOOMColor.white)
         }
-        .frame(width: 58, height: 58)
-        .scaleEffect(isSelected ? 1.04 : 1)
+        .frame(width: 50, height: 50)
+        .scaleEffect(isSelected ? 1.03 : 1)
         .frame(maxWidth: .infinity)
         .frame(height: SOOMLayout.TabBar.itemHeight)
-        .offset(y: -10)
+        .offset(y: -7)
         .contentShape(Circle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("운동 기록 시작")

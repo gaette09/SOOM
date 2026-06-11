@@ -7,14 +7,16 @@ struct FeedView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
-    @State private var isCoachBannerHidden = false
     @State private var visibleItems: [FeedItem]
 
     init(
         items: [FeedItem] = FeedMockData.items,
-        dataSource: FeedDataSource? = FeedDataSource(draftStore: FileFeedShareDraftStore.live)
+        dataSource: FeedDataSource? = FeedDataSource(
+            draftStore: FileFeedShareDraftStore.live,
+            strategy: .mockOnly
+        )
     ) {
-        let sortedItems = items.sorted { $0.createdAt > $1.createdAt }
+        let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
         self.dataSource = dataSource
         _visibleItems = State(initialValue: sortedItems)
@@ -22,19 +24,15 @@ struct FeedView: View {
 
     var body: some View {
         SOOMScreen {
-            if !isCoachBannerHidden {
-                FeedCoachAccessBanner {
-                    withAnimation(reduceMotion ? nil : SOOMMotion.quickEaseOut) {
-                        isCoachBannerHidden = true
-                    }
-                }
-            }
+            topHeader
+
+            weeklySnapshot
 
             if visibleItems.isEmpty {
                 emptyState
             } else {
-                VStack(spacing: SOOMLayout.Feed.cardSpacing) {
-                    ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
+                VStack(spacing: 18) {
+                    ForEach(Array(friendWorkoutItems.enumerated()), id: \.element.id) { index, item in
                         NavigationLink {
                             feedDestination(for: item)
                         } label: {
@@ -46,6 +44,31 @@ struct FeedView: View {
                         })
                         .feedCardReveal(
                             index: index,
+                            isVisible: hasAppeared,
+                            reduceMotion: reduceMotion
+                        )
+                        .accessibilityHint("자세한 운동 흐름으로 이동합니다.")
+                    }
+
+                    aiDiscoveryCard
+                        .feedCardReveal(
+                            index: friendWorkoutItems.count,
+                            isVisible: hasAppeared,
+                            reduceMotion: reduceMotion
+                        )
+
+                    ForEach(Array(supportingItems.enumerated()), id: \.element.id) { offset, item in
+                        NavigationLink {
+                            feedDestination(for: item)
+                        } label: {
+                            FeedItemCard(item: item)
+                        }
+                        .buttonStyle(FeedCardButtonStyle())
+                        .simultaneousGesture(TapGesture().onEnded {
+                            SOOMHaptics.selection()
+                        })
+                        .feedCardReveal(
+                            index: friendWorkoutItems.count + offset + 1,
                             isVisible: hasAppeared,
                             reduceMotion: reduceMotion
                         )
@@ -67,94 +90,146 @@ struct FeedView: View {
     @MainActor
     private func refreshFeed() async {
         guard let dataSource else { return }
-        visibleItems = await dataSource.loadFeed()
+        visibleItems = Self.prioritizedItems(await dataSource.loadFeed())
     }
 
-    private var feedSupportSection: some View {
-        // Feed v1 keeps recommendation/support surfaces out of the main feed.
-        // These surfaces can move to Record, Activity, or Club in a later pass.
-        VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
-            SOOMSectionHeader("가볍게 이어가기", caption: "피드를 읽은 뒤 조용히 이어갈 수 있는 route와 클럽입니다.")
+    private var topHeader: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(SOOMColor.ink)
 
-            recommendationGrid
-                .padding(.horizontal, SOOMLayout.Feed.quietSurfaceBleed)
+                Text("S")
+                    .font(SOOMFont.displayMedium(16, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.white)
+            }
+            .frame(width: 38, height: 38)
+            .accessibilityLabel("내 프로필")
 
-            feedPromptRow
-                .padding(.horizontal, SOOMLayout.Feed.quietSurfaceBleed)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("SOOM")
+                    .font(SOOMFont.displayMedium(24, relativeTo: .title3))
+                    .foregroundStyle(SOOMColor.ink)
+                Text("운동 피드")
+                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                    .foregroundStyle(SOOMColor.tertiaryInk)
+            }
+
+            Spacer()
+
+            headerIconButton(icon: "magnifyingglass", label: "검색")
+            headerIconButton(icon: "bell", label: "알림")
         }
-        .padding(.top, 14)
-        .opacity(0.76)
+        .padding(.bottom, -4)
     }
 
-    private var feedPromptRow: some View {
-        HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
+    private func headerIconButton(icon: String, label: String) -> some View {
+        Button(action: {}) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(SOOMColor.ink)
+                .frame(width: 38, height: 38)
+                .background(SOOMColor.surfaceMuted)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    private var weeklySnapshot: some View {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("이번 주")
+                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.tertiaryInk)
+
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    snapshotMetric(value: "4h 42m", label: "운동 시간")
+                    snapshotMetric(value: "86.4km", label: "거리")
+                    snapshotMetric(value: "4회", label: "운동")
+                }
+            }
+
+            Spacer(minLength: 2)
+
+            WeeklySnapshotGraph()
+                .frame(width: 82, height: 54)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(SOOMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
+                .stroke(SOOMColor.line.opacity(0.16), lineWidth: 1)
+        }
+        .shadow(color: SOOMColor.black.opacity(0.025), radius: 10, x: 0, y: 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("이번 주 운동 요약")
+        .accessibilityValue("운동 시간 4시간 42분, 거리 86.4킬로미터, 운동 4회")
+    }
+
+    private func snapshotMetric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(label)
+                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.tertiaryInk)
+                .lineLimit(1)
+        }
+    }
+
+    private var friendWorkoutItems: [FeedItem] {
+        let workouts = visibleItems.filter {
+            if case .workoutSession = $0.cardData {
+                return true
+            }
+            return false
+        }
+        return Array(workouts.prefix(2))
+    }
+
+    private var supportingItems: [FeedItem] {
+        visibleItems.filter { item in
+            friendWorkoutItems.contains(where: { $0.id == item.id }) == false
+        }
+    }
+
+    private var aiDiscoveryCard: some View {
+        HStack(spacing: 10) {
             Image(systemName: SOOMIcon.sparkles)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(SOOMColor.accent)
-                .frame(width: 32, height: 32)
+                .frame(width: 28, height: 28)
                 .background(SOOMColor.accentMuted)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("가볍게 확인")
+                Text("발견")
                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(SOOMColor.tertiaryInk)
-                Text("회복 코치는 아래에서 필요할 때만 열 수 있어요.")
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk.opacity(0.78))
-                    .lineLimit(2)
+                Text("오늘은 가볍게 다시 탈 만한 코스가 많이 보입니다.")
+                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
 
             Spacer()
         }
-        .padding(SOOMLayout.Card.padding)
-        .background(SOOMColor.surfaceAmbient.opacity(0.54))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(SOOMColor.surfaceAmbient.opacity(0.78))
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
-        .accessibilityElement(children: .combine)
-    }
-
-    private var recommendationGrid: some View {
-        VStack(spacing: SOOMLayout.Metrics.gridSpacing) {
-            HStack(spacing: SOOMLayout.Metrics.gridSpacing) {
-                FeedSurfaceButton(
-                    kind: "루트",
-                    icon: SOOMIcon.map,
-                    title: "오늘은 짧고 편하게",
-                    subtitle: "회복 흐름에 맞는 강변 코스",
-                    footer: "한강 45분",
-                    tint: SOOMColor.accent
-                )
-
-                FeedSurfaceButton(
-                    kind: "챌린지",
-                    icon: SOOMIcon.medal,
-                    title: "한 번 더 움직일 자리",
-                    subtitle: "이번 주 루틴을 조용히 이어가기",
-                    footer: "2 / 3 완료",
-                    tint: SOOMColor.accent
-                )
-            }
-
-            HStack(spacing: SOOMLayout.Metrics.gridSpacing) {
-                FeedSurfaceButton(
-                    kind: "클럽",
-                    icon: SOOMIcon.clubs,
-                    title: "오늘도 천천히 같이",
-                    subtitle: "처음 오는 사람도 편한 토요 그룹런",
-                    footer: "12명 준비 중",
-                    tint: SOOMColor.accent
-                )
-
-                FeedSurfaceButton(
-                    kind: "리듬",
-                    icon: SOOMIcon.trendFlat,
-                    title: "페이스보다 호흡",
-                    subtitle: "비슷한 회복 흐름의 사람들이 많아요",
-                    footer: "오늘의 조용한 무드",
-                    tint: SOOMColor.accent
-                )
-            }
+        .overlay {
+            RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
+                .stroke(SOOMColor.line.opacity(0.10), lineWidth: 1)
         }
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -208,6 +283,51 @@ struct FeedView: View {
             FeedFirstJourneyStoryPreview()
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private static func prioritizedItems(_ items: [FeedItem]) -> [FeedItem] {
+        items.sorted { lhs, rhs in
+            let lhsPriority = feedPriority(for: lhs)
+            let rhsPriority = feedPriority(for: rhs)
+
+            if lhsPriority == rhsPriority {
+                return lhs.createdAt > rhs.createdAt
+            }
+
+            return lhsPriority < rhsPriority
+        }
+    }
+
+    private static func feedPriority(for item: FeedItem) -> Int {
+        if case .workoutSession = item.cardData {
+            return 0
+        }
+
+        if item.clubContext != nil {
+            return 1
+        }
+
+        return 3
+    }
+}
+
+private struct WeeklySnapshotGraph: View {
+    private let values: [CGFloat] = [0.28, 0.62, 0.40, 0.82, 0.36, 0.70, 0.54]
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 5) {
+            ForEach(values.indices, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(index == 3 ? SOOMColor.bike : SOOMColor.ink.opacity(0.16))
+                    .frame(width: 6, height: 44 * values[index] + 6)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(SOOMColor.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .accessibilityHidden(true)
     }
 }
 

@@ -127,25 +127,25 @@ enum SOOMLayout {
     }
 
     enum TabBar {
-        static let bottomOverlayInset: CGFloat = 108
-        static let outerHorizontalPadding: CGFloat = 26
-        static let bottomPadding: CGFloat = 10
-        static let height: CGFloat = 60
-        static let containerHorizontalPadding: CGFloat = 6
-        static let containerVerticalPadding: CGFloat = 5
-        static let itemHeight: CGFloat = 50
+        static let bottomOverlayInset: CGFloat = 92
+        static let outerHorizontalPadding: CGFloat = 34
+        static let bottomPadding: CGFloat = 8
+        static let height: CGFloat = 52
+        static let containerHorizontalPadding: CGFloat = 5
+        static let containerVerticalPadding: CGFloat = 4
+        static let itemHeight: CGFloat = 44
         static let itemCornerRadius: CGFloat = SOOMRadius.liquidTabItem
-        static let iconHeight: CGFloat = 22
-        static let defaultIconSize: CGFloat = 20
-        static let recordIconSize: CGFloat = 22
-        static let itemLabelSpacing: CGFloat = 3
-        static let topHighlightHeight: CGFloat = 1.2
+        static let iconHeight: CGFloat = 19
+        static let defaultIconSize: CGFloat = 18
+        static let recordIconSize: CGFloat = 20
+        static let itemLabelSpacing: CGFloat = 2
+        static let topHighlightHeight: CGFloat = 0.8
         static let topHighlightHorizontalPadding: CGFloat = 28
-        static let bottomHighlightHeight: CGFloat = 1
+        static let bottomHighlightHeight: CGFloat = 0.6
         static let bottomHighlightHorizontalPadding: CGFloat = 36
-        static let selectedShadowRadius: CGFloat = 8
-        static let containerShadowRadius: CGFloat = 14
-        static let containerShadowYOffset: CGFloat = 8
+        static let selectedShadowRadius: CGFloat = 5
+        static let containerShadowRadius: CGFloat = 10
+        static let containerShadowYOffset: CGFloat = 5
         static let pressScale: CGFloat = 0.97
         static let selectedIconScale: CGFloat = 1.0
         static let normalIconScale: CGFloat = 0.94

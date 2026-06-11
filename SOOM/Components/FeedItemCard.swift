@@ -11,33 +11,29 @@ struct FeedItemCard: View {
 
             titleBlock
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 14)
+                .padding(.top, 12)
 
             mediaPreview
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 14)
+                .padding(.top, 12)
 
             metricsBlock
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 14)
-
-            tagsAndReactions
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 16)
+                .padding(.top, 12)
 
             actionBar
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SOOMColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
-                .stroke(SOOMColor.line.opacity(0.10), lineWidth: SOOMLayout.Card.borderWidth)
+                .stroke(SOOMColor.black.opacity(0.08), lineWidth: SOOMLayout.Card.borderWidth)
         }
-        .shadow(color: SOOMColor.black.opacity(0.035), radius: 14, x: 0, y: 8)
+        .shadow(color: SOOMColor.black.opacity(0.07), radius: 18, x: 0, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.authorName)의 \(item.itemType.title) 피드")
@@ -46,18 +42,9 @@ struct FeedItemCard: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 11) {
-            ZStack {
-                Circle()
-                    .fill(tint.opacity(0.14))
+            FeedProfileAvatar()
 
-                Text(initial)
-                    .font(SOOMFont.displayMedium(15, relativeTo: .caption))
-                    .foregroundStyle(tint)
-            }
-            .frame(width: 40, height: 40)
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
                     Text(item.authorName)
                         .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
@@ -66,14 +53,12 @@ struct FeedItemCard: View {
 
                     Text(feedTypeText)
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(tint)
+                        .foregroundStyle(SOOMColor.tertiaryInk)
                         .lineLimit(1)
                 }
 
                 HStack(spacing: 5) {
                     Text(relativeTimeText)
-                    Text("·")
-                    Text(item.locationHint ?? "근처 코스")
                 }
                 .font(SOOMFont.body(12, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
@@ -81,10 +66,6 @@ struct FeedItemCard: View {
             }
 
             Spacer(minLength: 8)
-
-            if let label = item.contextLabels.first {
-                FeedReferenceContextPill(label: label, tint: tint)
-            }
 
             Button(action: {}) {
                 Image(systemName: SOOMIcon.more)
@@ -98,20 +79,11 @@ struct FeedItemCard: View {
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(feedTitle)
-                .font(SOOMFont.displayMedium(21, relativeTo: .title3))
-                .foregroundStyle(SOOMColor.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.88)
-
-            Text(feedBody)
-                .font(SOOMFont.body(14, relativeTo: .subheadline))
-                .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(2)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        Text(feedTitle)
+            .font(SOOMFont.displayMedium(19, relativeTo: .headline))
+            .foregroundStyle(SOOMColor.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.86)
     }
 
     @ViewBuilder
@@ -145,62 +117,24 @@ struct FeedItemCard: View {
             FeedReferenceMetricGrid(metrics: [
                 FeedReferenceMetric(label: "거리", value: card.distanceText),
                 FeedReferenceMetric(label: "시간", value: card.durationText),
-                FeedReferenceMetric(label: averageMetricLabel(for: card), value: averageMetricText(for: card)),
-                FeedReferenceMetric(label: "평균 심박", value: averageHeartRateText(for: card))
+                FeedReferenceMetric(label: "심박", value: averageHeartRateText(for: card))
             ])
         case .weeklyProgress(let card):
             FeedReferenceMetricGrid(metrics: [
                 FeedReferenceMetric(label: "운동", value: card.workoutCountText),
                 FeedReferenceMetric(label: "거리", value: card.totalDistanceText),
-                FeedReferenceMetric(label: "시간", value: card.totalDurationText),
-                FeedReferenceMetric(label: "흐름", value: "안정")
+                FeedReferenceMetric(label: "시간", value: card.totalDurationText)
             ])
         }
     }
 
-    private var tagsAndReactions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if feedTags.isEmpty == false {
-                HStack(spacing: 7) {
-                    ForEach(feedTags.prefix(4), id: \.self) { tag in
-                        FeedReferenceTag(title: tag, tint: tint)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-            }
-
-            if item.reactions.isEmpty == false || item.microComment != nil {
-                HStack(spacing: 8) {
-                    ForEach(item.reactions.prefix(3)) { reaction in
-                        Text(reaction.symbol)
-                            .font(.system(size: 16))
-                            .frame(width: 26, height: 26)
-                            .background(SOOMColor.surfaceMuted)
-                            .clipShape(Circle())
-                            .accessibilityLabel("\(reaction.label) 반응")
-                    }
-
-                    if let microComment = item.microComment {
-                        Text(microComment)
-                            .font(SOOMFont.body(12, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-    }
-
     private var actionBar: some View {
-        HStack(spacing: 0) {
-            FeedReferenceAction(icon: SOOMIcon.thumbsUp, title: "응원하기")
+        HStack(spacing: 8) {
+            FeedReferenceAction(icon: "hands.clap", title: "응원")
             Spacer()
-            FeedReferenceAction(icon: SOOMIcon.comment, title: "댓글 남기기")
+            FeedReferenceAction(icon: SOOMIcon.comment, title: "댓글")
             Spacer()
-            FeedReferenceAction(icon: SOOMIcon.bookmark, title: "저장")
+            FeedReferenceAction(icon: SOOMIcon.bookmark, title: "저장", isProminent: true)
         }
         .padding(.top, 12)
         .overlay(alignment: .top) {
@@ -217,10 +151,6 @@ struct FeedItemCard: View {
         case .weeklyProgress:
             return SOOMColor.accent
         }
-    }
-
-    private var initial: String {
-        String(item.authorName.prefix(1))
     }
 
     private var feedTypeText: String {
@@ -255,26 +185,6 @@ struct FeedItemCard: View {
         }
     }
 
-    private var feedTags: [String] {
-        var tags: [String] = []
-
-        if let mood = item.movementMood {
-            tags.append(mood)
-        }
-
-        if let location = item.locationHint {
-            tags.append(location)
-        }
-
-        if let routeMood = item.routeMood {
-            tags.append(trimmedCopy(routeMood, limit: 8))
-        }
-
-        tags.append(contentsOf: item.contextLabels.map(\.title))
-
-        return Array(NSOrderedSet(array: tags).compactMap { $0 as? String })
-    }
-
     private var relativeTimeText: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -299,32 +209,6 @@ struct FeedItemCard: View {
         return "\(line.prefix(limit))..."
     }
 
-    private func averageMetricLabel(for card: ShareableWorkoutCardModel) -> String {
-        switch card.workoutType {
-        case .cycling:
-            return "평균 속도"
-        default:
-            return "평균 페이스"
-        }
-    }
-
-    private func averageMetricText(for card: ShareableWorkoutCardModel) -> String {
-        switch card.workoutType {
-        case .running:
-            return "5'02\""
-        case .cycling:
-            return "20.7km/h"
-        case .swimming:
-            return "2'04\""
-        case .walking:
-            return "10'20\""
-        case .hiking:
-            return "14'10\""
-        case .strength, .yoga, .other:
-            return "안정"
-        }
-    }
-
     private func averageHeartRateText(for card: ShareableWorkoutCardModel) -> String {
         switch card.workoutType {
         case .running:
@@ -341,11 +225,28 @@ struct FeedItemCard: View {
             return "가벼움"
         }
     }
+
+}
+
+private struct FeedProfileAvatar: View {
+    var body: some View {
+        Circle()
+            .fill(SOOMColor.surfaceMuted)
+            .frame(width: 40, height: 40)
+            .overlay {
+                Image(systemName: SOOMIcon.profile)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(SOOMColor.tertiaryInk)
+            }
+            .overlay {
+                Circle()
+                    .stroke(SOOMColor.black.opacity(0.06), lineWidth: 1)
+            }
+            .accessibilityHidden(true)
+    }
 }
 
 private struct FeedReferenceMediaPreview: View {
-    @State private var selectedPhotoIndex = 0
-
     let routeStyle: StaticRouteFallbackStyle
     let routeExists: Bool
     let distanceText: String
@@ -354,61 +255,21 @@ private struct FeedReferenceMediaPreview: View {
     let tint: Color
 
     var body: some View {
-        GeometryReader { proxy in
-            let availableWidth = proxy.size.width
-            let gap: CGFloat = photos.isEmpty ? 0 : 9
-            let idealPhotoWidth = availableWidth * 0.38
-            let maxPhotoWidth = max(availableWidth - gap - 144, 0)
-            let photoWidth = photos.isEmpty ? 0 : min(max(idealPhotoWidth, 108), maxPhotoWidth)
-
-            HStack(spacing: gap) {
-                FeedReferenceRoutePreview(
-                    routeStyle: routeStyle,
-                    routeExists: routeExists,
-                    distanceText: distanceText,
-                    routeLabel: routeLabel,
-                    tint: tint
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if photos.isEmpty == false {
-                    photoPreview
-                        .frame(width: photoWidth, height: proxy.size.height)
-                }
-            }
-        }
+        FeedReferenceRoutePreview(
+            routeStyle: routeStyle,
+            routeExists: routeExists,
+            distanceText: distanceText,
+            routeLabel: routeLabel,
+            photoCount: photos.count,
+            tint: tint
+        )
         .frame(height: mediaHeight)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(photos.isEmpty ? "지도 경로 미리보기" : "지도와 사진 미리보기")
+        .accessibilityLabel(photos.isEmpty ? "지도 경로 미리보기" : "지도 경로 미리보기, 사진 \(photos.count)장")
     }
 
     private var mediaHeight: CGFloat {
-        return 194
-    }
-
-    private var photoPreview: some View {
-        ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $selectedPhotoIndex) {
-                ForEach(photos.indices, id: \.self) { index in
-                    FeedReferencePhotoSurface(photo: photos[index], tint: tint)
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-
-            if photos.count > 1 {
-                Text("\(min(selectedPhotoIndex + 1, photos.count)) / \(photos.count)")
-                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(SOOMColor.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(SOOMColor.black.opacity(0.48))
-                    .clipShape(Capsule())
-                    .padding(9)
-                    .accessibilityLabel("\(selectedPhotoIndex + 1)번째 사진, 총 \(photos.count)장")
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        return 216
     }
 }
 
@@ -417,6 +278,7 @@ private struct FeedReferenceRoutePreview: View {
     let routeExists: Bool
     let distanceText: String
     let routeLabel: String
+    let photoCount: Int
     let tint: Color
 
     var body: some View {
@@ -438,13 +300,29 @@ private struct FeedReferenceRoutePreview: View {
             routeEndpoint(isStart: false)
 
             Text(distanceText)
-                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.ink)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(SOOMColor.white.opacity(0.92))
+                .padding(.horizontal, 11)
+                .padding(.vertical, 7)
+                .background(SOOMColor.white.opacity(0.94))
                 .clipShape(Capsule())
-                .padding(9)
+                .padding(12)
+
+            if photoCount > 0 {
+                HStack {
+                    Spacer()
+
+                    Label(photoCountText, systemImage: "camera")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.ink.opacity(0.78))
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(SOOMColor.white.opacity(0.90))
+                        .clipShape(Capsule())
+                        .padding(12)
+                }
+            }
 
             VStack {
                 Spacer()
@@ -460,13 +338,13 @@ private struct FeedReferenceRoutePreview: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(9)
+                .padding(12)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(SOOMColor.line.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous)
+                .stroke(SOOMColor.black.opacity(0.06), lineWidth: 1)
         }
     }
 
@@ -559,49 +437,12 @@ private struct FeedReferenceRoutePreview: View {
         }
         return "\(value.prefix(16))..."
     }
-}
 
-private struct FeedReferencePhotoSurface: View {
-    let photo: FeedPhotoPlaceholder
-    let tint: Color
-
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            photo.photoGradient(tint: tint)
-
-            photoArtwork
-
-            Text(photo.title)
-                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.white)
-                .lineLimit(1)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(SOOMColor.black.opacity(0.34))
-                .clipShape(Capsule())
-                .padding(9)
+    private var photoCountText: String {
+        if photoCount == 1 {
+            return "사진 1"
         }
-    }
-
-    private var photoArtwork: some View {
-        ZStack {
-            Circle()
-                .fill(SOOMColor.white.opacity(0.18))
-                .frame(width: 114, height: 114)
-                .offset(x: 40, y: -70)
-
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(SOOMColor.white.opacity(0.16))
-                .frame(width: 120, height: 88)
-                .rotationEffect(.degrees(-8))
-                .offset(x: 34, y: 24)
-
-            Image(systemName: photo.tone.mediaIcon)
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(SOOMColor.white.opacity(0.82))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityHidden(true)
+        return "사진 \(photoCount)"
     }
 }
 
@@ -690,110 +531,60 @@ private struct FeedReferenceMetricGrid: View {
     let metrics: [FeedReferenceMetric]
 
     var body: some View {
-        HStack(spacing: 0) {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: metrics.count),
+            alignment: .leading,
+            spacing: 0
+        ) {
             ForEach(metrics) { metric in
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .center, spacing: 4) {
                     Text(metric.label)
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.tertiaryInk)
                         .lineLimit(1)
+                        .frame(height: 12, alignment: .bottom)
 
                     Text(metric.value)
-                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
+                        .frame(height: 19, alignment: .top)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
-        .padding(12)
-        .background(SOOMColor.surfaceAmbient)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(SOOMColor.surfaceMuted.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous)
-                .stroke(SOOMColor.line.opacity(0.10), lineWidth: 1)
+                .stroke(SOOMColor.black.opacity(0.05), lineWidth: 1)
         }
-    }
-}
-
-private struct FeedReferenceContextPill: View {
-    let label: FeedContextLabel
-    let tint: Color
-
-    var body: some View {
-        Text(label.title)
-            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(SOOMColor.accentInk)
-            .lineLimit(1)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 6)
-            .background(SOOMColor.accentSurface)
-            .clipShape(Capsule())
-    }
-}
-
-private struct FeedReferenceTag: View {
-    let title: String
-    let tint: Color
-
-    var body: some View {
-        Text(title)
-            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(SOOMColor.secondaryInk)
-            .lineLimit(1)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 6)
-            .background(SOOMColor.surfaceMuted)
-            .clipShape(Capsule())
     }
 }
 
 private struct FeedReferenceAction: View {
     let icon: String
     let title: String
+    var isProminent = false
 
     var body: some View {
         Label(title, systemImage: icon)
-            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-            .foregroundStyle(SOOMColor.secondaryInk)
+            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(isProminent ? SOOMColor.ink : SOOMColor.secondaryInk)
             .labelStyle(.titleAndIcon)
             .lineLimit(1)
-            .minimumScaleFactor(0.82)
-    }
-}
-
-private extension FeedPhotoPlaceholder {
-    func photoGradient(tint: Color) -> LinearGradient {
-        LinearGradient(
-            colors: colors(tint: tint),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private func colors(tint: Color) -> [Color] {
-        switch tone {
-        case .morning:
-            return [Color(hex: 0xC78A55), Color(hex: 0x6D8C6C), tint.opacity(0.72)]
-        case .city:
-            return [Color(hex: 0x566B79), Color(hex: 0x9A735A), tint.opacity(0.70)]
-        case .trail:
-            return [Color(hex: 0x496B5B), Color(hex: 0x8E7B4E), SOOMColor.warning.opacity(0.54)]
-        case .water:
-            return [SOOMColor.swim.opacity(0.86), Color(hex: 0x4F7167), tint.opacity(0.64)]
-        }
-    }
-}
-
-private extension FeedPhotoTone {
-    var mediaIcon: String {
-        switch self {
-        case .water:
-            return SOOMIcon.waveform
-        default:
-            return SOOMIcon.sparkles
-        }
+            .minimumScaleFactor(0.72)
+            .padding(.horizontal, isProminent ? 10 : 0)
+            .frame(minHeight: 28)
+            .background {
+                if isProminent {
+                    Capsule(style: .continuous)
+                        .fill(SOOMColor.surfaceMuted)
+                }
+            }
     }
 }
 
