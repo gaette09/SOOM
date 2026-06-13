@@ -258,6 +258,7 @@ private struct FeedReferenceMediaPreview: View {
         FeedReferenceRoutePreview(
             routeStyle: routeStyle,
             routeExists: routeExists,
+            route: FeedPreviewRouteFactory.route(style: routeStyle, distanceText: distanceText),
             distanceText: distanceText,
             routeLabel: routeLabel,
             photoCount: photos.count,
@@ -273,9 +274,93 @@ private struct FeedReferenceMediaPreview: View {
     }
 }
 
+private enum FeedPreviewRouteFactory {
+    static func route(style: StaticRouteFallbackStyle, distanceText: String) -> WorkoutRoute? {
+        let points = coordinates(for: style)
+        guard points.count >= 2 else { return nil }
+
+        return WorkoutRoute(
+            workoutId: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
+            source: .soomLocal,
+            coordinates: points.map {
+                WorkoutRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude)
+            },
+            totalDistanceMeters: distanceMeters(from: distanceText),
+            totalElevationGain: nil,
+            createdAt: Date(timeIntervalSince1970: 1_800_480_000)
+        )
+    }
+
+    private static func coordinates(for style: StaticRouteFallbackStyle) -> [(latitude: Double, longitude: Double)] {
+        switch style {
+        case .cycling:
+            return [
+                (37.5262, 126.9058),
+                (37.5314, 126.9189),
+                (37.5226, 126.9384),
+                (37.5168, 126.9632),
+                (37.5228, 126.9850),
+                (37.5350, 127.0048),
+                (37.5297, 127.0218)
+            ]
+        case .running:
+            return [
+                (37.5209, 127.1218),
+                (37.5165, 127.1254),
+                (37.5116, 127.1216),
+                (37.5128, 127.1134),
+                (37.5191, 127.1118),
+                (37.5232, 127.1168)
+            ]
+        case .swimming:
+            return [
+                (37.5105, 127.0982),
+                (37.5107, 127.1006),
+                (37.5104, 127.1032),
+                (37.5108, 127.1058)
+            ]
+        case .walking:
+            return [
+                (37.5794, 126.9769),
+                (37.5781, 126.9810),
+                (37.5752, 126.9836),
+                (37.5728, 126.9802),
+                (37.5746, 126.9758)
+            ]
+        case .generic:
+            return [
+                (37.5446, 127.0373),
+                (37.5484, 127.0430),
+                (37.5450, 127.0502),
+                (37.5389, 127.0460),
+                (37.5402, 127.0384)
+            ]
+        }
+    }
+
+    private static func distanceMeters(from text: String) -> Double {
+        let normalized = text.lowercased().replacingOccurrences(of: ",", with: "")
+        let number = normalized
+            .split(whereSeparator: { !$0.isNumber && $0 != "." })
+            .first
+            .flatMap { Double($0) } ?? 0
+
+        if normalized.contains("km") {
+            return number * 1_000
+        }
+
+        if normalized.contains("m") {
+            return number
+        }
+
+        return max(number * 1_000, 1_000)
+    }
+}
+
 private struct FeedReferenceRoutePreview: View {
     let routeStyle: StaticRouteFallbackStyle
     let routeExists: Bool
+    let route: WorkoutRoute?
     let distanceText: String
     let routeLabel: String
     let photoCount: Int
@@ -283,21 +368,8 @@ private struct FeedReferenceRoutePreview: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            routeBackground
-            routeMapCanvas
-
-            FeedReferenceRouteLine(style: routeStyle)
-                .stroke(SOOMColor.white.opacity(0.92), style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 26)
-
-            FeedReferenceRouteLine(style: routeStyle)
-                .stroke(tint.opacity(routeExists ? 0.92 : 0.74), style: StrokeStyle(lineWidth: 3.8, lineCap: .round, lineJoin: .round))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 26)
-
-            routeEndpoint(isStart: true)
-            routeEndpoint(isStart: false)
+            WorkoutDetailMapView(route: route, fallbackStyle: routeStyle, tint: tint)
+                .allowsHitTesting(false)
 
             Text(distanceText)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
