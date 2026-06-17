@@ -44,9 +44,12 @@ private enum SOOMTab: String, CaseIterable, Identifiable {
 
 final class SOOMTabBarVisibility: ObservableObject {
     @Published var isHidden = false
+    @Published var isFloatingCoachHidden = false
 }
 
 struct RootTabView: View {
+    private let isGlobalFloatingCoachEnabled = false
+
     @State private var selectedTab: SOOMTab = .feed
     @State private var isRecordLaunchPresented = false
     @State private var shouldReturnToActivityAfterRecordSave = false
@@ -128,7 +131,15 @@ struct RootTabView: View {
     }
 
     private var shouldShowFloatingCoach: Bool {
-        !tabBarVisibility.isHidden && selectedTab != .activity && selectedTab != .clubs
+        guard isGlobalFloatingCoachEnabled else {
+            return false
+        }
+
+        if tabBarVisibility.isHidden || tabBarVisibility.isFloatingCoachHidden {
+            return false
+        }
+
+        return selectedTab != .activity && selectedTab != .clubs
     }
 
     private var bottomOverlayInset: CGFloat {
@@ -1611,8 +1622,26 @@ private struct SOOMTabBarHiddenModifier: ViewModifier {
     }
 }
 
+private struct SOOMFloatingCoachHiddenModifier: ViewModifier {
+    @EnvironmentObject private var visibility: SOOMTabBarVisibility
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                visibility.isFloatingCoachHidden = true
+            }
+            .onDisappear {
+                visibility.isFloatingCoachHidden = false
+            }
+    }
+}
+
 extension View {
     func hidesSOOMTabBar() -> some View {
         modifier(SOOMTabBarHiddenModifier())
+    }
+
+    func hidesSOOMFloatingCoach() -> some View {
+        modifier(SOOMFloatingCoachHiddenModifier())
     }
 }
