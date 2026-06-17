@@ -44,6 +44,7 @@ struct SettingsView: View {
             trainingBaselineSection
             privacySection
             notificationSection
+            prototypeSection
             appInfoSection
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -346,6 +347,24 @@ struct SettingsView: View {
         SOOMCard {
             SOOMSectionHeader("알림", caption: "아침 체크인과 주간 리듬 알림을 담을 자리입니다.")
             SOOMActionRow(icon: "bell", title: "알림 설정 준비 중", subtitle: "강요하지 않는 리마인더 정책으로 설계합니다.", tint: SOOMColor.warning)
+        }
+    }
+
+    private var prototypeSection: some View {
+        SOOMCard {
+            SOOMSectionHeader("프로토타입", caption: "운동 상세 인터랙션 실험 화면입니다. 현재 Record Detail은 변경하지 않습니다.")
+
+            NavigationLink {
+                StravaDetailFrameLockView()
+            } label: {
+                SOOMActionRow(
+                    icon: "rectangle.inset.bottomleading.filled",
+                    title: "Strava Frame Lock Prototype",
+                    subtitle: "지도, 고정 헤더, 시트 앵커만 검증하는 새 프레임 잠금 화면",
+                    tint: SOOMColor.warning
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 

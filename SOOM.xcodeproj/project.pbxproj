@@ -40,6 +40,7 @@
 		010022 /* WorkoutDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020024 /* WorkoutDetailContent.swift */; };
 		010023 /* WorkoutMetricCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020025 /* WorkoutMetricCards.swift */; };
 		010024 /* FeedPostDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020026 /* FeedPostDetailContent.swift */; };
+		010A01 /* StravaDetailFrameLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020A01 /* StravaDetailFrameLockView.swift */; };
 		010025 /* SoomTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020027 /* SoomTypography.swift */; };
 		010026 /* SoomSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020028 /* SoomSpacing.swift */; };
 		010027 /* SoomRadius.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020029 /* SoomRadius.swift */; };
@@ -500,6 +501,7 @@
 		020024 /* WorkoutDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailContent.swift; sourceTree = "<group>"; };
 		020025 /* WorkoutMetricCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricCards.swift; sourceTree = "<group>"; };
 		020026 /* FeedPostDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDetailContent.swift; sourceTree = "<group>"; };
+		020A01 /* StravaDetailFrameLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaDetailFrameLockView.swift; sourceTree = "<group>"; };
 		020027 /* SoomTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomTypography.swift; sourceTree = "<group>"; };
 		020028 /* SoomSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSpacing.swift; sourceTree = "<group>"; };
 		020029 /* SoomRadius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomRadius.swift; sourceTree = "<group>"; };
@@ -1197,6 +1199,7 @@
 				020039 /* WorkoutMetricsSection.swift */,
 				020024 /* WorkoutDetailContent.swift */,
 				020025 /* WorkoutMetricCards.swift */,
+				020A01 /* StravaDetailFrameLockView.swift */,
 			);
 			path = Activity;
 			sourceTree = "<group>";
@@ -1896,6 +1899,7 @@
 				010201 /* UnifiedWorkoutDuplicateReviewView.swift in Sources */,
 				010202 /* UnifiedWorkoutDuplicateReviewViewContainer.swift in Sources */,
 				010024 /* FeedPostDetailContent.swift in Sources */,
+				010A01 /* StravaDetailFrameLockView.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
 				010052 /* RecoveryDataProvider.swift in Sources */,
