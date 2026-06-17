@@ -1515,11 +1515,7 @@ private struct SOOMBottomTabItem: View {
     let namespace: Namespace.ID
 
     var body: some View {
-        if tab == .record {
-            recordItem
-        } else {
-            standardItem
-        }
+        standardItem
     }
 
     private var standardItem: some View {
@@ -1551,7 +1547,7 @@ private struct SOOMBottomTabItem: View {
 
             VStack(spacing: SOOMLayout.TabBar.itemLabelSpacing) {
                 Image(systemName: tab.iconName)
-                    .font(.system(size: tab == .record ? SOOMLayout.TabBar.recordIconSize : SOOMLayout.TabBar.defaultIconSize, weight: .semibold))
+                    .font(.system(size: SOOMLayout.TabBar.defaultIconSize, weight: .semibold))
                     .symbolRenderingMode(.monochrome)
                     .frame(height: SOOMLayout.TabBar.iconHeight)
                     .scaleEffect(isSelected ? SOOMLayout.TabBar.selectedIconScale : SOOMLayout.TabBar.normalIconScale)
@@ -1568,33 +1564,6 @@ private struct SOOMBottomTabItem: View {
         .contentShape(RoundedRectangle(cornerRadius: SOOMLayout.TabBar.itemCornerRadius, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(tab.title)
-        .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
-        .animation(SOOMMotion.quickEaseOut, value: isSelected)
-    }
-
-    private var recordItem: some View {
-        ZStack {
-            Circle()
-                .fill(SOOMColor.accent)
-                .overlay {
-                    Circle()
-                        .stroke(SOOMColor.white.opacity(0.72), lineWidth: 1)
-                }
-                .shadow(color: SOOMColor.accent.opacity(isSelected ? 0.20 : 0.11), radius: 7, x: 0, y: 4)
-
-            Image(systemName: tab.iconName)
-                .font(.system(size: 23, weight: .bold))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(SOOMColor.white)
-        }
-        .frame(width: 50, height: 50)
-        .scaleEffect(isSelected ? 1.03 : 1)
-        .frame(maxWidth: .infinity)
-        .frame(height: SOOMLayout.TabBar.itemHeight)
-        .offset(y: -7)
-        .contentShape(Circle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("운동 기록 시작")
         .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
         .animation(SOOMMotion.quickEaseOut, value: isSelected)
     }

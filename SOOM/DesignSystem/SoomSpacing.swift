@@ -137,7 +137,6 @@ enum SOOMLayout {
         static let itemCornerRadius: CGFloat = SOOMRadius.liquidTabItem
         static let iconHeight: CGFloat = 19
         static let defaultIconSize: CGFloat = 18
-        static let recordIconSize: CGFloat = 20
         static let itemLabelSpacing: CGFloat = 2
         static let topHighlightHeight: CGFloat = 0.8
         static let topHighlightHorizontalPadding: CGFloat = 28
