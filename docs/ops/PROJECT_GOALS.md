@@ -16,40 +16,40 @@ Use it with `docs/ops/MULTI_PROJECT_OPERATIONS.md` to keep daily work, blocked g
 
 ## 2. Active Goal
 
-| Project | Active Goal | Expected outcome |
-| --- | --- | --- |
-| SOOM | Record Detail Content Lock based on Strava Frame Lock | Record detail content behavior is locked against the Strava-inspired frame direction and ready for focused QA. |
-| JAFOM | External production/staging stability check | Production and staging availability, key workflows, and deploy state are confirmed or documented as blocked. |
-| SOOM Instagram Dashboard | Static dashboard external review | Static dashboard can be reviewed externally with clear access path, scope, and review criteria. |
+| Project | Active Goal | Task file | Expected outcome |
+| --- | --- | --- | --- |
+| SOOM | Record Detail Content Lock based on Strava Frame Lock | `tasks/soom/0009-record-detail-content-lock.md` | Record detail content behavior is locked against the Strava-inspired frame direction and ready for focused QA. |
+| JAFOM | External production/staging stability check | `tasks/jafom/0001-external-production-staging-stability-check.md` | Production and staging availability, key workflows, and deploy state are confirmed or documented as blocked. |
+| SOOM Instagram Dashboard | Static dashboard external review | `tasks/instagram/0001-static-dashboard-external-review.md` | Static dashboard can be reviewed externally with clear access path, scope, and review criteria. |
 
 ## 3. Next Goal
 
-| Project | Next Goal | Trigger to start |
-| --- | --- | --- |
-| SOOM | TestFlight QA checklist | Start after Record Detail Content Lock has a documented implementation state and verification method. |
-| JAFOM | Backup/rollback checklist | Start after external production/staging stability is confirmed or specific gaps are documented. |
-| SOOM Instagram Dashboard | Harness/Hermes automation planning | Start after static dashboard review path and feedback loop are confirmed. |
+| Project | Next Goal | Task file | Trigger to start |
+| --- | --- | --- | --- |
+| SOOM | TestFlight QA checklist | `tasks/soom/0010-testflight-qa-checklist.md` | Start after Record Detail Content Lock has a documented implementation state and verification method. |
+| JAFOM | Backup/rollback checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Start after external production/staging stability is confirmed or specific gaps are documented. |
+| SOOM Instagram Dashboard | Harness/Hermes automation planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Start after static dashboard review path and feedback loop are confirmed. |
 
 ## 4. Blocked Goal
 
-| Project | Blocked Goal | Blocker | Unblock condition |
-| --- | --- | --- | --- |
-| SOOM | Fastlane archive signing issue investigation | Apple signing, provisioning, or account/session state needs focused investigation. | Confirm signing inputs, reproduce the archive failure, and document the exact remediation path. |
-| JAFOM | None | No blocked goal currently tracked. | Add one when a concrete blocker is identified. |
-| SOOM Instagram Dashboard | Persistent backend/storage not yet designed | Storage model, backend runtime, authentication, and persistence boundaries are not defined. | Produce a backend/storage design with ownership, hosting, data model, and rollback implications. |
+| Project | Blocked Goal | Task file | Blocker | Unblock condition |
+| --- | --- | --- | --- | --- |
+| SOOM | Fastlane archive signing issue investigation | `tasks/soom/0011-fastlane-archive-signing-issue-investigation.md` | Apple signing, provisioning, or account/session state needs focused investigation. | Confirm signing inputs, reproduce the archive failure, and document the exact remediation path. |
+| JAFOM | None | `tasks/jafom/0003-no-blocked-goal.md` | No blocked goal currently tracked. | Add one when a concrete blocker is identified. |
+| SOOM Instagram Dashboard | Persistent backend/storage not yet designed | `tasks/instagram/0003-persistent-backend-storage-design.md` | Storage model, backend runtime, authentication, and persistence boundaries are not defined. | Produce a backend/storage design with ownership, hosting, data model, and rollback implications. |
 
 ## 5. Priority
 
 Initial priority order:
 
-1. SOOM: Record Detail Content Lock based on Strava Frame Lock.
-2. JAFOM: External production/staging stability check.
-3. SOOM Instagram Dashboard: Static dashboard external review.
-4. SOOM: TestFlight QA checklist.
-5. JAFOM: Backup/rollback checklist.
-6. SOOM Instagram Dashboard: Harness/Hermes automation planning.
-7. SOOM: Fastlane archive signing issue investigation.
-8. SOOM Instagram Dashboard: Persistent backend/storage design.
+1. SOOM: Record Detail Content Lock based on Strava Frame Lock (`tasks/soom/0009-record-detail-content-lock.md`).
+2. JAFOM: External production/staging stability check (`tasks/jafom/0001-external-production-staging-stability-check.md`).
+3. SOOM Instagram Dashboard: Static dashboard external review (`tasks/instagram/0001-static-dashboard-external-review.md`).
+4. SOOM: TestFlight QA checklist (`tasks/soom/0010-testflight-qa-checklist.md`).
+5. JAFOM: Backup/rollback checklist (`tasks/jafom/0002-backup-rollback-checklist.md`).
+6. SOOM Instagram Dashboard: Harness/Hermes automation planning (`tasks/instagram/0002-harness-hermes-automation-planning.md`).
+7. SOOM: Fastlane archive signing issue investigation (`tasks/soom/0011-fastlane-archive-signing-issue-investigation.md`).
+8. SOOM Instagram Dashboard: Persistent backend/storage design (`tasks/instagram/0003-persistent-backend-storage-design.md`).
 
 Priority rationale:
 
