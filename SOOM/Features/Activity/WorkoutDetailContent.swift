@@ -2,11 +2,17 @@ import SwiftUI
 import UIKit
 import HealthKit
 
+enum WorkoutDetailPresentationStyle {
+    case standalone
+    case mapSheet
+}
+
 struct WorkoutDetailContent: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let workout: Workout
     let showsHeader: Bool
+    var presentationStyle: WorkoutDetailPresentationStyle = .standalone
     var sessionSummary: WorkoutSessionSummary?
     var growthSummary: WorkoutGrowthSummary?
     var growthMetrics: [WorkoutGrowthMetric]?
@@ -50,7 +56,9 @@ struct WorkoutDetailContent: View {
                 )
             }
 
-            ActivityDetailHeroMap(workout: workout, route: mapRoute)
+            if presentationStyle == .standalone {
+                ActivityDetailHeroMap(workout: workout, route: mapRoute)
+            }
             ActivityDetailSummaryCard(workout: workout)
             ActivityDetailRhythmCard(messages: rhythmMessages, tint: workout.sport.tint)
 
