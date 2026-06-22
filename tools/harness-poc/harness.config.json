@@ -1,0 +1,48 @@
+{
+  "name": "harness-poc",
+  "version": "0.1.0-phase1",
+  "mode": "read-only",
+  "allowWrites": false,
+  "allowDeploys": false,
+  "allowInstalls": false,
+  "allowCommits": false,
+  "sources": {
+    "projectGoals": "docs/ops/PROJECT_GOALS.md",
+    "todayQueue": "docs/ops/TODAY_QUEUE.md",
+    "projectMemory": "docs/ops/PROJECT_MEMORY.md",
+    "tasksRoot": "tasks",
+    "reportsRoot": "docs/reports"
+  },
+  "activeTasks": {
+    "soom": {
+      "task": "tasks/soom/0009-record-detail-content-lock.md",
+      "report": "docs/reports/soom-0009-report.md"
+    },
+    "jafom": {
+      "task": "tasks/jafom/0001-external-production-staging-stability-check.md",
+      "report": "docs/reports/jafom-0001-report.md"
+    },
+    "instagram": {
+      "task": "tasks/instagram/0001-static-dashboard-external-review.md",
+      "report": "docs/reports/instagram-0001-report.md"
+    }
+  },
+  "projects": {
+    "soom": {
+      "root": "/Volumes/Platinum1TB/SOOM",
+      "expectedRemote": "https://github.com/gaette09/SOOM.git",
+      "expectedBranch": "main"
+    },
+    "jafom": {
+      "root": "/Volumes/Platinum1TB/UserData/Documents/블로그",
+      "expectedRemote": "https://github.com/gaette09/jafom-offline-crm.git",
+      "expectedBranch": "master"
+    },
+    "instagram": {
+      "root": "/Users/jihwanchung/Documents/Marketing/SOOM_Instagram",
+      "expectedRemote": "https://github.com/gaette09/soom-instagram-dashboard.git",
+      "expectedBranch": "main"
+    }
+  }
+}
+
