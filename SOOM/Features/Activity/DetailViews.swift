@@ -15,33 +15,50 @@ struct WorkoutDetailView: View {
     var detailRouteOverride: WorkoutRoute?
 
     var body: some View {
-        SOOMScreen {
-            WorkoutDetailContent(
-                workout: workout,
-                showsHeader: true,
-                sessionSummary: sessionSummary,
-                growthSummary: growthSummary,
-                growthMetrics: growthMetrics,
-                comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
-                courseRecord: courseRecordOverride ?? courseRecord,
-                courseProgression: courseProgressionOverride ?? courseProgression,
-                terrainInsight: terrainInsightOverride ?? terrainInsight,
-                splitInsight: splitInsight,
-                climbInsight: climbInsightOverride ?? climbInsight,
-                weaknessInsight: weaknessInsight,
-                recoveryImpact: recoveryImpact,
-                shareableCard: shareableCard,
-                mapRoute: detailMapRoute,
-                healthKitWorkout: healthKitWorkout,
-                zoneDataProvider: zoneDataProvider,
-                splitDataProvider: splitDataProvider
-            )
+        Group {
+            if detailMapRoute != nil {
+                WorkoutMapSheetScaffold(workout: workout, navigationTitle: "운동 상세") {
+                    detailContent(showsHeader: false, presentationStyle: .mapSheet)
+                }
+            } else {
+                SOOMScreen {
+                    detailContent(showsHeader: true, presentationStyle: .standalone)
+                }
+                .navigationTitle("운동 상세")
+                .navigationBarTitleDisplayMode(.inline)
+            }
         }
-        .navigationTitle("운동 상세")
-        .navigationBarTitleDisplayMode(.inline)
         .hidesSOOMTabBar()
     }
 
+
+    @ViewBuilder
+    private func detailContent(
+        showsHeader: Bool,
+        presentationStyle: WorkoutDetailPresentationStyle
+    ) -> some View {
+        WorkoutDetailContent(
+            workout: workout,
+            showsHeader: showsHeader,
+            presentationStyle: presentationStyle,
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            growthMetrics: growthMetrics,
+            comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
+            courseRecord: courseRecordOverride ?? courseRecord,
+            courseProgression: courseProgressionOverride ?? courseProgression,
+            terrainInsight: terrainInsightOverride ?? terrainInsight,
+            splitInsight: splitInsight,
+            climbInsight: climbInsightOverride ?? climbInsight,
+            weaknessInsight: weaknessInsight,
+            recoveryImpact: recoveryImpact,
+            shareableCard: shareableCard,
+            mapRoute: detailMapRoute,
+            healthKitWorkout: healthKitWorkout,
+            zoneDataProvider: zoneDataProvider,
+            splitDataProvider: splitDataProvider
+        )
+    }
 
     private var shareableCard: ShareableWorkoutCardModel {
         ShareableWorkoutCardBuilder().build(
