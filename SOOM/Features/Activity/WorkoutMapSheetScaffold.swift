@@ -69,11 +69,12 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                                 workout: workout,
                                 title: workout.sport.title,
                                 onCollapse: {
-                                    withAnimation(.spring(response: SOOMLayout.DetailSheet.sheetSpringResponse, dampingFraction: SOOMLayout.DetailSheet.sheetSpringDamping)) {
-                                        sheetPosition = .standard
-                                    }
+                                    collapseToPreview()
                                 }
                             )
+                            .overlay(alignment: .leading) {
+                                expandedCollapseTarget
+                            }
                             .contentShape(Rectangle())
                             .transition(.move(edge: .top).combined(with: .opacity))
                         } else {
@@ -101,6 +102,36 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var expandedCollapseTarget: some View {
+        Color.clear
+            .frame(
+                width: SOOMLayout.DetailSheet.headerHorizontalPadding + SOOMLayout.DetailSheet.headerButtonSize + SOOMLayout.DetailSheet.headerSpacing,
+                height: SOOMLayout.DetailSheet.headerTopPadding + SOOMLayout.DetailSheet.headerButtonSize + SOOMLayout.DetailSheet.headerBottomPadding
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                collapseToPreview()
+            }
+            .highPriorityGesture(expandedCollapseDragGesture)
+    }
+
+    private var expandedCollapseDragGesture: some Gesture {
+        DragGesture(minimumDistance: SOOMLayout.DetailSheet.dragMinimumDistance, coordinateSpace: .global)
+            .onEnded { value in
+                guard value.translation.height > SOOMLayout.DetailSheet.dragMinimumDistance else { return }
+                collapseToPreview()
+            }
+    }
+
+    private func collapseToPreview() {
+        sheetDragCanMove = nil
+        resetSheetDrag()
+
+        withAnimation(.spring(response: SOOMLayout.DetailSheet.sheetSpringResponse, dampingFraction: SOOMLayout.DetailSheet.sheetSpringDamping)) {
+            sheetPosition = .standard
+        }
     }
 
     private func sheetGesture(metrics: WorkoutSheetMetrics) -> some Gesture {
