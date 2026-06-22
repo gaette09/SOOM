@@ -125,7 +125,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
 
     private func canMoveSheet(_ value: DragGesture.Value, metrics: WorkoutSheetMetrics) -> Bool {
         if metrics.isExpanded {
-            return sheetScrollOffset <= SOOMLayout.DetailSheet.scrollTopThreshold && value.translation.height > 0
+            return false
         }
 
         return true
@@ -140,11 +140,9 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             return
         }
 
-        let projectedTranslation = metrics.isExpanded ? max(value.predictedEndTranslation.height - sheetDragActivationTranslation, 0) : value.predictedEndTranslation.height
-        let projectedHeight = min(max(metrics.baseHeight - projectedTranslation, metrics.minimizedHeight), metrics.expandedHeight)
-        let nextPosition = WorkoutSheetPosition.nearest(
+        let projectedHeight = min(max(metrics.baseHeight - value.predictedEndTranslation.height, metrics.standardHeight), metrics.expandedHeight)
+        let nextPosition = nearestLockedSheetPosition(
             to: projectedHeight,
-            minimized: metrics.minimizedHeight,
             standard: metrics.standardHeight,
             expanded: metrics.expandedHeight
         )
@@ -158,5 +156,13 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     private func resetSheetDrag() {
         sheetDrag = 0
         sheetDragActivationTranslation = 0
+    }
+
+    private func nearestLockedSheetPosition(
+        to height: CGFloat,
+        standard: CGFloat,
+        expanded: CGFloat
+    ) -> WorkoutSheetPosition {
+        abs(height - expanded) < abs(height - standard) ? .expanded : .standard
     }
 }
