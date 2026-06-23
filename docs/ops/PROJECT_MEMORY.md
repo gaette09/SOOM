@@ -2,7 +2,7 @@
 
 Purpose: single source of truth for current SOOM, JAFOM, and SOOM Instagram Dashboard project facts.
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## SOOM
 
@@ -12,9 +12,9 @@ Last updated: 2026-06-22
 | GitHub | `https://github.com/gaette09/SOOM` |
 | Primary branch | `main` |
 | TestFlight status | Target known, not yet verified as TestFlight-ready. Fastlane archive/upload readiness is still blocked by signing/provisioning/account verification. |
-| Current active goal | Record Detail Content Lock based on Strava Frame Lock |
-| Current task | `tasks/soom/0009-record-detail-content-lock.md` |
-| Last verified | 2026-06-22 |
+| Current active goal | TestFlight QA checklist |
+| Current task | `tasks/soom/0010-testflight-qa-checklist.md` |
+| Last verified | 2026-06-23: SOOM 0009 PASS in `docs/reports/soom-0009-verification.md` |
 
 ## JAFOM
 
@@ -23,11 +23,11 @@ Last updated: 2026-06-22
 | Local path | `/Volumes/Platinum1TB/UserData/Documents/블로그` |
 | GitHub | `https://github.com/gaette09/jafom-offline-crm` |
 | Primary branch | `master` |
-| Vercel URL | Not recorded yet |
-| Deployment status | Vercel deployed and login verified |
-| Current active goal | External production/staging stability check |
-| Current task | `tasks/jafom/0001-external-production-staging-stability-check.md` |
-| Last verified | 2026-06-22 |
+| Vercel URL | `https://jafom-offline-crm.vercel.app` production URL identified; staging/preview URL not identified |
+| Deployment status | Public unauthenticated production checks passed; authenticated smoke checks and Vercel metadata are blocked |
+| Current active goal | Backup/rollback checklist only if access blocker remains |
+| Current task | `tasks/jafom/0002-backup-rollback-checklist.md` |
+| Last verified | 2026-06-23: JAFOM 0001 BLOCKED in `docs/reports/jafom-0001-verification.md` |
 
 ## Instagram
 
@@ -37,41 +37,41 @@ Last updated: 2026-06-22
 | GitHub | `https://github.com/gaette09/soom-instagram-dashboard` |
 | Primary branch | `main` |
 | Vercel URL | Not recorded yet |
-| Deployment status | Vercel deployed as static dashboard |
-| Current active goal | Static dashboard external review |
-| Current task | `tasks/instagram/0001-static-dashboard-external-review.md` |
-| Last verified | 2026-06-22 |
+| Deployment status | Static build passes; external browser review, screenshots, console capture, deployment ID, and deployed commit are blocked/missing |
+| Current active goal | Harness/Hermes automation planning or static review unblock |
+| Current task | `tasks/instagram/0002-harness-hermes-automation-planning.md` |
+| Last verified | 2026-06-23: Instagram 0001 BLOCKED in external report `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
 ## Deployment Inventory
 
 | Project | Target | Current status | Verification source |
 | --- | --- | --- | --- |
-| SOOM | App Store Connect / TestFlight | Build target exists, but archive/upload readiness remains blocked by signing/provisioning/account verification. | Local Xcode/Fastlane inspection and SOOM task reports |
-| JAFOM | Vercel | Deployed; login verified. Exact production URL and deployment ID still need to be recorded. | User-provided project facts and JAFOM task report |
-| Instagram | Vercel static dashboard | Deployed as static dashboard. Exact production URL and deployment ID still need to be recorded. | User-provided project facts and Instagram task report |
+| SOOM | App Store Connect / TestFlight | SOOM 0009 passed simulator/build verification; TestFlight readiness still needs QA checklist and signing/upload clarity. | `docs/reports/soom-0009-verification.md` |
+| JAFOM | Vercel | Production URL identified and public unauthenticated checks passed; authenticated smoke checks, staging/preview, deployment ID, and deployed SHA are blocked by missing access. | `docs/reports/jafom-0001-verification.md` |
+| Instagram | Vercel static dashboard | Static build/output verified; external review URL, screenshots, console capture, deployment ID, and deployed SHA are missing. | External Instagram verification report |
 
 ## Access Inventory
 
 | Project | Local access | GitHub access | Deployment access | Notes |
 | --- | --- | --- | --- | --- |
 | SOOM | Available in current workspace | Repository known | App Store Connect/TestFlight access required for release verification | Fastlane lane exists; signing/account state requires follow-up. |
-| JAFOM | External local path known | Repository known | Vercel deployment exists and login has been verified | Exact Vercel URL should be added before the next stability pass. |
-| Instagram | External local path known | Repository known | Vercel static deployment exists | Exact Vercel URL should be added before the next external review pass. |
+| JAFOM | External local path known | Repository known | Missing Vercel project access and authenticated browser/admin access | Backup/rollback planning can proceed only with explicit access gaps until JAFOM 0001 is unblocked. |
+| Instagram | External local path known | Repository known | Missing production URL/deployment metadata and browser capture path | Harness/Hermes planning can proceed only if static review evidence gaps remain explicit. |
 
 ## Known Blockers
 
 | Project | Blocker | Impact | Current next action |
 | --- | --- | --- | --- |
-| SOOM | Record Detail production content lock has not yet been verified against the Strava Frame Lock behavior. | Active product goal cannot be closed. | Inspect current Record Detail behavior and produce implementation/QA recommendation without changing code. |
 | SOOM | Fastlane archive signing issue investigation remains blocked. | TestFlight release flow is not fully executable. | Confirm signing identity, provisioning profile, Apple account state, and archive/export settings. |
-| JAFOM | Exact Vercel production URL, deployment ID, deployed SHA, and route smoke results are not recorded. | Stability check cannot be considered fully evidence-backed. | Record deployment metadata and run route/auth smoke checks. |
-| Instagram | Exact Vercel production URL, deployment ID, and external desktop/mobile review results are not recorded. | External static dashboard review is incomplete. | Record deployment metadata and run desktop/mobile external review. |
+| JAFOM | Missing authenticated session/admin credentials and Vercel project access. | JAFOM 0001 cannot pass authenticated smoke checks or record deployment/staging metadata. | Proceed to JAFOM 0002 only as an access-limited backup/rollback checklist, or resume JAFOM 0001 when access is available. |
+| Instagram | Missing external browser review, screenshot/console capture, production URL, deployment ID, and deployed SHA. | Instagram 0001 cannot pass external review readiness. | Proceed to Instagram 0002 automation planning only if it explicitly tracks static review unblock requirements. |
 | Instagram | Persistent backend/storage is not yet designed. | Automation and long-term dashboard state are limited to static output. | Define storage requirements before backend implementation. |
 
 ## Recent Major Decisions
 
 | Date | Decision | Rationale |
 | --- | --- | --- |
+| 2026-06-23 | Move recommended active queue after verification: SOOM 0010, JAFOM 0002 only if access blocker remains, Instagram 0002 or static review unblock. | SOOM 0009 passed, while JAFOM 0001 and Instagram 0001 are blocked by external access/evidence gaps. |
 | 2026-06-22 | Use docs and task files as the operating system for SOOM, JAFOM, and Instagram. | Keeps multi-project work explicit, reviewable, and commit-friendly without requiring new tooling first. |
 | 2026-06-22 | Treat `docs/ops/PROJECT_GOALS.md` as the goal map and `tasks/` as the executable task queue. | Separates project-level priorities from task-level acceptance criteria and verification. |
 | 2026-06-22 | Maintain `docs/ops/TODAY_QUEUE.md` as the daily active work queue. | Defines the parallel work set for the current operating day. |

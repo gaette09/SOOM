@@ -21,83 +21,89 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| 1 | SOOM | 0009 Record Detail Content Lock | `tasks/soom/0009-record-detail-content-lock.md` | Active |
-| 2 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | Active |
-| 3 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | Active |
+| 1 | SOOM | 0010 TestFlight QA Checklist | `tasks/soom/0010-testflight-qa-checklist.md` | Recommended active |
+| 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
+| 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
-## SOOM: 0009 Record Detail Content Lock
+## Verification Results From Previous Active Queue
 
-Goal:
+| Project | Verified task | Task file | Result | Evidence |
+| --- | --- | --- | --- | --- |
+| SOOM | 0009 Record Detail Content Lock | `tasks/soom/0009-record-detail-content-lock.md` | PASS | `docs/reports/soom-0009-verification.md` |
+| JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
+| Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-- Lock SOOM Record Detail content behavior based on the Strava Frame Lock direction so the screen is ready for focused QA and the TestFlight QA checklist.
-
-Verification:
-
-- Compare Record Detail behavior against the Strava Frame Lock direction.
-- Run focused simulator review for the affected Record Detail path.
-- Run any relevant build check if implementation code is changed.
-- Capture screenshots, notes, changed file list, build output, or no-build rationale.
-
-Expected outcome:
-
-- Record detail content behavior is locked against the Strava-inspired frame direction and ready for focused QA.
-
-Completion criteria:
-
-- Intended Record Detail content structure is documented or implemented.
-- Behavior is checked against the Strava Frame Lock direction.
-- Verification evidence is recorded.
-- Remaining gaps are converted into follow-up tasks.
-- No unrelated app code changes are included.
-
-## JAFOM: 0001 External Production Stability Check
+## SOOM: 0010 TestFlight QA Checklist
 
 Goal:
 
-- Confirm JAFOM external production and staging stability, including availability, key workflow health, and current deploy state.
+- Create and run the SOOM TestFlight QA checklist after SOOM 0009 passed Record Detail Content Lock verification.
 
 Verification:
 
-- Identify the JAFOM project root.
-- Confirm repository and branch with `pwd`, `git remote -v`, `git status --short`, and `git branch --show-current`.
-- Open production and staging targets.
-- Smoke test key workflows.
-- Record URLs checked, timestamp, workflow results, errors, and deployment IDs or commit SHAs if available.
+- Confirm the target TestFlight build number and install path.
+- Identify required devices, OS versions, accounts, and release-critical flows.
+- Record pass/fail results, screenshots if useful, device/OS details, and unresolved issues.
+- Confirm whether the build is ready for internal testing, needs fixes, or is blocked.
 
 Expected outcome:
 
-- Production and staging availability, key workflows, and deploy state are confirmed or documented as blocked.
+- TestFlight QA scope and release-readiness status are explicit.
 
 Completion criteria:
 
-- Production and staging targets are identified.
-- Key workflows are smoke tested.
-- Current deploy state is recorded.
-- Any outage, broken workflow, or missing access is documented as a blocker.
-- The backup/rollback checklist can start with concrete target information.
+- TestFlight QA scope is documented.
+- Required devices, OS versions, accounts, and app build number are identified.
+- Core flows for launch, auth, Record Detail, navigation, and release-critical behavior are listed.
+- Pass/fail criteria are clear for each QA item.
+- Any failed item is converted into a follow-up task or release blocker.
 
-## Instagram: 0001 Static Dashboard External Review
+## JAFOM: 0002 Backup/Rollback Checklist
 
 Goal:
 
-- Prepare and verify the SOOM Instagram Dashboard static review path so the dashboard can be reviewed externally with clear scope, access, and feedback expectations.
+- Create a JAFOM backup and rollback checklist using known facts while preserving the JAFOM 0001 access blocker.
 
 Verification:
 
-- Identify the dashboard project root or static review target.
-- If a project root is available, confirm repository and branch with `pwd`, `git remote -v`, `git status --short`, and `git branch --show-current`.
-- Open the static dashboard review target.
-- Verify visible content, links, responsive layout, and review instructions.
-- Capture review URL or file path, screenshots if useful, feedback items, and unresolved access or rendering issues.
+- Review known hosting and project metadata without deploying.
+- Record missing authenticated session/admin credentials and Vercel project access as assumptions or blockers.
+- Identify database, storage, environment, and rollback ownership questions.
+- Confirm which parts of rollback planning cannot be completed until access is available.
 
 Expected outcome:
 
-- Static dashboard can be reviewed externally with clear access path, scope, and review criteria.
+- A rollback checklist exists, or the remaining access gaps are explicit enough to unblock once credentials/access are available.
 
 Completion criteria:
 
-- Static review target is accessible externally or the access blocker is documented.
-- Dashboard content and layout are verified for review.
-- Feedback collection path is defined.
-- Backend/storage design remains explicitly out of scope for the static review.
-- Follow-up items are added for Harness/Hermes automation planning and persistent storage design.
+- Production and staging targets are recorded where known.
+- Hosting provider rollback method is documented or explicitly blocked by missing Vercel access.
+- Database, storage, and environment variable backup responsibilities are identified or listed as access-blocked.
+- Rollback authority and approval path are defined.
+- A release rollback checklist exists and can be executed without guessing project details, or the remaining guesses are isolated.
+
+## Instagram: 0002 Harness/Hermes Automation Planning
+
+Goal:
+
+- Plan Harness/Hermes automation for the SOOM Instagram Dashboard, or use this slot to unblock static review evidence if external browser/deployment access becomes available.
+
+Verification:
+
+- Review the Instagram 0001 blocked verification state.
+- Define Harness/Hermes inputs, outputs, owners, review cadence, and handoff format.
+- Keep missing external browser review, screenshots, console capture, production URL, deployment ID, and deployed commit as explicit blockers.
+- Keep persistent backend/storage assumptions separate from static review automation.
+
+Expected outcome:
+
+- A practical automation plan exists, or the static external review blocker is removed with concrete browser/deployment evidence.
+
+Completion criteria:
+
+- Automation goals are defined separately for Harness and Hermes.
+- Inputs, outputs, owners, and review cadence are documented.
+- Static dashboard review feedback flow is incorporated.
+- Persistent backend/storage assumptions are explicitly separated from automation planning.
+- Follow-up implementation tasks are created if automation work is approved.

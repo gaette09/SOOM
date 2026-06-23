@@ -10,52 +10,52 @@ Use it with `docs/ops/MULTI_PROJECT_OPERATIONS.md` to keep daily work, blocked g
 
 | Project | Status | Current note |
 | --- | --- | --- |
-| SOOM | Active | Product implementation and release-readiness work are both active. Current focus is Record Detail Content Lock based on the Strava Frame Lock direction. |
-| JAFOM | Active | External production/staging stability needs verification before deeper release or rollback planning. |
-| SOOM Instagram Dashboard | Active | Static dashboard is ready for external review, but persistent backend/storage remains undesigned. |
+| SOOM | Active | SOOM 0009 Record Detail Content Lock passed verification; recommended next active task is TestFlight QA checklist. |
+| JAFOM | Blocked | JAFOM 0001 production verification is blocked by missing authenticated session/admin credentials and Vercel project access. |
+| SOOM Instagram Dashboard | Blocked | Instagram 0001 static dashboard verification is blocked by missing external browser review, screenshots, console capture, and deployment metadata. |
 
 ## 2. Active Goal
 
 | Project | Active Goal | Task file | Expected outcome |
 | --- | --- | --- | --- |
-| SOOM | Record Detail Content Lock based on Strava Frame Lock | `tasks/soom/0009-record-detail-content-lock.md` | Record detail content behavior is locked against the Strava-inspired frame direction and ready for focused QA. |
-| JAFOM | External production/staging stability check | `tasks/jafom/0001-external-production-staging-stability-check.md` | Production and staging availability, key workflows, and deploy state are confirmed or documented as blocked. |
-| SOOM Instagram Dashboard | Static dashboard external review | `tasks/instagram/0001-static-dashboard-external-review.md` | Static dashboard can be reviewed externally with clear access path, scope, and review criteria. |
+| SOOM | TestFlight QA checklist | `tasks/soom/0010-testflight-qa-checklist.md` | QA scope, devices, build/install path, pass/fail criteria, and release blockers are documented. |
+| JAFOM | Backup/rollback checklist, access-limited | `tasks/jafom/0002-backup-rollback-checklist.md` | Draft backup and rollback responsibilities from known facts while preserving the JAFOM 0001 access blocker. |
+| SOOM Instagram Dashboard | Automation planning or static review unblock | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Plan Harness/Hermes review automation, or first unblock external static review evidence if deployment/browser access becomes available. |
 
 ## 3. Next Goal
 
 | Project | Next Goal | Task file | Trigger to start |
 | --- | --- | --- | --- |
-| SOOM | TestFlight QA checklist | `tasks/soom/0010-testflight-qa-checklist.md` | Start after Record Detail Content Lock has a documented implementation state and verification method. |
-| JAFOM | Backup/rollback checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Start after external production/staging stability is confirmed or specific gaps are documented. |
-| SOOM Instagram Dashboard | Harness/Hermes automation planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Start after static dashboard review path and feedback loop are confirmed. |
+| SOOM | Fastlane archive signing issue investigation | `tasks/soom/0011-fastlane-archive-signing-issue-investigation.md` | Start after TestFlight QA checklist identifies the build/install path or confirms signing remains the release blocker. |
+| JAFOM | External production verification unblock | `tasks/jafom/0001-external-production-staging-stability-check.md` | Resume when authenticated browser session/admin credentials and Vercel project access are available. |
+| SOOM Instagram Dashboard | Static dashboard external review unblock | `tasks/instagram/0001-static-dashboard-external-review.md` | Resume when external browser review, screenshot/console capture, and Vercel deployment metadata are available. |
 
 ## 4. Blocked Goal
 
 | Project | Blocked Goal | Task file | Blocker | Unblock condition |
 | --- | --- | --- | --- | --- |
 | SOOM | Fastlane archive signing issue investigation | `tasks/soom/0011-fastlane-archive-signing-issue-investigation.md` | Apple signing, provisioning, or account/session state needs focused investigation. | Confirm signing inputs, reproduce the archive failure, and document the exact remediation path. |
-| JAFOM | None | `tasks/jafom/0003-no-blocked-goal.md` | No blocked goal currently tracked. | Add one when a concrete blocker is identified. |
+| JAFOM | External production/staging stability check | `tasks/jafom/0001-external-production-staging-stability-check.md` | Missing authenticated session/admin credentials and Vercel project access. | Provide authenticated browser/admin access plus Vercel project access, then verify post-login smoke checks and deployment metadata. |
+| SOOM Instagram Dashboard | Static dashboard external review | `tasks/instagram/0001-static-dashboard-external-review.md` | Missing external browser review, screenshots, console/runtime capture, production URL, deployment ID, and deployed commit. | Provide deployed review target and browser capture path, then record desktop/mobile evidence and deployment metadata. |
 | SOOM Instagram Dashboard | Persistent backend/storage not yet designed | `tasks/instagram/0003-persistent-backend-storage-design.md` | Storage model, backend runtime, authentication, and persistence boundaries are not defined. | Produce a backend/storage design with ownership, hosting, data model, and rollback implications. |
 
 ## 5. Priority
 
-Initial priority order:
+Recommended priority order after active task verification:
 
-1. SOOM: Record Detail Content Lock based on Strava Frame Lock (`tasks/soom/0009-record-detail-content-lock.md`).
-2. JAFOM: External production/staging stability check (`tasks/jafom/0001-external-production-staging-stability-check.md`).
-3. SOOM Instagram Dashboard: Static dashboard external review (`tasks/instagram/0001-static-dashboard-external-review.md`).
-4. SOOM: TestFlight QA checklist (`tasks/soom/0010-testflight-qa-checklist.md`).
-5. JAFOM: Backup/rollback checklist (`tasks/jafom/0002-backup-rollback-checklist.md`).
-6. SOOM Instagram Dashboard: Harness/Hermes automation planning (`tasks/instagram/0002-harness-hermes-automation-planning.md`).
-7. SOOM: Fastlane archive signing issue investigation (`tasks/soom/0011-fastlane-archive-signing-issue-investigation.md`).
-8. SOOM Instagram Dashboard: Persistent backend/storage design (`tasks/instagram/0003-persistent-backend-storage-design.md`).
+1. SOOM: TestFlight QA checklist (`tasks/soom/0010-testflight-qa-checklist.md`).
+2. JAFOM: Backup/rollback checklist only if the JAFOM 0001 access blocker remains (`tasks/jafom/0002-backup-rollback-checklist.md`).
+3. SOOM Instagram Dashboard: Harness/Hermes automation planning or static review unblock task (`tasks/instagram/0002-harness-hermes-automation-planning.md`).
+4. JAFOM: Resume external production/staging stability check when access is available (`tasks/jafom/0001-external-production-staging-stability-check.md`).
+5. SOOM Instagram Dashboard: Resume static dashboard external review when external browser/deployment evidence is available (`tasks/instagram/0001-static-dashboard-external-review.md`).
+6. SOOM: Fastlane archive signing issue investigation (`tasks/soom/0011-fastlane-archive-signing-issue-investigation.md`).
+7. SOOM Instagram Dashboard: Persistent backend/storage design (`tasks/instagram/0003-persistent-backend-storage-design.md`).
 
 Priority rationale:
 
-- SOOM content locking is the most concrete active product task and unblocks focused QA.
-- JAFOM stability verification reduces operational uncertainty before rollback planning.
-- Instagram Dashboard external review is executable while backend/storage design remains separate.
+- SOOM 0009 passed and directly unblocks TestFlight QA checklist work.
+- JAFOM stability verification is blocked on access, so backup/rollback planning can proceed only as an access-limited checklist until Vercel/auth access is available.
+- Instagram external review is blocked on browser/deployment evidence, so Harness/Hermes planning can proceed only if it explicitly tracks that unblock path and does not assume production readiness.
 - Fastlane signing is blocked until the signing/account state can be investigated directly.
 
 ## 6. Owner/Tool
@@ -71,16 +71,16 @@ Priority rationale:
 | Project | Deployment target | Current target state | Release rule |
 | --- | --- | --- | --- |
 | SOOM | TestFlight | Known target, but signing/archive path has a blocked investigation item. | Do not upload until archive signing and QA checklist are verified. |
-| JAFOM | Production/staging web URL | Target exists conceptually, exact hosting state must be checked. | Do not deploy until current production/staging state and rollback path are known. |
-| SOOM Instagram Dashboard | Static external review target | Static review is active; persistent backend/storage is not designed. | Do not introduce persistent backend or storage during static review work. |
+| JAFOM | Production/staging web URL | Production URL is known from verification, but authenticated workflows, staging/preview, deployment ID, and deployed commit are blocked by missing access. | Do not deploy until current production/staging state and rollback path are known. |
+| SOOM Instagram Dashboard | Static external review target | Static build passes, but external review URL, deployment ID, deployed commit, screenshots, and console capture are missing. | Do not introduce persistent backend/storage during static review work. |
 
 ## 8. Verification Method
 
 | Project | Active Goal verification | Evidence to capture |
 | --- | --- | --- |
-| SOOM | Compare Record Detail behavior against the Strava Frame Lock direction; run focused simulator review and any relevant build check for touched code. | Screenshots or notes from simulator review, changed file list, build or no-build rationale, unresolved gaps. |
-| JAFOM | Open production and staging targets, test key workflows, confirm deploy metadata, and document any failures. | URLs checked, timestamp, workflow results, errors, deployment IDs or commit SHAs if available. |
-| SOOM Instagram Dashboard | Open the static dashboard review target, verify visible content, links, responsive layout, and review instructions. | Review URL or file path, screenshots if useful, feedback items, unresolved access or rendering issues. |
+| SOOM | Run TestFlight QA checklist after SOOM 0009 pass. | Build/install path, device/OS matrix, pass/fail checklist, screenshots if useful, unresolved release blockers. |
+| JAFOM | Draft backup/rollback checklist from known facts while preserving the blocked production verification state. | Known production URL, missing Vercel/auth access, backup ownership gaps, rollback assumptions, unblock requirements. |
+| SOOM Instagram Dashboard | Plan Harness/Hermes automation or unblock static review evidence. | External review URL/deployment metadata if available, or automation plan with explicit screenshot/console/deployment evidence gaps. |
 
 ## 9. Definition of Done
 
@@ -94,6 +94,8 @@ Done when:
 - Any remaining gaps are converted into follow-up tasks.
 - No unrelated app code changes are included.
 
+Current result: PASS for `tasks/soom/0009-record-detail-content-lock.md` in `docs/reports/soom-0009-verification.md`.
+
 ### JAFOM: External Production/Staging Stability Check
 
 Done when:
@@ -103,6 +105,8 @@ Done when:
 - Current deploy state is recorded.
 - Any outage, broken workflow, or missing access is documented as a blocker.
 - The backup/rollback checklist can start with concrete target information.
+
+Current result: BLOCKED in `docs/reports/jafom-0001-verification.md`; unauthenticated public checks passed, but authenticated smoke checks and Vercel deployment metadata are blocked by missing access.
 
 ### SOOM Instagram Dashboard: Static Dashboard External Review
 
@@ -114,16 +118,18 @@ Done when:
 - Backend/storage design remains explicitly out of scope for the static review.
 - Follow-up items are added for Harness/Hermes automation planning and persistent storage design.
 
+Current result: BLOCKED in the Instagram verification report; build/static output passed, but external browser review, screenshots, console capture, and deployment metadata are missing.
+
 ## Recommended First Executable Task
 
 Start with SOOM:
 
 ```text
-Create or update a focused task for Record Detail Content Lock based on Strava Frame Lock, including exact screens/files to inspect, acceptance criteria, simulator verification steps, and a no-deploy/no-commit constraint unless explicitly changed.
+Start tasks/soom/0010-testflight-qa-checklist.md.
 ```
 
 Reason:
 
 - It is the highest-priority active goal.
-- It has the clearest implementation and verification path.
-- It unblocks the TestFlight QA checklist more directly than the currently blocked Fastlane signing investigation.
+- SOOM 0009 has passed verification.
+- JAFOM and Instagram active verification tasks are blocked on external access/evidence.
