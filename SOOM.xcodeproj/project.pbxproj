@@ -916,6 +916,7 @@
 		020427 /* LocalDataDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDataDetectorTests.swift; sourceTree = "<group>"; };
 		020500 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		020901 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		020903 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		020902 /* LocalSecrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LocalSecrets.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1086,6 +1087,7 @@
 			isa = PBXGroup;
 			children = (
 				020901 /* Debug.xcconfig */,
+				020903 /* Release.xcconfig */,
 				020902 /* LocalSecrets.example.xcconfig */,
 			);
 			path = Config;
@@ -2331,6 +2333,7 @@
 		};
 		080004 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 020903 /* Release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SOOM/SOOM.entitlements;
 				CODE_SIGN_STYLE = Automatic;
