@@ -107,7 +107,7 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
 
     func testBuildCanAttachStaticRoutePreviewWithoutChangingPrivacyDefaults() {
         let preview = StaticRoutePreview(
-            imageURL: URL(string: "https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/sample"),
+            imageURL: URL(string: "https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/sample"),
             bounds: nil,
             routeExists: true,
             fallbackStyle: .running

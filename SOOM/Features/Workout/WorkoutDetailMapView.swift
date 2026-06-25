@@ -44,7 +44,10 @@ private struct MapboxRouteMap: UIViewRepresentable {
     func makeUIView(context: Context) -> MapView {
         MapboxAccessTokenAvailability.configureMapboxOptionsIfNeeded()
 
-        let mapView = MapView(frame: .zero)
+        let mapView = MapView(
+            frame: .zero,
+            mapInitOptions: MapInitOptions(styleURI: SOOMMapboxConfiguration.styleURI)
+        )
         mapView.ornaments.options.logo.margins = CGPoint(x: 10, y: 10)
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: 10, y: 10)
         mapView.gestures.options.rotateEnabled = false

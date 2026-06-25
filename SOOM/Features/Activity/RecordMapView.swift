@@ -104,7 +104,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                     bearing: 0,
                     pitch: 0
                 ),
-                styleURI: .light
+                styleURI: SOOMMapboxConfiguration.styleURI
             )
         )
         mapView.ornaments.options.scaleBar.visibility = .hidden

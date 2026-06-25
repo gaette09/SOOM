@@ -6,7 +6,7 @@ struct MapboxStaticRouteURLBuilder {
 
     init(
         accessToken: String? = Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String,
-        defaultStyleID: String = "mapbox/outdoors-v12"
+        defaultStyleID: String = SOOMMapboxConfiguration.staticImagesStyleID
     ) {
         self.accessToken = accessToken
         self.defaultStyleID = defaultStyleID

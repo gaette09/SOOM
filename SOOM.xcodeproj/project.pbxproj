@@ -308,6 +308,7 @@
 		010280 /* RoutePrivacyMaskingPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020281 /* RoutePrivacyMaskingPolicy.swift */; };
 		010281 /* RoutePrivacyMasker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020282 /* RoutePrivacyMasker.swift */; };
 		010282 /* RoutePrivacyMaskerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020283 /* RoutePrivacyMaskerTests.swift */; };
+		010283 /* SOOMMapboxConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020286 /* SOOMMapboxConfiguration.swift */; };
 		010284 /* WorkoutDetailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020284 /* WorkoutDetailMapView.swift */; };
 		010285 /* WorkoutDetailMapOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020285 /* WorkoutDetailMapOverlay.swift */; };
 		010286 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0002 /* MapboxMaps */; };
@@ -771,6 +772,7 @@
 		020281 /* RoutePrivacyMaskingPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskingPolicy.swift; sourceTree = "<group>"; };
 		020282 /* RoutePrivacyMasker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMasker.swift; sourceTree = "<group>"; };
 		020283 /* RoutePrivacyMaskerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePrivacyMaskerTests.swift; sourceTree = "<group>"; };
+		020286 /* SOOMMapboxConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOOMMapboxConfiguration.swift; sourceTree = "<group>"; };
 		020284 /* WorkoutDetailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapView.swift; sourceTree = "<group>"; };
 		020285 /* WorkoutDetailMapOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailMapOverlay.swift; sourceTree = "<group>"; };
 		020287 /* WorkoutZoneCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZoneCard.swift; sourceTree = "<group>"; };
@@ -1408,6 +1410,7 @@
 				020278 /* StaticRoutePreviewBuilder.swift */,
 				020281 /* RoutePrivacyMaskingPolicy.swift */,
 				020282 /* RoutePrivacyMasker.swift */,
+				020286 /* SOOMMapboxConfiguration.swift */,
 				020284 /* WorkoutDetailMapView.swift */,
 				020285 /* WorkoutDetailMapOverlay.swift */,
 				020266 /* WorkoutZone.swift */,
@@ -1872,6 +1875,7 @@
 				010277 /* StaticRoutePreviewBuilder.swift in Sources */,
 				010280 /* RoutePrivacyMaskingPolicy.swift in Sources */,
 				010281 /* RoutePrivacyMasker.swift in Sources */,
+				010283 /* SOOMMapboxConfiguration.swift in Sources */,
 				010284 /* WorkoutDetailMapView.swift in Sources */,
 				010285 /* WorkoutDetailMapOverlay.swift in Sources */,
 				010265 /* WorkoutZone.swift in Sources */,

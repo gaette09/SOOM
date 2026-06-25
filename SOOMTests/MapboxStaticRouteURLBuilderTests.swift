@@ -8,7 +8,7 @@ final class MapboxStaticRouteURLBuilderTests: XCTestCase {
         let url = builder.buildURL(for: sampleRoute, width: 320, height: 400)
 
         let urlString = url?.absoluteString ?? ""
-        XCTAssertTrue(urlString.hasPrefix("https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/geojson("))
+        XCTAssertTrue(urlString.hasPrefix("https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/geojson("))
         XCTAssertTrue(urlString.contains("LineString"))
         XCTAssertTrue(urlString.contains("320x400@2x"))
         XCTAssertTrue(urlString.contains("access_token=test-token"))
