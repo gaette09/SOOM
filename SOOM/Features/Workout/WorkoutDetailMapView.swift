@@ -63,8 +63,43 @@ private struct MapboxRouteMap: UIViewRepresentable {
     final class Coordinator {
         private var annotationManager: PolylineAnnotationManager?
         private var lastSignature: String?
+        private var styleLoadToken = 0
 
         func configure(
+            mapView: MapView,
+            coordinates: [CLLocationCoordinate2D],
+            bounds: WorkoutRouteBounds?,
+            tint: UIColor
+        ) {
+            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint) else {
+                return
+            }
+            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+        }
+
+        private func ensureSOOMStyle(
+            on mapView: MapView,
+            coordinates: [CLLocationCoordinate2D],
+            bounds: WorkoutRouteBounds?,
+            tint: UIColor
+        ) -> Bool {
+            let expectedStyle = SOOMMapboxConfiguration.styleURI
+            guard mapView.mapboxMap.styleURI != expectedStyle else { return true }
+
+            styleLoadToken += 1
+            let currentToken = styleLoadToken
+            lastSignature = nil
+            annotationManager = nil
+
+            mapView.mapboxMap.loadStyle(expectedStyle) { [weak self, weak mapView] error in
+                guard let self, currentToken == self.styleLoadToken, error == nil, let mapView else { return }
+                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+            }
+
+            return false
+        }
+
+        private func applyRoute(
             mapView: MapView,
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
