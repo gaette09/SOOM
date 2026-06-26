@@ -59,8 +59,8 @@ struct WorkoutDetailContent: View {
             if presentationStyle == .standalone {
                 ActivityDetailHeroMap(workout: workout, route: mapRoute)
             }
-            ActivityDetailSummaryCard(workout: workout)
-            ActivityDetailRhythmCard(messages: rhythmMessages, tint: workout.sport.tint)
+            ActivityDetailSummaryCard(workout: workout, recoveryImpact: recoveryImpact)
+            ActivityDetailRhythmCard(insight: rhythmInsight, tint: workout.sport.tint)
 
             if let terrainInsight, terrainInsight.isVisible {
                 TerrainInsightCue(insight: terrainInsight, tint: workout.sport.tint)
@@ -81,7 +81,8 @@ struct WorkoutDetailContent: View {
                     WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
                 }
 
-                if let comparisonInsight {
+                if ActivityDetailVisibilityPolicy.showsComparisonInsight(comparisonInsight),
+                   let comparisonInsight {
                     WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
                 }
 
@@ -226,8 +227,8 @@ struct WorkoutDetailContent: View {
         streamSplitInsight ?? splitInsight
     }
 
-    private var rhythmMessages: [String] {
-        ActivityDetailRhythmInterpreter.messages(
+    private var rhythmInsight: String {
+        ActivityDetailRhythmInterpreter.primaryMessage(
             workout: workout,
             sessionSummary: sessionSummary,
             splitInsight: displayedSplitInsight,
@@ -388,7 +389,8 @@ private struct ActivityDetailHeroMap: View {
 
 private struct ActivityDetailSummaryCard: View {
     let workout: Workout
-    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+    let recoveryImpact: WorkoutRecoveryImpact?
+    private let columns = [GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing), GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing)]
 
     var body: some View {
         SOOMCard {
@@ -416,16 +418,7 @@ private struct ActivityDetailSummaryCard: View {
 
                 LazyVGrid(columns: columns, alignment: .leading, spacing: SOOMLayout.Metrics.gridSpacing) {
                     ForEach(summaryMetrics) { metric in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(metric.label)
-                                .font(SOOMFont.body(11, relativeTo: .caption2))
-                                .foregroundStyle(SOOMColor.secondaryInk)
-                            Text(metric.value)
-                                .font(SOOMFont.body(16, weight: .bold, relativeTo: .subheadline))
-                                .foregroundStyle(SOOMColor.ink)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                        }
+                        ActivityDetailStatTile(metric: metric, tint: workout.sport.tint)
                     }
                 }
             }
@@ -436,17 +429,7 @@ private struct ActivityDetailSummaryCard: View {
     }
 
     private var summaryMetrics: [ActivityDetailMetric] {
-        var metrics = [
-            ActivityDetailMetric(label: "거리", value: ActivityDetailDistanceCopy.value(distanceMeters: workout.distanceMeters, formattedDistance: workout.formattedDistance)),
-            ActivityDetailMetric(label: "시간", value: workout.formattedDuration),
-            ActivityDetailMetric(label: workout.sport == .bike ? "평균 속도" : "평균 페이스", value: workout.formattedPace)
-        ]
-
-        if workout.avgHeartRate > 0 {
-            metrics.append(ActivityDetailMetric(label: "평균 심박", value: "\(workout.avgHeartRate)bpm"))
-        }
-
-        return Array(metrics.prefix(6))
+        ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: recoveryImpact)
     }
 
     private var dateText: String {
@@ -461,34 +444,66 @@ private struct ActivityDetailSummaryCard: View {
     }()
 }
 
+private struct ActivityDetailStatTile: View {
+    let metric: ActivityDetailMetric
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(metric.label)
+                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .lineLimit(1)
+
+            Text(metric.value)
+                .font(SOOMFont.displayMedium(19, relativeTo: .headline))
+                .foregroundStyle(SOOMColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(SOOMColor.surfaceMuted.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous)
+                .fill(tint.opacity(0.18))
+                .frame(width: 3)
+        }
+    }
+}
+
 private struct ActivityDetailRhythmCard: View {
-    let messages: [String]
+    let insight: String
     let tint: Color
 
     var body: some View {
         SOOMCard {
-            VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
-                SOOMSectionHeader("오늘의 리듬", caption: "숫자보다 먼저, 오늘 운동의 흐름을 읽어요.")
+            HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
+                Image(systemName: SOOMIcon.waveform)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 32, height: 32)
+                    .background(tint.opacity(0.12))
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
 
-                ForEach(Array(messages.prefix(3).enumerated()), id: \.offset) { index, message in
-                    HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
-                        Circle()
-                            .fill(index == 0 ? tint : SOOMColor.surfaceMuted)
-                            .frame(width: 8, height: 8)
-                            .padding(.top, 7)
-                            .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("오늘의 리듬")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(tint)
 
-                        Text(message)
-                            .font(SOOMFont.body(index == 0 ? 17 : 15, weight: index == 0 ? .bold : .regular, relativeTo: .body))
-                            .foregroundStyle(index == 0 ? SOOMColor.ink : SOOMColor.secondaryInk)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Text(insight)
+                        .font(SOOMFont.body(16, weight: .bold, relativeTo: .body))
+                        .foregroundStyle(SOOMColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("오늘의 리듬")
-        .accessibilityValue(messages.joined(separator: " "))
+        .accessibilityValue(insight)
     }
 }
 
@@ -959,6 +974,23 @@ private struct ShareTargetGrid: View {
 }
 
 struct ActivityDetailRhythmInterpreter {
+    static func primaryMessage(
+        workout: Workout,
+        sessionSummary: WorkoutSessionSummary?,
+        splitInsight: WorkoutSplitInsight?,
+        weaknessInsight: WorkoutWeaknessInsight?,
+        recoveryImpact: WorkoutRecoveryImpact?
+    ) -> String {
+        messages(
+            workout: workout,
+            sessionSummary: sessionSummary,
+            splitInsight: splitInsight,
+            weaknessInsight: weaknessInsight,
+            recoveryImpact: recoveryImpact
+        )
+        .first ?? "운동 데이터가 더 쌓이면 오늘의 리듬을 조금 더 또렷하게 읽을 수 있어요."
+    }
+
     static func messages(
         workout: Workout,
         sessionSummary: WorkoutSessionSummary?,
@@ -991,6 +1023,11 @@ struct ActivityDetailRhythmInterpreter {
 }
 
 struct ActivityDetailVisibilityPolicy {
+    static func showsComparisonInsight(_ insight: WorkoutComparisonInsight?) -> Bool {
+        guard let insight else { return false }
+        return insight.comparisonType != .insufficientData && !insight.metricRows.isEmpty
+    }
+
     static func showsSplitInsight(_ insight: WorkoutSplitInsight?) -> Bool {
         guard let insight else { return false }
         return insight.splitType != .insufficientData
@@ -1013,10 +1050,58 @@ struct ActivityDetailVisibilityPolicy {
     }
 }
 
-private struct ActivityDetailMetric: Identifiable {
+struct ActivityDetailMetric: Identifiable, Equatable {
     let id = UUID()
     let label: String
     let value: String
+
+    static func == (lhs: ActivityDetailMetric, rhs: ActivityDetailMetric) -> Bool {
+        lhs.label == rhs.label && lhs.value == rhs.value
+    }
+}
+
+enum ActivityDetailSummaryMetrics {
+    static func metrics(workout: Workout, recoveryImpact: WorkoutRecoveryImpact?) -> [ActivityDetailMetric] {
+        [
+            ActivityDetailMetric(
+                label: "거리",
+                value: ActivityDetailDistanceCopy.value(
+                    distanceMeters: workout.distanceMeters,
+                    formattedDistance: workout.formattedDistance
+                )
+            ),
+            ActivityDetailMetric(label: "시간", value: workout.formattedDuration),
+            ActivityDetailMetric(label: workout.sport == .bike ? "평균 속도" : "평균 페이스", value: workout.formattedPace),
+            recoveryMetric(workout: workout, recoveryImpact: recoveryImpact)
+        ]
+    }
+
+    private static func recoveryMetric(workout: Workout, recoveryImpact: WorkoutRecoveryImpact?) -> ActivityDetailMetric {
+        if let recoveryImpact {
+            return ActivityDetailMetric(label: "회복 영향", value: value(for: recoveryImpact.impactLevel))
+        }
+
+        if workout.avgHeartRate > 0 {
+            return ActivityDetailMetric(label: "평균 심박", value: "\(workout.avgHeartRate)bpm")
+        }
+
+        return ActivityDetailMetric(label: "회복 영향", value: "준비 중")
+    }
+
+    private static func value(for level: WorkoutRecoveryImpactLevel) -> String {
+        switch level {
+        case .recoveryFriendly:
+            return "가벼움"
+        case .light:
+            return "낮음"
+        case .moderate:
+            return "보통"
+        case .high:
+            return "높음"
+        case .insufficientData:
+            return "준비 중"
+        }
+    }
 }
 
 enum ActivityDetailDistanceCopy {

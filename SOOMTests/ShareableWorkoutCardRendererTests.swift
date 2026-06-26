@@ -131,6 +131,40 @@ struct ShareableWorkoutCardRendererTests {
         #expect(ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: nil))
     }
 
+    @Test func testActivityDetailUsesFourCoreStatTiles() {
+        let workout = makeSparseWorkout(
+            avgHeartRate: 142,
+            duration: 2_400,
+            distanceMeters: 5_200
+        )
+        let impact = WorkoutRecoveryImpact(
+            impactLevel: .light,
+            title: "부담이 크지 않은 운동",
+            shortMessage: "회복 흐름을 크게 흔들기보다 리듬을 이어가는 쪽에 가까워요.",
+            recommendation: "가볍게 마무리해도 좋아요.",
+            icon: SOOMIcon.trendFlat
+        )
+
+        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: impact)
+
+        #expect(metrics.map(\.label) == ["거리", "시간", "평균 페이스", "회복 영향"])
+        #expect(metrics.map(\.value).last == "낮음")
+        #expect(metrics.count == 4)
+    }
+
+    @Test func testActivityDetailFallsBackToHeartRateWhenRecoveryImpactIsMissing() {
+        let workout = makeSparseWorkout(
+            avgHeartRate: 142,
+            duration: 2_400,
+            distanceMeters: 5_200
+        )
+
+        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: nil)
+
+        #expect(metrics.last == ActivityDetailMetric(label: "평균 심박", value: "142bpm"))
+        #expect(metrics.count == 4)
+    }
+
     @Test func testActivityDetailRhythmUsesMeaningBeforeNumbers() {
         let workout = makeSparseWorkout(duration: 2_400, distanceMeters: 5_200)
         let impact = WorkoutRecoveryImpact(
@@ -141,7 +175,7 @@ struct ShareableWorkoutCardRendererTests {
             icon: SOOMIcon.recovery
         )
 
-        let messages = ActivityDetailRhythmInterpreter.messages(
+        let insight = ActivityDetailRhythmInterpreter.primaryMessage(
             workout: workout,
             sessionSummary: nil,
             splitInsight: nil,
@@ -149,8 +183,24 @@ struct ShareableWorkoutCardRendererTests {
             recoveryImpact: impact
         )
 
-        #expect(messages.first?.contains("동안 움직임") == true)
-        #expect(messages.contains("오늘 운동은 회복에 큰 부담을 주지 않았어요."))
+        #expect(insight.contains("동안 움직임"))
+        #expect(insight.contains("회복에 큰 부담") == false)
+    }
+
+    @Test func testActivityDetailShowsComparisonOnlyWhenExistingBaselineSupportsIt() {
+        let visibleInsight = WorkoutComparisonInsight(
+            title: "비슷한 기록과 리듬을 비교했어요",
+            summary: "이전 기록과 비슷한 흐름을 안정적으로 이어갔어요.",
+            metricRows: [
+                WorkoutComparisonMetricRow(title: "페이스", valueText: "비슷함", detailText: "이전 기록과 비슷한 리듬이에요.")
+            ],
+            tone: .steady,
+            comparisonType: .recentWorkout
+        )
+
+        #expect(ActivityDetailVisibilityPolicy.showsComparisonInsight(visibleInsight))
+        #expect(ActivityDetailVisibilityPolicy.showsComparisonInsight(.insufficientData) == false)
+        #expect(ActivityDetailVisibilityPolicy.showsComparisonInsight(nil) == false)
     }
 
     @Test func testAnalysisViewRendersWeeklySharePreviewSurface() {
