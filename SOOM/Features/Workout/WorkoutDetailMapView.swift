@@ -14,7 +14,7 @@ struct WorkoutDetailMapView: View {
     var body: some View {
         ZStack {
             if hasRenderableMap {
-                MapboxRouteMap(
+                SOOMMapboxRouteMap(
                     coordinates: coordinates,
                     bounds: route?.bounds,
                     tint: UIColor(tint)
@@ -32,10 +32,11 @@ struct WorkoutDetailMapView: View {
     }
 }
 
-private struct MapboxRouteMap: UIViewRepresentable {
+struct SOOMMapboxRouteMap: UIViewRepresentable {
     let coordinates: [CLLocationCoordinate2D]
     let bounds: WorkoutRouteBounds?
     let tint: UIColor
+    var cameraPadding = UIEdgeInsets(top: 36, left: 28, bottom: 72, right: 28)
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -52,12 +53,12 @@ private struct MapboxRouteMap: UIViewRepresentable {
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: 10, y: 10)
         mapView.gestures.options.rotateEnabled = false
         mapView.gestures.options.pitchEnabled = false
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
         return mapView
     }
 
     func updateUIView(_ mapView: MapView, context: Context) {
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
     }
 
     final class Coordinator {
@@ -69,19 +70,21 @@ private struct MapboxRouteMap: UIViewRepresentable {
             mapView: MapView,
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
-            tint: UIColor
+            tint: UIColor,
+            cameraPadding: UIEdgeInsets
         ) {
-            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint) else {
+            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding) else {
                 return
             }
-            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
         }
 
         private func ensureSOOMStyle(
             on mapView: MapView,
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
-            tint: UIColor
+            tint: UIColor,
+            cameraPadding: UIEdgeInsets
         ) -> Bool {
             let expectedStyle = SOOMMapboxConfiguration.styleURI
             guard mapView.mapboxMap.styleURI != expectedStyle else { return true }
@@ -93,7 +96,7 @@ private struct MapboxRouteMap: UIViewRepresentable {
 
             mapView.mapboxMap.loadStyle(expectedStyle) { [weak self, weak mapView] error in
                 guard let self, currentToken == self.styleLoadToken, error == nil, let mapView else { return }
-                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint)
+                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
             }
 
             return false
@@ -103,7 +106,8 @@ private struct MapboxRouteMap: UIViewRepresentable {
             mapView: MapView,
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
-            tint: UIColor
+            tint: UIColor,
+            cameraPadding: UIEdgeInsets
         ) {
             let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|")
             guard signature != lastSignature else { return }
@@ -119,19 +123,20 @@ private struct MapboxRouteMap: UIViewRepresentable {
             annotation.lineOpacity = 0.9
             annotationManager?.annotations = [annotation]
 
-            setCamera(on: mapView, coordinates: coordinates, bounds: bounds)
+            setCamera(on: mapView, coordinates: coordinates, bounds: bounds, cameraPadding: cameraPadding)
         }
 
         private func setCamera(
             on mapView: MapView,
             coordinates: [CLLocationCoordinate2D],
-            bounds: WorkoutRouteBounds?
+            bounds: WorkoutRouteBounds?,
+            cameraPadding: UIEdgeInsets
         ) {
             guard let center = centerCoordinate(from: coordinates, bounds: bounds) else { return }
 
             let camera = CameraOptions(
                 center: center,
-                padding: UIEdgeInsets(top: 36, left: 28, bottom: 72, right: 28),
+                padding: cameraPadding,
                 zoom: zoomEstimate(for: bounds),
                 bearing: 0,
                 pitch: 0

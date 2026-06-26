@@ -1,5 +1,6 @@
 import MapKit
 import SwiftUI
+import UIKit
 
 struct WorkoutMapControls: View {
     let onDismiss: () -> Void
@@ -55,27 +56,61 @@ struct WorkoutMapBackground: View {
     let workout: Workout
     @Binding var position: MapCameraPosition
 
+    private var route: WorkoutRoute? {
+        guard workout.route.count >= 2 else { return nil }
+
+        return WorkoutRoute(
+            workoutId: workout.id,
+            source: .soomLocal,
+            coordinates: workout.route.map {
+                WorkoutRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude)
+            },
+            totalDistanceMeters: workout.distanceMeters,
+            totalElevationGain: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil
+        )
+    }
+
     private var coordinates: [CLLocationCoordinate2D] {
-        workout.route.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        route?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
     }
 
     var body: some View {
-        Map(position: $position) {
-            MapPolyline(coordinates: coordinates)
-                .stroke(workout.sport.tint, lineWidth: SOOMLayout.MapControls.mapRouteLineWidth)
-
-            if let start = coordinates.first {
-                Marker("출발", systemImage: SOOMIcon.routeStart, coordinate: start)
-                    .tint(workout.sport.tint)
-            }
-
-            if let finish = coordinates.last {
-                Marker("도착", systemImage: SOOMIcon.clubs, coordinate: finish)
-                    .tint(SOOMColor.ink)
+        ZStack {
+            if let route, MapboxAccessTokenAvailability.hasUsableToken {
+                SOOMMapboxRouteMap(
+                    coordinates: coordinates,
+                    bounds: route.bounds,
+                    tint: UIColor(workout.sport.tint),
+                    cameraPadding: UIEdgeInsets(top: 88, left: 28, bottom: 280, right: 28)
+                )
+                .accessibilityHidden(true)
+            } else {
+                WorkoutMapFallbackBackground(tint: workout.sport.tint)
             }
         }
         .accessibilityLabel("\(workout.sport.title) 경로 지도")
         .accessibilityValue("\(workout.formattedDistance), \(workout.formattedDuration)")
+    }
+}
+
+private struct WorkoutMapFallbackBackground: View {
+    let tint: Color
+
+    var body: some View {
+        LinearGradient(
+            colors: [
+                tint.opacity(0.18),
+                SOOMColor.surface,
+                SOOMColor.background
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay {
+            Image(systemName: SOOMIcon.map)
+                .font(.system(size: 54, weight: .semibold))
+                .foregroundStyle(tint.opacity(0.24))
+        }
     }
 }
 

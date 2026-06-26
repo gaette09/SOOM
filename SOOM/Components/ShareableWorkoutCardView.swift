@@ -1,8 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct ShareableWorkoutCardView: View {
     let card: ShareableWorkoutCardModel
     let tint: Color
+    var resolvedRouteImage: UIImage?
 
     var body: some View {
         if card.backgroundOption == .transparent {
@@ -121,7 +123,7 @@ struct ShareableWorkoutCardView: View {
         switch card.backgroundOption {
         case .mapPhoto:
             if let preview = card.staticRoutePreview, preview.routeExists {
-                StaticRoutePreviewSurface(preview: preview, tint: tint)
+                StaticRoutePreviewSurface(preview: preview, tint: tint, resolvedImage: resolvedRouteImage)
             } else {
                 ShareCardMediaPlaceholder(card: card, tint: tint)
             }
@@ -297,6 +299,7 @@ struct ShareableWorkoutCardView: View {
 private struct StaticRoutePreviewSurface: View {
     let preview: StaticRoutePreview
     let tint: Color
+    let resolvedImage: UIImage?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -320,7 +323,13 @@ private struct StaticRoutePreviewSurface: View {
 
     @ViewBuilder
     private var routeVisual: some View {
-        if let imageURL = preview.imageURL {
+        if let resolvedImage {
+            Image(uiImage: resolvedImage)
+                .resizable()
+                .scaledToFill()
+                .overlay(SOOMColor.surface.opacity(0.18))
+                .overlay(tint.opacity(0.08))
+        } else if let imageURL = preview.imageURL {
             AsyncImage(url: imageURL) { phase in
                 switch phase {
                 case .empty:

@@ -589,6 +589,7 @@ private struct ShareCardComposer: View {
     @State private var selectedBackgroundOption: ShareCardBackgroundOption = .mapPhoto
     @State private var shareImage: UIImage?
     @State private var isShareSheetPresented = false
+    @State private var isRenderingShareImage = false
     @State private var shareErrorMessage: String?
     @State private var shareTargetMessage: String?
 
@@ -665,13 +666,22 @@ private struct ShareCardComposer: View {
 
     @MainActor
     private func share(_ card: ShareableWorkoutCardModel) {
-        guard let image = renderShareImage(card, tint) else {
-            shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
-            return
-        }
+        guard !isRenderingShareImage else { return }
 
-        shareImage = image
-        isShareSheetPresented = true
+        isRenderingShareImage = true
+        Task {
+            let preparedImage = await ShareableWorkoutCardRenderer().renderPrepared(card: card, tint: tint)
+            let image = preparedImage ?? renderShareImage(card, tint)
+            isRenderingShareImage = false
+
+            guard let image else {
+                shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
+                return
+            }
+
+            shareImage = image
+            isShareSheetPresented = true
+        }
     }
 
     @MainActor

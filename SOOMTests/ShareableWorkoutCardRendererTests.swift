@@ -39,6 +39,19 @@ struct ShareableWorkoutCardRendererTests {
         #expect(image?.cgImage?.alphaInfo != .none)
     }
 
+    @Test func testRendererCanUseResolvedStaticRouteImageForMapPhotoCard() {
+        let card = makeCardWithStaticRoutePreview()
+        let image = ShareableWorkoutCardRenderer().render(
+            card: card,
+            tint: SOOMColor.run,
+            resolvedRouteImage: makeResolvedRouteImage()
+        )
+
+        #expect(image != nil)
+        #expect((image?.size.width ?? 0) > 0)
+        #expect(card.staticRoutePreview?.imageURL?.absoluteString.contains(SOOMMapboxConfiguration.staticImagesStyleID) == true)
+    }
+
     @Test func testRendererUsesStableRetinaScaleForShareCard() {
         let card = makeCard()
         let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.run)
@@ -193,6 +206,35 @@ struct ShareableWorkoutCardRendererTests {
             footerText: "SOOM · 공유 전 미리보기",
             visibility: .privateOnly
         )
+    }
+
+    private func makeCardWithStaticRoutePreview() -> ShareableWorkoutCardModel {
+        ShareableWorkoutCardModel(
+            id: UUID(),
+            workoutType: .running,
+            title: "오늘의 러닝",
+            distanceText: "10.40 km",
+            durationText: "52분",
+            primaryMessage: "오늘은 리듬을 잘 이어간 운동이에요.",
+            growthMessage: "조금씩 거리가 길어지고 있어요.",
+            recoveryMessage: "회복 흐름을 생각한 좋은 강도였어요.",
+            footerText: "SOOM · 공유 전 미리보기",
+            visibility: .privateOnly,
+            staticRoutePreview: StaticRoutePreview(
+                imageURL: URL(string: "https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/sample"),
+                bounds: nil,
+                routeExists: true,
+                fallbackStyle: .running
+            )
+        )
+    }
+
+    private func makeResolvedRouteImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12))
+        return renderer.image { context in
+            UIColor.systemGreen.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
+        }
     }
 
     private func makeSparseWorkout(
