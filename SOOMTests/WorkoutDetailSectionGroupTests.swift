@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import SOOM
 
@@ -55,6 +56,29 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
             WorkoutSheetPosition.nearest(to: 720, minimized: 120, standard: 360, expanded: 760),
             .expanded
         )
+    }
+
+    func testRouteCameraPaddingUsesSheetHeightForVisibleMapArea() {
+        let padding = WorkoutRouteCameraPadding.padding(
+            for: .minimized,
+            sheetHeight: 150,
+            safeAreaInsets: EdgeInsets(top: 20, leading: 0, bottom: 34, trailing: 0)
+        )
+
+        XCTAssertEqual(padding.top, 132)
+        XCTAssertEqual(padding.left, 44)
+        XCTAssertEqual(padding.right, 44)
+        XCTAssertEqual(padding.bottom, 218)
+    }
+
+    func testExpandedRouteCameraPaddingIsCapped() {
+        let padding = WorkoutRouteCameraPadding.padding(
+            for: .expanded,
+            sheetHeight: 900,
+            safeAreaInsets: EdgeInsets(top: 20, leading: 0, bottom: 34, trailing: 0)
+        )
+
+        XCTAssertEqual(padding.bottom, WorkoutRouteCameraPadding.expandedMaxBottomInset)
     }
 }
 

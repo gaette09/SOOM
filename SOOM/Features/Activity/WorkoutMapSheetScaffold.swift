@@ -39,7 +39,16 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                 SOOMColor.background
                     .ignoresSafeArea()
 
-                WorkoutMapBackground(workout: workout, position: $mapPosition, sheetPosition: sheetPosition)
+                WorkoutMapBackground(
+                    workout: workout,
+                    position: $mapPosition,
+                    sheetPosition: sheetPosition,
+                    cameraPadding: WorkoutRouteCameraPadding.padding(
+                        for: sheetPosition,
+                        sheetHeight: metrics.sheetHeight,
+                        safeAreaInsets: proxy.safeAreaInsets
+                    )
+                )
                     .ignoresSafeArea()
 
                 SOOMColor.background

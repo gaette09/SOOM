@@ -67,6 +67,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
     final class Coordinator {
         private var annotationManager: PolylineAnnotationManager?
         private var lastSignature: String?
+        private var hasAppliedCamera = false
         private var styleLoadToken = 0
 
         func configure(
@@ -116,7 +117,8 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             cameraPadding: UIEdgeInsets
         ) {
             let paddingSignature = "\(cameraPadding.top),\(cameraPadding.left),\(cameraPadding.bottom),\(cameraPadding.right)"
-            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|") + "|\(lineWidth)|\(paddingSignature)"
+            let mapSizeSignature = "\(Int(mapView.bounds.width.rounded())),\(Int(mapView.bounds.height.rounded()))"
+            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|") + "|\(lineWidth)|\(paddingSignature)|\(mapSizeSignature)"
             guard signature != lastSignature else { return }
             lastSignature = signature
 
@@ -139,22 +141,75 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             bounds: WorkoutRouteBounds?,
             cameraPadding: UIEdgeInsets
         ) {
-            guard let center = centerCoordinate(from: coordinates, bounds: bounds) else { return }
+            guard !coordinates.isEmpty else { return }
 
-            let camera = CameraOptions(
-                center: center,
+            let initialCamera = CameraOptions(
                 padding: cameraPadding,
+                bearing: 0,
+                pitch: 0
+            )
+
+            let camera = routeFitCamera(
+                on: mapView,
+                coordinates: coordinates,
+                bounds: bounds,
+                initialCamera: initialCamera
+            )
+
+            if hasAppliedCamera {
+                mapView.camera.ease(
+                    to: camera,
+                    duration: SOOMLayout.DetailSheet.mapAnimationDuration,
+                    curve: .easeInOut
+                )
+            } else {
+                mapView.mapboxMap.setCamera(to: camera)
+                hasAppliedCamera = true
+            }
+        }
+
+        private func routeFitCamera(
+            on mapView: MapView,
+            coordinates: [CLLocationCoordinate2D],
+            bounds: WorkoutRouteBounds?,
+            initialCamera: CameraOptions
+        ) -> CameraOptions {
+            do {
+                return try mapView.mapboxMap.camera(
+                    for: coordinates,
+                    camera: initialCamera,
+                    coordinatesPadding: UIEdgeInsets(
+                        top: WorkoutRouteCameraPadding.visibleRouteInset,
+                        left: WorkoutRouteCameraPadding.visibleRouteInset,
+                        bottom: WorkoutRouteCameraPadding.visibleRouteInset,
+                        right: WorkoutRouteCameraPadding.visibleRouteInset
+                    ),
+                    maxZoom: 16,
+                    offset: nil
+                )
+            } catch {
+                return fallbackCamera(for: coordinates, bounds: bounds, initialCamera: initialCamera)
+            }
+        }
+
+        private func fallbackCamera(
+            for coordinates: [CLLocationCoordinate2D],
+            bounds: WorkoutRouteBounds?,
+            initialCamera: CameraOptions
+        ) -> CameraOptions {
+            CameraOptions(
+                center: centerCoordinate(from: coordinates, bounds: bounds),
+                padding: initialCamera.padding,
                 zoom: zoomEstimate(for: bounds),
                 bearing: 0,
                 pitch: 0
             )
-            mapView.mapboxMap.setCamera(to: camera)
         }
 
         private func centerCoordinate(
             from coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?
-        ) -> CLLocationCoordinate2D? {
+        ) -> CLLocationCoordinate2D {
             if let bounds {
                 return CLLocationCoordinate2D(
                     latitude: (bounds.minLatitude + bounds.maxLatitude) / 2,
@@ -162,7 +217,6 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
                 )
             }
 
-            guard !coordinates.isEmpty else { return nil }
             let latitude = coordinates.map(\.latitude).reduce(0, +) / Double(coordinates.count)
             let longitude = coordinates.map(\.longitude).reduce(0, +) / Double(coordinates.count)
             return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

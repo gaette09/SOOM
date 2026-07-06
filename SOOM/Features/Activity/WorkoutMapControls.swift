@@ -56,6 +56,7 @@ struct WorkoutMapBackground: View {
     let workout: Workout
     @Binding var position: MapCameraPosition
     let sheetPosition: WorkoutSheetPosition
+    let cameraPadding: UIEdgeInsets
 
     private var route: WorkoutRoute? {
         guard workout.route.count >= 2 else { return nil }
@@ -93,16 +94,32 @@ struct WorkoutMapBackground: View {
         .accessibilityLabel("\(workout.sport.title) 경로 지도")
         .accessibilityValue("\(workout.formattedDistance), \(workout.formattedDuration)")
     }
+}
 
-    private var cameraPadding: UIEdgeInsets {
-        switch sheetPosition {
-        case .minimized:
-            return UIEdgeInsets(top: 92, left: 28, bottom: 172, right: 28)
-        case .standard:
-            return UIEdgeInsets(top: 88, left: 28, bottom: 300, right: 28)
-        case .expanded:
-            return UIEdgeInsets(top: 88, left: 28, bottom: 360, right: 28)
-        }
+enum WorkoutRouteCameraPadding {
+    static let horizontalInset: CGFloat = 44
+    static let visibleRouteInset: CGFloat = 22
+    static let topControlsInset: CGFloat = 112
+    static let sheetClearance: CGFloat = 34
+    static let expandedMaxBottomInset: CGFloat = 420
+
+    static func padding(
+        for position: WorkoutSheetPosition,
+        sheetHeight: CGFloat,
+        safeAreaInsets: EdgeInsets
+    ) -> UIEdgeInsets {
+        let topInset = safeAreaInsets.top + topControlsInset
+        let visibleBottomInset = sheetHeight + safeAreaInsets.bottom + sheetClearance
+        let bottomInset = position == .expanded
+            ? min(visibleBottomInset, expandedMaxBottomInset)
+            : visibleBottomInset
+
+        return UIEdgeInsets(
+            top: topInset,
+            left: horizontalInset,
+            bottom: bottomInset,
+            right: horizontalInset
+        )
     }
 }
 
