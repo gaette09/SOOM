@@ -42,8 +42,8 @@ struct MapboxStaticRouteURLBuilder {
         let geoJSON: [String: Any] = [
             "type": "Feature",
             "properties": [
-                "stroke": "#2F7D5B",
-                "stroke-width": 4,
+                "stroke": SOOMRouteRenderingStyle.accentHex,
+                "stroke-width": SOOMRouteRenderingStyle.detailLineWidth,
                 "stroke-opacity": 0.88
             ],
             "geometry": [

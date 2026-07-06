@@ -52,6 +52,22 @@ struct ShareableWorkoutCardRendererTests {
         #expect(card.staticRoutePreview?.imageURL?.absoluteString.contains(SOOMMapboxConfiguration.staticImagesStyleID) == true)
     }
 
+    @Test func testRendererCanRenderRouteShareCardWithResolvedRouteImage() {
+        let card = makeCardWithStaticRoutePreview().configured(
+            shareType: .route,
+            backgroundOption: .mapPhoto
+        )
+        let image = ShareableWorkoutCardRenderer().render(
+            card: card,
+            tint: SOOMColor.run,
+            resolvedRouteImage: makeResolvedRouteImage()
+        )
+
+        #expect(image != nil)
+        #expect((image?.size.width ?? 0) > 0)
+        #expect((image?.size.height ?? 0) > 0)
+    }
+
     @Test func testRendererUsesStableRetinaScaleForShareCard() {
         let card = makeCard()
         let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.run)

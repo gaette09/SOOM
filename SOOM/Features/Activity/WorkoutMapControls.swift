@@ -55,6 +55,7 @@ private struct MapCircleButton: View {
 struct WorkoutMapBackground: View {
     let workout: Workout
     @Binding var position: MapCameraPosition
+    let sheetPosition: WorkoutSheetPosition
 
     private var route: WorkoutRoute? {
         guard workout.route.count >= 2 else { return nil }
@@ -80,8 +81,9 @@ struct WorkoutMapBackground: View {
                 SOOMMapboxRouteMap(
                     coordinates: coordinates,
                     bounds: route.bounds,
-                    tint: UIColor(workout.sport.tint),
-                    cameraPadding: UIEdgeInsets(top: 88, left: 28, bottom: 280, right: 28)
+                    tint: SOOMRouteRenderingStyle.accentUIColor,
+                    lineWidth: SOOMRouteRenderingStyle.detailLineWidth,
+                    cameraPadding: cameraPadding
                 )
                 .accessibilityHidden(true)
             } else {
@@ -90,6 +92,17 @@ struct WorkoutMapBackground: View {
         }
         .accessibilityLabel("\(workout.sport.title) 경로 지도")
         .accessibilityValue("\(workout.formattedDistance), \(workout.formattedDuration)")
+    }
+
+    private var cameraPadding: UIEdgeInsets {
+        switch sheetPosition {
+        case .minimized:
+            return UIEdgeInsets(top: 92, left: 28, bottom: 172, right: 28)
+        case .standard:
+            return UIEdgeInsets(top: 88, left: 28, bottom: 300, right: 28)
+        case .expanded:
+            return UIEdgeInsets(top: 88, left: 28, bottom: 360, right: 28)
+        }
     }
 }
 

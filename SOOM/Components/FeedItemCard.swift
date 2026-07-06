@@ -368,7 +368,12 @@ private struct FeedReferenceRoutePreview: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            WorkoutDetailMapView(route: route, fallbackStyle: routeStyle, tint: tint)
+            WorkoutDetailMapView(
+                route: route,
+                fallbackStyle: routeStyle,
+                tint: tint,
+                routeLineWidth: SOOMRouteRenderingStyle.feedLineWidth
+            )
                 .allowsHitTesting(false)
 
             Text(distanceText)

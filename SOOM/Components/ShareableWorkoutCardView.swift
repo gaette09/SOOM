@@ -306,9 +306,11 @@ private struct StaticRoutePreviewSurface: View {
             routeVisual
                 .overlay(tint.opacity(0.08))
 
-            ShareCardRouteLine(style: .mapPhoto, tint: tint)
-                .padding(.horizontal, 26)
-                .padding(.vertical, 48)
+            if showsSyntheticRouteLine {
+                ShareCardRouteLine(style: .mapPhoto, tint: tint)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 48)
+            }
 
             Image(systemName: SOOMIcon.map)
                 .font(.system(size: 46, weight: .semibold))
@@ -349,6 +351,10 @@ private struct StaticRoutePreviewSurface: View {
         } else {
             fallbackVisual
         }
+    }
+
+    private var showsSyntheticRouteLine: Bool {
+        resolvedImage == nil && preview.imageURL == nil
     }
 
     private var placeholderVisual: some View {
@@ -449,11 +455,11 @@ private struct ShareCardRouteLine: View {
         ZStack {
             if style == .transparent {
                 RouteRibbonShape()
-                    .stroke(SOOMColor.black.opacity(0.32), style: StrokeStyle(lineWidth: 8.5, lineCap: .round, lineJoin: .round))
+                    .stroke(SOOMColor.black.opacity(0.24), style: StrokeStyle(lineWidth: 6.8, lineCap: .round, lineJoin: .round))
                     .blur(radius: 0.4)
             } else {
                 RouteRibbonShape()
-                    .stroke(SOOMColor.black.opacity(0.24), style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
+                    .stroke(SOOMColor.black.opacity(0.18), style: StrokeStyle(lineWidth: 5.8, lineCap: .round, lineJoin: .round))
                     .blur(radius: 0.4)
             }
 
@@ -475,35 +481,39 @@ private struct ShareCardRouteLine: View {
         case .mapPhoto:
             return SOOMColor.white.opacity(0.86)
         case .fallback:
-            return tint.opacity(0.42)
+            return SOOMRouteRenderingStyle.accentColor.opacity(0.42)
         }
     }
 
     private var innerLineColor: Color {
         switch style {
         case .transparent:
-            return SOOMColor.accent.opacity(0.96)
+            return SOOMRouteRenderingStyle.accentColor.opacity(0.96)
         case .mapPhoto:
-            return tint.opacity(0.92)
+            return SOOMRouteRenderingStyle.accentColor.opacity(0.92)
         case .fallback:
             return SOOMColor.white.opacity(0.70)
         }
     }
 
     private var outerLineWidth: CGFloat {
-        style == .transparent ? 6.4 : 5.4
+        style == .transparent
+            ? SOOMRouteRenderingStyle.shareTransparentOuterLineWidth
+            : SOOMRouteRenderingStyle.shareOuterLineWidth
     }
 
     private var innerLineWidth: CGFloat {
-        style == .transparent ? 3.5 : 2.8
+        style == .transparent
+            ? SOOMRouteRenderingStyle.shareTransparentInnerLineWidth
+            : SOOMRouteRenderingStyle.shareInnerLineWidth
     }
 
     private var endpointColor: Color {
-        style == .transparent ? SOOMColor.accent : SOOMColor.white
+        style == .transparent ? SOOMRouteRenderingStyle.accentColor : SOOMColor.white
     }
 
     private var endpointHaloColor: Color {
-        style == .transparent ? SOOMColor.white : tint
+        style == .transparent ? SOOMColor.white : SOOMRouteRenderingStyle.accentColor
     }
 }
 

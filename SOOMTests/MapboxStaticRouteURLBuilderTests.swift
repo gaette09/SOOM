@@ -12,6 +12,8 @@ final class MapboxStaticRouteURLBuilderTests: XCTestCase {
         XCTAssertTrue(urlString.contains("LineString"))
         XCTAssertTrue(urlString.contains("320x400@2x"))
         XCTAssertTrue(urlString.contains("access_token=test-token"))
+        XCTAssertTrue(urlString.contains("%232F7D5B"))
+        XCTAssertTrue(urlString.contains("stroke-width"))
     }
 
     func testCustomStyleAndSizeAreReflected() {

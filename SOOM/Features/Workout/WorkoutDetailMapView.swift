@@ -6,6 +6,7 @@ struct WorkoutDetailMapView: View {
     let route: WorkoutRoute?
     let fallbackStyle: StaticRouteFallbackStyle
     let tint: Color
+    var routeLineWidth: Double = SOOMRouteRenderingStyle.detailLineWidth
 
     private var coordinates: [CLLocationCoordinate2D] {
         route?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
@@ -17,7 +18,8 @@ struct WorkoutDetailMapView: View {
                 SOOMMapboxRouteMap(
                     coordinates: coordinates,
                     bounds: route?.bounds,
-                    tint: UIColor(tint)
+                    tint: SOOMRouteRenderingStyle.accentUIColor,
+                    lineWidth: routeLineWidth
                 )
                 .accessibilityHidden(true)
             } else {
@@ -36,6 +38,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
     let coordinates: [CLLocationCoordinate2D]
     let bounds: WorkoutRouteBounds?
     let tint: UIColor
+    var lineWidth = SOOMRouteRenderingStyle.detailLineWidth
     var cameraPadding = UIEdgeInsets(top: 36, left: 28, bottom: 72, right: 28)
 
     func makeCoordinator() -> Coordinator {
@@ -53,12 +56,12 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: 10, y: 10)
         mapView.gestures.options.rotateEnabled = false
         mapView.gestures.options.pitchEnabled = false
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
         return mapView
     }
 
     func updateUIView(_ mapView: MapView, context: Context) {
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
     }
 
     final class Coordinator {
@@ -71,12 +74,13 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
+            lineWidth: Double,
             cameraPadding: UIEdgeInsets
         ) {
-            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding) else {
+            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding) else {
                 return
             }
-            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
+            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
         }
 
         private func ensureSOOMStyle(
@@ -84,6 +88,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
+            lineWidth: Double,
             cameraPadding: UIEdgeInsets
         ) -> Bool {
             let expectedStyle = SOOMMapboxConfiguration.styleURI
@@ -96,7 +101,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
 
             mapView.mapboxMap.loadStyle(expectedStyle) { [weak self, weak mapView] error in
                 guard let self, currentToken == self.styleLoadToken, error == nil, let mapView else { return }
-                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, cameraPadding: cameraPadding)
+                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
             }
 
             return false
@@ -107,9 +112,11 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             coordinates: [CLLocationCoordinate2D],
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
+            lineWidth: Double,
             cameraPadding: UIEdgeInsets
         ) {
-            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|")
+            let paddingSignature = "\(cameraPadding.top),\(cameraPadding.left),\(cameraPadding.bottom),\(cameraPadding.right)"
+            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|") + "|\(lineWidth)|\(paddingSignature)"
             guard signature != lastSignature else { return }
             lastSignature = signature
 
@@ -119,7 +126,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
 
             var annotation = PolylineAnnotation(lineCoordinates: coordinates)
             annotation.lineColor = StyleColor(tint)
-            annotation.lineWidth = 4
+            annotation.lineWidth = lineWidth
             annotation.lineOpacity = 0.9
             annotationManager?.annotations = [annotation]
 

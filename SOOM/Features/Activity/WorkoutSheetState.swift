@@ -13,6 +13,8 @@ struct WorkoutSheetMetrics {
     let topCornerRadius: CGFloat
     let shadowOpacity: Double
     let isExpanded: Bool
+    let isMiddle: Bool
+    let isBottom: Bool
 
     init(proxy: GeometryProxy, position: WorkoutSheetPosition, drag: CGFloat) {
         minimizedHeight = min(max(proxy.size.height * SOOMLayout.DetailSheet.minimizedRatio, SOOMLayout.DetailSheet.minimizedMinHeight), SOOMLayout.DetailSheet.minimizedMaxHeight)
@@ -27,6 +29,8 @@ struct WorkoutSheetMetrics {
         hiddenSheetHeight = max(sheetFrameHeight - proxy.size.height - sheetYOffset, 0)
         scrollBottomPadding = proxy.safeAreaInsets.bottom + SOOMLayout.DetailSheet.scrollBottomPadding + (isExpanded ? hiddenSheetHeight : 0)
         shadowOpacity = isExpanded && drag < SOOMLayout.DetailSheet.expandedCornerDragThreshold ? 0 : SOOMLayout.DetailSheet.shadowOpacity
+        isMiddle = position == .standard
+        isBottom = position == .minimized
     }
 }
 
@@ -49,7 +53,7 @@ enum WorkoutSheetPosition: CaseIterable {
     var mapLatitudeOffset: Double {
         switch self {
         case .minimized:
-            return 0
+            return 0.18
         case .standard:
             return -0.50
         case .expanded:
@@ -78,5 +82,27 @@ enum WorkoutSheetPosition: CaseIterable {
         return candidates.min { lhs, rhs in
             abs(lhs.1 - height) < abs(rhs.1 - height)
         }?.0 ?? .standard
+    }
+
+    var nextHigher: WorkoutSheetPosition {
+        switch self {
+        case .minimized:
+            return .standard
+        case .standard:
+            return .expanded
+        case .expanded:
+            return .expanded
+        }
+    }
+
+    var nextLower: WorkoutSheetPosition {
+        switch self {
+        case .minimized:
+            return .minimized
+        case .standard:
+            return .minimized
+        case .expanded:
+            return .standard
+        }
     }
 }

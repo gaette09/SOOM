@@ -11,9 +11,10 @@ struct ShareableWorkoutCardRenderer {
         background: Color = SOOMColor.background,
         isOpaque: Bool = true
     ) -> UIImage? {
+        let height = width / ShareableWorkoutCardLayout.aspectRatio
         let content = view
-            .frame(width: width)
-            .frame(width: width, height: width / ShareableWorkoutCardLayout.aspectRatio)
+            .frame(width: width, height: height)
+            .clipped()
             .background(background)
 
         let renderer = ImageRenderer(content: content)

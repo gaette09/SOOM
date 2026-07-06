@@ -39,7 +39,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                 SOOMColor.background
                     .ignoresSafeArea()
 
-                WorkoutMapBackground(workout: workout, position: $mapPosition)
+                WorkoutMapBackground(workout: workout, position: $mapPosition, sheetPosition: sheetPosition)
                     .ignoresSafeArea()
 
                 SOOMColor.background
@@ -60,7 +60,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
 
                 WorkoutBottomSheet(
                     metrics: metrics,
-                    isScrollDisabled: !metrics.isExpanded || isSheetTakingOverScroll,
+                    isScrollDisabled: sheetPosition != .expanded || isSheetTakingOverScroll,
                     sheetGesture: sheetGesture(metrics: metrics),
                     onScrollOffsetChange: { sheetScrollOffset = $0 },
                     header: {
@@ -130,7 +130,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
         resetSheetDrag()
 
         withAnimation(.spring(response: SOOMLayout.DetailSheet.sheetSpringResponse, dampingFraction: SOOMLayout.DetailSheet.sheetSpringDamping)) {
-            sheetPosition = .standard
+            sheetPosition = sheetPosition.nextLower
         }
     }
 
@@ -139,12 +139,12 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             .onChanged { value in
                 let shouldBeginMoving = canMoveSheet(value, metrics: metrics)
                 if sheetDragCanMove == nil {
-                    sheetDragActivationTranslation = metrics.isExpanded ? value.translation.height : 0
+                    sheetDragActivationTranslation = 0
                     sheetDragCanMove = shouldBeginMoving
                 }
 
                 if sheetDragCanMove == true {
-                    sheetDrag = metrics.isExpanded ? max(value.translation.height - sheetDragActivationTranslation, 0) : value.translation.height
+                    sheetDrag = value.translation.height - sheetDragActivationTranslation
                 } else {
                     sheetDrag = 0
                 }
@@ -156,7 +156,8 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
 
     private func canMoveSheet(_ value: DragGesture.Value, metrics: WorkoutSheetMetrics) -> Bool {
         if metrics.isExpanded {
-            return false
+            return sheetScrollOffset <= SOOMLayout.DetailSheet.scrollTopThreshold
+                && value.translation.height > 0
         }
 
         return true
@@ -171,11 +172,13 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             return
         }
 
-        let projectedHeight = min(max(metrics.baseHeight - value.predictedEndTranslation.height, metrics.standardHeight), metrics.expandedHeight)
-        let nextPosition = nearestLockedSheetPosition(
-            to: projectedHeight,
-            standard: metrics.standardHeight,
-            expanded: metrics.expandedHeight
+        let projectedHeight = min(max(metrics.baseHeight - value.predictedEndTranslation.height, metrics.minimizedHeight), metrics.expandedHeight)
+        let nextPosition = nextSheetPosition(
+            from: sheetPosition,
+            translation: value.translation.height,
+            predictedTranslation: value.predictedEndTranslation.height,
+            projectedHeight: projectedHeight,
+            metrics: metrics
         )
 
         withAnimation(.spring(response: SOOMLayout.DetailSheet.sheetSpringResponse, dampingFraction: SOOMLayout.DetailSheet.sheetSpringDamping)) {
@@ -189,11 +192,28 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
         sheetDragActivationTranslation = 0
     }
 
-    private func nearestLockedSheetPosition(
-        to height: CGFloat,
-        standard: CGFloat,
-        expanded: CGFloat
+    private func nextSheetPosition(
+        from position: WorkoutSheetPosition,
+        translation: CGFloat,
+        predictedTranslation: CGFloat,
+        projectedHeight: CGFloat,
+        metrics: WorkoutSheetMetrics
     ) -> WorkoutSheetPosition {
-        abs(height - expanded) < abs(height - standard) ? .expanded : .standard
+        let intent = predictedTranslation.magnitude > translation.magnitude ? predictedTranslation : translation
+
+        if intent < -SOOMLayout.DetailSheet.snapIntentThreshold {
+            return position.nextHigher
+        }
+
+        if intent > SOOMLayout.DetailSheet.snapIntentThreshold {
+            return position.nextLower
+        }
+
+        return WorkoutSheetPosition.nearest(
+            to: projectedHeight,
+            minimized: metrics.minimizedHeight,
+            standard: metrics.standardHeight,
+            expanded: metrics.expandedHeight
+        )
     }
 }

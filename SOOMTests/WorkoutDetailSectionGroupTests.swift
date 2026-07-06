@@ -31,6 +31,31 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
         XCTAssertEqual(ActivityDetailDistanceCopy.value(distanceMeters: 0, formattedDistance: "0.0 km"), "거리 준비 중")
         XCTAssertEqual(ActivityDetailDistanceCopy.value(distanceMeters: 1_240, formattedDistance: "1.2 km"), "1.2 km")
     }
+
+    func testWorkoutSheetPositionsMoveOneStepAtATime() {
+        XCTAssertEqual(WorkoutSheetPosition.minimized.nextHigher, .standard)
+        XCTAssertEqual(WorkoutSheetPosition.standard.nextHigher, .expanded)
+        XCTAssertEqual(WorkoutSheetPosition.expanded.nextHigher, .expanded)
+
+        XCTAssertEqual(WorkoutSheetPosition.expanded.nextLower, .standard)
+        XCTAssertEqual(WorkoutSheetPosition.standard.nextLower, .minimized)
+        XCTAssertEqual(WorkoutSheetPosition.minimized.nextLower, .minimized)
+    }
+
+    func testWorkoutSheetNearestPositionIncludesBottomMiddleAndTop() {
+        XCTAssertEqual(
+            WorkoutSheetPosition.nearest(to: 130, minimized: 120, standard: 360, expanded: 760),
+            .minimized
+        )
+        XCTAssertEqual(
+            WorkoutSheetPosition.nearest(to: 345, minimized: 120, standard: 360, expanded: 760),
+            .standard
+        )
+        XCTAssertEqual(
+            WorkoutSheetPosition.nearest(to: 720, minimized: 120, standard: 360, expanded: 760),
+            .expanded
+        )
+    }
 }
 
 final class ClubUIFoundationTests: XCTestCase {

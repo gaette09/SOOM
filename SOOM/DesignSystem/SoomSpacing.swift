@@ -62,6 +62,7 @@ enum SOOMLayout {
         static let scrollBottomPadding: CGFloat = 24
         static let dragMinimumDistance: CGFloat = 8
         static let scrollTopThreshold: CGFloat = 1
+        static let snapIntentThreshold: CGFloat = 48
         static let shadowRadius: CGFloat = 18
         static let shadowYOffset: CGFloat = -8
         static let shadowOpacity: Double = 0.12

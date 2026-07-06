@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum SOOMColor {
     static let purple = Color(hex: 0x7541EE)
@@ -36,6 +37,18 @@ enum SOOMColor {
     static let run = red
     static let warning = orange
     static let recovery = blue.opacity(0.64)
+}
+
+enum SOOMRouteRenderingStyle {
+    static let accentHex = "#2F7D5B"
+    static let accentColor = Color(hex: 0x2F7D5B)
+    static let accentUIColor = UIColor(red: 0x2F / 255, green: 0x7D / 255, blue: 0x5B / 255, alpha: 1)
+    static let detailLineWidth: Double = 3.2
+    static let feedLineWidth: Double = 2.6
+    static let shareOuterLineWidth: CGFloat = 4.4
+    static let shareInnerLineWidth: CGFloat = 2.4
+    static let shareTransparentOuterLineWidth: CGFloat = 5.2
+    static let shareTransparentInnerLineWidth: CGFloat = 3.0
 }
 
 extension Color {
