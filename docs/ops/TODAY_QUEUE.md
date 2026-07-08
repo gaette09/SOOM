@@ -21,7 +21,7 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| 1 | SOOM | 0010 TestFlight QA Checklist | `tasks/soom/0010-testflight-qa-checklist.md` | Recommended active |
+| 1 | SOOM | Data Pipeline v1 local workout normalization | `docs/reports/soom-data-pipeline-v1-audit.md` | Recommended active before further UI polish or external integrations |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
@@ -33,30 +33,29 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: 0010 TestFlight QA Checklist
+## SOOM: Data Pipeline v1 Local Workout Normalization
 
 Goal:
 
-- Create and run the SOOM TestFlight QA checklist after SOOM 0009 passed Record Detail Content Lock verification.
+- Stabilize real workout ingestion, storage, calculation, and display before more Build 8 UI polish or external platform integrations.
 
 Verification:
 
-- Confirm the target TestFlight build number and install path.
-- Identify required devices, OS versions, accounts, and release-critical flows.
-- Record pass/fail results, screenshots if useful, device/OS details, and unresolved issues.
-- Confirm whether the build is ready for internal testing, needs fixes, or is blocked.
+- Audit current Record, persistence, Activity Detail, Profile, Share, Recovery, and HealthKit data paths.
+- Define the conservative Data Pipeline v1 implementation phases.
+- Keep Share card polish, Activity Detail visual polish, advanced chart redesign, and Garmin/Samsung/Google integrations deferred until local data is stable.
 
 Expected outcome:
 
-- TestFlight QA scope and release-readiness status are explicit.
+- A documented Data Pipeline v1 audit and implementation plan exists, with the next implementation step focused on local workout data normalization.
 
 Completion criteria:
 
-- TestFlight QA scope is documented.
-- Required devices, OS versions, accounts, and app build number are identified.
-- Core flows for launch, auth, Record Detail, navigation, and release-critical behavior are listed.
-- Pass/fail criteria are clear for each QA item.
-- Any failed item is converted into a follow-up task or release blocker.
+- Current data sources, stored fields, calculated fields, and display surfaces are documented.
+- Cycling, Running, and Walking data coverage is documented.
+- Swimming and external integration gaps are documented.
+- Phase 1 through Phase 5 implementation plan is documented.
+- Explicit deferrals are recorded.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 

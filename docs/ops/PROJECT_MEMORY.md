@@ -2,7 +2,7 @@
 
 Purpose: single source of truth for current SOOM, JAFOM, and SOOM Instagram Dashboard project facts.
 
-Last updated: 2026-06-23
+Last updated: 2026-07-08
 
 ## SOOM
 
@@ -11,10 +11,10 @@ Last updated: 2026-06-23
 | Local path | `/Volumes/Platinum1TB/SOOM` |
 | GitHub | `https://github.com/gaette09/SOOM` |
 | Primary branch | `main` |
-| TestFlight status | Target known, not yet verified as TestFlight-ready. Fastlane archive/upload readiness is still blocked by signing/provisioning/account verification. |
-| Current active goal | TestFlight QA checklist |
-| Current task | `tasks/soom/0010-testflight-qa-checklist.md` |
-| Last verified | 2026-06-23: SOOM 0009 PASS in `docs/reports/soom-0009-verification.md` |
+| TestFlight status | Build 8 broad UI flow verification is acceptable, but TestFlight readiness is deferred until local workout data ingestion, storage, calculation, and display are stable. |
+| Current active goal | SOOM Data Pipeline v1 |
+| Current task | Data Pipeline v1 local workout data normalization planning |
+| Last verified | 2026-07-08: Build 8 UI patches acceptable for broad flow verification; data correctness is now prioritized. |
 
 ## JAFOM
 
@@ -71,6 +71,7 @@ Last updated: 2026-06-23
 
 | Date | Decision | Rationale |
 | --- | --- | --- |
+| 2026-07-08 | Prioritize SOOM data correctness over further Build 8 UI polish. | Activity Detail/Share/Record UI is acceptable for broad flow verification; real workout ingestion, storage, calculation, and display need to be stable before deeper UI/UX polish or external integrations. |
 | 2026-06-23 | Move recommended active queue after verification: SOOM 0010, JAFOM 0002 only if access blocker remains, Instagram 0002 or static review unblock. | SOOM 0009 passed, while JAFOM 0001 and Instagram 0001 are blocked by external access/evidence gaps. |
 | 2026-06-22 | Use docs and task files as the operating system for SOOM, JAFOM, and Instagram. | Keeps multi-project work explicit, reviewable, and commit-friendly without requiring new tooling first. |
 | 2026-06-22 | Treat `docs/ops/PROJECT_GOALS.md` as the goal map and `tasks/` as the executable task queue. | Separates project-level priorities from task-level acceptance criteria and verification. |
