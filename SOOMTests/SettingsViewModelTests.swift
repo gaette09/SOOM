@@ -198,6 +198,58 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(aggregate.bestWeeklyDistance, 110_000)
     }
 
+    func testProfileAggregateUsesProcessedWorkoutValues() {
+        let aggregator = makeAggregator()
+        let workouts = [
+            processedWorkout(type: .cycling, daysAgo: 1, hour: 7, duration: 3_600, distance: 42_000),
+            processedWorkout(type: .running, daysAgo: 2, hour: 8, duration: 1_800, distance: 8_000),
+            processedWorkout(type: .walking, daysAgo: 2, hour: 9, duration: 1_200, distance: 2_000)
+        ]
+
+        let aggregate = aggregator.aggregate(processedWorkouts: workouts)
+
+        XCTAssertEqual(aggregate.totalDistanceMeters, 52_000)
+        XCTAssertEqual(aggregate.totalDurationSeconds, 6_600)
+        XCTAssertEqual(aggregate.workoutCount, 3)
+        XCTAssertEqual(aggregate.activeDays, 2)
+        XCTAssertEqual(aggregate.primarySport, .cycling)
+        XCTAssertEqual(aggregate.sportDistribution[.cycling], 1)
+        XCTAssertEqual(aggregate.sportDistribution[.running], 1)
+        XCTAssertEqual(aggregate.sportDistribution[.walking], 1)
+        XCTAssertEqual(aggregate.longestRideDistance, 42_000)
+        XCTAssertEqual(aggregate.longestRunDistance, 8_000)
+        XCTAssertEqual(aggregate.longestWalkDistance, 2_000)
+        XCTAssertEqual(aggregate.bestWeeklyDistance, 52_000)
+    }
+
+    func testProfileProcessedAggregateKeepsTimeOnlyWorkoutsActiveButOutOfDistanceStats() {
+        let aggregator = makeAggregator()
+        let workouts = [
+            processedWorkout(type: .running, daysAgo: 1, hour: 7, duration: 1_800, distance: nil),
+            processedWorkout(type: .walking, daysAgo: 2, hour: 9, duration: 900, distance: 1_000)
+        ]
+
+        let aggregate = aggregator.aggregate(processedWorkouts: workouts)
+
+        XCTAssertEqual(aggregate.totalDistanceMeters, 1_000)
+        XCTAssertEqual(aggregate.totalDurationSeconds, 2_700)
+        XCTAssertEqual(aggregate.workoutCount, 2)
+        XCTAssertEqual(aggregate.activeDays, 2)
+        XCTAssertEqual(aggregate.primarySport, .walking)
+        XCTAssertNil(aggregate.longestRunDistance)
+        XCTAssertEqual(aggregate.longestWalkDistance, 1_000)
+        XCTAssertEqual(aggregate.bestWeeklyDistance, 1_000)
+    }
+
+    func testProfileProcessedIdentityKeepsTimeOnlyDistanceFallback() {
+        let identity = makeAggregator().profileIdentity(processedWorkouts: [
+            processedWorkout(type: .running, daysAgo: 1, hour: 7, duration: 1_800, distance: nil)
+        ])
+
+        XCTAssertEqual(identity.compactHeroStats.map(\.value), ["1일 움직임", "거리 준비 중", "러닝 중심"])
+        XCTAssertTrue(identity.personalBests.allSatisfy { $0.value == "기록 준비 중" })
+    }
+
     func testProfileIdentityPhraseChangesByDominantSport() {
         let aggregator = makeAggregator()
         let cyclingIdentity = aggregator.profileIdentity(from: (0..<16).map {
@@ -297,6 +349,24 @@ final class SettingsViewModelTests: XCTestCase {
             dataQuality: .partial,
             createdAt: start,
             updatedAt: start
+        )
+    }
+
+    private func processedWorkout(
+        type: UnifiedWorkoutType,
+        daysAgo: Int,
+        hour: Int,
+        duration: TimeInterval,
+        distance: Double?
+    ) -> ProcessedWorkout {
+        ProcessedWorkoutBuilder(calendar: makeAggregator().calendar).make(
+            from: workout(
+                type: type,
+                daysAgo: daysAgo,
+                hour: hour,
+                duration: duration,
+                distance: distance
+            )
         )
     }
 

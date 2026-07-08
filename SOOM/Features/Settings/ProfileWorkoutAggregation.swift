@@ -62,6 +62,10 @@ struct ProfileWorkoutAggregator {
     var referenceDate: Date = Date()
 
     func aggregate(_ workouts: [UnifiedWorkout]) -> ProfileWorkoutAggregate {
+        aggregate(processedWorkouts: processedWorkouts(from: workouts))
+    }
+
+    func aggregate(processedWorkouts workouts: [ProcessedWorkout]) -> ProfileWorkoutAggregate {
         let includedWorkouts = workouts.filter { !$0.isExcludedFromAnalysis }
         guard !includedWorkouts.isEmpty else {
             return .empty
@@ -69,7 +73,7 @@ struct ProfileWorkoutAggregator {
 
         let totalDistance = includedWorkouts.compactMap(\.distanceMeters).reduce(0, +)
         let totalDuration = includedWorkouts.map(\.durationSeconds).reduce(0, +)
-        let activeDayStarts = Set(includedWorkouts.map { calendar.startOfDay(for: $0.startDate) })
+        let activeDayStarts = Set(includedWorkouts.map { calendar.startOfDay(for: $0.startedAt) })
         let sportDistribution = Dictionary(grouping: includedWorkouts, by: \.workoutType)
             .mapValues(\.count)
         let distanceBySport = includedWorkouts.reduce(into: [UnifiedWorkoutType: Double]()) { result, workout in
@@ -81,7 +85,7 @@ struct ProfileWorkoutAggregator {
             totalDistance: totalDistance
         )
         let recentThreshold = calendar.date(byAdding: .day, value: -90, to: referenceDate) ?? referenceDate
-        let recentWorkouts = includedWorkouts.filter { $0.startDate >= recentThreshold }
+        let recentWorkouts = includedWorkouts.filter { $0.startedAt >= recentThreshold }
 
         return ProfileWorkoutAggregate(
             totalDistanceMeters: totalDistance,
@@ -98,11 +102,11 @@ struct ProfileWorkoutAggregator {
             bestWeeklyDistance: bestWeeklyDistance(in: includedWorkouts),
             consistencyScore: min(1, Double(activeDayStarts.count) / 30),
             morningWorkoutRatio: ratio(in: includedWorkouts) { workout in
-                let hour = calendar.component(.hour, from: workout.startDate)
+                let hour = calendar.component(.hour, from: workout.startedAt)
                 return (5..<12).contains(hour)
             },
             weekendLongRatio: ratio(in: includedWorkouts) { workout in
-                let isWeekend = calendar.isDateInWeekend(workout.startDate)
+                let isWeekend = calendar.isDateInWeekend(workout.startedAt)
                 let isLong = (workout.distanceMeters ?? 0) >= 20_000 || workout.durationSeconds >= 3_600
                 return isWeekend && isLong
             },
@@ -197,6 +201,15 @@ struct ProfileWorkoutAggregator {
 
     func profileIdentity(from workouts: [UnifiedWorkout]) -> ProfileIdentitySystem {
         let aggregate = aggregate(workouts)
+        return profileIdentity(from: aggregate)
+    }
+
+    func profileIdentity(processedWorkouts: [ProcessedWorkout]) -> ProfileIdentitySystem {
+        let aggregate = aggregate(processedWorkouts: processedWorkouts)
+        return profileIdentity(from: aggregate)
+    }
+
+    private func profileIdentity(from aggregate: ProfileWorkoutAggregate) -> ProfileIdentitySystem {
         let movementIdentity = identity(from: aggregate)
         let personalBests = personalBests(from: aggregate)
         let patterns = movementPatterns(from: aggregate)
@@ -319,17 +332,17 @@ struct ProfileWorkoutAggregator {
         return sportDistribution.max(by: { $0.value < $1.value })?.key
     }
 
-    private func longestDistance(in workouts: [UnifiedWorkout], type: UnifiedWorkoutType) -> Double? {
+    private func longestDistance(in workouts: [ProcessedWorkout], type: UnifiedWorkoutType) -> Double? {
         workouts
             .filter { $0.workoutType == type }
             .compactMap(\.distanceMeters)
             .max()
     }
 
-    private func bestWeeklyDistance(in workouts: [UnifiedWorkout]) -> Double? {
+    private func bestWeeklyDistance(in workouts: [ProcessedWorkout]) -> Double? {
         let distancesByWeek = workouts.reduce(into: [Date: Double]()) { result, workout in
             guard let distance = workout.distanceMeters,
-                  let week = calendar.dateInterval(of: .weekOfYear, for: workout.startDate)?.start else {
+                  let week = calendar.dateInterval(of: .weekOfYear, for: workout.startedAt)?.start else {
                 return
             }
             result[week, default: 0] += distance
@@ -338,9 +351,14 @@ struct ProfileWorkoutAggregator {
         return distancesByWeek.values.max()
     }
 
-    private func ratio(in workouts: [UnifiedWorkout], matching predicate: (UnifiedWorkout) -> Bool) -> Double {
+    private func ratio(in workouts: [ProcessedWorkout], matching predicate: (ProcessedWorkout) -> Bool) -> Double {
         guard !workouts.isEmpty else { return 0 }
         return Double(workouts.filter(predicate).count) / Double(workouts.count)
+    }
+
+    private func processedWorkouts(from workouts: [UnifiedWorkout]) -> [ProcessedWorkout] {
+        let builder = ProcessedWorkoutBuilder(calendar: calendar)
+        return workouts.map { builder.make(from: $0) }
     }
 
     private func isMixedSportIdentity(_ aggregate: ProfileWorkoutAggregate) -> Bool {
