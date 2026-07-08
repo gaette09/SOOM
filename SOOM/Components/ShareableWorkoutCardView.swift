@@ -58,59 +58,102 @@ struct ShareableWorkoutCardView: View {
     }
 
     private var transparentCard: some View {
-        ZStack(alignment: .bottomLeading) {
-            if card.shouldShowRouteLineInTransparentExport {
+        ZStack {
+            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            SOOMColor.black.opacity(0.94),
+                            SOOMColor.black.opacity(0.84),
+                            SOOMColor.black.opacity(0.72)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
+                        .stroke(SOOMColor.white.opacity(0.10), lineWidth: SOOMLayout.Card.borderWidth)
+                )
+
+            ShareCardRhythmPattern(tint: tint, isTransparent: true)
+                .padding(ShareableWorkoutCardLayout.rhythmPatternInset)
+                .opacity(0.55)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
+            if card.shouldShowRouteVisual {
                 ShareCardRouteLine(style: .transparent, tint: tint)
-                    .frame(height: ShareableWorkoutCardLayout.transparentRouteLineHeight)
+                    .frame(height: transparentRouteLineHeight)
                     .padding(.horizontal, ShareableWorkoutCardLayout.transparentRouteHorizontalPadding)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.top, ShareableWorkoutCardLayout.transparentRouteTopPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: transparentRouteAlignment)
+                    .padding(.top, transparentRouteTopPadding)
+                    .padding(.bottom, transparentRouteBottomPadding)
+                    .opacity(0.92)
                     .accessibilityHidden(true)
             }
 
-            VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentTextSpacing) {
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                    Text("SOOM")
+                        .font(SOOMFont.displayMedium(13, relativeTo: .caption))
+                        .foregroundStyle(transparentSecondaryForeground)
 
-                Text(card.storyHeadline)
-                    .font(transparentHeadlineFont)
-                    .foregroundStyle(transparentForeground)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.52)
-                    .allowsTightening(true)
+                    Text(card.shareType.title)
+                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(transparentSecondaryForeground.opacity(0.76))
 
-                Text(card.storyInterpretation)
-                    .font(SOOMFont.displayMedium(24, relativeTo: .title2))
-                    .foregroundStyle(transparentForeground)
-                    .lineSpacing(ShareableWorkoutCardLayout.primaryLineSpacing)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.58)
-                    .allowsTightening(true)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
 
-                Text(card.storySupportingText)
-                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
-                    .foregroundStyle(transparentSecondaryForeground)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.66)
-                    .allowsTightening(true)
-                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: transparentTopSpacer)
 
-                Text(card.signatureFooterText)
+                VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentTextSpacing) {
+                    Text(transparentPrimaryMetric)
+                        .font(transparentPrimaryFont)
+                        .foregroundStyle(transparentForeground)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.48)
+                        .allowsTightening(true)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(transparentSecondaryMetricLine)
+                        .font(SOOMFont.displayMedium(23, relativeTo: .title3))
+                        .foregroundStyle(transparentForeground.opacity(0.92))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.56)
+                        .allowsTightening(true)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(transparentSupportingLine)
+                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(transparentSecondaryForeground)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.62)
+                        .allowsTightening(true)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .layoutPriority(1)
+
+                Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
+
+                Text(transparentFooterLine)
                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(transparentSecondaryForeground)
+                    .foregroundStyle(transparentSecondaryForeground.opacity(0.84))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                    .padding(.top, ShareableWorkoutCardLayout.transparentSignatureTopPadding)
+                    .minimumScaleFactor(0.70)
+                    .allowsTightening(true)
             }
             .padding(ShareableWorkoutCardLayout.transparentExportPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .shadow(color: SOOMColor.black.opacity(0.36), radius: 12, x: 0, y: 7)
+            .shadow(color: SOOMColor.black.opacity(0.28), radius: 10, x: 0, y: 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .aspectRatio(ShareableWorkoutCardLayout.aspectRatio, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("투명 공유 카드 미리보기")
-        .accessibilityValue("\(card.shareType.title) 카드. \(card.storyHeadline). \(card.storyInterpretation). \(card.storySupportingText). \(routeAccessibilityText)")
+        .accessibilityValue("\(card.shareType.title) 카드. \(transparentPrimaryMetric). \(transparentSecondaryMetricLine). \(transparentSupportingLine). \(routeAccessibilityText)")
     }
 
     private var routeAccessibilityText: String {
@@ -139,7 +182,7 @@ struct ShareableWorkoutCardView: View {
                 .foregroundStyle(headerForeground)
                 .accessibilityHidden(true)
 
-            Text("\(card.shareType.cardTitle) · \(ShareCardComposerLayout.index(for: card.shareType) + 1) / \(ShareCardComposerLayout.cardOrder.count)")
+            Text(card.shareType.title)
                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(headerForeground)
                 .lineLimit(1)
@@ -254,6 +297,115 @@ struct ShareableWorkoutCardView: View {
 
     private var transparentSecondaryForeground: Color {
         SOOMColor.white.opacity(0.86)
+    }
+
+    private var transparentPrimaryMetric: String {
+        switch card.shareType {
+        case .workout, .route:
+            return card.compactDistanceText
+        case .recovery:
+            return card.storyHeadline
+        case .club:
+            return card.storyInterpretation
+        }
+    }
+
+    private var transparentSecondaryMetricLine: String {
+        switch card.shareType {
+        case .workout:
+            return card.compactPublicMetricLine.isEmpty ? card.workoutType.shareDisplayName : card.compactPublicMetricLine
+        case .recovery:
+            return card.storySupportingText
+        case .route:
+            return card.storyHeadline
+        case .club:
+            return card.storyHeadline
+        }
+    }
+
+    private var transparentSupportingLine: String {
+        switch card.shareType {
+        case .workout:
+            return card.workoutType.shareDisplayName
+        case .recovery:
+            return card.storyInterpretation
+        case .route:
+            return card.storySupportingText
+        case .club:
+            return card.storySupportingText
+        }
+    }
+
+    private var transparentFooterLine: String {
+        switch card.shareType {
+        case .workout:
+            return "운동 기록 · SOOM"
+        case .recovery:
+            return "컨디션 기록 · SOOM"
+        case .route:
+            return "코스 기록 · SOOM"
+        case .club:
+            return "클럽 기록 · SOOM"
+        }
+    }
+
+    private var transparentPrimaryFont: Font {
+        switch card.shareType {
+        case .workout, .route:
+            return SOOMFont.display(56, relativeTo: .largeTitle)
+        case .recovery:
+            return SOOMFont.display(50, relativeTo: .largeTitle)
+        case .club:
+            return SOOMFont.displayMedium(42, relativeTo: .largeTitle)
+        }
+    }
+
+    private var transparentTopSpacer: CGFloat {
+        switch card.shareType {
+        case .workout, .route:
+            return 236
+        case .recovery:
+            return 270
+        case .club:
+            return 256
+        }
+    }
+
+    private var transparentRouteLineHeight: CGFloat {
+        switch card.shareType {
+        case .workout:
+            return 230
+        case .route:
+            return 250
+        case .recovery, .club:
+            return 210
+        }
+    }
+
+    private var transparentRouteAlignment: Alignment {
+        switch card.shareType {
+        case .workout:
+            return .top
+        case .route:
+            return .center
+        case .recovery, .club:
+            return .top
+        }
+    }
+
+    private var transparentRouteTopPadding: CGFloat {
+        switch card.shareType {
+        case .workout:
+            return 96
+        case .route:
+            return 26
+        case .recovery, .club:
+            return 92
+        }
+    }
+
+    private var transparentRouteBottomPadding: CGFloat {
+        card.shareType == .route ? 76 : 0
     }
 }
 
@@ -398,9 +550,8 @@ enum ShareableWorkoutCardLayout {
     static let transparentExportPadding: CGFloat = 34
     static let transparentRouteLineHeight: CGFloat = 210
     static let transparentRouteHorizontalPadding: CGFloat = 24
-    static let transparentRouteTopPadding: CGFloat = 82
     static let transparentTextSpacing: CGFloat = 11
-    static let transparentSignatureTopPadding: CGFloat = 7
+    static let transparentFooterTopPadding: CGFloat = 22
 }
 
 private enum ShareCardRouteLineStyle: Equatable {

@@ -101,9 +101,9 @@ enum ShareTarget: String, CaseIterable, Identifiable, Equatable {
     var title: String {
         switch self {
         case .instagramStory:
-            return "Instagram으로 공유"
+            return "Instagram"
         case .saveImage:
-            return "Save Image"
+            return "Save"
         case .more:
             return "More"
         }
@@ -125,14 +125,14 @@ enum ShareTarget: String, CaseIterable, Identifiable, Equatable {
         case .instagramStory:
             return "공유 화면에서 Instagram을 선택하세요."
         case .saveImage:
-            return "공유 화면에서 이미지 저장을 선택하세요."
+            return "이미지를 사진 앱에 저장했어요."
         case .more:
             return "공유 화면에서 원하는 앱을 선택하세요."
         }
     }
 
     var usesSystemShareSheet: Bool {
-        true
+        self != .saveImage
     }
 }
 

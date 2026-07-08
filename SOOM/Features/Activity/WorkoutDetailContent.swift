@@ -1,6 +1,7 @@
+import HealthKit
+import Photos
 import SwiftUI
 import UIKit
-import HealthKit
 
 enum WorkoutDetailPresentationStyle {
     case standalone
@@ -601,7 +602,6 @@ private struct ShareCardComposer: View {
     let renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage?
 
     @State private var selectedCardIndex = 0
-    @State private var selectedBackgroundOption: ShareCardBackgroundOption = .mapPhoto
     @State private var shareImage: UIImage?
     @State private var isShareSheetPresented = false
     @State private var isRenderingShareImage = false
@@ -615,7 +615,7 @@ private struct ShareCardComposer: View {
     private var configuredCard: ShareableWorkoutCardModel {
         baseCard.configured(
             shareType: selectedType,
-            backgroundOption: selectedBackgroundOption
+            backgroundOption: .transparent
         )
     }
 
@@ -626,11 +626,8 @@ private struct ShareCardComposer: View {
                     ShareCardCarousel(
                         baseCard: baseCard,
                         selectedIndex: $selectedCardIndex,
-                        backgroundOption: selectedBackgroundOption,
                         tint: tint
                     )
-
-                    ShareBackgroundToggle(selectedBackgroundOption: $selectedBackgroundOption)
 
                     ShareTargetGrid(
                         message: shareTargetMessage,
@@ -680,14 +677,20 @@ private struct ShareCardComposer: View {
     }
 
     @MainActor
-    private func share(_ card: ShareableWorkoutCardModel) {
-        guard !isRenderingShareImage else { return }
+    private func renderImage(for card: ShareableWorkoutCardModel) async -> UIImage? {
+        guard !isRenderingShareImage else { return nil }
 
         isRenderingShareImage = true
+        let preparedImage = await ShareableWorkoutCardRenderer().renderPrepared(card: card, tint: tint)
+        let image = preparedImage ?? renderShareImage(card, tint)
+        isRenderingShareImage = false
+        return image
+    }
+
+    @MainActor
+    private func share(_ card: ShareableWorkoutCardModel) {
         Task {
-            let preparedImage = await ShareableWorkoutCardRenderer().renderPrepared(card: card, tint: tint)
-            let image = preparedImage ?? renderShareImage(card, tint)
-            isRenderingShareImage = false
+            let image = await renderImage(for: card)
 
             guard let image else {
                 shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
@@ -700,6 +703,25 @@ private struct ShareCardComposer: View {
     }
 
     @MainActor
+    private func saveImage(_ card: ShareableWorkoutCardModel) {
+        Task {
+            let image = await renderImage(for: card)
+
+            guard let image else {
+                shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
+                return
+            }
+
+            do {
+                try await ShareImagePhotoSaver.save(image)
+                shareTargetMessage = ShareTarget.saveImage.helperText
+            } catch {
+                shareErrorMessage = "이미지를 사진 앱에 저장하지 못했어요. 사진 접근 권한을 확인해주세요."
+            }
+        }
+    }
+
+    @MainActor
     private func handleShareTarget(_ target: ShareTarget, card: ShareableWorkoutCardModel) {
         shareTargetMessage = nil
 
@@ -708,8 +730,7 @@ private struct ShareCardComposer: View {
             shareTargetMessage = ShareTarget.instagramStory.helperText
             share(card)
         case .saveImage:
-            shareTargetMessage = ShareTarget.saveImage.helperText
-            share(card)
+            saveImage(card)
         case .more:
             share(card)
         }
@@ -719,7 +740,6 @@ private struct ShareCardComposer: View {
 private struct ShareCardCarousel: View {
     let baseCard: ShareableWorkoutCardModel
     @Binding var selectedIndex: Int
-    let backgroundOption: ShareCardBackgroundOption
     let tint: Color
 
     private var selectedType: ShareCardType {
@@ -782,7 +802,7 @@ private struct ShareCardCarousel: View {
     private func configuredCard(for type: ShareCardType) -> ShareableWorkoutCardModel {
         baseCard.configured(
             shareType: type,
-            backgroundOption: backgroundOption
+            backgroundOption: .transparent
         )
     }
 }
@@ -863,30 +883,6 @@ private struct ShareTransparencyBadge: View {
     }
 }
 
-private struct ShareBackgroundToggle: View {
-    @Binding var selectedBackgroundOption: ShareCardBackgroundOption
-
-    var body: some View {
-        SOOMCard {
-            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                SOOMSectionHeader("배경", caption: "투명 이미지는 앱에 따라 배경이 다르게 보일 수 있어요.")
-
-                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    ForEach(ShareCardBackgroundOption.allCases) { option in
-                        ShareOptionPill(
-                            title: option.title,
-                            icon: option == .mapPhoto ? SOOMIcon.map : "checkerboard.rectangle",
-                            isSelected: selectedBackgroundOption == option
-                        ) {
-                            selectedBackgroundOption = option
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 private enum ShareComposerCarouselMetrics {
     static let previewWidth: CGFloat = 292
     static let previewHeight: CGFloat = previewWidth / ShareableWorkoutCardLayout.aspectRatio
@@ -896,29 +892,6 @@ private enum ShareComposerCarouselMetrics {
     static let activeDotWidth: CGFloat = 22
     static let transparentPreviewInset: CGFloat = 8
     static let transparencyBadgePadding: CGFloat = 14
-}
-
-private struct ShareOptionPill: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(isSelected ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SOOMLayout.Metrics.pillPadding)
-                .background(isSelected ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
-                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
-    }
 }
 
 private struct ShareTargetGrid: View {
@@ -956,6 +929,39 @@ private struct ShareTargetGrid: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+}
+
+enum ShareImagePhotoSaveError: Error {
+    case unauthorized
+    case invalidImageData
+}
+
+struct ShareImagePhotoSaver {
+    static func save(_ image: UIImage) async throws {
+        let status = await requestAuthorizationIfNeeded()
+        guard status == .authorized || status == .limited else {
+            throw ShareImagePhotoSaveError.unauthorized
+        }
+
+        guard let data = image.pngData() else {
+            throw ShareImagePhotoSaveError.invalidImageData
+        }
+
+        try await PHPhotoLibrary.shared().performChanges {
+            let request = PHAssetCreationRequest.forAsset()
+            request.addResource(with: .photo, data: data, options: nil)
+        }
+    }
+
+    private static func requestAuthorizationIfNeeded() async -> PHAuthorizationStatus {
+        let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        switch current {
+        case .notDetermined:
+            return await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        default:
+            return current
         }
     }
 }

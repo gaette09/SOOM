@@ -72,12 +72,11 @@ struct ShareableWorkoutCardRendererTests {
         for type in ShareCardComposerLayout.cardOrder {
             let card = makeCardWithStaticRoutePreview().configured(
                 shareType: type,
-                backgroundOption: .mapPhoto
+                backgroundOption: .transparent
             )
             let image = ShareableWorkoutCardRenderer().render(
                 card: card,
-                tint: SOOMColor.run,
-                resolvedRouteImage: makeResolvedRouteImage()
+                tint: SOOMColor.run
             )
             let width = image?.size.width ?? 0
             let height = image?.size.height ?? 0

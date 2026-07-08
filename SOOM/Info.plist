@@ -41,6 +41,8 @@
 	<string>SOOM은 사용자가 선택한 운동 데이터를 Health 앱에 저장하거나 업데이트하기 위해 HealthKit 쓰기 권한을 요청합니다.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>SOOM은 운동 시작 전 현재 위치를 지도에 표시하고 주변 코스를 안내하기 위해 위치 권한을 요청합니다.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SOOM은 사용자가 선택한 공유 이미지를 사진 앱에 저장하기 위해 권한을 요청합니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
