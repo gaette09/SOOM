@@ -225,6 +225,40 @@ struct ShareableWorkoutCardRendererTests {
         #expect(metrics.count == 4)
     }
 
+    @Test func testActivityDetailSummaryUsesProcessedSnapshotForCyclingSpeed() {
+        let processed = ProcessedWorkoutBuilder().make(
+            from: makeUnifiedWorkout(
+                type: .cycling,
+                durationSeconds: 3_600,
+                distanceMeters: 30_000,
+                averageSpeedMetersPerSecond: 8.333333
+            )
+        )
+
+        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed, recoveryImpact: nil)
+
+        #expect(metrics.map(\.label) == ["거리", "시간", "평균 속도", "회복 영향"])
+        #expect(metrics[2].value == "30.0 km/h")
+        #expect(metrics.last?.value == "준비 중")
+    }
+
+    @Test func testActivityDetailSummaryUsesProcessedMissingMetricCopy() {
+        let processed = ProcessedWorkoutBuilder().make(
+            from: makeUnifiedWorkout(
+                type: .running,
+                durationSeconds: 1_200,
+                distanceMeters: nil,
+                averageSpeedMetersPerSecond: nil
+            )
+        )
+
+        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed, recoveryImpact: nil)
+
+        #expect(metrics.map(\.label) == ["거리", "시간", "평균 페이스", "회복 영향"])
+        #expect(metrics[0].value == "거리 준비 중")
+        #expect(metrics[2].value == "움직임 준비 중")
+    }
+
     @Test func testActivityDetailRhythmUsesMeaningBeforeNumbers() {
         let workout = makeSparseWorkout(duration: 2_400, distanceMeters: 5_200)
         let impact = WorkoutRecoveryImpact(
@@ -400,6 +434,33 @@ struct ShareableWorkoutCardRendererTests {
             zones: [],
             achievements: [],
             aiSummary: "운동 흐름을 개인 공간에서 확인해요."
+        )
+    }
+
+    private func makeUnifiedWorkout(
+        type: UnifiedWorkoutType,
+        durationSeconds: TimeInterval,
+        distanceMeters: Double?,
+        averageSpeedMetersPerSecond: Double? = nil
+    ) -> UnifiedWorkout {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        return UnifiedWorkout(
+            id: UUID(),
+            externalId: nil,
+            source: .soomLocal,
+            workoutType: type,
+            startDate: startDate,
+            endDate: startDate.addingTimeInterval(durationSeconds),
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters,
+            activeEnergyKcal: nil,
+            averageHeartRate: nil,
+            maxHeartRate: nil,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
+            elevationGainMeters: nil,
+            dataQuality: .partial,
+            createdAt: startDate,
+            updatedAt: startDate
         )
     }
 

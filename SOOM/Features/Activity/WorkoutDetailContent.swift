@@ -52,7 +52,7 @@ struct WorkoutDetailContent: View {
                 DetailHeader(
                     icon: workout.sport.iconName,
                     title: workout.title,
-                    subtitle: "\(workout.sport.title) · \(workout.formattedDistance) · \(workout.formattedDuration)",
+                    subtitle: "\(workout.sport.title) · \(processedWorkout.display.distanceText) · \(processedWorkout.display.durationText)",
                     tint: workout.sport.tint
                 )
             }
@@ -60,7 +60,11 @@ struct WorkoutDetailContent: View {
             if presentationStyle == .standalone {
                 ActivityDetailHeroMap(workout: workout, route: mapRoute)
             }
-            ActivityDetailSummaryCard(workout: workout, recoveryImpact: recoveryImpact)
+            ActivityDetailSummaryCard(
+                workout: workout,
+                processedWorkout: processedWorkout,
+                recoveryImpact: recoveryImpact
+            )
             ActivityDetailRhythmCard(insight: rhythmInsight, tint: workout.sport.tint)
 
             if let terrainInsight, terrainInsight.isVisible {
@@ -244,6 +248,10 @@ struct WorkoutDetailContent: View {
             || ActivityDetailVisibilityPolicy.showsSplits(workout: workout)
     }
 
+    private var processedWorkout: ProcessedWorkout {
+        ProcessedWorkoutBuilder().make(from: unifiedWorkoutForDraft, route: mapRoute)
+    }
+
     private var workoutGrowthInput: WorkoutGrowthInput {
         WorkoutGrowthInput(
             id: workout.id,
@@ -390,6 +398,7 @@ private struct ActivityDetailHeroMap: View {
 
 private struct ActivityDetailSummaryCard: View {
     let workout: Workout
+    let processedWorkout: ProcessedWorkout
     let recoveryImpact: WorkoutRecoveryImpact?
     private let columns = [GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing), GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing)]
 
@@ -430,19 +439,12 @@ private struct ActivityDetailSummaryCard: View {
     }
 
     private var summaryMetrics: [ActivityDetailMetric] {
-        ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: recoveryImpact)
+        ActivityDetailSummaryMetrics.metrics(processedWorkout: processedWorkout, recoveryImpact: recoveryImpact)
     }
 
     private var dateText: String {
-        Self.dateFormatter.string(from: workout.date)
+        "\(processedWorkout.display.dateText) \(processedWorkout.display.timeText)"
     }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M월 d일 a h:mm"
-        return formatter
-    }()
 }
 
 private struct ActivityDetailStatTile: View {
@@ -1094,27 +1096,35 @@ struct ActivityDetailMetric: Identifiable, Equatable {
 
 enum ActivityDetailSummaryMetrics {
     static func metrics(workout: Workout, recoveryImpact: WorkoutRecoveryImpact?) -> [ActivityDetailMetric] {
-        [
-            ActivityDetailMetric(
-                label: "거리",
-                value: ActivityDetailDistanceCopy.value(
-                    distanceMeters: workout.distanceMeters,
-                    formattedDistance: workout.formattedDistance
-                )
-            ),
-            ActivityDetailMetric(label: "시간", value: workout.formattedDuration),
-            ActivityDetailMetric(label: workout.sport == .bike ? "평균 속도" : "평균 페이스", value: workout.formattedPace),
-            recoveryMetric(workout: workout, recoveryImpact: recoveryImpact)
+        metrics(
+            processedWorkout: ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: workout)),
+            recoveryImpact: recoveryImpact
+        )
+    }
+
+    static func metrics(
+        processedWorkout: ProcessedWorkout,
+        recoveryImpact: WorkoutRecoveryImpact?
+    ) -> [ActivityDetailMetric] {
+        let display = processedWorkout.display
+        return [
+            ActivityDetailMetric(label: "거리", value: display.distanceText),
+            ActivityDetailMetric(label: "시간", value: display.durationText),
+            ActivityDetailMetric(label: movementMetricLabel(for: processedWorkout), value: display.primaryMetricValue),
+            recoveryMetric(processedWorkout: processedWorkout, recoveryImpact: recoveryImpact)
         ]
     }
 
-    private static func recoveryMetric(workout: Workout, recoveryImpact: WorkoutRecoveryImpact?) -> ActivityDetailMetric {
+    private static func recoveryMetric(
+        processedWorkout: ProcessedWorkout,
+        recoveryImpact: WorkoutRecoveryImpact?
+    ) -> ActivityDetailMetric {
         if let recoveryImpact {
             return ActivityDetailMetric(label: "회복 영향", value: value(for: recoveryImpact.impactLevel))
         }
 
-        if workout.avgHeartRate > 0 {
-            return ActivityDetailMetric(label: "평균 심박", value: "\(workout.avgHeartRate)bpm")
+        if processedWorkout.metricAvailability[.averageHeartRate] == .measured {
+            return ActivityDetailMetric(label: "평균 심박", value: processedWorkout.display.averageHeartRateText)
         }
 
         return ActivityDetailMetric(label: "회복 영향", value: "준비 중")
@@ -1133,6 +1143,39 @@ enum ActivityDetailSummaryMetrics {
         case .insufficientData:
             return "준비 중"
         }
+    }
+
+    private static func movementMetricLabel(for processedWorkout: ProcessedWorkout) -> String {
+        switch processedWorkout.workoutType {
+        case .cycling, .walking:
+            return "평균 속도"
+        case .running, .hiking:
+            return "평균 페이스"
+        default:
+            return "평균 \(processedWorkout.display.primaryMetricLabel)"
+        }
+    }
+
+    private static func unifiedWorkout(from workout: Workout) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: workout.id,
+            externalId: "workout-detail-\(workout.id.uuidString)",
+            source: .soomLocal,
+            workoutType: UnifiedWorkoutType(workoutSport: workout.sport),
+            startDate: workout.date,
+            endDate: workout.date.addingTimeInterval(workout.duration),
+            durationSeconds: workout.duration,
+            distanceMeters: workout.distanceMeters > 0 ? workout.distanceMeters : nil,
+            activeEnergyKcal: workout.activeCalories > 0 ? Double(workout.activeCalories) : nil,
+            averageHeartRate: workout.avgHeartRate > 0 ? Double(workout.avgHeartRate) : nil,
+            maxHeartRate: workout.maxHeartRate > 0 ? Double(workout.maxHeartRate) : nil,
+            averageSpeedMetersPerSecond: workout.duration > 0 && workout.distanceMeters > 0 ? workout.distanceMeters / workout.duration : nil,
+            elevationGainMeters: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
+            dataQuality: .partial,
+            isExcludedFromAnalysis: false,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
     }
 }
 
