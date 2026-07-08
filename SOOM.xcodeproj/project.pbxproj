@@ -195,6 +195,7 @@
 		010801 /* ProcessedWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020801 /* ProcessedWorkout.swift */; };
 		010802 /* ProcessedWorkoutBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020802 /* ProcessedWorkoutBuilder.swift */; };
 		010803 /* ProcessedWorkoutBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020803 /* ProcessedWorkoutBuilderTests.swift */; };
+		010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -661,6 +662,7 @@
 		020801 /* ProcessedWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkout.swift; sourceTree = "<group>"; };
 		020802 /* ProcessedWorkoutBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutBuilder.swift; sourceTree = "<group>"; };
 		020803 /* ProcessedWorkoutBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutBuilderTests.swift; sourceTree = "<group>"; };
+		020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutToRecoveryActivityMapper.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1220,6 +1222,7 @@
 				040020 /* Persistence */,
 				020052 /* RecoveryModels.swift */,
 				020055 /* RecoveryActivityModels.swift */,
+				020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */,
 				020054 /* RecoveryDataProvider.swift */,
 				020057 /* RecoveryActivityStore.swift */,
 				020060 /* LocalActivityStore.swift */,
@@ -1919,6 +1922,7 @@
 				010A01 /* StravaDetailFrameLockView.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
+				010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */,
 				010052 /* RecoveryDataProvider.swift in Sources */,
 				010055 /* RecoveryActivityStore.swift in Sources */,
 				010058 /* LocalActivityStore.swift in Sources */,

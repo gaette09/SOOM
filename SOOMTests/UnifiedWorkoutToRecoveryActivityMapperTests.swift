@@ -3,6 +3,8 @@ import XCTest
 
 final class UnifiedWorkoutToRecoveryActivityMapperTests: XCTestCase {
     private let mapper = UnifiedWorkoutToRecoveryActivityMapper()
+    private let processedMapper = ProcessedWorkoutToRecoveryActivityMapper()
+    private let processedBuilder = ProcessedWorkoutBuilder()
 
     func testRunningWorkoutMapsToRunRecoveryActivity() {
         let workout = makeWorkout(type: .running)
@@ -96,6 +98,68 @@ final class UnifiedWorkoutToRecoveryActivityMapperTests: XCTestCase {
         XCTAssertEqual(garminActivity.durationMinutes, samsungActivity.durationMinutes)
     }
 
+    func testProcessedCyclingWorkoutMatchesUnifiedRecoveryActivityInput() {
+        assertProcessedParity(for: makeWorkout(type: .cycling))
+    }
+
+    func testProcessedRunningWorkoutMatchesUnifiedRecoveryActivityInput() {
+        assertProcessedParity(for: makeWorkout(type: .running))
+    }
+
+    func testProcessedWalkingWorkoutMatchesUnifiedRecoveryActivityInput() {
+        assertProcessedParity(for: makeWorkout(type: .walking))
+    }
+
+    func testProcessedTimeOnlyWorkoutMatchesUnifiedRecoveryActivityInput() {
+        assertProcessedParity(for: makeWorkout(
+            type: .running,
+            durationSeconds: 1_500,
+            distanceMeters: nil,
+            averageHeartRate: nil,
+            activeEnergyKcal: nil
+        ))
+    }
+
+    func testProcessedMissingHeartRateMatchesUnifiedRecoveryActivityInput() {
+        assertProcessedParity(for: makeWorkout(
+            type: .cycling,
+            averageHeartRate: nil
+        ))
+    }
+
+    func testProcessedRouteBackedWorkoutMatchesUnifiedInputWhenSourceDistanceExists() {
+        let workout = makeWorkout(type: .running, distanceMeters: 8_200)
+        let route = makeRoute(for: workout, totalDistanceMeters: 8_200)
+
+        assertProcessedParity(for: workout, route: route)
+    }
+
+    func testProcessedRouteDistanceCanFillMissingSourceDistance() {
+        let workout = makeWorkout(type: .cycling, distanceMeters: nil)
+        let route = makeRoute(for: workout, totalDistanceMeters: 12_400)
+
+        let processed = processedBuilder.make(from: workout, route: route)
+        let unifiedActivity = mapper.map(workout)
+        let activity = processedMapper.map(processed)
+
+        XCTAssertEqual(activity.distanceKm, 12.4, accuracy: 0.001)
+        XCTAssertEqual(activity.durationMinutes, unifiedActivity.durationMinutes)
+        XCTAssertEqual(activity.averageHeartRate, unifiedActivity.averageHeartRate)
+        XCTAssertEqual(activity.relativeEffort, unifiedActivity.relativeEffort)
+        XCTAssertEqual(activity.trainingLoad, unifiedActivity.trainingLoad, accuracy: 0.001)
+    }
+
+    func testSelectorCanMapProcessedRecoveryInputsWithoutMigratingUnifiedPath() {
+        let selector = UnifiedWorkoutAnalysisInputSelector()
+        let included = processedBuilder.make(from: makeWorkout(type: .running))
+        let excluded = processedBuilder.make(from: makeWorkout(type: .cycling, isExcluded: true))
+
+        let inputs = selector.selectRecoveryInputs(fromProcessedWorkouts: [included, excluded])
+
+        XCTAssertEqual(inputs.count, 1)
+        XCTAssertEqual(inputs.first?.workoutType.title, RecoveryWorkoutType.run.title)
+    }
+
     private func makeWorkout(
         source: UnifiedDataSource = .appleHealthKit,
         type: UnifiedWorkoutType,
@@ -103,7 +167,8 @@ final class UnifiedWorkoutToRecoveryActivityMapperTests: XCTestCase {
         durationSeconds: TimeInterval = 3_600,
         distanceMeters: Double? = 32_000,
         averageHeartRate: Double? = 142,
-        activeEnergyKcal: Double? = 620
+        activeEnergyKcal: Double? = 620,
+        isExcluded: Bool = false
     ) -> UnifiedWorkout {
         UnifiedWorkout(
             id: UUID(),
@@ -120,8 +185,45 @@ final class UnifiedWorkoutToRecoveryActivityMapperTests: XCTestCase {
             averageSpeedMetersPerSecond: nil,
             elevationGainMeters: nil,
             dataQuality: .partial,
+            isExcludedFromAnalysis: isExcluded,
             createdAt: endDate,
             updatedAt: endDate
         )
+    }
+
+    private func makeRoute(
+        for workout: UnifiedWorkout,
+        totalDistanceMeters: Double,
+        totalElevationGain: Double = 42
+    ) -> WorkoutRoute {
+        WorkoutRoute(
+            workoutId: workout.id,
+            source: workout.source,
+            coordinates: [
+                WorkoutRouteCoordinate(latitude: 37.5, longitude: 127.0, altitude: 10),
+                WorkoutRouteCoordinate(latitude: 37.52, longitude: 127.02, altitude: 52)
+            ],
+            totalDistanceMeters: totalDistanceMeters,
+            totalElevationGain: totalElevationGain
+        )
+    }
+
+    private func assertProcessedParity(
+        for workout: UnifiedWorkout,
+        route: WorkoutRoute? = nil,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let unifiedActivity = mapper.map(workout)
+        let processed = processedBuilder.make(from: workout, route: route)
+        let processedActivity = processedMapper.map(processed)
+
+        XCTAssertEqual(processedActivity.workoutType.title, unifiedActivity.workoutType.title, file: file, line: line)
+        XCTAssertEqual(processedActivity.durationMinutes, unifiedActivity.durationMinutes, file: file, line: line)
+        XCTAssertEqual(processedActivity.distanceKm, unifiedActivity.distanceKm, accuracy: 0.001, file: file, line: line)
+        XCTAssertEqual(processedActivity.averageHeartRate, unifiedActivity.averageHeartRate, file: file, line: line)
+        XCTAssertEqual(processedActivity.relativeEffort, unifiedActivity.relativeEffort, file: file, line: line)
+        XCTAssertEqual(processedActivity.trainingLoad, unifiedActivity.trainingLoad, accuracy: 0.001, file: file, line: line)
+        XCTAssertEqual(processedActivity.completedAt, unifiedActivity.completedAt, file: file, line: line)
     }
 }
