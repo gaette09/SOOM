@@ -21,7 +21,7 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| 1 | SOOM | HealthKit read integration Phase 1 planning | `docs/reports/soom-healthkit-read-phase1-plan.md` | Planning only; keep implementation, TestFlight upload, and build bump deferred |
+| 1 | SOOM | HealthKit read Phase 1E device QA checklist | `docs/reports/soom-healthkit-read-phase1e-device-qa.md` | Documentation/checklist only; physical-device QA is the next validation gate before limited TestFlight validation |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
@@ -33,29 +33,30 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: HealthKit Read Integration Phase 1 Planning
+## SOOM: HealthKit Read Phase 1E Device QA Checklist
 
 Goal:
 
-- Plan the first HealthKit read integration pass now that the local `ProcessedWorkout` pipeline is stable enough to receive imported workouts.
+- Define the physical-device manual import QA and permission-state validation checklist for the completed HealthKit Read Phase 1A-1D work.
 
 Verification:
 
-- Audit current HealthKit, permission, Record save, `UnifiedWorkout`, `ProcessedWorkout`, Activity Detail, Profile, Share, and Recovery preview paths.
-- Define conservative read-only HealthKit Phase 1 scope.
-- Keep HealthKit write, background sync, Garmin/Samsung/Google integrations, sampled stream persistence, and unrelated UI polish deferred.
+- Validate not requested, allowed, denied, partial, and revoked HealthKit permission states on device.
+- Validate manual imports for cycling, running, walking, route-backed, no-route, missing metric, duplicate, HealthKit-only, and re-import scenarios.
+- Confirm Activity Detail, Share, Profile, and Recovery stay consistent through the existing `ProcessedWorkout` path.
+- Keep HealthKit write, background sync, Garmin/Samsung/Google integrations, sampled stream persistence, UI changes, TestFlight upload, and build bump deferred.
 
 Expected outcome:
 
-- A documented HealthKit Read Integration Phase 1 plan exists, with the next implementation step focused on manual, read-only Apple Health workout import into the existing `UnifiedWorkout`/`ProcessedWorkout` path.
+- A device QA checklist exists with clear pass/block decision rules for whether Phase 1 HealthKit read is ready for limited TestFlight validation.
 
 Completion criteria:
 
-- Current HealthKit foundation status is documented.
-- Initial HealthKit workout, permission, sport, and metric mapping rules are documented.
-- Duplicate prevention, local-vs-HealthKit priority, privacy UX, and test strategy are documented.
-- Phase 1 implementation phases are documented.
-- Explicit deferrals are recorded.
+- Permission-state QA scenarios are documented.
+- Manual import scenarios for core sports and route/no-route cases are documented.
+- Surface validation expectations for Activity Detail, Share, Profile, and Recovery are documented.
+- Privacy and copy checks are documented.
+- Decision rules for pass, block, and non-blocking route failures are documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 
