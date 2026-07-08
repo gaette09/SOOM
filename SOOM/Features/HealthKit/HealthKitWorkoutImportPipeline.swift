@@ -5,6 +5,12 @@ protocol HealthKitWorkoutImporting {
 }
 
 final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
+    private let localDuplicateLookbackDays = 3_650
+    private let startDateTolerance: TimeInterval = 5 * 60
+    private let endDateTolerance: TimeInterval = 5 * 60
+    private let durationToleranceRatio = 0.05
+    private let distanceToleranceRatio = 0.10
+
     private let workoutFetcher: any HealthKitWorkoutFetching
     private let mapper: HealthKitWorkoutToUnifiedWorkoutMapper
     private let store: any UnifiedWorkoutStore
@@ -44,15 +50,23 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
 
         let importDate = mappedAt()
         let unifiedWorkouts = workouts.map { mapper.map($0, mappedAt: importDate) }
+        let importableWorkouts: [UnifiedWorkout]
 
         guard !unifiedWorkouts.isEmpty else {
             return .success(importedWorkouts: [], fetchedCount: workouts.count)
         }
 
         do {
-            try await store.saveWorkouts(unifiedWorkouts)
-            await persistRoutesIfAvailable(for: unifiedWorkouts)
-            return .success(importedWorkouts: unifiedWorkouts, fetchedCount: workouts.count)
+            let existingWorkouts = try await store.fetchRecentWorkouts(days: localDuplicateLookbackDays)
+            importableWorkouts = unifiedWorkouts.filter { !hasLocalDuplicate(for: $0, in: existingWorkouts) }
+
+            guard !importableWorkouts.isEmpty else {
+                return .success(importedWorkouts: [], fetchedCount: workouts.count)
+            }
+
+            try await store.saveWorkouts(importableWorkouts)
+            await persistRoutesIfAvailable(for: importableWorkouts)
+            return .success(importedWorkouts: importableWorkouts, fetchedCount: workouts.count)
         } catch {
             return .failure(
                 fetchedCount: workouts.count,
@@ -62,6 +76,50 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
         }
     }
 
+
+    private func hasLocalDuplicate(for importedWorkout: UnifiedWorkout, in existingWorkouts: [UnifiedWorkout]) -> Bool {
+        guard importedWorkout.source == .appleHealthKit else { return false }
+
+        return existingWorkouts.contains { existingWorkout in
+            isConservativeLocalDuplicate(existingWorkout, importedWorkout: importedWorkout)
+        }
+    }
+
+    private func isConservativeLocalDuplicate(
+        _ existingWorkout: UnifiedWorkout,
+        importedWorkout: UnifiedWorkout
+    ) -> Bool {
+        guard existingWorkout.source == .soomLocal else { return false }
+        guard existingWorkout.workoutType == importedWorkout.workoutType else { return false }
+        guard abs(existingWorkout.startDate.timeIntervalSince(importedWorkout.startDate)) <= startDateTolerance else {
+            return false
+        }
+        guard abs(existingWorkout.endDate.timeIntervalSince(importedWorkout.endDate)) <= endDateTolerance else {
+            return false
+        }
+        guard differenceRatio(existingWorkout.durationSeconds, importedWorkout.durationSeconds) <= durationToleranceRatio else {
+            return false
+        }
+        guard
+            let existingDistance = positive(existingWorkout.distanceMeters),
+            let importedDistance = positive(importedWorkout.distanceMeters)
+        else {
+            return false
+        }
+
+        return differenceRatio(existingDistance, importedDistance) <= distanceToleranceRatio
+    }
+
+    private func differenceRatio(_ a: Double, _ b: Double) -> Double {
+        let baseline = max(abs(a), abs(b))
+        guard baseline > 0 else { return 1 }
+        return abs(a - b) / baseline
+    }
+
+    private func positive(_ value: Double?) -> Double? {
+        guard let value, value > 0 else { return nil }
+        return value
+    }
 
     private func persistRoutesIfAvailable(for workouts: [UnifiedWorkout]) async {
         guard

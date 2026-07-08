@@ -160,6 +160,166 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.first?.externalId, workoutID.uuidString)
     }
 
+    func testLocalSoomWorkoutVsSimilarHealthKitWorkoutPrefersLocalAndSkipsImport() async {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let localWorkout = makeUnifiedWorkout(
+            source: .soomLocal,
+            type: .running,
+            startDate: startDate,
+            duration: 3_600,
+            distance: 10_000
+        )
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [localWorkout])
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        type: .running,
+                        startDate: startDate.addingTimeInterval(90),
+                        duration: 3_540,
+                        distance: 10_200
+                    )
+                ])
+            ),
+            store: store
+        )
+
+        let result = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(result.fetchedCount, 1)
+        XCTAssertEqual(result.savedCount, 0)
+        XCTAssertEqual(result.skippedCount, 1)
+        XCTAssertEqual(store.savedWorkouts.count, 1)
+        XCTAssertEqual(store.savedWorkouts.first?.source, .soomLocal)
+    }
+
+    func testDifferentTimeHealthKitWorkoutStillImports() async {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let localWorkout = makeUnifiedWorkout(
+            source: .soomLocal,
+            type: .cycling,
+            startDate: startDate,
+            duration: 3_600,
+            distance: 30_000
+        )
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [localWorkout])
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        type: .cycling,
+                        startDate: startDate.addingTimeInterval(3_600),
+                        duration: 3_600,
+                        distance: 30_100
+                    )
+                ])
+            ),
+            store: store
+        )
+
+        let result = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(store.savedWorkouts.count, 2)
+        XCTAssertTrue(store.savedWorkouts.contains { $0.source == .appleHealthKit })
+    }
+
+    func testSameDayDifferentSportHealthKitWorkoutStillImports() async {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let localWorkout = makeUnifiedWorkout(
+            source: .soomLocal,
+            type: .running,
+            startDate: startDate,
+            duration: 3_600,
+            distance: 10_000
+        )
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [localWorkout])
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        type: .cycling,
+                        startDate: startDate.addingTimeInterval(60),
+                        duration: 3_600,
+                        distance: 10_000
+                    )
+                ])
+            ),
+            store: store
+        )
+
+        let result = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(store.savedWorkouts.count, 2)
+        XCTAssertEqual(store.savedWorkouts.last?.workoutType, .cycling)
+    }
+
+    func testMissingDistanceDoesNotCauseUnsafeLocalDuplicateSkip() async {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let localWorkout = makeUnifiedWorkout(
+            source: .soomLocal,
+            type: .walking,
+            startDate: startDate,
+            duration: 1_800,
+            distance: nil
+        )
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [localWorkout])
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        type: .walking,
+                        startDate: startDate.addingTimeInterval(60),
+                        duration: 1_780,
+                        distance: nil
+                    )
+                ])
+            ),
+            store: store
+        )
+
+        let result = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(store.savedWorkouts.count, 2)
+        XCTAssertTrue(store.savedWorkouts.contains { $0.source == .appleHealthKit })
+    }
+
+    func testHealthKitOnlyWorkoutStillImportsAndCanBecomeProcessedWorkout() async {
+        let workoutID = UUID(uuidString: "89898989-8989-8989-8989-898989898989")!
+        let store = FakeUnifiedWorkoutStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        id: workoutID,
+                        type: .cycling,
+                        duration: 3_600,
+                        distance: 30_000,
+                        calories: 640
+                    )
+                ])
+            ),
+            store: store
+        )
+
+        let result = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        let processed = ProcessedWorkoutBuilder().make(from: result.importedWorkouts[0])
+        XCTAssertEqual(processed.source, .appleHealthKit)
+        XCTAssertEqual(processed.externalId, workoutID.uuidString)
+        XCTAssertEqual(processed.workoutType, .cycling)
+        XCTAssertEqual(processed.distanceMeters, 30_000)
+        XCTAssertEqual(processed.metricAvailability[.distance], .measured)
+        XCTAssertEqual(processed.metricAvailability[.calories], .measured)
+    }
+
     func testStoreFailureReturnsFailedSaveResult() async {
         let pipeline = HealthKitWorkoutImportPipeline(
             workoutFetcher: FakeHealthKitWorkoutFetcher(
@@ -197,6 +357,35 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
             distance: distance,
             averageHeartRate: averageHeartRate,
             calories: calories
+        )
+    }
+
+    private func makeUnifiedWorkout(
+        id: UUID = UUID(),
+        source: UnifiedDataSource,
+        type: UnifiedWorkoutType,
+        startDate: Date,
+        duration: TimeInterval,
+        distance: Double?,
+        externalId: String? = nil
+    ) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: id,
+            externalId: externalId,
+            source: source,
+            workoutType: type,
+            startDate: startDate,
+            endDate: startDate.addingTimeInterval(duration),
+            durationSeconds: duration,
+            distanceMeters: distance,
+            activeEnergyKcal: nil,
+            averageHeartRate: nil,
+            maxHeartRate: nil,
+            averageSpeedMetersPerSecond: distance.map { $0 / duration },
+            elevationGainMeters: nil,
+            dataQuality: .partial,
+            createdAt: startDate,
+            updatedAt: startDate
         )
     }
 }
@@ -296,7 +485,8 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
     private(set) var savedWorkouts: [UnifiedWorkout] = []
     private let saveError: Error?
 
-    init(saveError: Error? = nil) {
+    init(existingWorkouts: [UnifiedWorkout] = [], saveError: Error? = nil) {
+        self.savedWorkouts = existingWorkouts
         self.saveError = saveError
     }
 
