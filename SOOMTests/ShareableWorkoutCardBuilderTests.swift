@@ -223,6 +223,20 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertEqual(ShareCardComposerLayout.index(for: .club), 3)
     }
 
+    func testTransparentShareCardTypesUseDistinctExportLayouts() {
+        let variants = ShareCardComposerLayout.cardOrder.map {
+            ShareTransparentCardLayoutVariant.variant(for: $0)
+        }
+
+        XCTAssertEqual(variants, [
+            .minimalBottomBar,
+            .fullRoutePoster,
+            .sideStack,
+            .minimalBadge
+        ])
+        XCTAssertEqual(Set(variants).count, ShareCardComposerLayout.cardOrder.count)
+    }
+
     func testTransparentBackgroundUsesCheckerboardPreviewOnly() {
         XCTAssertFalse(ShareCardBackgroundOption.mapPhoto.usesCheckerboardPreview)
         XCTAssertTrue(ShareCardBackgroundOption.transparent.usesCheckerboardPreview)

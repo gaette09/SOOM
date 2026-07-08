@@ -50,6 +50,19 @@ struct ShareableWorkoutCardRendererTests {
         #expect(topLeftAlpha(of: image) == 0)
     }
 
+    @Test func testTransparentShareCardCornersStayTransparentAcrossVariants() {
+        for type in ShareCardComposerLayout.cardOrder {
+            let card = makeCardWithStaticRoutePreview().configured(
+                shareType: type,
+                backgroundOption: .transparent
+            )
+            let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.accent)
+
+            #expect(image != nil)
+            #expect(topLeftAlpha(of: image) == 0)
+        }
+    }
+
     @Test func testRendererCanUseResolvedStaticRouteImageForMapPhotoCard() {
         let card = makeCardWithStaticRoutePreview()
         let image = ShareableWorkoutCardRenderer().render(
