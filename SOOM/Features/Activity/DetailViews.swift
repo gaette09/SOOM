@@ -17,7 +17,7 @@ struct WorkoutDetailView: View {
     var body: some View {
         Group {
             if detailMapRoute != nil {
-                WorkoutMapSheetScaffold(workout: workout, navigationTitle: "운동 상세") {
+                WorkoutMapSheetScaffold(workout: workout, routeOverride: detailMapRoute, navigationTitle: "운동 상세") {
                     detailContent(showsHeader: false, presentationStyle: .mapSheet)
                 }
             } else {

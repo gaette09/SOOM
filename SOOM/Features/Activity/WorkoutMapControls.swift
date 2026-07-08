@@ -54,22 +54,13 @@ private struct MapCircleButton: View {
 
 struct WorkoutMapBackground: View {
     let workout: Workout
+    let routeOverride: WorkoutRoute?
     @Binding var position: MapCameraPosition
     let sheetPosition: WorkoutSheetPosition
     let cameraPadding: UIEdgeInsets
 
     private var route: WorkoutRoute? {
-        guard workout.route.count >= 2 else { return nil }
-
-        return WorkoutRoute(
-            workoutId: workout.id,
-            source: .soomLocal,
-            coordinates: workout.route.map {
-                WorkoutRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude)
-            },
-            totalDistanceMeters: workout.distanceMeters,
-            totalElevationGain: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil
-        )
+        WorkoutMapSheetRouteContext.route(for: workout, override: routeOverride)
     }
 
     private var coordinates: [CLLocationCoordinate2D] {

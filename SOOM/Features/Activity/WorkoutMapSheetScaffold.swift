@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     let workout: Workout
+    let routeOverride: WorkoutRoute?
     let navigationTitle: String
     let sheetContent: SheetContent
 
@@ -14,15 +15,25 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     @State private var sheetDragCanMove: Bool?
     @State private var sheetDragActivationTranslation: CGFloat = 0
 
-    private var coordinates: [CLLocationCoordinate2D] {
-        workout.route.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+    private var route: WorkoutRoute? {
+        WorkoutMapSheetRouteContext.route(for: workout, override: routeOverride)
     }
 
-    init(workout: Workout, navigationTitle: String, @ViewBuilder sheetContent: () -> SheetContent) {
+    private var coordinates: [CLLocationCoordinate2D] {
+        WorkoutMapSheetRouteContext.coordinates(for: workout, override: routeOverride)
+    }
+
+    init(
+        workout: Workout,
+        routeOverride: WorkoutRoute? = nil,
+        navigationTitle: String,
+        @ViewBuilder sheetContent: () -> SheetContent
+    ) {
         self.workout = workout
+        self.routeOverride = routeOverride
         self.navigationTitle = navigationTitle
         self.sheetContent = sheetContent()
-        let coordinates = workout.route.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let coordinates = WorkoutMapSheetRouteContext.coordinates(for: workout, override: routeOverride)
         self._mapPosition = State(initialValue: .region(routeRegion(
             for: coordinates,
             scale: WorkoutSheetPosition.standard.mapScale,
@@ -41,6 +52,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
 
                 WorkoutMapBackground(
                     workout: workout,
+                    routeOverride: route,
                     position: $mapPosition,
                     sheetPosition: sheetPosition,
                     cameraPadding: WorkoutRouteCameraPadding.padding(
@@ -224,5 +236,32 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             standard: metrics.standardHeight,
             expanded: metrics.expandedHeight
         )
+    }
+}
+
+enum WorkoutMapSheetRouteContext {
+    static func route(for workout: Workout, override: WorkoutRoute?) -> WorkoutRoute? {
+        if let override, override.coordinates.count >= 2 {
+            return override
+        }
+
+        guard workout.route.count >= 2 else { return nil }
+
+        return WorkoutRoute(
+            workoutId: workout.id,
+            source: .soomLocal,
+            coordinates: workout.route.map {
+                WorkoutRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude)
+            },
+            totalDistanceMeters: workout.distanceMeters,
+            totalElevationGain: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
+            createdAt: workout.date
+        )
+    }
+
+    static func coordinates(for workout: Workout, override: WorkoutRoute?) -> [CLLocationCoordinate2D] {
+        route(for: workout, override: override)?.coordinates.map {
+            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+        } ?? []
     }
 }
