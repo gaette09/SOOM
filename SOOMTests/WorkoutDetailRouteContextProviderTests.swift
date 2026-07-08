@@ -15,6 +15,80 @@ final class WorkoutDetailRouteContextProviderTests: XCTestCase {
         XCTAssertEqual(result?.totalElevationGain, route.totalElevationGain)
     }
 
+    func testReturnsHealthKitRouteByExternalIdWhenStoredWorkoutIdDiffers() async {
+        let storedWorkoutId = UUID(uuidString: "91919191-9191-9191-9191-919191919191")!
+        let healthKitWorkoutId = UUID(uuidString: "92929292-9292-9292-9292-929292929292")!
+        let route = makeRoute(workoutId: healthKitWorkoutId)
+        let provider = WorkoutDetailRouteContextProvider(
+            store: FakeWorkoutRoutePersistenceStore(routes: [route])
+        )
+        let workout = makeUnifiedWorkout(
+            id: storedWorkoutId,
+            externalId: healthKitWorkoutId.uuidString,
+            source: .appleHealthKit,
+            type: .cycling
+        )
+
+        let result = await provider.route(for: workout)
+
+        XCTAssertEqual(result?.workoutId, healthKitWorkoutId)
+        XCTAssertEqual(result?.source, .appleHealthKit)
+    }
+
+    func testCyclingHealthKitRouteUsesImportedWorkoutIdWhenAvailable() async {
+        let workoutId = UUID(uuidString: "93939393-9393-9393-9393-939393939393")!
+        let route = makeRoute(workoutId: workoutId)
+        let provider = WorkoutDetailRouteContextProvider(
+            store: FakeWorkoutRoutePersistenceStore(routes: [route])
+        )
+        let workout = makeUnifiedWorkout(
+            id: workoutId,
+            externalId: workoutId.uuidString,
+            source: .appleHealthKit,
+            type: .cycling
+        )
+
+        let result = await provider.route(for: workout)
+
+        XCTAssertEqual(result?.workoutId, workoutId)
+        XCTAssertEqual(result?.source, .appleHealthKit)
+    }
+
+    func testRunningHealthKitRouteUsesImportedWorkoutIdWhenAvailable() async {
+        let workoutId = UUID(uuidString: "94949494-9494-9494-9494-949494949494")!
+        let route = makeRoute(workoutId: workoutId)
+        let provider = WorkoutDetailRouteContextProvider(
+            store: FakeWorkoutRoutePersistenceStore(routes: [route])
+        )
+        let workout = makeUnifiedWorkout(
+            id: workoutId,
+            externalId: workoutId.uuidString,
+            source: .appleHealthKit,
+            type: .running
+        )
+
+        let result = await provider.route(for: workout)
+
+        XCTAssertEqual(result?.workoutId, workoutId)
+        XCTAssertEqual(result?.source, .appleHealthKit)
+    }
+
+    func testNoRouteCyclingHealthKitWorkoutFallsBackToNil() async {
+        let workout = makeUnifiedWorkout(
+            id: UUID(),
+            externalId: UUID().uuidString,
+            source: .appleHealthKit,
+            type: .cycling
+        )
+        let provider = WorkoutDetailRouteContextProvider(
+            store: FakeWorkoutRoutePersistenceStore(routes: [])
+        )
+
+        let result = await provider.route(for: workout)
+
+        XCTAssertNil(result)
+    }
+
     func testReturnsNilWhenRouteDoesNotExist() async {
         let provider = WorkoutDetailRouteContextProvider(
             store: FakeWorkoutRoutePersistenceStore(routes: [])
@@ -87,6 +161,32 @@ final class WorkoutDetailRouteContextProviderTests: XCTestCase {
             ],
             totalDistanceMeters: distance,
             totalElevationGain: elevationGain
+        )
+    }
+
+    private func makeUnifiedWorkout(
+        id: UUID,
+        externalId: String?,
+        source: UnifiedDataSource,
+        type: UnifiedWorkoutType
+    ) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: id,
+            externalId: externalId,
+            source: source,
+            workoutType: type,
+            startDate: Date(timeIntervalSince1970: 1_800_000_000),
+            endDate: Date(timeIntervalSince1970: 1_800_003_600),
+            durationSeconds: 3_600,
+            distanceMeters: 12_000,
+            activeEnergyKcal: 500,
+            averageHeartRate: nil,
+            maxHeartRate: nil,
+            averageSpeedMetersPerSecond: nil,
+            elevationGainMeters: nil,
+            dataQuality: .partial,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_000_000)
         )
     }
 }

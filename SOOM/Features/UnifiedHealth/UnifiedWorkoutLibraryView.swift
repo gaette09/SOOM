@@ -224,7 +224,7 @@ private struct UnifiedWorkoutLibraryRow: View {
         }
         .accessibilityElement(children: .contain)
         .task(id: workout.id) {
-            hasPersistedRoute = await detailRouteContextProvider?.route(for: workout.id) != nil
+            hasPersistedRoute = await detailRouteContextProvider?.route(for: workout) != nil
         }
     }
 
@@ -383,7 +383,7 @@ private struct UnifiedWorkoutDetailDestination: View {
     }
 
     private func loadPersistedRoute() async -> WorkoutRoute? {
-        await detailRouteContextProvider?.route(for: unifiedWorkout.id)
+        await detailRouteContextProvider?.route(for: unifiedWorkout)
     }
 
     private func loadSimilarCandidateResult() async -> SimilarWorkoutCandidateResult? {

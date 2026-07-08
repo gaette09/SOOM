@@ -15,6 +15,32 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
         XCTAssertEqual(route?.totalDistanceMeters, importedRoute.totalDistanceMeters)
     }
 
+    func testCyclingHealthKitRouteOverrideResolvesAsRouteBacked() {
+        let workoutID = UUID(uuidString: "83838383-8383-8383-8383-838383838383")!
+        let workout = makeWorkout(id: workoutID, sport: .bike, route: [])
+        let importedRoute = makeRoute(workoutId: workoutID, source: .appleHealthKit)
+
+        let route = WorkoutMapSheetRouteContext.route(for: workout, override: importedRoute)
+        let coordinates = WorkoutMapSheetRouteContext.coordinates(for: workout, override: importedRoute)
+
+        XCTAssertEqual(route?.source, .appleHealthKit)
+        XCTAssertEqual(route?.workoutId, workoutID)
+        XCTAssertEqual(coordinates.count, 2)
+    }
+
+    func testRunningHealthKitRouteOverrideResolvesAsRouteBacked() {
+        let workoutID = UUID(uuidString: "84848484-8484-8484-8484-848484848484")!
+        let workout = makeWorkout(id: workoutID, sport: .run, route: [])
+        let importedRoute = makeRoute(workoutId: workoutID, source: .appleHealthKit)
+
+        let route = WorkoutMapSheetRouteContext.route(for: workout, override: importedRoute)
+        let coordinates = WorkoutMapSheetRouteContext.coordinates(for: workout, override: importedRoute)
+
+        XCTAssertEqual(route?.source, .appleHealthKit)
+        XCTAssertEqual(route?.workoutId, workoutID)
+        XCTAssertEqual(coordinates.count, 2)
+    }
+
     func testNoRouteWorkoutKeepsMapSheetFallbackRouteNil() {
         let workout = makeWorkout(route: [])
 
@@ -70,13 +96,14 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
     private func makeWorkout(
         id: UUID = UUID(),
+        sport: WorkoutSport = .bike,
         distanceMeters: Double = 10_000,
         elevationGain: Int = 0,
         route: [RoutePoint]
     ) -> Workout {
         Workout(
             id: id,
-            sport: .bike,
+            sport: sport,
             title: "Apple Health 사이클",
             date: Date(timeIntervalSince1970: 1_800_000_000),
             distanceMeters: distanceMeters,
