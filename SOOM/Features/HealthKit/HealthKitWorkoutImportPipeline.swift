@@ -143,10 +143,25 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
                     continue
                 }
 
-                try await routeStore.saveRoute(route)
+                try await routeStore.saveRoute(route.associated(with: workout))
             } catch {
                 continue
             }
         }
+    }
+}
+
+private extension WorkoutRoute {
+    func associated(with workout: UnifiedWorkout) -> WorkoutRoute {
+        WorkoutRoute(
+            id: id,
+            workoutId: workout.id,
+            source: workout.source,
+            coordinates: coordinates,
+            totalDistanceMeters: totalDistanceMeters,
+            totalElevationGain: totalElevationGain,
+            bounds: bounds,
+            createdAt: createdAt
+        )
     }
 }
