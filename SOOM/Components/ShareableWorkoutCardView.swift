@@ -210,20 +210,20 @@ struct ShareableWorkoutCardView: View {
             fullRoutePosterLayout(in: size)
         case .sideStack:
             sideStackLayout(in: size)
-        case .minimalBadge:
-            minimalBadgeLayout(in: size)
+        case .statSummary:
+            statSummaryLayout(in: size)
         }
     }
 
     private func minimalBottomBarLayout(in size: CGSize) -> some View {
-        let inset = transparentSafeInset(for: size)
+        let inset = transparentSafeInset(for: size, horizontalRatio: 0.105)
         let safeWidth = size.width - inset.width * 2
 
         return transparentCanvas(size: size) {
-            routeLine(width: size.width * 0.78, height: size.height * 0.36)
+            routeLine(width: size.width * 0.72, height: size.height * 0.34)
                 .position(x: size.width * 0.50, y: size.height * 0.35)
 
-            transparentMetricRow(width: safeWidth, valueSize: size.width * 0.045)
+            transparentMetricRow(width: safeWidth, valueSize: size.width * 0.052)
                 .position(x: size.width * 0.50, y: size.height * 0.77)
 
             soomMark
@@ -233,23 +233,23 @@ struct ShareableWorkoutCardView: View {
     }
 
     private func fullRoutePosterLayout(in size: CGSize) -> some View {
-        let inset = transparentSafeInset(for: size)
+        let inset = transparentSafeInset(for: size, horizontalRatio: 0.095)
         let safeWidth = size.width - inset.width * 2
 
         return transparentCanvas(size: size) {
-            primaryDistanceText(fontSize: size.width * 0.15)
+            soomMark(fontSize: size.width * 0.078, opacity: 0.92)
                 .frame(width: safeWidth, alignment: .center)
-                .position(x: size.width * 0.50, y: inset.height + size.height * 0.075)
+                .position(x: size.width * 0.50, y: inset.height + size.height * 0.06)
 
-            HStack(alignment: .firstTextBaseline, spacing: size.width * 0.07) {
-                transparentMetric(label: "시간", value: card.compactDurationText, valueSize: size.width * 0.043)
-                transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: size.width * 0.043)
-            }
-            .frame(width: safeWidth * 0.72, alignment: .center)
-            .position(x: size.width * 0.50, y: inset.height + size.height * 0.18)
+            routeLine(width: size.width * 0.78, height: size.height * 0.34)
+                .position(x: size.width * 0.50, y: size.height * 0.39)
 
-            routeLine(width: size.width * 0.82, height: size.height * 0.40)
-                .position(x: size.width * 0.50, y: size.height * 0.53)
+            transparentMetricRow(
+                width: safeWidth,
+                valueSize: size.width * 0.052,
+                order: [.distance, .pace, .duration]
+            )
+            .position(x: size.width * 0.50, y: size.height * 0.72)
 
             soomMark
                 .frame(width: safeWidth, alignment: .center)
@@ -258,9 +258,8 @@ struct ShareableWorkoutCardView: View {
     }
 
     private func sideStackLayout(in size: CGSize) -> some View {
-        let inset = transparentSafeInset(for: size)
-        let columnWidth = size.width * 0.38
-        let routeWidth = size.width * 0.44
+        let inset = transparentSafeInset(for: size, horizontalRatio: 0.095)
+        let columnWidth = size.width * 0.40
 
         return transparentCanvas(size: size) {
             VStack(alignment: .leading, spacing: size.height * 0.038) {
@@ -269,10 +268,10 @@ struct ShareableWorkoutCardView: View {
                 transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: size.width * 0.052)
             }
             .frame(width: columnWidth, alignment: .leading)
-            .position(x: inset.width + columnWidth / 2, y: size.height * 0.43)
+            .position(x: inset.width + columnWidth / 2, y: size.height * 0.36)
 
-            routeLine(width: routeWidth, height: size.height * 0.58, opacity: 0.90)
-                .position(x: size.width - inset.width - routeWidth / 2, y: size.height * 0.45)
+            routeLine(width: size.width * 0.64, height: size.height * 0.28, opacity: 0.90)
+                .position(x: size.width * 0.58, y: size.height * 0.65)
 
             soomMark
                 .frame(width: columnWidth, alignment: .leading)
@@ -280,20 +279,41 @@ struct ShareableWorkoutCardView: View {
         }
     }
 
-    private func minimalBadgeLayout(in size: CGSize) -> some View {
-        let inset = transparentSafeInset(for: size)
+    private func statSummaryLayout(in size: CGSize) -> some View {
+        let inset = transparentSafeInset(for: size, horizontalRatio: 0.095)
         let safeWidth = size.width - inset.width * 2
 
         return transparentCanvas(size: size) {
-            routeLine(width: size.width * 0.70, height: size.height * 0.28, opacity: 0.88)
-                .position(x: size.width * 0.50, y: size.height * 0.52)
+            HStack(spacing: size.width * 0.035) {
+                Image(systemName: sportIconName)
+                    .font(.system(size: size.width * 0.060, weight: .semibold))
+                    .foregroundStyle(transparentForeground.opacity(0.92))
+                    .frame(width: size.width * 0.085, height: size.width * 0.085)
+                    .accessibilityHidden(true)
 
-            transparentMetricRow(width: safeWidth, valueSize: size.width * 0.040)
-                .position(x: size.width * 0.50, y: size.height * 0.73)
+                soomMark(fontSize: size.width * 0.058, opacity: 0.92)
+            }
+            .frame(width: safeWidth, alignment: .leading)
+            .position(x: size.width * 0.50, y: inset.height + size.height * 0.04)
 
-            soomMark
-                .frame(width: safeWidth, alignment: .center)
-                .position(x: size.width * 0.50, y: size.height * 0.84)
+            VStack(alignment: .leading, spacing: size.height * 0.036) {
+                HStack(alignment: .top, spacing: size.width * 0.055) {
+                    statSummaryMetric(label: "거리", value: card.compactDistanceText, valueSize: size.width * 0.060)
+                    statSummaryMetric(label: "시간", value: card.compactDurationText, valueSize: size.width * 0.052)
+                }
+
+                HStack(alignment: .top, spacing: size.width * 0.055) {
+                    statSummaryMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: size.width * 0.046)
+                    statSummaryMetric(label: "고도", value: card.elevationGainText ?? "0m", valueSize: size.width * 0.046)
+                }
+
+                HStack(alignment: .top, spacing: size.width * 0.055) {
+                    statSummaryMetric(label: "심박", value: card.averageHeartRateText ?? "-", valueSize: size.width * 0.044)
+                    statSummaryMetric(label: "칼로리", value: card.activeEnergyText ?? "-", valueSize: size.width * 0.044)
+                }
+            }
+            .frame(width: safeWidth, alignment: .leading)
+            .position(x: size.width * 0.50, y: size.height * 0.53)
         }
     }
 
@@ -308,10 +328,14 @@ struct ShareableWorkoutCardView: View {
         .transparentExportShadow()
     }
 
-    private func transparentSafeInset(for size: CGSize) -> CGSize {
+    private func transparentSafeInset(
+        for size: CGSize,
+        horizontalRatio: CGFloat = 0.075,
+        verticalRatio: CGFloat = 0.065
+    ) -> CGSize {
         CGSize(
-            width: max(size.width * 0.075, 22),
-            height: max(size.height * 0.065, 34)
+            width: max(size.width * horizontalRatio, 22),
+            height: max(size.height * verticalRatio, 34)
         )
     }
 
@@ -329,13 +353,29 @@ struct ShareableWorkoutCardView: View {
         }
     }
 
-    private func transparentMetricRow(width: CGFloat, valueSize: CGFloat) -> some View {
+    private func transparentMetricRow(
+        width: CGFloat,
+        valueSize: CGFloat,
+        order: [TransparentMetricKind] = [.distance, .duration, .pace]
+    ) -> some View {
         HStack(alignment: .top, spacing: max(width * 0.055, 12)) {
-            transparentMetric(label: "거리", value: card.compactDistanceText, valueSize: valueSize)
-            transparentMetric(label: "시간", value: card.compactDurationText, valueSize: valueSize)
-            transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: valueSize)
+            ForEach(order, id: \.self) { metric in
+                let resolvedMetric = transparentMetric(for: metric)
+                transparentMetric(label: resolvedMetric.label, value: resolvedMetric.value, valueSize: valueSize)
+            }
         }
         .frame(width: width, alignment: .center)
+    }
+
+    private func transparentMetric(for kind: TransparentMetricKind) -> ShareCardMetric {
+        switch kind {
+        case .distance:
+            return ShareCardMetric(label: "거리", value: card.compactDistanceText)
+        case .duration:
+            return ShareCardMetric(label: "시간", value: card.compactDurationText)
+        case .pace:
+            return ShareCardMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText)
+        }
     }
 
     private func primaryDistanceText(fontSize: CGFloat) -> some View {
@@ -371,10 +411,33 @@ struct ShareableWorkoutCardView: View {
         .layoutPriority(1)
     }
 
+    private func statSummaryMetric(label: String, value: String, valueSize: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(transparentSecondaryForeground.opacity(0.68))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Text(value)
+                .font(SOOMFont.displayMedium(valueSize, relativeTo: .title3))
+                .foregroundStyle(transparentForeground.opacity(0.95))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.48)
+                .allowsTightening(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var soomMark: some View {
+        soomMark(fontSize: 10, opacity: 0.84)
+    }
+
+    private func soomMark(fontSize: CGFloat, opacity: Double) -> some View {
         Text("SOOM")
-            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(transparentSecondaryForeground.opacity(0.84))
+            .font(SOOMFont.body(fontSize, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(transparentSecondaryForeground.opacity(opacity))
             .lineLimit(1)
             .minimumScaleFactor(0.70)
             .allowsTightening(true)
@@ -391,13 +454,40 @@ struct ShareableWorkoutCardView: View {
         return card.publicMetrics.dropFirst().first?.value ?? "-"
     }
 
+    private var sportIconName: String {
+        switch card.workoutType {
+        case .running:
+            return SOOMIcon.run
+        case .cycling:
+            return SOOMIcon.bike
+        case .swimming:
+            return SOOMIcon.swim
+        case .walking:
+            return "figure.walk"
+        case .hiking:
+            return "figure.hiking"
+        case .strength:
+            return "dumbbell"
+        case .yoga:
+            return "figure.mind.and.body"
+        case .other:
+            return SOOMIcon.activity
+        }
+    }
+
+}
+
+private enum TransparentMetricKind: Hashable {
+    case distance
+    case duration
+    case pace
 }
 
 enum ShareTransparentCardLayoutVariant: String, CaseIterable, Equatable, Hashable {
     case minimalBottomBar
     case fullRoutePoster
     case sideStack
-    case minimalBadge
+    case statSummary
 
     static func variant(for shareType: ShareCardType) -> ShareTransparentCardLayoutVariant {
         switch shareType {
@@ -408,7 +498,7 @@ enum ShareTransparentCardLayoutVariant: String, CaseIterable, Equatable, Hashabl
         case .route:
             return .sideStack
         case .club:
-            return .minimalBadge
+            return .statSummary
         }
     }
 }

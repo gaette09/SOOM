@@ -221,6 +221,8 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
     let staticRoutePreview: StaticRoutePreview?
     let averagePaceText: String?
     let elevationGainText: String?
+    let averageHeartRateText: String?
+    let activeEnergyText: String?
     let layoutVariant: ShareCardLayoutVariant
 
     var hasRoutePreviewPayload: Bool {
@@ -415,6 +417,8 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         durationText: String,
         averagePaceText: String? = nil,
         elevationGainText: String? = nil,
+        averageHeartRateText: String? = nil,
+        activeEnergyText: String? = nil,
         primaryMessage: String,
         growthMessage: String,
         recoveryMessage: String,
@@ -432,6 +436,8 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         self.durationText = durationText
         self.averagePaceText = averagePaceText
         self.elevationGainText = elevationGainText
+        self.averageHeartRateText = averageHeartRateText
+        self.activeEnergyText = activeEnergyText
         self.primaryMessage = primaryMessage
         self.growthMessage = growthMessage
         self.recoveryMessage = recoveryMessage
@@ -463,6 +469,8 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
             durationText: durationText,
             averagePaceText: averagePaceText,
             elevationGainText: elevationGainText,
+            averageHeartRateText: averageHeartRateText,
+            activeEnergyText: activeEnergyText,
             primaryMessage: content.primaryMessage,
             growthMessage: content.growthMessage,
             recoveryMessage: content.recoveryMessage,

@@ -232,7 +232,7 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
             .minimalBottomBar,
             .fullRoutePoster,
             .sideStack,
-            .minimalBadge
+            .statSummary
         ])
         XCTAssertEqual(Set(variants).count, ShareCardComposerLayout.cardOrder.count)
     }
@@ -290,6 +290,21 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "페이스", "시간"])
         XCTAssertEqual(card.publicMetrics.map(\.value), ["10.4km", "5'02\"/km", "52m"])
         XCTAssertEqual(card.compactPublicMetricLine, "5'02\"/km · 52m")
+    }
+
+    func testShareCardCarriesSummaryMetricsForStatOnlyLayout() {
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            input: growthInput
+        )
+        let statCard = card.configured(shareType: .club, backgroundOption: .transparent)
+
+        XCTAssertEqual(statCard.elevationGainText, "78m")
+        XCTAssertEqual(statCard.averageHeartRateText, "151bpm")
+        XCTAssertEqual(statCard.activeEnergyText, "676kcal")
+        XCTAssertEqual(ShareTransparentCardLayoutVariant.variant(for: statCard.shareType), .statSummary)
     }
 
     func testWalkingShareMetricSetUsesDistanceAndDuration() {

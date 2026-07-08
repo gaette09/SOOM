@@ -23,6 +23,8 @@ struct ShareableWorkoutCardBuilder {
             durationText: durationText(from: input),
             averagePaceText: input.averagePaceText,
             elevationGainText: elevationGainText(from: input),
+            averageHeartRateText: averageHeartRateText(from: input),
+            activeEnergyText: activeEnergyText(from: input),
             primaryMessage: sessionSummary.title,
             growthMessage: growthMessage(from: growthSummary),
             recoveryMessage: recoveryMessage(from: recoveryImpact),
@@ -181,6 +183,22 @@ struct ShareableWorkoutCardBuilder {
         return "\(Int(elevationGain.rounded()))m"
     }
 
+    private func averageHeartRateText(from input: WorkoutGrowthInput) -> String? {
+        guard let averageHeartRate = input.averageHeartRate, averageHeartRate > 0 else {
+            return nil
+        }
+
+        return "\(Int(averageHeartRate.rounded()))bpm"
+    }
+
+    private func activeEnergyText(from input: WorkoutGrowthInput) -> String? {
+        guard let activeEnergy = input.activeEnergyKcal, activeEnergy > 0 else {
+            return nil
+        }
+
+        return "\(Int(activeEnergy.rounded()))kcal"
+    }
+
     private func makeStaticRoutePreview(for workout: Workout) -> StaticRoutePreview? {
         guard workout.route.count >= 2 else { return nil }
 
@@ -213,9 +231,9 @@ private extension WorkoutGrowthInput {
             distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
             averagePaceText: workout.sport == .run ? workout.formattedPace : nil,
             averageSpeedKmh: workout.duration > 0 ? (workout.distanceMeters / 1_000) / (workout.duration / 3_600) : nil,
-            averageHeartRate: nil,
+            averageHeartRate: workout.avgHeartRate > 0 ? Double(workout.avgHeartRate) : nil,
             elevationGainMeters: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
-            activeEnergyKcal: nil
+            activeEnergyKcal: workout.activeCalories > 0 ? Double(workout.activeCalories) : nil
         )
     }
 }
