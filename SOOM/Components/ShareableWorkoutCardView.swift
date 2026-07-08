@@ -58,38 +58,7 @@ struct ShareableWorkoutCardView: View {
     }
 
     private var transparentCard: some View {
-        ZStack {
-            if card.shouldShowRouteVisual {
-                ShareCardRouteLine(style: .transparent, tint: tint)
-                    .frame(height: transparentRouteLineHeight)
-                    .padding(.horizontal, ShareableWorkoutCardLayout.transparentRouteHorizontalPadding)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: transparentRouteAlignment)
-                    .padding(.top, transparentRouteTopPadding)
-                    .padding(.bottom, transparentRouteBottomPadding)
-                    .opacity(0.92)
-                    .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: 0) {
-                transparentLabel
-
-                Spacer(minLength: transparentTopSpacer)
-
-                transparentMetricStack
-
-                Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
-
-                Text("SOOM")
-                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(transparentSecondaryForeground.opacity(0.84))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.70)
-                    .allowsTightening(true)
-            }
-            .padding(ShareableWorkoutCardLayout.transparentExportPadding)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .shadow(color: SOOMColor.black.opacity(0.28), radius: 10, x: 0, y: 6)
-        }
+        transparentLayout
         .frame(maxWidth: .infinity, alignment: .leading)
         .aspectRatio(ShareableWorkoutCardLayout.aspectRatio, contentMode: .fit)
         .accessibilityElement(children: .combine)
@@ -229,24 +198,132 @@ struct ShareableWorkoutCardView: View {
         SOOMColor.white.opacity(0.86)
     }
 
-    private var transparentLabel: some View {
-        Text("TRANSPARENT")
-            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(transparentSecondaryForeground.opacity(0.82))
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .shadow(color: SOOMColor.black.opacity(0.28), radius: 3, x: 0, y: 1)
+    @ViewBuilder
+    private var transparentLayout: some View {
+        switch card.shareType {
+        case .workout:
+            routeFirstLayout
+        case .recovery:
+            metricStackLayout
+        case .route:
+            compactCenterClusterLayout
+        case .club:
+            minimalRouteMetricsLayout
+        }
+    }
+
+    private var routeFirstLayout: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            routeLine(height: 238)
+                .padding(.top, 70)
+
+            Spacer(minLength: 42)
+
+            transparentMetricStack
+
+            Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
+
+            soomMark
+        }
+        .padding(ShareableWorkoutCardLayout.transparentExportPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .transparentExportShadow()
+    }
+
+    private var metricStackLayout: some View {
+        VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentMetricSpacing + 4) {
+            primaryDistanceText(fontSize: 62)
+
+            transparentMetric(label: "TIME", value: card.compactDurationText)
+                .frame(width: 150, alignment: .leading)
+
+            transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText)
+                .frame(width: 150, alignment: .leading)
+
+            Spacer(minLength: 34)
+
+            routeLine(height: 176)
+
+            Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
+
+            soomMark
+        }
+        .padding(ShareableWorkoutCardLayout.transparentExportPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .transparentExportShadow()
+    }
+
+    private var compactCenterClusterLayout: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 74)
+
+            routeLine(height: 214)
+                .padding(.horizontal, 4)
+
+            Spacer(minLength: 30)
+
+            HStack(alignment: .top, spacing: 18) {
+                transparentMetric(label: "DIST", value: card.compactDistanceText, valueSize: 21)
+                transparentMetric(label: "TIME", value: card.compactDurationText, valueSize: 21)
+                transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: 21)
+            }
+            .frame(maxWidth: .infinity)
+
+            Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
+
+            soomMark
+        }
+        .padding(ShareableWorkoutCardLayout.transparentExportPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .transparentExportShadow()
+    }
+
+    private var minimalRouteMetricsLayout: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 46)
+
+            routeLine(height: 262)
+                .padding(.horizontal, 2)
+
+            Spacer(minLength: 40)
+
+            HStack(alignment: .firstTextBaseline, spacing: 20) {
+                primaryDistanceText(fontSize: 46)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    transparentMetric(label: "TIME", value: card.compactDurationText, valueSize: 20)
+                    transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText, valueSize: 20)
+                }
+                .frame(width: 112, alignment: .leading)
+            }
+
+            Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
+
+            soomMark
+        }
+        .padding(ShareableWorkoutCardLayout.transparentExportPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .transparentExportShadow()
+    }
+
+    private func routeLine(height: CGFloat) -> some View {
+        Group {
+            if card.shouldShowRouteVisual {
+                ShareCardRouteLine(style: .transparent, tint: tint)
+                    .frame(height: height)
+                    .opacity(0.92)
+                    .accessibilityHidden(true)
+            } else {
+                Color.clear
+                    .frame(height: height)
+            }
+        }
     }
 
     private var transparentMetricStack: some View {
         VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentMetricSpacing) {
-            Text(card.compactDistanceText)
-                .font(SOOMFont.display(58, relativeTo: .largeTitle))
-                .foregroundStyle(transparentForeground)
-                .lineLimit(1)
-                .minimumScaleFactor(0.46)
-                .allowsTightening(true)
-                .shadow(color: SOOMColor.black.opacity(0.34), radius: 5, x: 0, y: 2)
+            primaryDistanceText(fontSize: 58)
 
             HStack(alignment: .top, spacing: ShareableWorkoutCardLayout.transparentMetricColumnSpacing) {
                 transparentMetric(label: "TIME", value: card.compactDurationText)
@@ -257,7 +334,16 @@ struct ShareableWorkoutCardView: View {
         .layoutPriority(1)
     }
 
-    private func transparentMetric(label: String, value: String) -> some View {
+    private func primaryDistanceText(fontSize: CGFloat) -> some View {
+        Text(card.compactDistanceText)
+            .font(SOOMFont.display(fontSize, relativeTo: .largeTitle))
+            .foregroundStyle(transparentForeground)
+            .lineLimit(1)
+            .minimumScaleFactor(0.46)
+            .allowsTightening(true)
+    }
+
+    private func transparentMetric(label: String, value: String, valueSize: CGFloat = 22) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
@@ -265,14 +351,22 @@ struct ShareableWorkoutCardView: View {
                 .lineLimit(1)
 
             Text(value)
-                .font(SOOMFont.displayMedium(22, relativeTo: .title3))
+                .font(SOOMFont.displayMedium(valueSize, relativeTo: .title3))
                 .foregroundStyle(transparentForeground.opacity(0.94))
                 .lineLimit(1)
                 .minimumScaleFactor(0.56)
                 .allowsTightening(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .shadow(color: SOOMColor.black.opacity(0.30), radius: 4, x: 0, y: 2)
+    }
+
+    private var soomMark: some View {
+        Text("SOOM")
+            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(transparentSecondaryForeground.opacity(0.84))
+            .lineLimit(1)
+            .minimumScaleFactor(0.70)
+            .allowsTightening(true)
     }
 
     private var transparentPaceOrSpeedLabel: String {
@@ -286,52 +380,11 @@ struct ShareableWorkoutCardView: View {
         return card.publicMetrics.dropFirst().first?.value ?? "-"
     }
 
-    private var transparentTopSpacer: CGFloat {
-        switch card.shareType {
-        case .workout:
-            return 256
-        case .route:
-            return 226
-        case .recovery, .club:
-            return 246
-        }
-    }
+}
 
-    private var transparentRouteLineHeight: CGFloat {
-        switch card.shareType {
-        case .workout:
-            return 230
-        case .route:
-            return 250
-        case .recovery, .club:
-            return 210
-        }
-    }
-
-    private var transparentRouteAlignment: Alignment {
-        switch card.shareType {
-        case .workout:
-            return .top
-        case .route:
-            return .center
-        case .recovery, .club:
-            return .top
-        }
-    }
-
-    private var transparentRouteTopPadding: CGFloat {
-        switch card.shareType {
-        case .workout:
-            return 96
-        case .route:
-            return 26
-        case .recovery, .club:
-            return 92
-        }
-    }
-
-    private var transparentRouteBottomPadding: CGFloat {
-        card.shareType == .route ? 76 : 0
+private extension View {
+    func transparentExportShadow() -> some View {
+        shadow(color: SOOMColor.black.opacity(0.30), radius: 4, x: 0, y: 2)
     }
 }
 

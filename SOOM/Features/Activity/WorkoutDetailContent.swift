@@ -607,6 +607,7 @@ private struct ShareCardComposer: View {
     @State private var isRenderingShareImage = false
     @State private var shareErrorMessage: String?
     @State private var shareTargetMessage: String?
+    @State private var pendingSaveCard: ShareableWorkoutCardModel?
 
     private var selectedType: ShareCardType {
         ShareCardComposerLayout.cardType(at: selectedCardIndex)
@@ -674,6 +675,28 @@ private struct ShareCardComposer: View {
         } message: {
             Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
         }
+        .alert(
+            "이미지를 저장할까요?",
+            isPresented: Binding(
+                get: { pendingSaveCard != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingSaveCard = nil
+                    }
+                }
+            )
+        ) {
+            Button("취소", role: .cancel) {
+                pendingSaveCard = nil
+            }
+            Button("저장") {
+                guard let card = pendingSaveCard else { return }
+                pendingSaveCard = nil
+                saveImage(card)
+            }
+        } message: {
+            Text("선택한 공유 이미지를 사진 앱에 저장합니다.")
+        }
     }
 
     @MainActor
@@ -714,7 +737,7 @@ private struct ShareCardComposer: View {
 
             do {
                 try await ShareImagePhotoSaver.save(image)
-                shareTargetMessage = ShareTarget.saveImage.helperText
+                shareTargetMessage = nil
             } catch {
                 shareErrorMessage = "이미지를 사진 앱에 저장하지 못했어요. 사진 접근 권한을 확인해주세요."
             }
@@ -730,7 +753,7 @@ private struct ShareCardComposer: View {
             shareTargetMessage = ShareTarget.instagramStory.helperText
             share(card)
         case .saveImage:
-            saveImage(card)
+            pendingSaveCard = card
         case .more:
             share(card)
         }
