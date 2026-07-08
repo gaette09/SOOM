@@ -818,6 +818,22 @@ private struct ShareCardCarouselPreview: View {
                     .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius + 8, style: .continuous))
             }
 
+            if card.backgroundOption == .transparent {
+                RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                SOOMColor.black.opacity(0.92),
+                                SOOMColor.black.opacity(0.76)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .padding(card.backgroundOption.usesCheckerboardPreview ? ShareComposerCarouselMetrics.transparentPreviewInset : 0)
+                    .accessibilityHidden(true)
+            }
+
             ShareableWorkoutCardView(card: card, tint: tint)
                 .padding(card.backgroundOption.usesCheckerboardPreview ? ShareComposerCarouselMetrics.transparentPreviewInset : 0)
 

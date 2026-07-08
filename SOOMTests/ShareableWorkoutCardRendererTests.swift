@@ -36,7 +36,18 @@ struct ShareableWorkoutCardRendererTests {
         let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.accent)
 
         #expect(image != nil)
-        #expect(image?.cgImage?.alphaInfo != .none)
+        #expect(image?.cgImage?.alphaInfo != CGImageAlphaInfo.none)
+    }
+
+    @Test func testTransparentShareCardDoesNotBakePreviewBackground() {
+        let card = makeCardWithStaticRoutePreview().configured(
+            shareType: .workout,
+            backgroundOption: .transparent
+        )
+        let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.accent)
+
+        #expect(image != nil)
+        #expect(topLeftAlpha(of: image) == 0)
     }
 
     @Test func testRendererCanUseResolvedStaticRouteImageForMapPhotoCard() {
@@ -321,6 +332,31 @@ struct ShareableWorkoutCardRendererTests {
             UIColor.systemGreen.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
         }
+    }
+
+    private func topLeftAlpha(of image: UIImage?) -> UInt8? {
+        guard let cgImage = image?.cgImage,
+              let pixel = cgImage.cropping(to: CGRect(x: 0, y: 0, width: 1, height: 1))
+        else {
+            return nil
+        }
+
+        var data = [UInt8](repeating: 0, count: 4)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &data,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.draw(pixel, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        return data[3]
     }
 
     private func makeSparseWorkout(

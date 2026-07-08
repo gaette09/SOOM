@@ -59,29 +59,6 @@ struct ShareableWorkoutCardView: View {
 
     private var transparentCard: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            SOOMColor.black.opacity(0.94),
-                            SOOMColor.black.opacity(0.84),
-                            SOOMColor.black.opacity(0.72)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous)
-                        .stroke(SOOMColor.white.opacity(0.10), lineWidth: SOOMLayout.Card.borderWidth)
-                )
-
-            ShareCardRhythmPattern(tint: tint, isTransparent: true)
-                .padding(ShareableWorkoutCardLayout.rhythmPatternInset)
-                .opacity(0.55)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-
             if card.shouldShowRouteVisual {
                 ShareCardRouteLine(style: .transparent, tint: tint)
                     .frame(height: transparentRouteLineHeight)
@@ -94,50 +71,15 @@ struct ShareableWorkoutCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    Text("SOOM")
-                        .font(SOOMFont.displayMedium(13, relativeTo: .caption))
-                        .foregroundStyle(transparentSecondaryForeground)
-
-                    Text(card.shareType.title)
-                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(transparentSecondaryForeground.opacity(0.76))
-
-                    Spacer(minLength: 0)
-                }
+                transparentLabel
 
                 Spacer(minLength: transparentTopSpacer)
 
-                VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentTextSpacing) {
-                    Text(transparentPrimaryMetric)
-                        .font(transparentPrimaryFont)
-                        .foregroundStyle(transparentForeground)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.48)
-                        .allowsTightening(true)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(transparentSecondaryMetricLine)
-                        .font(SOOMFont.displayMedium(23, relativeTo: .title3))
-                        .foregroundStyle(transparentForeground.opacity(0.92))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.56)
-                        .allowsTightening(true)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(transparentSupportingLine)
-                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(transparentSecondaryForeground)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.62)
-                        .allowsTightening(true)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .layoutPriority(1)
+                transparentMetricStack
 
                 Spacer(minLength: ShareableWorkoutCardLayout.transparentFooterTopPadding)
 
-                Text(transparentFooterLine)
+                Text("SOOM")
                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(transparentSecondaryForeground.opacity(0.84))
                     .lineLimit(1)
@@ -150,10 +92,9 @@ struct ShareableWorkoutCardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .aspectRatio(ShareableWorkoutCardLayout.aspectRatio, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("투명 공유 카드 미리보기")
-        .accessibilityValue("\(card.shareType.title) 카드. \(transparentPrimaryMetric). \(transparentSecondaryMetricLine). \(transparentSupportingLine). \(routeAccessibilityText)")
+        .accessibilityValue("\(card.shareType.title) 카드. \(card.compactDistanceText). \(card.compactDurationText). \(transparentPaceOrSpeedText). \(routeAccessibilityText)")
     }
 
     private var routeAccessibilityText: String {
@@ -280,17 +221,6 @@ struct ShareableWorkoutCardView: View {
         }
     }
 
-    private var transparentHeadlineFont: Font {
-        switch card.shareType {
-        case .workout:
-            return SOOMFont.display(44, relativeTo: .largeTitle)
-        case .recovery:
-            return SOOMFont.display(50, relativeTo: .largeTitle)
-        case .route, .club:
-            return SOOMFont.displayMedium(34, relativeTo: .title)
-        }
-    }
-
     private var transparentForeground: Color {
         SOOMColor.white
     }
@@ -299,75 +229,71 @@ struct ShareableWorkoutCardView: View {
         SOOMColor.white.opacity(0.86)
     }
 
-    private var transparentPrimaryMetric: String {
-        switch card.shareType {
-        case .workout, .route:
-            return card.compactDistanceText
-        case .recovery:
-            return card.storyHeadline
-        case .club:
-            return card.storyInterpretation
-        }
+    private var transparentLabel: some View {
+        Text("TRANSPARENT")
+            .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(transparentSecondaryForeground.opacity(0.82))
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .shadow(color: SOOMColor.black.opacity(0.28), radius: 3, x: 0, y: 1)
     }
 
-    private var transparentSecondaryMetricLine: String {
-        switch card.shareType {
-        case .workout:
-            return card.compactPublicMetricLine.isEmpty ? card.workoutType.shareDisplayName : card.compactPublicMetricLine
-        case .recovery:
-            return card.storySupportingText
-        case .route:
-            return card.storyHeadline
-        case .club:
-            return card.storyHeadline
+    private var transparentMetricStack: some View {
+        VStack(alignment: .leading, spacing: ShareableWorkoutCardLayout.transparentMetricSpacing) {
+            Text(card.compactDistanceText)
+                .font(SOOMFont.display(58, relativeTo: .largeTitle))
+                .foregroundStyle(transparentForeground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.46)
+                .allowsTightening(true)
+                .shadow(color: SOOMColor.black.opacity(0.34), radius: 5, x: 0, y: 2)
+
+            HStack(alignment: .top, spacing: ShareableWorkoutCardLayout.transparentMetricColumnSpacing) {
+                transparentMetric(label: "TIME", value: card.compactDurationText)
+                transparentMetric(label: transparentPaceOrSpeedLabel, value: transparentPaceOrSpeedText)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
     }
 
-    private var transparentSupportingLine: String {
-        switch card.shareType {
-        case .workout:
-            return card.workoutType.shareDisplayName
-        case .recovery:
-            return card.storyInterpretation
-        case .route:
-            return card.storySupportingText
-        case .club:
-            return card.storySupportingText
+    private func transparentMetric(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
+                .foregroundStyle(transparentSecondaryForeground.opacity(0.72))
+                .lineLimit(1)
+
+            Text(value)
+                .font(SOOMFont.displayMedium(22, relativeTo: .title3))
+                .foregroundStyle(transparentForeground.opacity(0.94))
+                .lineLimit(1)
+                .minimumScaleFactor(0.56)
+                .allowsTightening(true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .shadow(color: SOOMColor.black.opacity(0.30), radius: 4, x: 0, y: 2)
     }
 
-    private var transparentFooterLine: String {
-        switch card.shareType {
-        case .workout:
-            return "운동 기록 · SOOM"
-        case .recovery:
-            return "컨디션 기록 · SOOM"
-        case .route:
-            return "코스 기록 · SOOM"
-        case .club:
-            return "클럽 기록 · SOOM"
-        }
+    private var transparentPaceOrSpeedLabel: String {
+        card.workoutType == .cycling ? "SPEED" : "PACE"
     }
 
-    private var transparentPrimaryFont: Font {
-        switch card.shareType {
-        case .workout, .route:
-            return SOOMFont.display(56, relativeTo: .largeTitle)
-        case .recovery:
-            return SOOMFont.display(50, relativeTo: .largeTitle)
-        case .club:
-            return SOOMFont.displayMedium(42, relativeTo: .largeTitle)
+    private var transparentPaceOrSpeedText: String {
+        if let pace = card.normalizedPaceText {
+            return pace
         }
+        return card.publicMetrics.dropFirst().first?.value ?? "-"
     }
 
     private var transparentTopSpacer: CGFloat {
         switch card.shareType {
-        case .workout, .route:
-            return 236
-        case .recovery:
-            return 270
-        case .club:
+        case .workout:
             return 256
+        case .route:
+            return 226
+        case .recovery, .club:
+            return 246
         }
     }
 
@@ -548,9 +474,10 @@ enum ShareableWorkoutCardLayout {
     static let rhythmPatternLineWidth: CGFloat = 1.4
     static let rhythmPatternOpacity: Double = 0.16
     static let transparentExportPadding: CGFloat = 34
-    static let transparentRouteLineHeight: CGFloat = 210
     static let transparentRouteHorizontalPadding: CGFloat = 24
     static let transparentTextSpacing: CGFloat = 11
+    static let transparentMetricSpacing: CGFloat = 12
+    static let transparentMetricColumnSpacing: CGFloat = 24
     static let transparentFooterTopPadding: CGFloat = 22
 }
 
