@@ -21,11 +21,12 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| P0 | SOOM | Route missing detection and external route fallback plan | `docs/reports/soom-external-route-source-fallback-plan.md` | Documentation/plan only; next implementation should start with route missing detection, then GPX import v1 |
-| P1 | SOOM | GPX import v1 planning/implementation | `docs/reports/soom-external-route-source-fallback-plan.md` | User-selected file import; attach parsed route to imported workout through existing route persistence |
-| P1 | SOOM | Strava OAuth feasibility spike | `docs/reports/soom-external-route-source-fallback-plan.md` | OAuth only; no scraping/login automation; validate API tier, scopes, route/polyline/streams access, and policy constraints |
-| P2 | SOOM | FIT/TCX import research | `docs/reports/soom-external-route-source-fallback-plan.md` | File-based route import after GPX v1 stabilizes |
-| P2 | SOOM | Garmin/Wahoo direct integration research | `docs/reports/soom-external-route-source-fallback-plan.md` | Research only after file import and Strava feasibility are understood |
+| P0 | SOOM | Route missing detection and external route provider matrix | `docs/reports/soom-external-route-provider-matrix.md` | Documentation/research only; next implementation should start with route missing detection, then GPX import v1 |
+| P1 | SOOM | GPX import v1 planning/implementation | `docs/reports/soom-external-route-provider-matrix.md` | User-selected file import; attach parsed route to imported workout through existing route persistence |
+| P1 | SOOM | Strava OAuth feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | OAuth only; no scraping/login automation; validate API tier, scopes, route/polyline/streams access, storage, and policy constraints |
+| P1 | SOOM | Wahoo route feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | Validate Wahoo Cloud API availability and Wahoo FIT export/import path |
+| P2 | SOOM | FIT/TCX import research | `docs/reports/soom-external-route-provider-matrix.md` | File-based route import after GPX v1 stabilizes |
+| P2 | SOOM | Garmin/Komoot/RideWithGPS/TrainingPeaks/Decathlon provider research | `docs/reports/soom-external-route-provider-matrix.md` | Research only after file import and first OAuth feasibility spikes are understood |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
@@ -37,33 +38,33 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: External Route Source Fallback
+## SOOM: External Route Provider Matrix
 
 Goal:
 
-- Define a compliant route-source fallback strategy for external workouts whose HealthKit summaries import but whose routes are not available through `HKWorkoutRoute`.
+- Define a compliant provider matrix and integration strategy for external workouts whose HealthKit summaries import but whose routes are not available through `HKWorkoutRoute`.
 
 Verification:
 
 - Keep HealthKit `HKWorkoutRoute` as the first route source.
 - Plan GPX import v1 as the next user-controlled route fallback.
-- Plan FIT/TCX import as a later file-based route source.
-- Keep Strava to an OAuth/API-policy feasibility spike with no scraping or login automation.
-- Keep Garmin/Wahoo direct integration as research only.
+- Plan FIT/TCX import as later file-based route sources.
+- Keep Strava and Wahoo to OAuth/API-policy feasibility spikes with no scraping or login automation.
+- Keep Garmin, Komoot, Ride with GPS, TrainingPeaks, Decathlon, and device-app integrations as provider research until official access paths are confirmed.
 - Preserve privacy, route deletion, and no-public-display constraints for external route data.
 
 Expected outcome:
 
-- A documented fallback strategy exists for route-missing external workouts, with clear route source priority and a recommended GPX v1 implementation path.
+- A documented provider matrix exists for route-missing external workouts, with clear route source priority and recommended implementation order.
 
 Completion criteria:
 
 - HealthKit route limitations are documented.
-- Route source priority is documented.
+- Route source priority and provider matrix are documented.
 - `routeMissingReason` recommendation is documented.
 - GPX import v1 scope and validation rules are documented.
-- Strava OAuth feasibility constraints and non-goals are documented.
-- Supabase/local storage implications are documented.
+- Strava and Wahoo feasibility constraints and non-goals are documented.
+- Garmin, Komoot, Ride with GPS, TrainingPeaks, Decathlon, and device-app research paths are documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 
