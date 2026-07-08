@@ -21,7 +21,11 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| 1 | SOOM | HealthKit read Phase 1E device QA checklist | `docs/reports/soom-healthkit-read-phase1e-device-qa.md` | Documentation/checklist only; physical-device QA is the next validation gate before limited TestFlight validation |
+| P0 | SOOM | Route missing detection and external route fallback plan | `docs/reports/soom-external-route-source-fallback-plan.md` | Documentation/plan only; next implementation should start with route missing detection, then GPX import v1 |
+| P1 | SOOM | GPX import v1 planning/implementation | `docs/reports/soom-external-route-source-fallback-plan.md` | User-selected file import; attach parsed route to imported workout through existing route persistence |
+| P1 | SOOM | Strava OAuth feasibility spike | `docs/reports/soom-external-route-source-fallback-plan.md` | OAuth only; no scraping/login automation; validate API tier, scopes, route/polyline/streams access, and policy constraints |
+| P2 | SOOM | FIT/TCX import research | `docs/reports/soom-external-route-source-fallback-plan.md` | File-based route import after GPX v1 stabilizes |
+| P2 | SOOM | Garmin/Wahoo direct integration research | `docs/reports/soom-external-route-source-fallback-plan.md` | Research only after file import and Strava feasibility are understood |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
@@ -33,30 +37,33 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: HealthKit Read Phase 1E Device QA Checklist
+## SOOM: External Route Source Fallback
 
 Goal:
 
-- Define the physical-device manual import QA and permission-state validation checklist for the completed HealthKit Read Phase 1A-1D work.
+- Define a compliant route-source fallback strategy for external workouts whose HealthKit summaries import but whose routes are not available through `HKWorkoutRoute`.
 
 Verification:
 
-- Validate not requested, allowed, denied, partial, and revoked HealthKit permission states on device.
-- Validate manual imports for cycling, running, walking, route-backed, no-route, missing metric, duplicate, HealthKit-only, and re-import scenarios.
-- Confirm Activity Detail, Share, Profile, and Recovery stay consistent through the existing `ProcessedWorkout` path.
-- Keep HealthKit write, background sync, Garmin/Samsung/Google integrations, sampled stream persistence, UI changes, TestFlight upload, and build bump deferred.
+- Keep HealthKit `HKWorkoutRoute` as the first route source.
+- Plan GPX import v1 as the next user-controlled route fallback.
+- Plan FIT/TCX import as a later file-based route source.
+- Keep Strava to an OAuth/API-policy feasibility spike with no scraping or login automation.
+- Keep Garmin/Wahoo direct integration as research only.
+- Preserve privacy, route deletion, and no-public-display constraints for external route data.
 
 Expected outcome:
 
-- A device QA checklist exists with clear pass/block decision rules for whether Phase 1 HealthKit read is ready for limited TestFlight validation.
+- A documented fallback strategy exists for route-missing external workouts, with clear route source priority and a recommended GPX v1 implementation path.
 
 Completion criteria:
 
-- Permission-state QA scenarios are documented.
-- Manual import scenarios for core sports and route/no-route cases are documented.
-- Surface validation expectations for Activity Detail, Share, Profile, and Recovery are documented.
-- Privacy and copy checks are documented.
-- Decision rules for pass, block, and non-blocking route failures are documented.
+- HealthKit route limitations are documented.
+- Route source priority is documented.
+- `routeMissingReason` recommendation is documented.
+- GPX import v1 scope and validation rules are documented.
+- Strava OAuth feasibility constraints and non-goals are documented.
+- Supabase/local storage implications are documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 
