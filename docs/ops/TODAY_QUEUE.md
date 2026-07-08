@@ -21,7 +21,7 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| 1 | SOOM | Data Pipeline v1 local workout normalization | `docs/reports/soom-data-pipeline-v1-audit.md` | Recommended active before further UI polish or external integrations |
+| 1 | SOOM | HealthKit read integration Phase 1 planning | `docs/reports/soom-healthkit-read-phase1-plan.md` | Planning only; keep implementation, TestFlight upload, and build bump deferred |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
 
@@ -33,28 +33,28 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: Data Pipeline v1 Local Workout Normalization
+## SOOM: HealthKit Read Integration Phase 1 Planning
 
 Goal:
 
-- Stabilize real workout ingestion, storage, calculation, and display before more Build 8 UI polish or external platform integrations.
+- Plan the first HealthKit read integration pass now that the local `ProcessedWorkout` pipeline is stable enough to receive imported workouts.
 
 Verification:
 
-- Audit current Record, persistence, Activity Detail, Profile, Share, Recovery, and HealthKit data paths.
-- Define the conservative Data Pipeline v1 implementation phases.
-- Keep Share card polish, Activity Detail visual polish, advanced chart redesign, and Garmin/Samsung/Google integrations deferred until local data is stable.
+- Audit current HealthKit, permission, Record save, `UnifiedWorkout`, `ProcessedWorkout`, Activity Detail, Profile, Share, and Recovery preview paths.
+- Define conservative read-only HealthKit Phase 1 scope.
+- Keep HealthKit write, background sync, Garmin/Samsung/Google integrations, sampled stream persistence, and unrelated UI polish deferred.
 
 Expected outcome:
 
-- A documented Data Pipeline v1 audit and implementation plan exists, with the next implementation step focused on local workout data normalization.
+- A documented HealthKit Read Integration Phase 1 plan exists, with the next implementation step focused on manual, read-only Apple Health workout import into the existing `UnifiedWorkout`/`ProcessedWorkout` path.
 
 Completion criteria:
 
-- Current data sources, stored fields, calculated fields, and display surfaces are documented.
-- Cycling, Running, and Walking data coverage is documented.
-- Swimming and external integration gaps are documented.
-- Phase 1 through Phase 5 implementation plan is documented.
+- Current HealthKit foundation status is documented.
+- Initial HealthKit workout, permission, sport, and metric mapping rules are documented.
+- Duplicate prevention, local-vs-HealthKit priority, privacy UX, and test strategy are documented.
+- Phase 1 implementation phases are documented.
 - Explicit deferrals are recorded.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
