@@ -71,11 +71,16 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
             makeWorkout(daysAgo: 2, durationSeconds: 2_400, distanceMeters: 7_000, averageHeartRate: 142)
         ]
         let selector = UnifiedWorkoutAnalysisInputSelector()
+        let processedBuilder = ProcessedWorkoutBuilder()
         let calculator = RecoveryCalculator(referenceDate: baseDate)
-        let expected = calculator.calculateSummary(from: selector.selectRecoveryInputs(from: workouts))
+        let processedWorkouts = workouts.map { processedBuilder.make(from: $0) }
+        let expected = calculator.calculateSummary(
+            from: selector.selectRecoveryInputs(fromProcessedWorkouts: processedWorkouts)
+        )
         let provider = UnifiedWorkoutRecoveryPreviewProvider(
             store: FakeRecoveryPreviewWorkoutStore(workouts: workouts),
             selector: selector,
+            processedWorkoutBuilder: processedBuilder,
             calculator: calculator
         )
 
@@ -84,6 +89,48 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
         XCTAssertEqual(result.summary.score, expected.score)
         XCTAssertEqual(result.summary.status, expected.status)
         XCTAssertEqual(result.summary.recommendation, expected.recommendation)
+    }
+
+    func testTimeOnlyWorkoutUsesProcessedPathWithoutBreakingPreviewSummary() async throws {
+        let workouts = [
+            makeWorkout(
+                daysAgo: 0,
+                type: .running,
+                durationSeconds: 1_800,
+                distanceMeters: nil,
+                averageHeartRate: 0,
+                activeEnergyKcal: nil
+            )
+        ]
+        let selector = UnifiedWorkoutAnalysisInputSelector()
+        let processedBuilder = ProcessedWorkoutBuilder()
+        let calculator = RecoveryCalculator(referenceDate: baseDate)
+        let expectedInputs = selector.selectRecoveryInputs(
+            fromProcessedWorkouts: workouts.map { processedBuilder.make(from: $0) }
+        )
+        let expected = calculator.calculateSummary(from: expectedInputs)
+        let provider = UnifiedWorkoutRecoveryPreviewProvider(
+            store: FakeRecoveryPreviewWorkoutStore(workouts: workouts),
+            selector: selector,
+            processedWorkoutBuilder: processedBuilder,
+            calculator: calculator
+        )
+
+        let result = try await provider.fetchPreviewSummary()
+
+        XCTAssertEqual(result.usedWorkoutCount, 1)
+        XCTAssertEqual(result.summary.score, expected.score)
+        XCTAssertEqual(result.summary.status, expected.status)
+        XCTAssertEqual(result.summary.trendText, expected.trendText)
+    }
+
+    func testProductionFactoryStillUsesExistingRecoveryDataProviderFlow() async throws {
+        let provider = RecoveryDataProviderFactory.makeProvider()
+
+        let summary = try await provider.fetchRecoverySummary()
+
+        XCTAssertFalse(summary.recommendation.isEmpty)
+        XCTAssertFalse(summary.coachMessage.message.isEmpty)
     }
 
     private var baseDate: Date {
@@ -98,6 +145,7 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
         durationSeconds: TimeInterval,
         distanceMeters: Double?,
         averageHeartRate: Double = 148,
+        activeEnergyKcal: Double? = 420,
         isExcluded: Bool = false
     ) -> UnifiedWorkout {
         let startDate = Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate
@@ -110,7 +158,7 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
             endDate: startDate.addingTimeInterval(durationSeconds),
             durationSeconds: durationSeconds,
             distanceMeters: distanceMeters,
-            activeEnergyKcal: 420,
+            activeEnergyKcal: activeEnergyKcal,
             averageHeartRate: averageHeartRate,
             maxHeartRate: averageHeartRate + 22,
             averageSpeedMetersPerSecond: nil,
