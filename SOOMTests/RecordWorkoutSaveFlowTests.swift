@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import SOOM
 
@@ -6,6 +7,12 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
     private let startedAt = Date(timeIntervalSince1970: 1_800_000_000)
     private let endedAt = Date(timeIntervalSince1970: 1_800_003_600)
     private let now = Date(timeIntervalSince1970: 1_800_004_000)
+    private var retainedContainers: [ModelContainer] = []
+
+    override func tearDown() {
+        retainedContainers.removeAll()
+        super.tearDown()
+    }
 
     func testStopCreatesFinishSummary() {
         let session = finishedSession(sport: .cycling, startedWithLocation: true)
@@ -175,6 +182,107 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         XCTAssertNil(workout.activeEnergyKcal)
     }
 
+    @MainActor
+    func testPersistedRouteBackedRecordSavesBuildProcessedWorkoutsForSupportedSports() async throws {
+        for sport in RecordSportMode.allCases {
+            let fixture = try makePersistedFixture()
+            let saver = RecordWorkoutSaver(
+                store: fixture.workoutStore,
+                routeStore: fixture.routeStore,
+                mapper: RecordWorkoutSaveMapper(dateProvider: { self.now })
+            )
+            let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(
+                from: finishedRouteSession(sport: sport)
+            ))
+
+            let saved = try await saver.save(summary)
+            let storedWorkout = try await fixture.workoutStore.fetchWorkout(id: saved.id)
+            let storedRoute = try await fixture.routeStore.fetchRoute(workoutId: saved.id)
+            let fetchedWorkout = try XCTUnwrap(storedWorkout)
+            let fetchedRoute = try XCTUnwrap(storedRoute)
+            let summaryDistance = try XCTUnwrap(summary.distanceMeters)
+            let processed = ProcessedWorkoutBuilder().make(from: fetchedWorkout, route: fetchedRoute)
+            let processedDistance = try XCTUnwrap(processed.distanceMeters)
+
+            XCTAssertEqual(fetchedWorkout.workoutType, sport.workoutType)
+            XCTAssertEqual(processed.workoutType, sport.workoutType)
+            XCTAssertEqual(processed.durationSeconds, 3_600)
+            XCTAssertEqual(processedDistance, summaryDistance, accuracy: 0.001)
+            XCTAssertEqual(fetchedRoute.totalDistanceMeters, summaryDistance, accuracy: 0.001)
+            XCTAssertEqual(try XCTUnwrap(processed.route?.totalDistanceMeters), fetchedRoute.totalDistanceMeters, accuracy: 0.001)
+            XCTAssertEqual(processed.route?.coordinateCount, 3)
+            assertMetric(processed, .distance, is: .measured)
+            assertMetric(processed, .route, is: .measured)
+            assertMissingRecordSensorMetrics(processed, sport: sport)
+            assertPrimaryDisplayMetric(processed, sport: sport)
+        }
+    }
+
+    @MainActor
+    func testPersistedTimeOnlyRecordSaveBuildsProcessedWorkoutWithoutRoute() async throws {
+        let fixture = try makePersistedFixture()
+        let saver = RecordWorkoutSaver(
+            store: fixture.workoutStore,
+            routeStore: fixture.routeStore,
+            mapper: RecordWorkoutSaveMapper(dateProvider: { self.now })
+        )
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(
+            from: finishedSession(sport: .running, startedWithLocation: false)
+        ))
+
+        let saved = try await saver.save(summary)
+        let storedWorkout = try await fixture.workoutStore.fetchWorkout(id: saved.id)
+        let fetchedWorkout = try XCTUnwrap(storedWorkout)
+        let fetchedRoute = try await fixture.routeStore.fetchRoute(workoutId: saved.id)
+        let processed = ProcessedWorkoutBuilder().make(from: fetchedWorkout, route: fetchedRoute)
+
+        XCTAssertNil(fetchedRoute)
+        XCTAssertEqual(processed.source, .soomLocal)
+        XCTAssertEqual(processed.workoutType, .running)
+        XCTAssertEqual(processed.durationSeconds, 3_600)
+        XCTAssertNil(processed.distanceMeters)
+        XCTAssertNil(processed.averagePaceSecondsPerKilometer)
+        XCTAssertNil(processed.averageSpeedMetersPerSecond)
+        assertMetric(processed, .duration, is: .measured)
+        assertMetric(processed, .distance, is: .missing)
+        assertMetric(processed, .pace, is: .missing)
+        assertMetric(processed, .route, is: .missing)
+        assertMissingRecordSensorMetrics(processed, sport: .running)
+        XCTAssertEqual(processed.display.primaryMetricValue, "움직임 준비 중")
+    }
+
+    @MainActor
+    func testPersistedLocationDeniedRecordSaveBuildsValidProcessedWorkout() async throws {
+        let fixture = try makePersistedFixture()
+        let saver = RecordWorkoutSaver(
+            store: fixture.workoutStore,
+            routeStore: fixture.routeStore,
+            mapper: RecordWorkoutSaveMapper(dateProvider: { self.now })
+        )
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(
+            from: finishedLocationDeniedSession(sport: .walking)
+        ))
+
+        let saved = try await saver.save(summary)
+        let storedWorkout = try await fixture.workoutStore.fetchWorkout(id: saved.id)
+        let fetchedWorkout = try XCTUnwrap(storedWorkout)
+        let fetchedRoute = try await fixture.routeStore.fetchRoute(workoutId: saved.id)
+        let processed = ProcessedWorkoutBuilder().make(from: fetchedWorkout, route: fetchedRoute)
+
+        XCTAssertFalse(summary.capturedRoute)
+        XCTAssertNil(fetchedRoute)
+        XCTAssertEqual(processed.workoutType, .walking)
+        XCTAssertEqual(processed.durationSeconds, 3_600)
+        XCTAssertNil(processed.distanceMeters)
+        assertMetric(processed, .duration, is: .measured)
+        assertMetric(processed, .distance, is: .missing)
+        assertMetric(processed, .speed, is: .missing)
+        assertMetric(processed, .route, is: .missing)
+        assertMissingRecordSensorMetrics(processed, sport: .walking)
+        XCTAssertEqual(processed.display.primaryMetricLabel, "속도")
+        XCTAssertEqual(processed.display.primaryMetricValue, "움직임 준비 중")
+    }
+
     private func finishedSession(
         sport: RecordSportMode,
         startedWithLocation: Bool
@@ -207,6 +315,109 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
             .recordingLocation(RecordMapCoordinate(latitude: 37.5280, longitude: 126.9290), at: startedAt.addingTimeInterval(1_800))
             .finished(at: endedAt)
     }
+
+    private func finishedLocationDeniedSession(sport: RecordSportMode) -> RecordWorkoutSession {
+        let starter = RecordWorkoutSessionStarter(
+            idProvider: { self.fixedID },
+            dateProvider: { self.startedAt }
+        )
+        let state = RecordLocationState(
+            authorization: .denied,
+            coordinate: nil,
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+
+        return starter.start(sport: sport, locationState: state)
+            .finished(at: endedAt)
+    }
+
+    @MainActor
+    private func makePersistedFixture() throws -> (
+        workoutStore: SwiftDataUnifiedWorkoutStore,
+        routeStore: SwiftDataWorkoutRoutePersistenceStore
+    ) {
+        let schema = Schema([
+            UnifiedWorkoutRecord.self,
+            PersistedWorkoutRoute.self
+        ])
+        let configuration = ModelConfiguration(
+            "RecordWorkoutSaverProcessedWorkoutTests-\(UUID().uuidString)",
+            schema: schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [configuration]
+        )
+        retainedContainers.append(container)
+
+        return (
+            SwiftDataUnifiedWorkoutStore(
+                modelContext: container.mainContext,
+                referenceDate: { self.now }
+            ),
+            SwiftDataWorkoutRoutePersistenceStore(
+                modelContext: container.mainContext,
+                referenceDate: { self.now }
+            )
+        )
+    }
+
+    private func assertPrimaryDisplayMetric(
+        _ processed: ProcessedWorkout,
+        sport: RecordSportMode,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        switch sport {
+        case .cycling:
+            XCTAssertEqual(processed.display.primaryMetricLabel, "속도", file: file, line: line)
+            assertMetric(processed, .speed, is: .measured, file: file, line: line)
+            assertMetric(processed, .pace, is: .unsupported, file: file, line: line)
+            XCTAssertNotEqual(processed.display.primaryMetricValue, "움직임 준비 중", file: file, line: line)
+        case .running:
+            XCTAssertEqual(processed.display.primaryMetricLabel, "페이스", file: file, line: line)
+            assertMetric(processed, .pace, is: .derived, file: file, line: line)
+            assertMetric(processed, .speed, is: .unsupported, file: file, line: line)
+            XCTAssertNotEqual(processed.display.primaryMetricValue, "움직임 준비 중", file: file, line: line)
+        case .walking:
+            XCTAssertEqual(processed.display.primaryMetricLabel, "속도", file: file, line: line)
+            assertMetric(processed, .speed, is: .measured, file: file, line: line)
+            assertMetric(processed, .pace, is: .unsupported, file: file, line: line)
+            XCTAssertNotEqual(processed.display.primaryMetricValue, "움직임 준비 중", file: file, line: line)
+        }
+    }
+
+    private func assertMissingRecordSensorMetrics(
+        _ processed: ProcessedWorkout,
+        sport: RecordSportMode,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertNil(processed.averageHeartRate, file: file, line: line)
+        XCTAssertNil(processed.maxHeartRate, file: file, line: line)
+        XCTAssertNil(processed.activeEnergyKcal, file: file, line: line)
+        XCTAssertNil(processed.elevationGainMeters, file: file, line: line)
+        assertMetric(processed, .averageHeartRate, is: .missing, file: file, line: line)
+        assertMetric(processed, .maxHeartRate, is: .missing, file: file, line: line)
+        assertMetric(processed, .calories, is: .missing, file: file, line: line)
+        assertMetric(processed, .elevation, is: .missing, file: file, line: line)
+        assertMetric(processed, .power, is: sport == .cycling ? .missing : .unsupported, file: file, line: line)
+        assertMetric(processed, .cadence, is: .missing, file: file, line: line)
+        assertMetric(processed, .splits, is: .missing, file: file, line: line)
+        assertMetric(processed, .zones, is: .missing, file: file, line: line)
+    }
+
+    private func assertMetric(
+        _ workout: ProcessedWorkout,
+        _ metric: ProcessedWorkoutMetric,
+        is expectedState: ProcessedWorkoutMetricState,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(workout.metricAvailability[metric], expectedState, file: file, line: line)
+    }
+
 }
 
 private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
