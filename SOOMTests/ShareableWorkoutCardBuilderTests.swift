@@ -280,7 +280,7 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertFalse(ShareableWorkoutCardLayout.usesMetricGrid)
     }
 
-    func testCyclingShareMetricSetUsesDistanceDurationAndElevation() {
+    func testCyclingShareMetricSetUsesDistanceSpeedAndDuration() {
         let card = builder.build(
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
@@ -288,9 +288,9 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
             input: input(type: .cycling, distanceKm: 44.17, durationMinutes: 111, elevationGainMeters: 434)
         )
 
-        XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "시간", "고도"])
-        XCTAssertEqual(card.publicMetrics.map(\.value), ["44.2km", "1h 51m", "434m"])
-        XCTAssertEqual(card.compactPublicMetricLine, "1h 51m · 434m")
+        XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "속도", "시간"])
+        XCTAssertEqual(card.publicMetrics.map(\.value), ["44.2km", "23.9 km/h", "1h 51m"])
+        XCTAssertEqual(card.compactPublicMetricLine, "23.9 km/h · 1h 51m")
     }
 
     func testRunningShareMetricSetUsesDistancePaceAndDuration() {
@@ -302,8 +302,68 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "페이스", "시간"])
-        XCTAssertEqual(card.publicMetrics.map(\.value), ["10.4km", "5'02\"/km", "52m"])
-        XCTAssertEqual(card.compactPublicMetricLine, "5'02\"/km · 52m")
+        XCTAssertEqual(card.publicMetrics.map(\.value), ["10.4km", "5'00\"/km", "52m"])
+        XCTAssertEqual(card.compactPublicMetricLine, "5'00\"/km · 52m")
+    }
+
+    func testShareBuilderUsesProcessedWorkoutSnapshotValues() {
+        let processed = ProcessedWorkoutBuilder().make(
+            from: unifiedWorkout(
+                type: .cycling,
+                durationSeconds: 3_600,
+                distanceMeters: 30_000,
+                averageSpeedMetersPerSecond: 8.333333,
+                elevationGainMeters: 245,
+                averageHeartRate: 142,
+                activeEnergyKcal: 620
+            )
+        )
+
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            processedWorkout: processed
+        )
+
+        XCTAssertEqual(card.workoutType, .cycling)
+        XCTAssertEqual(card.distanceText, "30.00 km")
+        XCTAssertEqual(card.durationText, "1시간 0분")
+        XCTAssertEqual(card.averagePaceText, "30.0 km/h")
+        XCTAssertEqual(card.elevationGainText, "245m")
+        XCTAssertEqual(card.averageHeartRateText, "142bpm")
+        XCTAssertEqual(card.activeEnergyText, "620kcal")
+        XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "속도", "시간"])
+        XCTAssertEqual(card.publicMetrics.map(\.value), ["30km", "30.0 km/h", "1h 0m"])
+    }
+
+    func testShareBuilderUsesProcessedMissingMetricFallbacks() {
+        let processed = ProcessedWorkoutBuilder().make(
+            from: unifiedWorkout(
+                type: .running,
+                durationSeconds: 1_200,
+                distanceMeters: nil,
+                averageSpeedMetersPerSecond: nil,
+                elevationGainMeters: nil,
+                averageHeartRate: nil,
+                activeEnergyKcal: nil
+            )
+        )
+
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            processedWorkout: processed
+        )
+
+        XCTAssertEqual(card.distanceText, "거리 준비 중")
+        XCTAssertEqual(card.durationText, "20분")
+        XCTAssertEqual(card.averagePaceText, "움직임 준비 중")
+        XCTAssertNil(card.elevationGainText)
+        XCTAssertNil(card.averageHeartRateText)
+        XCTAssertNil(card.activeEnergyText)
+        XCTAssertEqual(card.publicMetrics.map(\.value), ["거리 준비 중", "움직임 준비 중", "20m"])
     }
 
     func testShareCardCarriesSummaryMetricsForStatOnlyLayout() {
@@ -335,7 +395,7 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertEqual(ShareableWorkoutCardLayout.statSummaryMissingMetricPlaceholder, "—")
     }
 
-    func testWalkingShareMetricSetUsesDistanceAndDuration() {
+    func testWalkingShareMetricSetUsesDistanceSpeedAndDuration() {
         let card = builder.build(
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
@@ -343,9 +403,9 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
             input: input(type: .walking, distanceKm: 3.2, durationMinutes: 46)
         )
 
-        XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "시간"])
-        XCTAssertEqual(card.publicMetrics.map(\.value), ["3.2km", "46m"])
-        XCTAssertEqual(card.compactPublicMetricLine, "46m")
+        XCTAssertEqual(card.publicMetrics.map(\.label), ["거리", "속도", "시간"])
+        XCTAssertEqual(card.publicMetrics.map(\.value), ["3.2km", "4.2 km/h", "46m"])
+        XCTAssertEqual(card.compactPublicMetricLine, "4.2 km/h · 46m")
     }
 
     func testRouteFirstLayoutVariantsAreAvailableForWorkoutAndRouteCards() {
@@ -554,6 +614,36 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
             averageHeartRate: 151,
             elevationGainMeters: elevationGainMeters,
             activeEnergyKcal: nil
+        )
+    }
+
+    private func unifiedWorkout(
+        type: UnifiedWorkoutType,
+        durationSeconds: TimeInterval,
+        distanceMeters: Double?,
+        averageSpeedMetersPerSecond: Double?,
+        elevationGainMeters: Double?,
+        averageHeartRate: Double?,
+        activeEnergyKcal: Double?
+    ) -> UnifiedWorkout {
+        let startDate = Date(timeIntervalSince1970: 1_800_000_000)
+        return UnifiedWorkout(
+            id: UUID(),
+            externalId: nil,
+            source: .soomLocal,
+            workoutType: type,
+            startDate: startDate,
+            endDate: startDate.addingTimeInterval(durationSeconds),
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters,
+            activeEnergyKcal: activeEnergyKcal,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: nil,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
+            elevationGainMeters: elevationGainMeters,
+            dataQuality: .partial,
+            createdAt: startDate,
+            updatedAt: startDate
         )
     }
 

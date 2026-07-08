@@ -481,7 +481,12 @@ struct ShareableWorkoutCardView: View {
     }
 
     private var transparentPaceOrSpeedLabel: String {
-        card.workoutType == .cycling ? "속도" : "페이스"
+        switch card.workoutType {
+        case .cycling, .walking:
+            return "속도"
+        default:
+            return "페이스"
+        }
     }
 
     private var transparentPaceOrSpeedText: String {

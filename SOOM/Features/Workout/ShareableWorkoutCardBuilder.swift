@@ -15,16 +15,35 @@ struct ShareableWorkoutCardBuilder {
         visibility: ShareableWorkoutVisibility = .privateOnly,
         staticRoutePreview: StaticRoutePreview? = nil
     ) -> ShareableWorkoutCardModel {
-        ShareableWorkoutCardModel(
-            id: input.id,
-            workoutType: input.workoutType,
-            title: title(for: input.workoutType),
-            distanceText: distanceText(from: input),
-            durationText: durationText(from: input),
-            averagePaceText: input.averagePaceText,
-            elevationGainText: elevationGainText(from: input),
-            averageHeartRateText: averageHeartRateText(from: input),
-            activeEnergyText: activeEnergyText(from: input),
+        build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            processedWorkout: ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: input)),
+            visibility: visibility,
+            staticRoutePreview: staticRoutePreview
+        )
+    }
+
+    func build(
+        sessionSummary: WorkoutSessionSummary,
+        growthSummary: WorkoutGrowthSummary,
+        recoveryImpact: WorkoutRecoveryImpact,
+        processedWorkout: ProcessedWorkout,
+        visibility: ShareableWorkoutVisibility = .privateOnly,
+        staticRoutePreview: StaticRoutePreview? = nil
+    ) -> ShareableWorkoutCardModel {
+        let display = processedWorkout.display
+        return ShareableWorkoutCardModel(
+            id: processedWorkout.id,
+            workoutType: processedWorkout.workoutType,
+            title: title(for: processedWorkout.workoutType),
+            distanceText: display.distanceText,
+            durationText: display.durationText,
+            averagePaceText: primaryMovementText(from: processedWorkout),
+            elevationGainText: optionalMetricText(display.elevationText),
+            averageHeartRateText: optionalMetricText(display.averageHeartRateText),
+            activeEnergyText: optionalMetricText(display.caloriesText),
             primaryMessage: sessionSummary.title,
             growthMessage: growthMessage(from: growthSummary),
             recoveryMessage: recoveryMessage(from: recoveryImpact),
@@ -50,12 +69,16 @@ struct ShareableWorkoutCardBuilder {
                 privacyPolicy: routePrivacyPolicy
             )
         }
+        let processedWorkout = ProcessedWorkoutBuilder().make(
+            from: unifiedWorkout(from: input),
+            route: route
+        )
 
         return build(
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
             recoveryImpact: recoveryImpact,
-            input: input,
+            processedWorkout: processedWorkout,
             visibility: visibility,
             staticRoutePreview: preview
         )
@@ -77,11 +100,13 @@ struct ShareableWorkoutCardBuilder {
             )
         }
 
+        let processedWorkout = ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: workout), route: route)
+
         return build(
-            workout: workout,
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
             recoveryImpact: recoveryImpact,
+            processedWorkout: processedWorkout,
             visibility: visibility,
             staticRoutePreview: routePreview
         )
@@ -99,7 +124,7 @@ struct ShareableWorkoutCardBuilder {
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
             recoveryImpact: recoveryImpact,
-            input: WorkoutGrowthInput(shareableWorkout: workout),
+            processedWorkout: ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: workout)),
             visibility: visibility,
             staticRoutePreview: staticRoutePreview ?? makeStaticRoutePreview(for: workout)
         )
@@ -126,21 +151,23 @@ struct ShareableWorkoutCardBuilder {
         }
     }
 
-    private func distanceText(from input: WorkoutGrowthInput) -> String {
-        guard let distanceKm = input.distanceKm, distanceKm > 0 else {
-            return "거리 준비 중"
+    private func primaryMovementText(from processedWorkout: ProcessedWorkout) -> String? {
+        switch processedWorkout.workoutType {
+        case .running, .hiking:
+            return processedWorkout.display.paceText
+        case .cycling, .walking:
+            return processedWorkout.display.speedText
+        case .swimming, .strength, .yoga, .other:
+            return nil
         }
-
-        return String(format: "%.2f km", distanceKm)
     }
 
-    private func durationText(from input: WorkoutGrowthInput) -> String {
-        let minutes = max(input.durationMinutes, 0)
-        if minutes >= 60 {
-            return "\(minutes / 60)시간 \(minutes % 60)분"
+    private func optionalMetricText(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false, trimmed != "—" else {
+            return nil
         }
-
-        return "\(minutes)분"
+        return trimmed
     }
 
     private func growthMessage(from summary: WorkoutGrowthSummary) -> String {
@@ -175,30 +202,6 @@ struct ShareableWorkoutCardBuilder {
         }
     }
 
-    private func elevationGainText(from input: WorkoutGrowthInput) -> String? {
-        guard let elevationGain = input.elevationGainMeters, elevationGain > 0 else {
-            return nil
-        }
-
-        return "\(Int(elevationGain.rounded()))m"
-    }
-
-    private func averageHeartRateText(from input: WorkoutGrowthInput) -> String? {
-        guard let averageHeartRate = input.averageHeartRate, averageHeartRate > 0 else {
-            return nil
-        }
-
-        return "\(Int(averageHeartRate.rounded()))bpm"
-    }
-
-    private func activeEnergyText(from input: WorkoutGrowthInput) -> String? {
-        guard let activeEnergy = input.activeEnergyKcal, activeEnergy > 0 else {
-            return nil
-        }
-
-        return "\(Int(activeEnergy.rounded()))kcal"
-    }
-
     private func makeStaticRoutePreview(for workout: Workout) -> StaticRoutePreview? {
         guard workout.route.count >= 2 else { return nil }
 
@@ -218,22 +221,47 @@ struct ShareableWorkoutCardBuilder {
             privacyPolicy: .defaultShare
         )
     }
-}
 
-private extension WorkoutGrowthInput {
-    init(shareableWorkout workout: Workout) {
-        self.init(
+    private func unifiedWorkout(from input: WorkoutGrowthInput) -> UnifiedWorkout {
+        let durationSeconds = TimeInterval(max(input.durationMinutes, 0) * 60)
+        return UnifiedWorkout(
+            id: input.id,
+            externalId: nil,
+            source: input.source,
+            workoutType: input.workoutType,
+            startDate: input.startDate,
+            endDate: input.startDate.addingTimeInterval(durationSeconds),
+            durationSeconds: durationSeconds,
+            distanceMeters: input.distanceKm.map { $0 * 1_000 },
+            activeEnergyKcal: input.activeEnergyKcal,
+            averageHeartRate: input.averageHeartRate,
+            maxHeartRate: nil,
+            averageSpeedMetersPerSecond: input.averageSpeedKmh.map { $0 / 3.6 },
+            elevationGainMeters: input.elevationGainMeters,
+            dataQuality: .partial,
+            createdAt: input.startDate,
+            updatedAt: input.startDate
+        )
+    }
+
+    private func unifiedWorkout(from workout: Workout) -> UnifiedWorkout {
+        UnifiedWorkout(
             id: workout.id,
+            externalId: "share-card-\(workout.id.uuidString)",
             source: .soomLocal,
             workoutType: UnifiedWorkoutType(shareableSport: workout.sport),
             startDate: workout.date,
-            durationMinutes: Int(workout.duration / 60),
-            distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
-            averagePaceText: workout.sport == .run ? workout.formattedPace : nil,
-            averageSpeedKmh: workout.duration > 0 ? (workout.distanceMeters / 1_000) / (workout.duration / 3_600) : nil,
+            endDate: workout.date.addingTimeInterval(workout.duration),
+            durationSeconds: workout.duration,
+            distanceMeters: workout.distanceMeters > 0 ? workout.distanceMeters : nil,
+            activeEnergyKcal: workout.activeCalories > 0 ? Double(workout.activeCalories) : nil,
             averageHeartRate: workout.avgHeartRate > 0 ? Double(workout.avgHeartRate) : nil,
+            maxHeartRate: workout.maxHeartRate > 0 ? Double(workout.maxHeartRate) : nil,
+            averageSpeedMetersPerSecond: workout.duration > 0 && workout.distanceMeters > 0 ? workout.distanceMeters / workout.duration : nil,
             elevationGainMeters: workout.elevationGain > 0 ? Double(workout.elevationGain) : nil,
-            activeEnergyKcal: workout.activeCalories > 0 ? Double(workout.activeCalories) : nil
+            dataQuality: .partial,
+            createdAt: workout.date,
+            updatedAt: workout.date
         )
     }
 }

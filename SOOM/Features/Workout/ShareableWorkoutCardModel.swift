@@ -268,8 +268,8 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         case .cycling:
             return [
                 ShareCardMetric(label: "거리", value: compactDistanceText),
-                ShareCardMetric(label: "시간", value: compactDurationText),
-                ShareCardMetric(label: "고도", value: elevationGainText ?? "0m")
+                ShareCardMetric(label: "속도", value: normalizedPaceText ?? "-"),
+                ShareCardMetric(label: "시간", value: compactDurationText)
             ]
         case .running:
             return [
@@ -280,6 +280,7 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         case .walking:
             return [
                 ShareCardMetric(label: "거리", value: compactDistanceText),
+                ShareCardMetric(label: "속도", value: normalizedPaceText ?? "-"),
                 ShareCardMetric(label: "시간", value: compactDurationText)
             ]
         default:
