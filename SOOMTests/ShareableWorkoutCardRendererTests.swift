@@ -68,6 +68,27 @@ struct ShareableWorkoutCardRendererTests {
         #expect((image?.size.height ?? 0) > 0)
     }
 
+    @Test func testRendererCanRenderAllShareComposerCardTypesInStableFrame() {
+        for type in ShareCardComposerLayout.cardOrder {
+            let card = makeCardWithStaticRoutePreview().configured(
+                shareType: type,
+                backgroundOption: .mapPhoto
+            )
+            let image = ShareableWorkoutCardRenderer().render(
+                card: card,
+                tint: SOOMColor.run,
+                resolvedRouteImage: makeResolvedRouteImage()
+            )
+            let width = image?.size.width ?? 0
+            let height = image?.size.height ?? 0
+
+            #expect(image != nil)
+            #expect(width > 0)
+            #expect(height > 0)
+            #expect(abs((width / height) - ShareableWorkoutCardLayout.aspectRatio) < 0.02)
+        }
+    }
+
     @Test func testRendererUsesStableRetinaScaleForShareCard() {
         let card = makeCard()
         let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.run)

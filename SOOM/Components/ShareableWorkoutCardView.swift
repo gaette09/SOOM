@@ -43,6 +43,7 @@ struct ShareableWorkoutCardView: View {
                 storyFooter
             }
             .padding(ShareableWorkoutCardLayout.outerPadding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .aspectRatio(ShareableWorkoutCardLayout.aspectRatio, contentMode: .fit)
@@ -74,7 +75,8 @@ struct ShareableWorkoutCardView: View {
                     .font(transparentHeadlineFont)
                     .foregroundStyle(transparentForeground)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.62)
+                    .allowsTightening(true)
 
                 if card.shareType == .workout || card.shareType == .route {
                     transparentMetricLine
@@ -85,7 +87,8 @@ struct ShareableWorkoutCardView: View {
                     .foregroundStyle(transparentForeground)
                     .lineSpacing(ShareableWorkoutCardLayout.primaryLineSpacing)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.74)
+                    .minimumScaleFactor(0.64)
+                    .allowsTightening(true)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if card.shareType == .club {
@@ -104,6 +107,7 @@ struct ShareableWorkoutCardView: View {
                     .padding(.top, ShareableWorkoutCardLayout.transparentSignatureTopPadding)
             }
             .padding(ShareableWorkoutCardLayout.transparentExportPadding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .shadow(color: SOOMColor.black.opacity(0.36), radius: 12, x: 0, y: 7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,7 +163,8 @@ struct ShareableWorkoutCardView: View {
                 .font(storyHeadlineFont)
                 .foregroundStyle(storyForeground)
                 .lineLimit(2)
-                .minimumScaleFactor(0.72)
+                .minimumScaleFactor(0.62)
+                .allowsTightening(true)
 
             if card.shareType == .workout || card.shareType == .route {
                 standardMetricStrip
@@ -170,14 +175,16 @@ struct ShareableWorkoutCardView: View {
                 .foregroundStyle(storyForeground)
                 .lineSpacing(ShareableWorkoutCardLayout.primaryLineSpacing)
                 .lineLimit(2)
-                .minimumScaleFactor(0.74)
+                .minimumScaleFactor(0.64)
+                .allowsTightening(true)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(card.storySupportingText)
                 .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(storySecondaryForeground)
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(0.66)
+                .allowsTightening(true)
         }
         .shadow(color: card.backgroundOption == .transparent ? .clear : SOOMColor.black.opacity(0.18), radius: 14, x: 0, y: 8)
     }
@@ -415,7 +422,7 @@ enum ShareableWorkoutCardLayout {
     static let aspectRatio: CGFloat = 9.0 / 16.0
     static let exportWidth: CGFloat = 360
     static let exportScale: CGFloat = 3
-    static let outerPadding: CGFloat = 22
+    static let outerPadding: CGFloat = 28
     static let outerRadius: CGFloat = 22
     static let innerRadius: CGFloat = 16
     static let transparentContentInset: CGFloat = 16
@@ -424,8 +431,8 @@ enum ShareableWorkoutCardLayout {
     static let metricSpacing: CGFloat = 10
     static let messageSpacing: CGFloat = 8
     static let primaryLineSpacing: CGFloat = 3
-    static let storyTextSpacing: CGFloat = 14
-    static let storyVerticalBreathing: CGFloat = 32
+    static let storyTextSpacing: CGFloat = 12
+    static let storyVerticalBreathing: CGFloat = 24
     static let accentCircleSize: CGFloat = 156
     static let accentCircleOffset: CGFloat = 58
     static let routePreviewHeight: CGFloat = 148
@@ -433,11 +440,11 @@ enum ShareableWorkoutCardLayout {
     static let rhythmPatternInset: CGFloat = 18
     static let rhythmPatternLineWidth: CGFloat = 1.4
     static let rhythmPatternOpacity: Double = 0.16
-    static let transparentExportPadding: CGFloat = 26
+    static let transparentExportPadding: CGFloat = 30
     static let transparentRouteLineHeight: CGFloat = 210
     static let transparentRouteHorizontalPadding: CGFloat = 24
     static let transparentRouteTopPadding: CGFloat = 82
-    static let transparentTextSpacing: CGFloat = 12
+    static let transparentTextSpacing: CGFloat = 11
     static let transparentSignatureTopPadding: CGFloat = 7
 }
 

@@ -721,7 +721,6 @@ private struct ShareCardCarousel: View {
     @Binding var selectedIndex: Int
     let backgroundOption: ShareCardBackgroundOption
     let tint: Color
-    @State private var scrollPosition: Int?
 
     private var selectedType: ShareCardType {
         ShareCardComposerLayout.cardType(at: selectedIndex)
@@ -743,42 +742,26 @@ private struct ShareCardCarousel: View {
             }
             .frame(maxWidth: .infinity)
 
-            ScrollView(.horizontal) {
-                HStack(spacing: ShareComposerCarouselMetrics.cardSpacing) {
-                    ForEach(Array(ShareCardComposerLayout.cardOrder.enumerated()), id: \.offset) { index, type in
-                        ShareCardCarouselPreview(
-                            card: configuredCard(for: type),
-                            tint: tint
-                        )
-                        .containerRelativeFrame(.horizontal) { length, _ in
-                            min(
-                                ShareComposerCarouselMetrics.previewWidth,
-                                length * ShareComposerCarouselMetrics.peekWidthRatio
-                            )
-                        }
-                        .id(index)
-                    }
-                }
-                .scrollTargetLayout()
-                .padding(.horizontal, SOOMLayout.screenPadding)
-            }
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $scrollPosition, anchor: .center)
-            .frame(height: ShareComposerCarouselMetrics.previewHeight)
-            .onAppear {
-                scrollPosition = selectedIndex
-            }
-            .onChange(of: scrollPosition) { _, newValue in
-                guard let newValue, selectedIndex != newValue else { return }
-                selectedIndex = newValue
-            }
-            .onChange(of: selectedIndex) { _, newValue in
-                guard scrollPosition != newValue else { return }
-                withAnimation(.smooth(duration: 0.24)) {
-                    scrollPosition = newValue
+            TabView(selection: $selectedIndex) {
+                ForEach(Array(ShareCardComposerLayout.cardOrder.enumerated()), id: \.offset) { index, type in
+                    ShareCardCarouselPreview(
+                        card: configuredCard(for: type),
+                        tint: tint
+                    )
+                    .frame(
+                        width: ShareComposerCarouselMetrics.previewWidth,
+                        height: ShareComposerCarouselMetrics.previewHeight
+                    )
+                    .tag(index)
+                    .padding(.vertical, ShareComposerCarouselMetrics.previewShadowPadding)
                 }
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(
+                width: ShareComposerCarouselMetrics.previewWidth,
+                height: ShareComposerCarouselMetrics.previewViewportHeight
+            )
+            .clipped()
 
             HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 ForEach(ShareCardComposerLayout.cardOrder.indices, id: \.self) { index in
@@ -824,8 +807,12 @@ private struct ShareCardCarouselPreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
         }
-        .frame(maxWidth: ShareComposerCarouselMetrics.previewWidth)
-        .frame(maxWidth: .infinity)
+        .frame(
+            width: ShareComposerCarouselMetrics.previewWidth,
+            height: ShareComposerCarouselMetrics.previewHeight
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius + 8, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.outerRadius + 8, style: .continuous))
         .shadow(color: SOOMColor.black.opacity(0.12), radius: 20, x: 0, y: 14)
         .accessibilityElement(children: .combine)
     }
@@ -902,9 +889,9 @@ private struct ShareBackgroundToggle: View {
 
 private enum ShareComposerCarouselMetrics {
     static let previewWidth: CGFloat = 292
-    static let previewHeight: CGFloat = 560
-    static let cardSpacing: CGFloat = 14
-    static let peekWidthRatio: CGFloat = 0.78
+    static let previewHeight: CGFloat = previewWidth / ShareableWorkoutCardLayout.aspectRatio
+    static let previewShadowPadding: CGFloat = 18
+    static let previewViewportHeight: CGFloat = previewHeight + previewShadowPadding * 2
     static let dotSize: CGFloat = 7
     static let activeDotWidth: CGFloat = 22
     static let transparentPreviewInset: CGFloat = 8
