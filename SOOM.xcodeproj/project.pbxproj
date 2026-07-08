@@ -196,6 +196,7 @@
 		010802 /* ProcessedWorkoutBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020802 /* ProcessedWorkoutBuilder.swift */; };
 		010803 /* ProcessedWorkoutBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020803 /* ProcessedWorkoutBuilderTests.swift */; };
 		010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */; };
+		010805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -663,6 +664,7 @@
 		020802 /* ProcessedWorkoutBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutBuilder.swift; sourceTree = "<group>"; };
 		020803 /* ProcessedWorkoutBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutBuilderTests.swift; sourceTree = "<group>"; };
 		020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutToRecoveryActivityMapper.swift; sourceTree = "<group>"; };
+		020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitImportedWorkoutSurfaceValidationTests.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1518,6 +1520,7 @@
 				020179 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift */,
 				020182 /* UnifiedWorkoutToGrowthInputMapperTests.swift */,
 				020803 /* ProcessedWorkoutBuilderTests.swift */,
+				020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */,
 				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
 				020189 /* UnifiedWorkoutStoreTests.swift */,
 				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
@@ -2086,6 +2089,7 @@
 				010178 /* UnifiedWorkoutToRecoveryActivityMapperTests.swift in Sources */,
 				010181 /* UnifiedWorkoutToGrowthInputMapperTests.swift in Sources */,
 				010803 /* ProcessedWorkoutBuilderTests.swift in Sources */,
+				010805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift in Sources */,
 				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
 				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
 				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,
