@@ -263,6 +263,17 @@ final class RecordWorkoutSessionTests: XCTestCase {
         XCTAssertEqual(RecordActiveHUDModeTransition.modeAfterFinish(expanded), .compact)
     }
 
+    func testActiveHUDLayeringKeepsCompactHUDAboveMapControls() {
+        XCTAssertGreaterThan(
+            RecordActiveHUDLayerLayout.hudZIndex(for: .compact),
+            RecordActiveHUDLayerLayout.rightControlsZIndex
+        )
+        XCTAssertGreaterThan(
+            RecordActiveHUDLayerLayout.hudZIndex(for: .expanded),
+            RecordActiveHUDLayerLayout.hudZIndex(for: .compact)
+        )
+    }
+
     func testPausedSessionDoesNotAppendRouteCoordinates() {
         let state = RecordLocationState(
             authorization: .authorized,

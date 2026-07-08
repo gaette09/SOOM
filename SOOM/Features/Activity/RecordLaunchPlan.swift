@@ -964,7 +964,7 @@ enum RecordMapHeaderLayout {
 enum RecordActiveHUDLayerLayout {
     static let mapZIndex: Double = 0
     static let readyControlZIndex: Double = 1
-    static let compactHUDZIndex: Double = 3
+    static let compactHUDZIndex: Double = 80
     static let topBannerZIndex: Double = 50
     static let rightControlsZIndex: Double = 40
     static let expandedHUDZIndex: Double = 100
@@ -985,6 +985,10 @@ enum RecordActiveHUDLayerLayout {
     static func topControlsOpacity(isExpanded: Bool) -> Double {
         isExpanded ? 0 : 1
     }
+}
+
+enum RecordActiveHUDVisualLayout {
+    static let compactMaxWidth: CGFloat = 330
 }
 
 enum RecordMapOrnamentLayout {

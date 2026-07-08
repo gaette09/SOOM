@@ -976,73 +976,97 @@ struct RecordView: View {
         return VStack {
             Spacer(minLength: 0)
 
-            VStack(spacing: activeHUDMode == .compact ? 14 : 18) {
+            VStack(spacing: activeHUDMode == .compact ? 12 : 14) {
                 if session.state == .finished {
-                    activeHUDHeader(session: session, elapsed: hud.elapsed)
-                    activeHUDPrimaryMetric(hud.primaryMetric)
-                    activeHUDMetricGrid(hud.secondaryMetrics)
-                    finishedSummaryContent(for: session)
+                    activeHUDCard(mode: .expanded, sessionState: session.state) {
+                        activeHUDHeader(session: session, elapsed: hud.elapsed)
+                        activeHUDPrimaryMetric(hud.primaryMetric)
+                        activeHUDMetricGrid(hud.secondaryMetrics)
+                        finishedSummaryContent(for: session)
+                    }
                 } else {
-                    if activeHUDMode == .expanded {
-                        expandedActiveHUDContent(session: session, hud: hud)
-                            .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
-                    } else {
-                        compactActiveHUDContent(session: session, hud: hud)
-                            .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                    activeHUDCard(mode: activeHUDMode, sessionState: session.state) {
+                        if activeHUDMode == .expanded {
+                            expandedActiveHUDContent(session: session, hud: hud)
+                                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                        } else {
+                            compactActiveHUDContent(session: session, hud: hud)
+                                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                        }
                     }
 
                     activeSessionActions(for: session)
                 }
             }
-            .padding(.horizontal, activeHUDMode == .compact && session.state != .finished ? 16 : 18)
-            .padding(.top, activeHUDMode == .compact && session.state != .finished ? 14 : 16)
-            .padding(.bottom, activeHUDMode == .compact && session.state != .finished ? 16 : 18)
-            .background(SOOMColor.surfacePrimary.opacity(0.98))
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(SOOMColor.line.opacity(0.9), lineWidth: 1)
-            }
-            .shadow(color: SOOMColor.ink.opacity(0.14), radius: 28, x: 0, y: 16)
             .padding(.horizontal, 16)
-            .padding(.bottom, max(safeAreaInsets.bottom, 16) + 8)
+            .padding(.bottom, max(safeAreaInsets.bottom, 16) + 14)
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: activeHUDMode)
         }
+    }
+
+    private func activeHUDCard<Content: View>(
+        mode: RecordActiveHUDMode,
+        sessionState: RecordWorkoutSessionState,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let isCompact = mode == .compact && sessionState != .finished
+
+        return VStack(spacing: isCompact ? 10 : 16) {
+            content()
+        }
+        .padding(.horizontal, isCompact ? 14 : 18)
+        .padding(.top, isCompact ? 10 : 16)
+        .padding(.bottom, isCompact ? 14 : 18)
+        .frame(maxWidth: isCompact ? RecordActiveHUDVisualLayout.compactMaxWidth : .infinity)
+        .background(SOOMColor.surfacePrimary.opacity(isCompact ? 0.96 : 0.98))
+        .clipShape(RoundedRectangle(cornerRadius: isCompact ? 22 : 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: isCompact ? 22 : 24, style: .continuous)
+                .stroke(SOOMColor.line.opacity(isCompact ? 0.78 : 0.9), lineWidth: 1)
+        }
+        .shadow(
+            color: SOOMColor.ink.opacity(isCompact ? 0.16 : 0.14),
+            radius: isCompact ? 24 : 28,
+            x: 0,
+            y: isCompact ? 12 : 16
+        )
+        .zIndex(1)
     }
 
     private func compactActiveHUDContent(
         session: RecordWorkoutSession,
         hud: RecordActiveHUDLayout
     ) -> some View {
-        VStack(spacing: 12) {
-            HStack(alignment: .center, spacing: 10) {
-                activeHUDSportStatusChip(session: session)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 8) {
+                activeHUDCenteredMetric(
+                    hud.elapsed,
+                    valueSize: 50,
+                    unitSize: 14,
+                    labelFirst: false
+                )
 
-                Spacer(minLength: 0)
-
-                activeHUDModeButton(
-                    systemName: "arrow.up.left.and.arrow.down.right",
-                    accessibilityLabel: "운동 정보 펼치기"
-                ) {
-                    SOOMHaptics.selection()
-                    activeHUDMode = RecordActiveHUDModeTransition.expand(from: activeHUDMode)
-                }
+                activeHUDCenteredMetric(
+                    hud.primaryMetric,
+                    valueSize: 46,
+                    unitSize: 14,
+                    labelFirst: true
+                )
             }
+            .padding(.top, 2)
+            .padding(.horizontal, 34)
 
-            activeHUDCenteredMetric(
-                hud.elapsed,
-                valueSize: 46,
-                unitSize: 14,
-                labelFirst: false
-            )
-
-            activeHUDCenteredMetric(
-                hud.primaryMetric,
-                valueSize: 64,
-                unitSize: 17,
-                labelFirst: true
-            )
+            activeHUDModeButton(
+                systemName: "arrow.up.left.and.arrow.down.right",
+                accessibilityLabel: "운동 정보 펼치기"
+            ) {
+                SOOMHaptics.selection()
+                activeHUDMode = RecordActiveHUDModeTransition.expand(from: activeHUDMode)
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(session.sport.title) 기록 compact HUD")
+        .accessibilityValue("\(hud.elapsed.label) \(hud.elapsed.value), \(hud.primaryMetric.label) \(hud.primaryMetric.value) \(hud.primaryMetric.unit ?? "")")
     }
 
     private func expandedActiveHUDContent(
@@ -1311,6 +1335,15 @@ struct RecordView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("기록 취소")
         }
+        .padding(10)
+        .background(SOOMColor.surfacePrimary.opacity(0.94))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(SOOMColor.line.opacity(0.72), lineWidth: 1)
+        }
+        .shadow(color: SOOMColor.ink.opacity(0.11), radius: 18, x: 0, y: 10)
+        .zIndex(0)
     }
 
     private func finishedSummaryContent(for session: RecordWorkoutSession) -> some View {
