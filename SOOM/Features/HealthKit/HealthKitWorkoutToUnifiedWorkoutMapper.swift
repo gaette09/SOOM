@@ -41,9 +41,9 @@ struct HealthKitWorkoutToUnifiedWorkoutMapper {
     }
 
     private func dataQuality(for workout: HealthKitWorkout) -> UnifiedDataQuality {
-        let hasSummaryMetrics = workout.distance != nil
-            || workout.averageHeartRate != nil
-            || workout.calories != nil
+        let hasSummaryMetrics = sanitizedPositive(workout.distance) != nil
+            || sanitizedPositive(workout.averageHeartRate) != nil
+            || sanitizedPositive(workout.calories) != nil
 
         return hasSummaryMetrics ? .partial : .missing
     }
@@ -60,7 +60,7 @@ struct HealthKitWorkoutToUnifiedWorkoutMapper {
     }
 
     private func sanitizedPositive(_ value: Double?) -> Double? {
-        guard let value, value >= 0 else { return nil }
+        guard let value, value > 0 else { return nil }
         return value
     }
 }

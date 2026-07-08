@@ -26,6 +26,44 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.map(\.workoutType), [.running, .cycling])
     }
 
+    func testImportedHealthKitWorkoutCanBecomeProcessedWorkout() async {
+        let workoutID = UUID(uuidString: "12121212-1212-1212-1212-121212121212")!
+        let store = FakeUnifiedWorkoutStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(
+                        id: workoutID,
+                        type: .walking,
+                        duration: 1_800,
+                        distance: 2_500,
+                        averageHeartRate: nil,
+                        calories: nil
+                    )
+                ])
+            ),
+            store: store,
+            mappedAt: { Date(timeIntervalSince1970: 1_800_200_000) }
+        )
+
+        let result = await pipeline.importRecentWorkouts(limit: 10)
+
+        XCTAssertEqual(result.savedCount, 1)
+        let importedWorkout = result.importedWorkouts[0]
+        let processed = ProcessedWorkoutBuilder().make(from: importedWorkout)
+        XCTAssertEqual(processed.id, workoutID)
+        XCTAssertEqual(processed.externalId, workoutID.uuidString)
+        XCTAssertEqual(processed.source, .appleHealthKit)
+        XCTAssertEqual(processed.workoutType, .walking)
+        XCTAssertEqual(processed.distanceMeters, 2_500)
+        XCTAssertEqual(processed.durationSeconds, 1_800)
+        XCTAssertEqual(processed.metricAvailability[.distance], .measured)
+        XCTAssertEqual(processed.metricAvailability[.duration], .measured)
+        XCTAssertEqual(processed.metricAvailability[.calories], .missing)
+        XCTAssertEqual(processed.metricAvailability[.averageHeartRate], .missing)
+        XCTAssertEqual(processed.display.primaryMetricLabel, "속도")
+    }
+
     func testPersistsWorkoutRoutesWhenRouteDependenciesAreInjected() async {
         let workoutID = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
         let store = FakeUnifiedWorkoutStore()
