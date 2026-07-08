@@ -27,6 +27,7 @@ struct WorkoutDetailContent: View {
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
     var mapRoute: WorkoutRoute?
+    var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
     var splitDataProvider: WorkoutSplitDataProviding?
@@ -59,6 +60,12 @@ struct WorkoutDetailContent: View {
 
             if presentationStyle == .standalone {
                 ActivityDetailHeroMap(workout: workout, route: mapRoute)
+            }
+            if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
+                ActivityDetailRouteMissingCard(
+                    reason: processedWorkout.routeMissingReason,
+                    tint: workout.sport.tint
+                )
             }
             ActivityDetailSummaryCard(
                 workout: workout,
@@ -249,7 +256,7 @@ struct WorkoutDetailContent: View {
     }
 
     private var processedWorkout: ProcessedWorkout {
-        ProcessedWorkoutBuilder().make(from: unifiedWorkoutForDraft, route: mapRoute)
+        ProcessedWorkoutBuilder().make(from: sourceUnifiedWorkout ?? unifiedWorkoutForDraft, route: mapRoute)
     }
 
     private var workoutGrowthInput: WorkoutGrowthInput {
@@ -392,6 +399,58 @@ private struct ActivityDetailHeroMap: View {
         case .run: return .running
         case .bike, .brick: return .cycling
         case .swim: return .swimming
+        }
+    }
+}
+
+private struct ActivityDetailRouteMissingCard: View {
+    let reason: WorkoutRouteMissingReason
+    let tint: Color
+
+    var body: some View {
+        SOOMCard {
+            HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
+                Image(systemName: SOOMIcon.map)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 32, height: 32)
+                    .background(tint.opacity(0.12))
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("경로 데이터 없음")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(tint)
+
+                    Text(message)
+                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("경로 파일 가져오기 준비 중")
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("경로 데이터 없음")
+        .accessibilityValue(message)
+    }
+
+    private var message: String {
+        switch reason {
+        case .routeFetchFailed:
+            return "Apple Health에서 운동은 가져왔지만 경로를 확인하지 못했습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+        case .routePersistenceFailed:
+            return "Apple Health에서 경로를 찾았지만 저장하지 못했습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 다시 추가할 수 있습니다."
+        case .externalSourceRouteNotShared:
+            return "Apple Health에서 운동은 가져왔지만 원본 앱의 경로 데이터는 포함되지 않았습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+        case .healthKitRouteUnavailable:
+            return "Apple Health에서 운동은 가져왔지만 경로 데이터는 포함되지 않았습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+        case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
+            return "경로 데이터가 없어도 운동 요약은 확인할 수 있습니다."
         }
     }
 }

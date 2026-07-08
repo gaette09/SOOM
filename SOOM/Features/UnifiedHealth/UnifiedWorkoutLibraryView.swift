@@ -369,7 +369,8 @@ private struct UnifiedWorkoutDetailDestination: View {
             courseRecordOverride: courseRecord,
             courseProgressionOverride: courseProgression,
             climbInsightOverride: climbInsight,
-            detailRouteOverride: persistedRoute
+            detailRouteOverride: persistedRoute,
+            sourceUnifiedWorkout: unifiedWorkout
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)

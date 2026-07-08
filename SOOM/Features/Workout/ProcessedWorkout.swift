@@ -18,8 +18,13 @@ struct ProcessedWorkout: Identifiable, Equatable {
     let maxHeartRate: Double?
     let elevationGainMeters: Double?
     let route: ProcessedWorkoutRoute?
+    let routeMissingReason: WorkoutRouteMissingReason
     let metricAvailability: [ProcessedWorkoutMetric: ProcessedWorkoutMetricState]
     let display: WorkoutDisplaySnapshot
+
+    var hasRoute: Bool {
+        route?.hasRenderableRoute == true
+    }
 
     var durationMinutes: Int {
         max(Int((durationSeconds / 60).rounded()), 0)

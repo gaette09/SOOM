@@ -50,7 +50,7 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
 
         let importDate = mappedAt()
         let unifiedWorkouts = workouts.map { mapper.map($0, mappedAt: importDate) }
-        let importableWorkouts: [UnifiedWorkout]
+        var importableWorkouts: [UnifiedWorkout]
 
         guard !unifiedWorkouts.isEmpty else {
             return .success(importedWorkouts: [], fetchedCount: workouts.count)
@@ -65,7 +65,19 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
             }
 
             try await store.saveWorkouts(importableWorkouts)
-            await persistRoutesIfAvailable(for: importableWorkouts)
+            let routeMissingReasons = await persistRoutesIfAvailable(for: importableWorkouts)
+            if !routeMissingReasons.isEmpty {
+                let routeStatusUpdatedAt = mappedAt()
+                importableWorkouts = importableWorkouts.map { workout in
+                    guard let reason = routeMissingReasons[workout.id] else {
+                        return workout
+                    }
+
+                    return workout.withRouteMissingReason(reason, updatedAt: routeStatusUpdatedAt)
+                }
+
+                try? await store.saveWorkouts(importableWorkouts)
+            }
             return .success(importedWorkouts: importableWorkouts, fetchedCount: workouts.count)
         } catch {
             return .failure(
@@ -121,33 +133,48 @@ final class HealthKitWorkoutImportPipeline: HealthKitWorkoutImporting {
         return value
     }
 
-    private func persistRoutesIfAvailable(for workouts: [UnifiedWorkout]) async {
+    private func persistRoutesIfAvailable(for workouts: [UnifiedWorkout]) async -> [UUID: WorkoutRouteMissingReason] {
         guard
             let routeLookupProvider,
             let routeFetcher,
             let routeStore
         else {
-            return
+            return [:]
         }
+
+        var routeMissingReasons: [UUID: WorkoutRouteMissingReason] = [:]
 
         for workout in workouts where workout.source == .appleHealthKit {
             guard
                 let externalId = workout.externalId,
                 let healthKitWorkout = await routeLookupProvider.lookupWorkout(externalId: externalId)
             else {
+                routeMissingReasons[workout.id] = .externalSourceRouteNotShared
+                continue
+            }
+
+            let route: WorkoutRoute?
+            do {
+                route = try await routeFetcher.fetchRoute(for: healthKitWorkout)
+            } catch {
+                routeMissingReasons[workout.id] = .routeFetchFailed
+                continue
+            }
+
+            guard let route else {
+                routeMissingReasons[workout.id] = .healthKitRouteUnavailable
                 continue
             }
 
             do {
-                guard let route = try await routeFetcher.fetchRoute(for: healthKitWorkout) else {
-                    continue
-                }
-
                 try await routeStore.saveRoute(route.associated(with: workout))
             } catch {
+                routeMissingReasons[workout.id] = .routePersistenceFailed
                 continue
             }
         }
+
+        return routeMissingReasons
     }
 }
 

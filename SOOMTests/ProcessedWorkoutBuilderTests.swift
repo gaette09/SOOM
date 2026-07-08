@@ -105,6 +105,8 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         let processed = builder.make(from: workout, route: route)
 
         XCTAssertEqual(processed.route?.hasRenderableRoute, true)
+        XCTAssertTrue(processed.hasRoute)
+        XCTAssertEqual(processed.routeMissingReason, .none)
         XCTAssertEqual(processed.route?.coordinateCount, 2)
         XCTAssertEqual(processed.distanceMeters, 12_000)
         XCTAssertEqual(processed.elevationGainMeters, 45)
@@ -164,6 +166,7 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         XCTAssertNil(processed.activeEnergyKcal)
         XCTAssertNil(processed.averageHeartRate)
         XCTAssertEqual(processed.route?.hasRenderableRoute, false)
+        XCTAssertFalse(processed.hasRoute)
         assertMetric(processed, .route, is: .missing)
         XCTAssertEqual(processed.display.durationText, "0분")
         XCTAssertEqual(processed.display.distanceText, "거리 준비 중")
@@ -243,6 +246,8 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         XCTAssertNil(processed.averagePaceSecondsPerKilometer)
         XCTAssertNil(processed.averageSpeedMetersPerSecond)
         XCTAssertNil(processed.route)
+        XCTAssertFalse(processed.hasRoute)
+        XCTAssertEqual(processed.routeMissingReason, .none)
         assertMetric(processed, .duration, is: .measured)
         assertMetric(processed, .distance, is: .missing)
         assertMetric(processed, .pace, is: .missing)
@@ -265,6 +270,7 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(processed.workoutType, .walking)
         XCTAssertEqual(processed.durationSeconds, 1_200)
         XCTAssertNil(processed.distanceMeters)
+        XCTAssertEqual(processed.routeMissingReason, .none)
         assertMetric(processed, .duration, is: .measured)
         assertMetric(processed, .distance, is: .missing)
         assertMetric(processed, .speed, is: .missing)
@@ -307,6 +313,50 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         assertMetric(processed, .route, is: .measured)
     }
 
+    func testHealthKitImportedWorkoutWithoutRouteExposesMissingRouteReason() {
+        let workout = makeWorkout(
+            source: .appleHealthKit,
+            type: .cycling,
+            durationSeconds: 3_600,
+            distanceMeters: 24_000,
+            routeMissingReason: .healthKitRouteUnavailable
+        )
+
+        let processed = builder.make(from: workout, route: nil)
+
+        XCTAssertFalse(processed.hasRoute)
+        XCTAssertNil(processed.route)
+        XCTAssertEqual(processed.routeMissingReason, .healthKitRouteUnavailable)
+        assertMetric(processed, .route, is: .missing)
+        XCTAssertEqual(processed.display.routeBadgeLabel, nil)
+    }
+
+    func testRenderableRouteClearsImportedMissingRouteReason() {
+        let workout = makeWorkout(
+            source: .appleHealthKit,
+            type: .cycling,
+            durationSeconds: 3_600,
+            distanceMeters: 24_000,
+            routeMissingReason: .healthKitRouteUnavailable
+        )
+        let route = WorkoutRoute(
+            workoutId: workout.id,
+            source: .appleHealthKit,
+            coordinates: [
+                WorkoutRouteCoordinate(latitude: 37.5, longitude: 127.0),
+                WorkoutRouteCoordinate(latitude: 37.6, longitude: 127.1)
+            ],
+            totalDistanceMeters: 24_000,
+            totalElevationGain: nil
+        )
+
+        let processed = builder.make(from: workout, route: route)
+
+        XCTAssertTrue(processed.hasRoute)
+        XCTAssertEqual(processed.routeMissingReason, .none)
+        assertMetric(processed, .route, is: .measured)
+    }
+
     private func makeWorkout(
         id: UUID = UUID(),
         source: UnifiedDataSource = .soomLocal,
@@ -319,6 +369,7 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         maxHeartRate: Double? = 170,
         averageSpeedMetersPerSecond: Double? = nil,
         elevationGainMeters: Double? = 80,
+        routeMissingReason: WorkoutRouteMissingReason = .none,
         dataQuality: UnifiedDataQuality = .partial
     ) -> UnifiedWorkout {
         UnifiedWorkout(
@@ -335,6 +386,7 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
             maxHeartRate: maxHeartRate,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: elevationGainMeters,
+            routeMissingReason: routeMissingReason,
             dataQuality: dataQuality,
             createdAt: startDate,
             updatedAt: startDate

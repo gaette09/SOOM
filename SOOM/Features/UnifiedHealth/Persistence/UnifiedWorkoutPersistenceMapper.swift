@@ -20,6 +20,7 @@ struct UnifiedWorkoutPersistenceMapper {
             maxHeartRate: workout.maxHeartRate,
             averageSpeedMetersPerSecond: workout.averageSpeedMetersPerSecond,
             elevationGainMeters: workout.elevationGainMeters,
+            routeMissingReasonRaw: workout.routeMissingReason.rawValue,
             dataQualityRaw: workout.dataQuality.rawValue,
             createdAt: workout.createdAt,
             updatedAt: workout.updatedAt,
@@ -43,6 +44,7 @@ struct UnifiedWorkoutPersistenceMapper {
             maxHeartRate: record.maxHeartRate,
             averageSpeedMetersPerSecond: record.averageSpeedMetersPerSecond,
             elevationGainMeters: record.elevationGainMeters,
+            routeMissingReason: record.routeMissingReasonRaw.flatMap(WorkoutRouteMissingReason.init(rawValue:)) ?? .none,
             dataQuality: UnifiedDataQuality(rawValue: record.dataQualityRaw) ?? .unknown,
             isExcludedFromAnalysis: record.isExcludedFromAnalysis,
             createdAt: record.createdAt,
@@ -68,6 +70,7 @@ struct UnifiedWorkoutPersistenceMapper {
         record.maxHeartRate = workout.maxHeartRate
         record.averageSpeedMetersPerSecond = workout.averageSpeedMetersPerSecond
         record.elevationGainMeters = workout.elevationGainMeters
+        record.routeMissingReasonRaw = workout.routeMissingReason.rawValue
         record.dataQualityRaw = workout.dataQuality.rawValue
         record.updatedAt = workout.updatedAt
         record.syncTimestamp = syncTimestamp

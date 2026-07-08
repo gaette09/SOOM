@@ -163,6 +163,9 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(result.savedCount, 1)
         XCTAssertTrue(routeStore.savedRoutes.isEmpty)
         XCTAssertNil(processed.route)
+        XCTAssertFalse(processed.hasRoute)
+        XCTAssertEqual(result.importedWorkouts[0].routeMissingReason, .healthKitRouteUnavailable)
+        XCTAssertEqual(processed.routeMissingReason, .healthKitRouteUnavailable)
         XCTAssertEqual(processed.distanceMeters, 10_000)
         XCTAssertEqual(processed.metricAvailability[.route], .missing)
     }
@@ -170,13 +173,14 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
     func testRouteFetchFailureDoesNotFailWorkoutImport() async {
         let workoutID = UUID(uuidString: "59595959-5959-5959-5959-595959595959")!
         let routeStore = FakeWorkoutRoutePersistenceStore()
+        let store = FakeUnifiedWorkoutStore()
         let pipeline = HealthKitWorkoutImportPipeline(
             workoutFetcher: FakeHealthKitWorkoutFetcher(
                 result: .success([
                     makeWorkout(id: workoutID, type: .running, distance: 10_000)
                 ])
             ),
-            store: FakeUnifiedWorkoutStore(),
+            store: store,
             routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
             routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: nil, error: SampleError.fetchFailed),
             routeStore: routeStore
@@ -186,19 +190,22 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
 
         XCTAssertEqual(result.savedCount, 1)
         XCTAssertEqual(result.failedCount, 0)
+        XCTAssertEqual(result.importedWorkouts[0].routeMissingReason, .routeFetchFailed)
+        XCTAssertEqual(store.savedWorkouts.first?.routeMissingReason, .routeFetchFailed)
         XCTAssertTrue(routeStore.savedRoutes.isEmpty)
     }
 
     func testRoutePersistenceFailureDoesNotFailWorkoutImport() async {
         let workoutID = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
         let routeStore = FakeWorkoutRoutePersistenceStore(saveError: SampleError.saveFailed)
+        let store = FakeUnifiedWorkoutStore()
         let pipeline = HealthKitWorkoutImportPipeline(
             workoutFetcher: FakeHealthKitWorkoutFetcher(
                 result: .success([
                     makeWorkout(id: workoutID, type: .running)
                 ])
             ),
-            store: FakeUnifiedWorkoutStore(),
+            store: store,
             routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
             routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: makeRoute(workoutId: workoutID)),
             routeStore: routeStore
@@ -208,7 +215,36 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
 
         XCTAssertEqual(result.savedCount, 1)
         XCTAssertEqual(result.failedCount, 0)
+        XCTAssertEqual(result.importedWorkouts[0].routeMissingReason, .routePersistenceFailed)
+        XCTAssertEqual(store.savedWorkouts.first?.routeMissingReason, .routePersistenceFailed)
         XCTAssertTrue(routeStore.savedRoutes.isEmpty)
+    }
+
+    func testHealthKitRouteLookupMissRecordsExternalSourceRouteNotShared() async {
+        let workoutID = UUID(uuidString: "54545454-5454-5454-5454-545454545454")!
+        let routeStore = FakeWorkoutRoutePersistenceStore()
+        let store = FakeUnifiedWorkoutStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(
+                result: .success([
+                    makeWorkout(id: workoutID, type: .cycling, distance: 12_000)
+                ])
+            ),
+            store: store,
+            routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: nil),
+            routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: makeRoute(workoutId: workoutID)),
+            routeStore: routeStore
+        )
+
+        let result = await pipeline.importRecentWorkouts(limit: 10)
+        let processed = ProcessedWorkoutBuilder().make(from: result.importedWorkouts[0], route: nil)
+
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertTrue(routeStore.savedRoutes.isEmpty)
+        XCTAssertEqual(result.importedWorkouts[0].routeMissingReason, .externalSourceRouteNotShared)
+        XCTAssertEqual(store.savedWorkouts.first?.routeMissingReason, .externalSourceRouteNotShared)
+        XCTAssertEqual(processed.routeMissingReason, .externalSourceRouteNotShared)
+        XCTAssertFalse(processed.hasRoute)
     }
 
     func testDuplicateSkippedHealthKitWorkoutDoesNotPersistRoute() async {

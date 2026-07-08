@@ -69,6 +69,7 @@ struct ProcessedWorkoutBuilder {
             maxHeartRate: positive(workout.maxHeartRate),
             elevationGainMeters: elevationGain,
             route: processedRoute,
+            routeMissingReason: processedRoute?.hasRenderableRoute == true ? .none : workout.routeMissingReason,
             metricAvailability: availability,
             display: WorkoutDisplaySnapshot.empty
         )
@@ -93,6 +94,7 @@ struct ProcessedWorkoutBuilder {
             maxHeartRate: processed.maxHeartRate,
             elevationGainMeters: processed.elevationGainMeters,
             route: processed.route,
+            routeMissingReason: processed.routeMissingReason,
             metricAvailability: availability,
             display: displaySnapshot(for: processed, availability: availability)
         )

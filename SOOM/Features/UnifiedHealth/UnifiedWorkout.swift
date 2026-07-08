@@ -14,6 +14,7 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
     let maxHeartRate: Double?
     let averageSpeedMetersPerSecond: Double?
     let elevationGainMeters: Double?
+    let routeMissingReason: WorkoutRouteMissingReason
     let dataQuality: UnifiedDataQuality
     let isExcludedFromAnalysis: Bool
     let createdAt: Date
@@ -33,6 +34,7 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         maxHeartRate: Double?,
         averageSpeedMetersPerSecond: Double?,
         elevationGainMeters: Double?,
+        routeMissingReason: WorkoutRouteMissingReason = .none,
         dataQuality: UnifiedDataQuality,
         isExcludedFromAnalysis: Bool = false,
         createdAt: Date,
@@ -51,9 +53,55 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         self.maxHeartRate = maxHeartRate
         self.averageSpeedMetersPerSecond = averageSpeedMetersPerSecond
         self.elevationGainMeters = elevationGainMeters
+        self.routeMissingReason = routeMissingReason
         self.dataQuality = dataQuality
         self.isExcludedFromAnalysis = isExcludedFromAnalysis
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+enum WorkoutRouteMissingReason: String, Codable, Equatable {
+    case none
+    case notApplicable
+    case healthKitRouteUnavailable
+    case routeFetchFailed
+    case routePersistenceFailed
+    case externalSourceRouteNotShared
+    case userSkippedRouteAttachment
+    case unknown
+
+    var isActionableForRouteAttachment: Bool {
+        switch self {
+        case .healthKitRouteUnavailable, .externalSourceRouteNotShared, .routeFetchFailed, .routePersistenceFailed:
+            return true
+        case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
+            return false
+        }
+    }
+}
+
+extension UnifiedWorkout {
+    func withRouteMissingReason(_ reason: WorkoutRouteMissingReason, updatedAt: Date) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: id,
+            externalId: externalId,
+            source: source,
+            workoutType: workoutType,
+            startDate: startDate,
+            endDate: endDate,
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters,
+            activeEnergyKcal: activeEnergyKcal,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: maxHeartRate,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
+            elevationGainMeters: elevationGainMeters,
+            routeMissingReason: reason,
+            dataQuality: dataQuality,
+            isExcludedFromAnalysis: isExcludedFromAnalysis,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
     }
 }
