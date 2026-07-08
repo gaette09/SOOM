@@ -229,12 +229,26 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         }
 
         XCTAssertEqual(variants, [
-            .minimalBottomBar,
-            .fullRoutePoster,
-            .sideStack,
+            .routeCentric,
+            .metricCentric,
+            .balanced,
             .statSummary
         ])
         XCTAssertEqual(Set(variants).count, ShareCardComposerLayout.cardOrder.count)
+    }
+
+    func testTransparentRouteFitPreservesNaturalAspectRatio() {
+        let fitted = ShareableWorkoutCardLayout.aspectFittedTransparentRouteSize(
+            in: CGSize(width: 280, height: 110)
+        )
+        let expectedRatio = ShareableWorkoutCardLayout.transparentRouteNaturalBoundingBox.width
+            / ShareableWorkoutCardLayout.transparentRouteNaturalBoundingBox.height
+
+        XCTAssertGreaterThan(fitted.width, 0)
+        XCTAssertGreaterThan(fitted.height, 0)
+        XCTAssertEqual(fitted.width / fitted.height, expectedRatio, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(fitted.width, 280)
+        XCTAssertLessThanOrEqual(fitted.height, 110)
     }
 
     func testTransparentBackgroundUsesCheckerboardPreviewOnly() {
@@ -305,6 +319,20 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         XCTAssertEqual(statCard.averageHeartRateText, "151bpm")
         XCTAssertEqual(statCard.activeEnergyText, "676kcal")
         XCTAssertEqual(ShareTransparentCardLayoutVariant.variant(for: statCard.shareType), .statSummary)
+    }
+
+    func testStatSummaryMissingMetricsUseStablePlaceholder() {
+        let card = builder.build(
+            sessionSummary: sessionSummary,
+            growthSummary: growthSummary,
+            recoveryImpact: recoveryImpact,
+            input: input(type: .running, distanceKm: 6.2, durationMinutes: 38, pace: "6:08/km")
+        )
+
+        XCTAssertNil(card.elevationGainText)
+        XCTAssertEqual(card.averageHeartRateText, "151bpm")
+        XCTAssertNil(card.activeEnergyText)
+        XCTAssertEqual(ShareableWorkoutCardLayout.statSummaryMissingMetricPlaceholder, "—")
     }
 
     func testWalkingShareMetricSetUsesDistanceAndDuration() {
