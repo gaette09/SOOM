@@ -21,8 +21,9 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| P0 | SOOM | Route missing detection and external route provider matrix | `docs/reports/soom-external-route-provider-matrix.md` | Documentation/research only; next implementation should start with route missing detection, then GPX import v1 |
-| P1 | SOOM | GPX import v1 planning/implementation | `docs/reports/soom-external-route-provider-matrix.md` | User-selected file import; attach parsed route to imported workout through existing route persistence |
+| P0 | SOOM | GPX Import v1 parser planning/implementation | `docs/reports/soom-gpx-import-v1-plan.md` | Start with pure Swift GPX parser and tests before UI, file picker, or persistence |
+| P1 | SOOM | GPX route attachment service | `docs/reports/soom-gpx-import-v1-plan.md` | Attach parsed route to existing imported workout id through existing route persistence and clear routeMissingReason |
+| P1 | SOOM | Activity Detail GPX file importer entry point | `docs/reports/soom-gpx-import-v1-plan.md` | Make route-missing fallback actionable after parser and attachment service are covered |
 | P1 | SOOM | Strava OAuth feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | OAuth only; no scraping/login automation; validate API tier, scopes, route/polyline/streams access, storage, and policy constraints |
 | P1 | SOOM | Wahoo route feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | Validate Wahoo Cloud API availability and Wahoo FIT export/import path |
 | P2 | SOOM | FIT/TCX import research | `docs/reports/soom-external-route-provider-matrix.md` | File-based route import after GPX v1 stabilizes |
@@ -38,33 +39,32 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: External Route Provider Matrix
+## SOOM: GPX Import V1 Plan
 
 Goal:
 
-- Define a compliant provider matrix and integration strategy for external workouts whose HealthKit summaries import but whose routes are not available through `HKWorkoutRoute`.
+- Define a safe GPX Import v1 implementation plan for imported workouts whose HealthKit summaries exist but whose routes are unavailable.
 
 Verification:
 
-- Keep HealthKit `HKWorkoutRoute` as the first route source.
-- Plan GPX import v1 as the next user-controlled route fallback.
-- Plan FIT/TCX import as later file-based route sources.
-- Keep Strava and Wahoo to OAuth/API-policy feasibility spikes with no scraping or login automation.
-- Keep Garmin, Komoot, Ride with GPS, TrainingPeaks, Decathlon, and device-app integrations as provider research until official access paths are confirmed.
-- Preserve privacy, route deletion, and no-public-display constraints for external route data.
+- Keep implementation parser-first.
+- Use only user-selected GPX files.
+- Attach routes to existing imported `UnifiedWorkout.id` through existing route persistence.
+- Do not create duplicate workouts.
+- Keep file parsing local-first with no server upload.
+- Keep FIT/TCX, Strava/Wahoo, Garmin, and other providers deferred.
 
 Expected outcome:
 
-- A documented provider matrix exists for route-missing external workouts, with clear route source priority and recommended implementation order.
+- A documented GPX Import v1 implementation plan exists, with a clear parser, attachment service, Activity Detail entry point, and QA sequence.
 
 Completion criteria:
 
-- HealthKit route limitations are documented.
-- Route source priority and provider matrix are documented.
-- `routeMissingReason` recommendation is documented.
-- GPX import v1 scope and validation rules are documented.
-- Strava and Wahoo feasibility constraints and non-goals are documented.
-- Garmin, Komoot, Ride with GPS, TrainingPeaks, Decathlon, and device-app research paths are documented.
+- GPX Import v1 goal and target use case are documented.
+- Supported and unsupported GPX subsets are documented.
+- Validation, large-file, privacy, and security rules are documented.
+- Persistence and replacement strategies are documented.
+- Parser, attachment service, Activity Detail, device QA, and future FIT/TCX phases are documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 
