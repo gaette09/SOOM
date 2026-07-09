@@ -18,6 +18,10 @@ struct UnifiedWorkoutLibraryViewContainer: View {
             gpxRouteAttachmentService: GPXRouteAttachmentService(
                 workoutStore: store,
                 routeStore: routeStore
+            ),
+            fitRouteAttachmentService: FITRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
             )
         )
     }

@@ -46,41 +46,73 @@ final class ActivityDetailGPXRouteImportTests: XCTestCase {
         )
     }
 
-    func testGPXFileExtensionIsAcceptedCaseInsensitively() {
+    func testRouteFileExtensionsAreAcceptedCaseInsensitively() {
         XCTAssertTrue(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.gpx")))
         XCTAssertTrue(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.GPX")))
+        XCTAssertTrue(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.fit")))
+        XCTAssertTrue(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.FIT")))
     }
 
-    func testNonGPXFileExtensionIsRejected() {
-        XCTAssertFalse(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.fit")))
+    func testUnsupportedRouteFileExtensionIsRejected() {
         XCTAssertFalse(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.xml")))
+        XCTAssertFalse(ActivityDetailGPXRouteFileImport.isSupportedFileURL(URL(fileURLWithPath: "/tmp/route.tcx")))
     }
 
-    func testAttachmentErrorsMapToDisplayErrors() {
+    func testRouteFileFormatDetection() {
+        XCTAssertEqual(ActivityDetailGPXRouteFileImport.routeFileFormat(for: URL(fileURLWithPath: "/tmp/route.gpx")), .gpx)
+        XCTAssertEqual(ActivityDetailGPXRouteFileImport.routeFileFormat(for: URL(fileURLWithPath: "/tmp/route.fit")), .fit)
+        XCTAssertNil(ActivityDetailGPXRouteFileImport.routeFileFormat(for: URL(fileURLWithPath: "/tmp/route.tcx")))
+    }
+
+    func testGPXAttachmentErrorsMapToDisplayErrors() {
         XCTAssertEqual(
             ActivityDetailGPXRouteImportError(attachmentError: .invalidGPX(.malformedXML)),
             .invalidGPX
         )
         XCTAssertEqual(
-            ActivityDetailGPXRouteImportError(attachmentError: .routeTooShort),
+            ActivityDetailGPXRouteImportError(attachmentError: GPXRouteAttachmentError.routeTooShort),
             .routeTooShort
         )
         XCTAssertEqual(
-            ActivityDetailGPXRouteImportError(attachmentError: .alreadyHasRoute),
+            ActivityDetailGPXRouteImportError(attachmentError: GPXRouteAttachmentError.alreadyHasRoute),
             .alreadyHasRoute
         )
         XCTAssertEqual(
-            ActivityDetailGPXRouteImportError(attachmentError: .unsupportedSource(.soomLocal)),
+            ActivityDetailGPXRouteImportError(attachmentError: GPXRouteAttachmentError.unsupportedSource(.soomLocal)),
             .unsupportedWorkoutSource
         )
         XCTAssertEqual(
-            ActivityDetailGPXRouteImportError(attachmentError: .persistenceFailed),
+            ActivityDetailGPXRouteImportError(attachmentError: GPXRouteAttachmentError.persistenceFailed),
+            .persistenceFailed
+        )
+    }
+
+    func testFITAttachmentErrorsMapToDisplayErrors() {
+        XCTAssertEqual(
+            ActivityDetailGPXRouteImportError(attachmentError: .invalidFIT(.invalidHeader)),
+            .invalidGPX
+        )
+        XCTAssertEqual(
+            ActivityDetailGPXRouteImportError(attachmentError: FITRouteAttachmentError.routeTooShort),
+            .routeTooShort
+        )
+        XCTAssertEqual(
+            ActivityDetailGPXRouteImportError(attachmentError: FITRouteAttachmentError.alreadyHasRoute),
+            .alreadyHasRoute
+        )
+        XCTAssertEqual(
+            ActivityDetailGPXRouteImportError(attachmentError: FITRouteAttachmentError.unsupportedSource(.soomLocal)),
+            .unsupportedWorkoutSource
+        )
+        XCTAssertEqual(
+            ActivityDetailGPXRouteImportError(attachmentError: FITRouteAttachmentError.persistenceFailed),
             .persistenceFailed
         )
     }
 
     func testDisplayErrorMessagesUseCalmKoreanCopy() {
-        XCTAssertEqual(ActivityDetailGPXRouteImportError.unreadableFile.message, "GPX 파일을 읽을 수 없습니다.")
+        XCTAssertEqual(ActivityDetailGPXRouteImportError.unsupportedFileType.message, "GPX 또는 FIT 파일만 가져올 수 있습니다.")
+        XCTAssertEqual(ActivityDetailGPXRouteImportError.unreadableFile.message, "경로 파일을 읽을 수 없습니다.")
         XCTAssertEqual(ActivityDetailGPXRouteImportError.routeTooShort.message, "경로 좌표가 충분하지 않습니다.")
         XCTAssertEqual(ActivityDetailGPXRouteImportError.alreadyHasRoute.message, "이미 경로가 있는 운동입니다.")
     }

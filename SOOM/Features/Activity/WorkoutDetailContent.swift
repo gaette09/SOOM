@@ -44,8 +44,8 @@ struct WorkoutDetailContent: View {
     @State private var feedDraftErrorMessage: String?
     @State private var isCreatingFeedDraft = false
     @State private var isShareComposerPresented = false
-    @State private var isGPXImporterPresented = false
-    @State private var isAttachingGPXRoute = false
+    @State private var isRouteFileImporterPresented = false
+    @State private var isAttachingRouteFile = false
     @State private var routeAttachmentMessage: String?
     @State private var routeAttachmentErrorMessage: String?
 
@@ -72,10 +72,10 @@ struct WorkoutDetailContent: View {
                     reason: processedWorkout.routeMissingReason,
                     tint: workout.sport.tint,
                     showsImportAction: routeAttachmentAction != nil,
-                    isImporting: isAttachingGPXRoute,
+                    isImporting: isAttachingRouteFile,
                     message: routeAttachmentMessage,
                     errorMessage: routeAttachmentErrorMessage,
-                    importAction: { isGPXImporterPresented = true }
+                    importAction: { isRouteFileImporterPresented = true }
                 )
             }
             ActivityDetailSummaryCard(
@@ -190,10 +190,10 @@ struct WorkoutDetailContent: View {
             }
         }
         .fileImporter(
-            isPresented: $isGPXImporterPresented,
+            isPresented: $isRouteFileImporterPresented,
             allowedContentTypes: ActivityDetailGPXRouteFileImport.allowedContentTypes
         ) { result in
-            handleGPXRouteFileImport(result)
+            handleRouteFileImport(result)
         }
         .task(id: healthKitWorkout?.uuid) {
             await loadStreamZoneSummaries()
@@ -213,14 +213,14 @@ struct WorkoutDetailContent: View {
     }
 
     @MainActor
-    private func handleGPXRouteFileImport(_ result: Result<URL, Error>) {
+    private func handleRouteFileImport(_ result: Result<URL, Error>) {
         guard let routeAttachmentAction else { return }
 
         switch result {
         case .success(let url):
             routeAttachmentMessage = nil
             routeAttachmentErrorMessage = nil
-            isAttachingGPXRoute = true
+            isAttachingRouteFile = true
 
             Task {
                 let importResult = await routeAttachmentAction.importRoute(url)
@@ -233,7 +233,7 @@ struct WorkoutDetailContent: View {
                         routeAttachmentMessage = nil
                         routeAttachmentErrorMessage = error.message
                     }
-                    isAttachingGPXRoute = false
+                    isAttachingRouteFile = false
                 }
             }
         case .failure:
@@ -480,14 +480,14 @@ private struct ActivityDetailRouteMissingCard: View {
                         .foregroundStyle(SOOMColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("원본 앱에서 GPX 파일을 내보내면 이 운동에 경로를 추가할 수 있습니다.")
+                    Text("원본 앱에서 GPX 또는 FIT 파일을 내보내면 이 운동에 경로를 추가할 수 있습니다.")
                         .font(SOOMFont.body(12, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if showsImportAction {
                         Button(action: importAction) {
-                            Label(isImporting ? "경로 추가 중" : "GPX 경로 가져오기", systemImage: SOOMIcon.share)
+                            Label(isImporting ? "경로 추가 중" : "경로 파일 가져오기", systemImage: SOOMIcon.share)
                                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
@@ -497,7 +497,7 @@ private struct ActivityDetailRouteMissingCard: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(isImporting)
-                        .accessibilityHint("GPX 파일을 선택해 이 운동에 경로를 추가합니다.")
+                        .accessibilityHint("GPX 또는 FIT 파일을 선택해 이 운동에 경로를 추가합니다.")
                     }
 
                     if let message {
@@ -518,13 +518,13 @@ private struct ActivityDetailRouteMissingCard: View {
     private var fallbackMessage: String {
         switch reason {
         case .routeFetchFailed:
-            return "Apple Health에서 운동은 가져왔지만 경로를 확인하지 못했습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+            return "Apple Health에서 운동은 가져왔지만 경로를 확인하지 못했습니다. 원본 앱에서 경로 파일을 가져오면 경로를 추가할 수 있습니다."
         case .routePersistenceFailed:
-            return "Apple Health에서 경로를 찾았지만 저장하지 못했습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 다시 추가할 수 있습니다."
+            return "Apple Health에서 경로를 찾았지만 저장하지 못했습니다. 원본 앱에서 경로 파일을 가져오면 경로를 다시 추가할 수 있습니다."
         case .externalSourceRouteNotShared:
-            return "Apple Health에서 운동은 가져왔지만 원본 앱의 경로 데이터는 포함되지 않았습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+            return "Apple Health에서 운동은 가져왔지만 원본 앱의 경로 데이터는 포함되지 않았습니다. 원본 앱에서 경로 파일을 가져오면 경로를 추가할 수 있습니다."
         case .healthKitRouteUnavailable:
-            return "Apple Health에서 운동은 가져왔지만 경로 데이터는 포함되지 않았습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
+            return "Apple Health에서 운동은 가져왔지만 경로 데이터는 포함되지 않았습니다. 원본 앱에서 경로 파일을 가져오면 경로를 추가할 수 있습니다."
         case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
             return "경로 데이터가 없어도 운동 요약은 확인할 수 있습니다."
         }
