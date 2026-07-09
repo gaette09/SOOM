@@ -198,6 +198,8 @@
 		010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */; };
 		010805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */; };
 		010806 /* WorkoutMapSheetRouteContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020806 /* WorkoutMapSheetRouteContextTests.swift */; };
+		010807 /* GPXRouteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020807 /* GPXRouteParser.swift */; };
+		010808 /* GPXRouteParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020808 /* GPXRouteParserTests.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -667,6 +669,8 @@
 		020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessedWorkoutToRecoveryActivityMapper.swift; sourceTree = "<group>"; };
 		020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitImportedWorkoutSurfaceValidationTests.swift; sourceTree = "<group>"; };
 		020806 /* WorkoutMapSheetRouteContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMapSheetRouteContextTests.swift; sourceTree = "<group>"; };
+		020807 /* GPXRouteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPXRouteParser.swift; sourceTree = "<group>"; };
+		020808 /* GPXRouteParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPXRouteParserTests.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1380,6 +1384,7 @@
 				020180 /* WorkoutGrowthInput.swift */,
 				020801 /* ProcessedWorkout.swift */,
 				020802 /* ProcessedWorkoutBuilder.swift */,
+				020807 /* GPXRouteParser.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
 				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
@@ -1524,6 +1529,7 @@
 				020803 /* ProcessedWorkoutBuilderTests.swift */,
 				020805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift */,
 				020806 /* WorkoutMapSheetRouteContextTests.swift */,
+				020808 /* GPXRouteParserTests.swift */,
 				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
 				020189 /* UnifiedWorkoutStoreTests.swift */,
 				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
@@ -1886,6 +1892,7 @@
 				010329 /* WorkoutSplitDataProvider.swift in Sources */,
 				010325 /* WorkoutDetailSectionGroup.swift in Sources */,
 				010264 /* WorkoutRoute.swift in Sources */,
+				010807 /* GPXRouteParser.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
 				010342 /* WorkoutRouteMapper.swift in Sources */,
 				010272 /* WorkoutRouteStore.swift in Sources */,
@@ -2094,6 +2101,7 @@
 				010803 /* ProcessedWorkoutBuilderTests.swift in Sources */,
 				010805 /* HealthKitImportedWorkoutSurfaceValidationTests.swift in Sources */,
 				010806 /* WorkoutMapSheetRouteContextTests.swift in Sources */,
+				010808 /* GPXRouteParserTests.swift in Sources */,
 				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
 				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
 				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,
