@@ -21,12 +21,12 @@ Operating rules:
 
 | Priority | Project | Task | Task file | Status |
 | --- | --- | --- | --- | --- |
-| P0 | SOOM | GPX Import v1 parser planning/implementation | `docs/reports/soom-gpx-import-v1-plan.md` | Start with pure Swift GPX parser and tests before UI, file picker, or persistence |
-| P1 | SOOM | GPX route attachment service | `docs/reports/soom-gpx-import-v1-plan.md` | Attach parsed route to existing imported workout id through existing route persistence and clear routeMissingReason |
-| P1 | SOOM | Activity Detail GPX file importer entry point | `docs/reports/soom-gpx-import-v1-plan.md` | Make route-missing fallback actionable after parser and attachment service are covered |
-| P1 | SOOM | Strava OAuth feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | OAuth only; no scraping/login automation; validate API tier, scopes, route/polyline/streams access, storage, and policy constraints |
-| P1 | SOOM | Wahoo route feasibility spike | `docs/reports/soom-external-route-provider-matrix.md` | Validate Wahoo Cloud API availability and Wahoo FIT export/import path |
-| P2 | SOOM | FIT/TCX import research | `docs/reports/soom-external-route-provider-matrix.md` | File-based route import after GPX v1 stabilizes |
+| P0 | SOOM | GPX Import v1 physical-device QA | `docs/reports/soom-gpx-import-v1-activity-detail-entry.md` | Validate GPX route attachment from Activity Detail on device, including imported cycling workout with missing HealthKit route |
+| P0 | SOOM | FIT import planning | `docs/reports/soom-file-import-format-roadmap.md` | Plan cycling-first FIT support for route attachment and full workout import before implementation |
+| P1 | SOOM | FIT parser feasibility | `docs/reports/soom-file-import-format-roadmap.md` | Choose parser strategy and validate sample cycling computer FIT files |
+| P1 | SOOM | FIT route attach/full workout import design | `docs/reports/soom-file-import-format-roadmap.md` | Define route-only attachment, full workout import, duplicate guardrails, storage metadata, and deferred sampled streams |
+| P2 | SOOM | TCX import planning | `docs/reports/soom-file-import-format-roadmap.md` | Plan TCX as a fallback richer than GPX but secondary to cycling FIT |
+| P2 | SOOM | Strava/Wahoo feasibility | `docs/reports/soom-external-route-provider-matrix.md` | OAuth/API research only after file import priorities are clear; no scraping/login automation |
 | P2 | SOOM | Garmin/Komoot/RideWithGPS/TrainingPeaks/Decathlon provider research | `docs/reports/soom-external-route-provider-matrix.md` | Research only after file import and first OAuth feasibility spikes are understood |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
 | 3 | Instagram | 0002 Harness/Hermes Automation Planning | `tasks/instagram/0002-harness-hermes-automation-planning.md` | Recommended, or replace with static review unblock if external browser/deployment access is available |
@@ -39,32 +39,32 @@ Operating rules:
 | JAFOM | 0001 External Production Stability Check | `tasks/jafom/0001-external-production-staging-stability-check.md` | BLOCKED | `docs/reports/jafom-0001-verification.md` |
 | Instagram | 0001 Static Dashboard External Review | `tasks/instagram/0001-static-dashboard-external-review.md` | BLOCKED | External project report: `/Users/jihwanchung/Documents/Marketing/SOOM_Instagram/docs/reports/instagram-0001-verification.md` |
 
-## SOOM: GPX Import V1 Plan
+## SOOM: File Import Roadmap
 
 Goal:
 
-- Define a safe GPX Import v1 implementation plan for imported workouts whose HealthKit summaries exist but whose routes are unavailable.
+- Prioritize SOOM file import work after GPX Import v1 implementation, with FIT as the next cycling-first format.
 
 Verification:
 
-- Keep implementation parser-first.
-- Use only user-selected GPX files.
-- Attach routes to existing imported `UnifiedWorkout.id` through existing route persistence.
-- Do not create duplicate workouts.
-- Keep file parsing local-first with no server upload.
-- Keep FIT/TCX, Strava/Wahoo, Garmin, and other providers deferred.
+- Run GPX Import v1 physical-device QA before expanding the importer surface.
+- Treat GPX as route-first attachment.
+- Treat FIT as activity-original and especially important for cycling computers.
+- Plan FIT route attachment and full workout import before implementation.
+- Keep TCX as a later fallback.
+- Keep Strava/Wahoo/Garmin and other provider work behind user-controlled file import.
 
 Expected outcome:
 
-- A documented GPX Import v1 implementation plan exists, with a clear parser, attachment service, Activity Detail entry point, and QA sequence.
+- A documented format roadmap exists, with GPX, FIT, and TCX roles clearly separated and FIT prioritized for cycling.
 
 Completion criteria:
 
-- GPX Import v1 goal and target use case are documented.
-- Supported and unsupported GPX subsets are documented.
-- Validation, large-file, privacy, and security rules are documented.
-- Persistence and replacement strategies are documented.
-- Parser, attachment service, Activity Detail, device QA, and future FIT/TCX phases are documented.
+- GPX route attachment remains the active device QA task.
+- FIT planning is P0.
+- FIT parser feasibility and route/full workout import design are P1.
+- TCX planning and Strava/Wahoo feasibility are P2.
+- No implementation begins until FIT parser/import scope is documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist
 
