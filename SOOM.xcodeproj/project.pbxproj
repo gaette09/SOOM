@@ -206,6 +206,8 @@
 		010812 /* ActivityDetailGPXRouteImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020812 /* ActivityDetailGPXRouteImportTests.swift */; };
 		010813 /* FITRouteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020813 /* FITRouteParser.swift */; };
 		010814 /* FITRouteParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020814 /* FITRouteParserTests.swift */; };
+		010815 /* FITRouteAttachmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020815 /* FITRouteAttachmentService.swift */; };
+		010816 /* FITRouteAttachmentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020816 /* FITRouteAttachmentServiceTests.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -683,6 +685,8 @@
 		020812 /* ActivityDetailGPXRouteImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDetailGPXRouteImportTests.swift; sourceTree = "<group>"; };
 		020813 /* FITRouteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FITRouteParser.swift; sourceTree = "<group>"; };
 		020814 /* FITRouteParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FITRouteParserTests.swift; sourceTree = "<group>"; };
+		020815 /* FITRouteAttachmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FITRouteAttachmentService.swift; sourceTree = "<group>"; };
+		020816 /* FITRouteAttachmentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FITRouteAttachmentServiceTests.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1400,6 +1404,7 @@
 				020807 /* GPXRouteParser.swift */,
 				020809 /* GPXRouteAttachmentService.swift */,
 				020813 /* FITRouteParser.swift */,
+				020815 /* FITRouteAttachmentService.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
 				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
@@ -1548,6 +1553,7 @@
 				020810 /* GPXRouteAttachmentServiceTests.swift */,
 				020812 /* ActivityDetailGPXRouteImportTests.swift */,
 				020814 /* FITRouteParserTests.swift */,
+				020816 /* FITRouteAttachmentServiceTests.swift */,
 				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
 				020189 /* UnifiedWorkoutStoreTests.swift */,
 				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
@@ -1913,6 +1919,7 @@
 				010807 /* GPXRouteParser.swift in Sources */,
 				010809 /* GPXRouteAttachmentService.swift in Sources */,
 				010813 /* FITRouteParser.swift in Sources */,
+				010815 /* FITRouteAttachmentService.swift in Sources */,
 				010811 /* ActivityDetailGPXRouteImport.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
 				010342 /* WorkoutRouteMapper.swift in Sources */,
@@ -2126,6 +2133,7 @@
 				010810 /* GPXRouteAttachmentServiceTests.swift in Sources */,
 				010812 /* ActivityDetailGPXRouteImportTests.swift in Sources */,
 				010814 /* FITRouteParserTests.swift in Sources */,
+				010816 /* FITRouteAttachmentServiceTests.swift in Sources */,
 				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
 				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
 				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,
