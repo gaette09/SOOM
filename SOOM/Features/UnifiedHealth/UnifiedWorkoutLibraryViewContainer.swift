@@ -14,7 +14,11 @@ struct UnifiedWorkoutLibraryViewContainer: View {
                 store: store,
                 persistedRouteProvider: routeCandidateProvider
             ),
-            detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore)
+            detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore),
+            gpxRouteAttachmentService: GPXRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
+            )
         )
     }
 }

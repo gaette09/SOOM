@@ -2,6 +2,7 @@ import HealthKit
 import Photos
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 enum WorkoutDetailPresentationStyle {
     case standalone
@@ -28,6 +29,7 @@ struct WorkoutDetailContent: View {
     var shareableCard: ShareableWorkoutCardModel?
     var mapRoute: WorkoutRoute?
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
+    var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
     var splitDataProvider: WorkoutSplitDataProviding?
@@ -42,6 +44,10 @@ struct WorkoutDetailContent: View {
     @State private var feedDraftErrorMessage: String?
     @State private var isCreatingFeedDraft = false
     @State private var isShareComposerPresented = false
+    @State private var isGPXImporterPresented = false
+    @State private var isAttachingGPXRoute = false
+    @State private var routeAttachmentMessage: String?
+    @State private var routeAttachmentErrorMessage: String?
 
     static let sharePrivacyCopy = "스토리에 올릴 이미지를 고르세요."
     static let shareComposerTitle = "공유 카드"
@@ -64,7 +70,12 @@ struct WorkoutDetailContent: View {
             if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
                 ActivityDetailRouteMissingCard(
                     reason: processedWorkout.routeMissingReason,
-                    tint: workout.sport.tint
+                    tint: workout.sport.tint,
+                    showsImportAction: routeAttachmentAction != nil,
+                    isImporting: isAttachingGPXRoute,
+                    message: routeAttachmentMessage,
+                    errorMessage: routeAttachmentErrorMessage,
+                    importAction: { isGPXImporterPresented = true }
                 )
             }
             ActivityDetailSummaryCard(
@@ -178,6 +189,12 @@ struct WorkoutDetailContent: View {
                 EmptyView()
             }
         }
+        .fileImporter(
+            isPresented: $isGPXImporterPresented,
+            allowedContentTypes: ActivityDetailGPXRouteFileImport.allowedContentTypes
+        ) { result in
+            handleGPXRouteFileImport(result)
+        }
         .task(id: healthKitWorkout?.uuid) {
             await loadStreamZoneSummaries()
             await loadStreamSplitInsight()
@@ -192,6 +209,36 @@ struct WorkoutDetailContent: View {
     ) -> some View {
         WorkoutDetailSectionContainer(group: group, reduceMotion: reduceMotion) {
             content()
+        }
+    }
+
+    @MainActor
+    private func handleGPXRouteFileImport(_ result: Result<URL, Error>) {
+        guard let routeAttachmentAction else { return }
+
+        switch result {
+        case .success(let url):
+            routeAttachmentMessage = nil
+            routeAttachmentErrorMessage = nil
+            isAttachingGPXRoute = true
+
+            Task {
+                let importResult = await routeAttachmentAction.importRoute(url)
+                await MainActor.run {
+                    switch importResult {
+                    case .success:
+                        routeAttachmentMessage = "경로가 추가되었습니다."
+                        routeAttachmentErrorMessage = nil
+                    case .failure(let error):
+                        routeAttachmentMessage = nil
+                        routeAttachmentErrorMessage = error.message
+                    }
+                    isAttachingGPXRoute = false
+                }
+            }
+        case .failure:
+            routeAttachmentMessage = nil
+            routeAttachmentErrorMessage = ActivityDetailGPXRouteImportError.unreadableFile.message
         }
     }
 
@@ -406,6 +453,11 @@ private struct ActivityDetailHeroMap: View {
 private struct ActivityDetailRouteMissingCard: View {
     let reason: WorkoutRouteMissingReason
     let tint: Color
+    let showsImportAction: Bool
+    let isImporting: Bool
+    let message: String?
+    let errorMessage: String?
+    let importAction: () -> Void
 
     var body: some View {
         SOOMCard {
@@ -423,23 +475,47 @@ private struct ActivityDetailRouteMissingCard: View {
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(tint)
 
-                    Text(message)
+                    Text(fallbackMessage)
                         .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("경로 파일 가져오기 준비 중")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    Text("원본 앱에서 GPX 파일을 내보내면 이 운동에 경로를 추가할 수 있습니다.")
+                        .font(SOOMFont.body(12, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if showsImportAction {
+                        Button(action: importAction) {
+                            Label(isImporting ? "경로 추가 중" : "GPX 경로 가져오기", systemImage: SOOMIcon.share)
+                                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                                .foregroundStyle(SOOMColor.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, SOOMLayout.Metrics.rowTextSpacing)
+                                .background(tint)
+                                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isImporting)
+                        .accessibilityHint("GPX 파일을 선택해 이 운동에 경로를 추가합니다.")
+                    }
+
+                    if let message {
+                        statusMessage(message, tint: SOOMColor.accent)
+                    }
+
+                    if let errorMessage {
+                        statusMessage(errorMessage, tint: SOOMColor.warning)
+                    }
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("경로 데이터 없음")
-        .accessibilityValue(message)
+        .accessibilityValue([fallbackMessage, message, errorMessage].compactMap { $0 }.joined(separator: " "))
     }
 
-    private var message: String {
+    private var fallbackMessage: String {
         switch reason {
         case .routeFetchFailed:
             return "Apple Health에서 운동은 가져왔지만 경로를 확인하지 못했습니다. 원본 앱에서 GPX 파일을 가져오면 경로를 추가할 수 있습니다."
@@ -452,6 +528,16 @@ private struct ActivityDetailRouteMissingCard: View {
         case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
             return "경로 데이터가 없어도 운동 요약은 확인할 수 있습니다."
         }
+    }
+
+    private func statusMessage(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(SOOMLayout.Metrics.actionTextSpacing)
+            .background(tint.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
 }
 

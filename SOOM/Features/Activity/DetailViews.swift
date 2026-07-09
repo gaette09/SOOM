@@ -14,6 +14,7 @@ struct WorkoutDetailView: View {
     var terrainInsightOverride: TerrainInsight?
     var detailRouteOverride: WorkoutRoute?
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
+    var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
 
     var body: some View {
         Group {
@@ -56,6 +57,7 @@ struct WorkoutDetailView: View {
             shareableCard: shareableCard,
             mapRoute: detailMapRoute,
             sourceUnifiedWorkout: sourceUnifiedWorkout,
+            routeAttachmentAction: routeAttachmentAction,
             healthKitWorkout: healthKitWorkout,
             zoneDataProvider: zoneDataProvider,
             splitDataProvider: splitDataProvider

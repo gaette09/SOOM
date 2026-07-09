@@ -4,15 +4,18 @@ struct UnifiedWorkoutLibraryView: View {
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
     private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    private let gpxRouteAttachmentService: GPXRouteAttachmentService?
 
     init(
         viewModel: UnifiedWorkoutLibraryViewModel,
         similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
-        detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil
+        detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
+        gpxRouteAttachmentService: GPXRouteAttachmentService? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.similarCandidateProvider = similarCandidateProvider
         self.detailRouteContextProvider = detailRouteContextProvider
+        self.gpxRouteAttachmentService = gpxRouteAttachmentService
     }
 
     var body: some View {
@@ -160,6 +163,7 @@ struct UnifiedWorkoutLibraryView: View {
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
                     similarCandidateProvider: similarCandidateProvider,
                     detailRouteContextProvider: detailRouteContextProvider,
+                    gpxRouteAttachmentService: gpxRouteAttachmentService,
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -180,6 +184,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let isUpdating: Bool
     let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    let gpxRouteAttachmentService: GPXRouteAttachmentService?
     let onToggleExcluded: () -> Void
     @State private var hasPersistedRoute = false
 
@@ -190,7 +195,8 @@ private struct UnifiedWorkoutLibraryRow: View {
                     UnifiedWorkoutDetailDestination(
                         unifiedWorkout: workout,
                         similarCandidateProvider: similarCandidateProvider,
-                        detailRouteContextProvider: detailRouteContextProvider
+                        detailRouteContextProvider: detailRouteContextProvider,
+                        gpxRouteAttachmentService: gpxRouteAttachmentService
                     )
                 } label: {
                     rowSummary
@@ -351,6 +357,7 @@ private struct UnifiedWorkoutDetailDestination: View {
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
     var similarCandidateProvider: SimilarWorkoutCandidateProviding?
     var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    var gpxRouteAttachmentService: GPXRouteAttachmentService?
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var persistedRoute: WorkoutRoute?
@@ -370,7 +377,8 @@ private struct UnifiedWorkoutDetailDestination: View {
             courseProgressionOverride: courseProgression,
             climbInsightOverride: climbInsight,
             detailRouteOverride: persistedRoute,
-            sourceUnifiedWorkout: unifiedWorkout
+            sourceUnifiedWorkout: unifiedWorkout,
+            routeAttachmentAction: routeAttachmentAction
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
@@ -381,6 +389,66 @@ private struct UnifiedWorkoutDetailDestination: View {
             courseProgression = buildCourseProgression(from: candidateResult)
             climbInsight = buildClimbInsight()
         }
+    }
+
+    private var routeAttachmentAction: ActivityDetailGPXRouteImportAction? {
+        guard
+            let gpxRouteAttachmentService,
+            ActivityDetailGPXRouteImportEligibility.canAttachGPXRoute(
+                to: unifiedWorkout,
+                hasRoute: persistedRoute != nil
+            )
+        else {
+            return nil
+        }
+
+        return ActivityDetailGPXRouteImportAction { url in
+            await attachGPXRoute(from: url, using: gpxRouteAttachmentService)
+        }
+    }
+
+    @MainActor
+    private func attachGPXRoute(
+        from url: URL,
+        using service: GPXRouteAttachmentService
+    ) async -> ActivityDetailGPXRouteImportResult {
+        guard ActivityDetailGPXRouteFileImport.isSupportedFileURL(url) else {
+            return .failure(.unsupportedFileType)
+        }
+
+        let canAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if canAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: url, options: .mappedIfSafe)
+        } catch {
+            return .failure(.unreadableFile)
+        }
+
+        let result = await service.attachRoute(to: unifiedWorkout.id, gpxData: data)
+        switch result {
+        case .success(let attachment):
+            persistedRoute = attachment.route
+            await reloadRouteDerivedState()
+            return .success
+        case .failure(let error):
+            return .failure(ActivityDetailGPXRouteImportError(attachmentError: error))
+        }
+    }
+
+    @MainActor
+    private func reloadRouteDerivedState() async {
+        persistedRoute = await loadPersistedRoute() ?? persistedRoute
+        let candidateResult = await loadSimilarCandidateResult()
+        comparisonInsight = buildComparisonInsight(from: candidateResult)
+        courseRecord = buildCourseRecord(from: candidateResult)
+        courseProgression = buildCourseProgression(from: candidateResult)
+        climbInsight = buildClimbInsight()
     }
 
     private func loadPersistedRoute() async -> WorkoutRoute? {
