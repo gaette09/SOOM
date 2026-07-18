@@ -1,12 +1,26 @@
 # SOOM HealthKit / GPX / FIT Route Fallback Regression QA Preview
 
-Date: 2026-07-09
+Date: 2026-07-18
 
 ## Scope
 
-Preview-only regression QA plan for route fallback behavior after HealthKit route display, GPX fallback, and FIT Import v1 work.
+Preview-only regression QA plan for route fallback behavior after HealthKit route display, GPX fallback, and FIT Import v1 work. Refreshed on 2026-07-18 as the documentation checklist for a future controlled regression pass.
 
 This is documentation and checklist work only. It does not execute SOOM QA, use real sample files, access production data, call external APIs, bump build numbers, or upload TestFlight.
+
+## Execution Boundary
+
+This checklist distinguishes planning from a later approved test run:
+
+- Use only purpose-built synthetic fixtures and simulator/in-memory test data for any future automated coverage.
+- Do not substitute exported HealthKit data, user GPX/FIT files, or files containing real route coordinates.
+- Leave every `Result` cell blank until a separately authorized run records the exact command or manual test evidence.
+- Treat a simulator infrastructure failure as `Blocked`, not `Pass` or a product regression; retain the failure detail in `Notes`.
+- Physical-device validation, real HealthKit data, file-picker interaction, TestFlight, and release actions remain separate approval gates.
+
+## Current Execution Record
+
+The latest synthetic regression attempt (2026-07-16) did not change product code. Focused simulator suites were blocked by the known CoreSimulator clone infrastructure error; generic iOS Simulator `build-for-testing` and repository diff checks passed. This checklist therefore remains a planning artifact and does not claim scenario-level pass results.
 
 ## Source Task
 
@@ -52,6 +66,15 @@ The remaining work is regression QA orchestration, not new product behavior.
 ## Regression Checklist
 
 Use these checks for a future QA execution pass.
+
+### Result Legend
+
+| Value | Meaning |
+| --- | --- |
+| Pass | Expected result was observed using approved synthetic test data. |
+| Fail | Product behavior differed from the expected result; record a reproducible synthetic case. |
+| Blocked | The check could not run because of infrastructure or an approval boundary. |
+| N/A | The check does not apply to the selected synthetic scenario; explain why. |
 
 ### 1. HealthKit Workout With `HKWorkoutRoute`
 
@@ -123,6 +146,17 @@ xcodebuild test -quiet \
 ```
 
 If CoreSimulator clone failures recur, use `xcodebuild build-for-testing -quiet -project SOOM.xcodeproj -scheme SOOM -destination 'generic/platform=iOS Simulator'` as the compile/test-build gate and document simulator execution as infrastructure-blocked.
+
+## Evidence to Record in a Later Approved Run
+
+For each executed checklist section, record only non-sensitive evidence:
+
+| Evidence | Record | Do Not Record |
+| --- | --- | --- |
+| Test identity | Test target, synthetic fixture label, simulator destination, and result. | HealthKit identifiers, user names, device identifiers, or route coordinates. |
+| Failure detail | Assertion/error category and affected checklist row. | Raw GPX/FIT contents, screenshots with personal data, or file paths outside controlled synthetic fixtures. |
+| Regression state | Whether route exists, is missing with a reason, or was attached. | Production database values or imported user workout summaries. |
+| Infrastructure | Build/test command category and concise block reason. | Environment secrets, signing data, or complete build logs containing sensitive paths. |
 
 ## Manual QA Gate For Later
 
