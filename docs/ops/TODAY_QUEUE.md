@@ -25,7 +25,7 @@ Operating rules:
 | P0 | SOOM | FIT parser feasibility spike | `docs/reports/soom-fit-import-planning.md` | Choose parser strategy and validate route + summary extraction against sample cycling FIT files |
 | P1 | SOOM | GPX Import v1 physical-device QA | `docs/reports/soom-gpx-import-v1-activity-detail-entry.md` | Validate GPX route attachment from Activity Detail on device, including imported cycling workout with missing HealthKit route |
 | P1 | SOOM | FIT route attach design | `docs/reports/soom-fit-import-planning.md` | Design FIT route attachment to existing HealthKit imported workouts with matching and duplicate guardrails |
-| P2 | SOOM | TCX import planning | `docs/reports/soom-file-import-format-roadmap.md` | Plan TCX as a fallback richer than GPX but secondary to cycling FIT |
+| P2 | SOOM | TCX import planning | `docs/reports/soom-tcx-import-planning.md` | Plan complete; next gate is pure TCX parser foundation with synthetic fixtures only |
 | P2 | SOOM | Strava/Wahoo feasibility | `docs/reports/soom-external-route-provider-matrix.md` | OAuth/API research only after file import priorities are clear; no scraping/login automation |
 | P2 | SOOM | Garmin/Komoot/RideWithGPS/TrainingPeaks/Decathlon provider research | `docs/reports/soom-external-route-provider-matrix.md` | Research only after file import and first OAuth feasibility spikes are understood |
 | 2 | JAFOM | 0002 Backup/Rollback Checklist | `tasks/jafom/0002-backup-rollback-checklist.md` | Recommended only if JAFOM 0001 access blocker remains |
@@ -64,7 +64,7 @@ Completion criteria:
 - FIT parser feasibility is P0.
 - GPX Import v1 physical-device QA remains P1.
 - FIT route attach design is P1.
-- TCX planning and Strava/Wahoo feasibility are P2.
+- TCX planning is complete; TCX parser implementation and Strava/Wahoo feasibility remain separately gated P2 work.
 - No FIT implementation begins until sample files and parser strategy are documented.
 
 ## JAFOM: 0002 Backup/Rollback Checklist

@@ -24,7 +24,7 @@ enum ActivityDetailGPXRouteImportError: Equatable {
     var message: String {
         switch self {
         case .unsupportedFileType:
-            return "GPX 또는 FIT 파일만 가져올 수 있습니다."
+            return "GPX, FIT 또는 TCX 파일만 가져올 수 있습니다."
         case .unreadableFile:
             return "경로 파일을 읽을 수 없습니다."
         case .invalidGPX:
@@ -77,6 +77,25 @@ enum ActivityDetailGPXRouteImportError: Equatable {
             self = .persistenceFailed
         }
     }
+
+    init(attachmentError: TCXRouteAttachmentError) {
+        switch attachmentError {
+        case .invalidTCX:
+            self = .invalidGPX
+        case .routeTooShort:
+            self = .routeTooShort
+        case .workoutNotFound:
+            self = .workoutNotFound
+        case .alreadyHasRoute:
+            self = .alreadyHasRoute
+        case .unsupportedSource:
+            self = .unsupportedWorkoutSource
+        case .incompatibleWorkout:
+            self = .unknown
+        case .persistenceFailed:
+            self = .persistenceFailed
+        }
+    }
 }
 
 enum ActivityDetailGPXRouteImportEligibility {
@@ -92,6 +111,7 @@ enum ActivityDetailGPXRouteFileImport {
     enum RouteFileFormat: Equatable {
         case gpx
         case fit
+        case tcx
     }
 
     static let allowedContentTypes: [UTType] = {
@@ -101,6 +121,9 @@ enum ActivityDetailGPXRouteFileImport {
         }
         if let fitType = UTType(filenameExtension: "fit") {
             contentTypes.append(fitType)
+        }
+        if let tcxType = UTType(filenameExtension: "tcx") {
+            contentTypes.append(tcxType)
         }
         contentTypes.append(.xml)
         contentTypes.append(.data)
@@ -117,6 +140,8 @@ enum ActivityDetailGPXRouteFileImport {
             return .gpx
         case "fit":
             return .fit
+        case "tcx":
+            return .tcx
         default:
             return nil
         }

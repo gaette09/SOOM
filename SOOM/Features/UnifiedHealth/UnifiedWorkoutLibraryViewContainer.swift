@@ -22,6 +22,10 @@ struct UnifiedWorkoutLibraryViewContainer: View {
             fitRouteAttachmentService: FITRouteAttachmentService(
                 workoutStore: store,
                 routeStore: routeStore
+            ),
+            tcxRouteAttachmentService: TCXRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
             )
         )
     }

@@ -26,6 +26,14 @@ Current limitation:
 - GPX is useful for route attachment, but it is usually not the best original activity format for cycling devices.
 - GPX generally cannot preserve the richer cycling data SOOM will need for cadence, power, lap/event structure, calories, and device-recorded summary fidelity.
 
+Subsequent progress:
+
+- FIT route + summary parser foundation is implemented.
+- FIT route attachment to an existing Apple HealthKit workout is implemented.
+- Activity Detail accepts GPX and FIT route files.
+- TCX import planning is complete in `docs/reports/soom-tcx-import-planning.md`.
+- Real FIT/TCX file compatibility and physical-device QA remain approval-gated.
+
 ## Format Positioning
 
 ### GPX
@@ -119,8 +127,9 @@ Weaknesses:
 
 SOOM use:
 
-- Plan after FIT.
+- Use the completed TCX plan after the FIT route-attachment baseline.
 - Keep as a compatibility fallback for users whose source apps export TCX more reliably than FIT.
+- Start with route attachment only; defer full TCX workout creation and sensor-stream persistence.
 
 ## File Format Comparison
 
@@ -184,7 +193,7 @@ Format sequence:
 4. FIT route attach and full workout import design.
 5. FIT route attach implementation.
 6. FIT full workout import implementation.
-7. TCX import planning.
+7. TCX import planning. Complete: `docs/reports/soom-tcx-import-planning.md`.
 8. TCX route attach/full workout fallback.
 9. Strava and Wahoo feasibility spikes.
 10. Garmin developer-program research.

@@ -6,19 +6,22 @@ struct UnifiedWorkoutLibraryView: View {
     private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     private let gpxRouteAttachmentService: GPXRouteAttachmentService?
     private let fitRouteAttachmentService: FITRouteAttachmentService?
+    private let tcxRouteAttachmentService: TCXRouteAttachmentService?
 
     init(
         viewModel: UnifiedWorkoutLibraryViewModel,
         similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
         detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
         gpxRouteAttachmentService: GPXRouteAttachmentService? = nil,
-        fitRouteAttachmentService: FITRouteAttachmentService? = nil
+        fitRouteAttachmentService: FITRouteAttachmentService? = nil,
+        tcxRouteAttachmentService: TCXRouteAttachmentService? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.similarCandidateProvider = similarCandidateProvider
         self.detailRouteContextProvider = detailRouteContextProvider
         self.gpxRouteAttachmentService = gpxRouteAttachmentService
         self.fitRouteAttachmentService = fitRouteAttachmentService
+        self.tcxRouteAttachmentService = tcxRouteAttachmentService
     }
 
     var body: some View {
@@ -168,6 +171,7 @@ struct UnifiedWorkoutLibraryView: View {
                     detailRouteContextProvider: detailRouteContextProvider,
                     gpxRouteAttachmentService: gpxRouteAttachmentService,
                     fitRouteAttachmentService: fitRouteAttachmentService,
+                    tcxRouteAttachmentService: tcxRouteAttachmentService,
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -190,6 +194,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     let gpxRouteAttachmentService: GPXRouteAttachmentService?
     let fitRouteAttachmentService: FITRouteAttachmentService?
+    let tcxRouteAttachmentService: TCXRouteAttachmentService?
     let onToggleExcluded: () -> Void
     @State private var hasPersistedRoute = false
 
@@ -202,7 +207,8 @@ private struct UnifiedWorkoutLibraryRow: View {
                         similarCandidateProvider: similarCandidateProvider,
                         detailRouteContextProvider: detailRouteContextProvider,
                         gpxRouteAttachmentService: gpxRouteAttachmentService,
-                        fitRouteAttachmentService: fitRouteAttachmentService
+                        fitRouteAttachmentService: fitRouteAttachmentService,
+                        tcxRouteAttachmentService: tcxRouteAttachmentService
                     )
                 } label: {
                     rowSummary
@@ -365,6 +371,7 @@ private struct UnifiedWorkoutDetailDestination: View {
     var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     var gpxRouteAttachmentService: GPXRouteAttachmentService?
     var fitRouteAttachmentService: FITRouteAttachmentService?
+    var tcxRouteAttachmentService: TCXRouteAttachmentService?
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var persistedRoute: WorkoutRoute?
@@ -400,7 +407,7 @@ private struct UnifiedWorkoutDetailDestination: View {
 
     private var routeAttachmentAction: ActivityDetailGPXRouteImportAction? {
         guard
-            gpxRouteAttachmentService != nil || fitRouteAttachmentService != nil,
+            gpxRouteAttachmentService != nil || fitRouteAttachmentService != nil || tcxRouteAttachmentService != nil,
             ActivityDetailGPXRouteImportEligibility.canAttachGPXRoute(
                 to: unifiedWorkout,
                 hasRoute: persistedRoute != nil
@@ -445,6 +452,11 @@ private struct UnifiedWorkoutDetailDestination: View {
                 return .failure(.unsupportedFileType)
             }
             return await attachFITRoute(data, using: fitRouteAttachmentService)
+        case .tcx:
+            guard let tcxRouteAttachmentService else {
+                return .failure(.unsupportedFileType)
+            }
+            return await attachTCXRoute(data, using: tcxRouteAttachmentService)
         }
     }
 
@@ -470,6 +482,22 @@ private struct UnifiedWorkoutDetailDestination: View {
         using service: FITRouteAttachmentService
     ) async -> ActivityDetailGPXRouteImportResult {
         let result = await service.attachRoute(to: unifiedWorkout.id, fitData: data)
+        switch result {
+        case .success(let attachment):
+            persistedRoute = attachment.route
+            await reloadRouteDerivedState()
+            return .success
+        case .failure(let error):
+            return .failure(ActivityDetailGPXRouteImportError(attachmentError: error))
+        }
+    }
+
+    @MainActor
+    private func attachTCXRoute(
+        _ data: Data,
+        using service: TCXRouteAttachmentService
+    ) async -> ActivityDetailGPXRouteImportResult {
+        let result = await service.attachRoute(to: unifiedWorkout.id, tcxData: data)
         switch result {
         case .success(let attachment):
             persistedRoute = attachment.route
