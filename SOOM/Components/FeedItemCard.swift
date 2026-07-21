@@ -117,7 +117,8 @@ struct FeedItemCard: View {
             FeedReferenceMetricGrid(metrics: [
                 FeedReferenceMetric(label: "거리", value: card.distanceText),
                 FeedReferenceMetric(label: "시간", value: card.durationText),
-                FeedReferenceMetric(label: "심박", value: averageHeartRateText(for: card))
+                FeedReferenceMetric(label: speedOrPaceLabel(for: card), value: card.averagePaceText ?? "-"),
+                FeedReferenceMetric(label: "획득 고도", value: card.elevationGainText ?? "-")
             ])
         case .weeklyProgress(let card):
             FeedReferenceMetricGrid(metrics: [
@@ -209,20 +210,16 @@ struct FeedItemCard: View {
         return "\(line.prefix(limit))..."
     }
 
-    private func averageHeartRateText(for card: ShareableWorkoutCardModel) -> String {
+    private func speedOrPaceLabel(for card: ShareableWorkoutCardModel) -> String {
         switch card.workoutType {
         case .running:
-            return "142bpm"
-        case .cycling:
-            return "128bpm"
+            return "페이스"
+        case .cycling, .walking, .hiking:
+            return "속도"
         case .swimming:
-            return "136bpm"
-        case .walking:
-            return "112bpm"
-        case .hiking:
-            return "124bpm"
+            return "페이스"
         case .strength, .yoga, .other:
-            return "가벼움"
+            return "페이스"
         }
     }
 

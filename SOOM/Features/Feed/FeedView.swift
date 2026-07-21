@@ -3,22 +3,21 @@ import UIKit
 
 struct FeedView: View {
     let items: [FeedItem]
-    private let dataSource: FeedDataSource?
-    @EnvironmentObject private var dashboardViewModel: DashboardViewModel
+    let weeklySnapshot: FeedWeeklySnapshot?
+    let recoveryInsight: FeedRecoveryInsight?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
 
     init(
         items: [FeedItem] = FeedMockData.items,
-        dataSource: FeedDataSource? = FeedDataSource(
-            draftStore: FileFeedShareDraftStore.live,
-            strategy: .mockOnly
-        )
+        weeklySnapshot: FeedWeeklySnapshot? = nil,
+        recoveryInsight: FeedRecoveryInsight? = nil
     ) {
         let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
-        self.dataSource = dataSource
+        self.weeklySnapshot = weeklySnapshot
+        self.recoveryInsight = recoveryInsight
         _visibleItems = State(initialValue: sortedItems)
     }
 
@@ -26,7 +25,19 @@ struct FeedView: View {
         SOOMScreen {
             topHeader
 
-            weeklySnapshot
+            if let weeklySnapshot {
+                FeedWeeklySnapshotCarousel(snapshot: weeklySnapshot)
+            }
+
+            if let recoveryInsight {
+                NavigationLink {
+                    RecoveryViewContainer()
+                } label: {
+                    FeedRecoveryInsightCard(insight: recoveryInsight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("회복 상세 화면으로 이동합니다.")
+            }
 
             if visibleItems.isEmpty {
                 emptyState
@@ -82,15 +93,9 @@ struct FeedView: View {
         .onAppear {
             hasAppeared = true
         }
-        .task {
-            await refreshFeed()
+        .onChange(of: items) { _, newItems in
+            visibleItems = Self.prioritizedItems(newItems)
         }
-    }
-
-    @MainActor
-    private func refreshFeed() async {
-        guard let dataSource else { return }
-        visibleItems = Self.prioritizedItems(await dataSource.loadFeed())
     }
 
     private var topHeader: some View {
@@ -134,53 +139,6 @@ struct FeedView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
-    }
-
-    private var weeklySnapshot: some View {
-        HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("이번 주")
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.tertiaryInk)
-
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    snapshotMetric(value: "4h 42m", label: "운동 시간")
-                    snapshotMetric(value: "86.4km", label: "거리")
-                    snapshotMetric(value: "4회", label: "운동")
-                }
-            }
-
-            Spacer(minLength: 2)
-
-            WeeklySnapshotGraph()
-                .frame(width: 82, height: 54)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
-                .stroke(SOOMColor.line.opacity(0.16), lineWidth: 1)
-        }
-        .shadow(color: SOOMColor.black.opacity(0.025), radius: 10, x: 0, y: 6)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("이번 주 운동 요약")
-        .accessibilityValue("운동 시간 4시간 42분, 거리 86.4킬로미터, 운동 4회")
-    }
-
-    private func snapshotMetric(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                .foregroundStyle(SOOMColor.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-            Text(label)
-                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.tertiaryInk)
-                .lineLimit(1)
-        }
     }
 
     private var friendWorkoutItems: [FeedItem] {
@@ -236,23 +194,9 @@ struct FeedView: View {
     private func feedDestination(for item: FeedItem) -> some View {
         switch item.cardData {
         case .workoutSession:
-            if let workout = linkedWorkout(for: item) {
-                WorkoutDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
-            } else {
-                AnalysisViewContainer()
-            }
+            AnalysisViewContainer()
         case .weeklyProgress:
             AnalysisViewContainer()
-        }
-    }
-
-    private func linkedWorkout(for item: FeedItem) -> Workout? {
-        guard case .workoutSession(let card) = item.cardData else {
-            return nil
-        }
-
-        return dashboardViewModel.workouts.first { workout in
-            workout.sport.feedWorkoutType == card.workoutType
         }
     }
 
@@ -308,26 +252,6 @@ struct FeedView: View {
         }
 
         return 3
-    }
-}
-
-private struct WeeklySnapshotGraph: View {
-    private let values: [CGFloat] = [0.28, 0.62, 0.40, 0.82, 0.36, 0.70, 0.54]
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 5) {
-            ForEach(values.indices, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(index == 3 ? SOOMColor.bike : SOOMColor.ink.opacity(0.16))
-                    .frame(width: 6, height: 44 * values[index] + 6)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
-        .background(SOOMColor.surfaceMuted)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-        .accessibilityHidden(true)
     }
 }
 
@@ -572,25 +496,9 @@ private struct FeedCardButtonStyle: ButtonStyle {
     }
 }
 
-private extension WorkoutSport {
-    var feedWorkoutType: UnifiedWorkoutType {
-        switch self {
-        case .swim:
-            return .swimming
-        case .bike:
-            return .cycling
-        case .run:
-            return .running
-        case .brick:
-            return .other
-        }
-    }
-}
-
 #Preview("FeedView") {
     NavigationStack {
         FeedView()
-            .environmentObject(DashboardViewModel(harness: MockWorkoutHarness()))
     }
     .preferredColorScheme(.light)
 }

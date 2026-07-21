@@ -154,7 +154,7 @@ struct RootTabView: View {
         switch selectedTab {
         case .feed:
             NavigationStack {
-                FeedView()
+                FeedViewContainer()
             }
         case .record:
             NavigationStack {
