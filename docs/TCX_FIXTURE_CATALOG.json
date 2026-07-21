@@ -1,0 +1,17 @@
+{
+  "schema_version": "soom-tcx-fixture-catalog-v1",
+  "fixtures": [
+    {"id":"cycling-normal","kind":"synthetic-existing-test","expected":"pass"},
+    {"id":"running-normal","kind":"synthetic-existing-test","expected":"pass"},
+    {"id":"timezone-offset","kind":"contract-required","expected":"pass"},
+    {"id":"no-timezone","kind":"contract-required","expected":"pass-or-explicit-reject"},
+    {"id":"cadence-heart-rate-elevation","kind":"synthetic-existing-test","expected":"pass"},
+    {"id":"missing-optionals","kind":"synthetic-existing-test","expected":"pass"},
+    {"id":"malformed-xml","kind":"synthetic-existing-test","expected":"malformedXML"},
+    {"id":"unsupported-sport","kind":"contract-required","expected":"explicit-policy"},
+    {"id":"zero-distance","kind":"contract-required","expected":"bounded"},
+    {"id":"duplicate-activity","kind":"synthetic-existing-test","expected":"multipleActivities"},
+    {"id":"coordinate-limit","kind":"synthetic-existing-test","expected":"coordinateLimitExceeded"},
+    {"id":"inconsistent-summary","kind":"contract-required","expected":"compatibility-guard"}
+  ]
+}
