@@ -204,7 +204,7 @@ private struct UnifiedWorkoutDuplicateCandidateRow: View {
     ) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.compactListSpacing) {
             Image(systemName: workout.workoutType.iconName)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 34, height: 34)
                 .background(tint.opacity(0.10))

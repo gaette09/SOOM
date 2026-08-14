@@ -7,24 +7,24 @@ struct FeedItemCard: View {
         VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 16)
+                .padding(.top, SOOMLayout.Spacing.lg)
 
             titleBlock
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 12)
+                .padding(.top, SOOMLayout.Spacing.md)
 
             mediaPreview
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 12)
+                .padding(.top, SOOMLayout.Spacing.md)
 
             metricsBlock
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 12)
+                .padding(.top, SOOMLayout.Spacing.md)
 
             actionBar
                 .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+                .padding(.top, SOOMLayout.Spacing.md)
+                .padding(.bottom, SOOMLayout.Spacing.lg)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SOOMColor.surface)
@@ -69,7 +69,7 @@ struct FeedItemCard: View {
 
             Button(action: {}) {
                 Image(systemName: SOOMIcon.more)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .frame(width: 30, height: 30)
             }
@@ -137,7 +137,7 @@ struct FeedItemCard: View {
             Spacer()
             FeedReferenceAction(icon: SOOMIcon.bookmark, title: "저장", isProminent: true)
         }
-        .padding(.top, 12)
+        .padding(.top, SOOMLayout.Spacing.md)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(SOOMColor.line.opacity(0.12))
@@ -232,7 +232,7 @@ private struct FeedProfileAvatar: View {
             .frame(width: 40, height: 40)
             .overlay {
                 Image(systemName: SOOMIcon.profile)
-                    .font(.system(size: 18, weight: .regular))
+                    .font(.system(size: SOOMFont.Size.headline, weight: .regular))
                     .foregroundStyle(SOOMColor.tertiaryInk)
             }
             .overlay {
@@ -376,11 +376,11 @@ private struct FeedReferenceRoutePreview: View {
             Text(distanceText)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.ink)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 7)
+                .padding(.horizontal, SOOMLayout.Spacing.md)
+                .padding(.vertical, SOOMLayout.Spacing.sm)
                 .background(SOOMColor.white.opacity(0.94))
                 .clipShape(Capsule())
-                .padding(12)
+                .padding(SOOMLayout.Spacing.md)
 
             if photoCount > 0 {
                 HStack {
@@ -390,11 +390,11 @@ private struct FeedReferenceRoutePreview: View {
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.ink.opacity(0.78))
                         .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, SOOMLayout.Spacing.md)
+                        .padding(.vertical, SOOMLayout.Spacing.sm)
                         .background(SOOMColor.white.opacity(0.90))
                         .clipShape(Capsule())
-                        .padding(12)
+                        .padding(SOOMLayout.Spacing.md)
                 }
             }
 
@@ -405,14 +405,14 @@ private struct FeedReferenceRoutePreview: View {
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.ink.opacity(0.82))
                         .lineLimit(1)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, SOOMLayout.Spacing.sm)
+                        .padding(.vertical, SOOMLayout.Spacing.sm)
                         .background(SOOMColor.white.opacity(0.90))
                         .clipShape(Capsule())
 
                     Spacer(minLength: 0)
                 }
-                .padding(12)
+                .padding(SOOMLayout.Spacing.md)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
@@ -628,8 +628,8 @@ private struct FeedReferenceMetricGrid: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, SOOMLayout.Spacing.md)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .overlay {

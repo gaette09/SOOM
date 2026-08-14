@@ -91,7 +91,7 @@ struct ShareableWorkoutCardView: View {
     private var storyHeader: some View {
         HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionTextSpacing) {
             Image(systemName: card.shareType.icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(headerForeground)
                 .accessibilityHidden(true)
 

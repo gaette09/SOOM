@@ -150,7 +150,7 @@ private struct StravaFrameLockTopNavView: View {
                 Spacer()
 
                 Text("Ride")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                     .foregroundStyle(iconColor)
 
                 Spacer()
@@ -160,7 +160,7 @@ private struct StravaFrameLockTopNavView: View {
                     frameLockIconButton(systemName: "ellipsis") {}
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SOOMLayout.Spacing.lg)
             .frame(height: FrameLock.navTouchTargetHeight)
             .offset(y: safeAreaTop + ((FrameLock.navHeight - FrameLock.navTouchTargetHeight) / 2))
 
@@ -174,7 +174,7 @@ private struct StravaFrameLockTopNavView: View {
     private func frameLockIconButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                 .foregroundStyle(iconColor)
                 .frame(width: FrameLock.navTouchTargetHeight, height: FrameLock.navTouchTargetHeight)
                 .background {
@@ -223,24 +223,24 @@ private struct StravaFrameLockBottomSheetContainer: View {
     private var previewHeader: some View {
         VStack(spacing: 0) {
             dragHandle
-                .padding(.top, 10)
-                .padding(.bottom, 12)
+                .padding(.top, SOOMLayout.Spacing.md)
+                .padding(.bottom, SOOMLayout.Spacing.md)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Morning Ride")
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(SOOMColor.ink)
 
                 Text("Today · Seoul")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.black.opacity(0.55))
+                    .font(.system(size: SOOMFont.Size.subheadline, weight: .regular))
+                    .foregroundStyle(SOOMColor.ink.opacity(0.55))
 
                 HStack(alignment: .top, spacing: 24) {
                     previewMetric(value: "42.1", label: "Distance")
                     previewMetric(value: "1:42", label: "Time")
                     previewMetric(value: "24.7", label: "Speed")
                 }
-                .padding(.top, 20)
+                .padding(.top, SOOMLayout.Spacing.xl)
             }
             .padding(.horizontal, FrameLock.contentHorizontalPadding)
             .padding(.bottom, 24)
@@ -258,7 +258,7 @@ private struct StravaFrameLockBottomSheetContainer: View {
         VStack(spacing: 0) {
             dragHandle
                 .padding(.top, safeAreaTop + FrameLock.navHeight + 10)
-                .padding(.bottom, 12)
+                .padding(.bottom, SOOMLayout.Spacing.md)
         }
         .frame(
             maxWidth: .infinity,
@@ -298,24 +298,24 @@ private struct StravaFrameLockBottomSheetContainer: View {
     private func previewMetric(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.black)
+                .font(.system(size: SOOMFont.Size.title, weight: .semibold))
+                .foregroundStyle(SOOMColor.ink)
             Text(label)
-                .font(.system(size: 11, weight: .regular))
-                .foregroundStyle(.black.opacity(0.54))
+                .font(.system(size: SOOMFont.Size.caption, weight: .regular))
+                .foregroundStyle(SOOMColor.ink.opacity(0.54))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func placeholderBlock(height: CGFloat, label: String) -> some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+        RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous)
             .fill(Color.black.opacity(0.045))
             .frame(height: height)
             .overlay(alignment: .topLeading) {
                 Text(label)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.42))
-                    .padding(14)
+                    .font(.system(size: SOOMFont.Size.caption, weight: .medium))
+                    .foregroundStyle(SOOMColor.ink.opacity(0.42))
+                    .padding(SOOMLayout.Spacing.lg)
             }
     }
 }
@@ -336,7 +336,7 @@ private struct StravaFrameLockMapLayer: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Color(red: 0.86, green: 0.89, blue: 0.84)
+                SOOMColor.mapPreviewBackground
 
                 mapGrid(size: proxy.size)
 
@@ -344,7 +344,7 @@ private struct StravaFrameLockMapLayer: View {
                     .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
 
                 routePath(size: proxy.size)
-                    .stroke(Color(red: 0.98, green: 0.31, blue: 0.12), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                    .stroke(SOOMRouteRenderingStyle.accentColor, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
             }
         }
     }

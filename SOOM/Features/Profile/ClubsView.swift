@@ -203,7 +203,7 @@ private struct ClubHomeHeader: View {
             Spacer()
             Button(action: onCreate) {
                 Image(systemName: SOOMIcon.record)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.headline, weight: .bold))
                     .foregroundStyle(SOOMColor.white)
                     .frame(width: 44, height: 44)
                     .background(SOOMColor.ink)
@@ -252,8 +252,8 @@ private struct ClubHomeCard: View {
                             Text("내가 만든 클럽")
                                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                                 .foregroundStyle(SOOMColor.accentInk)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, SOOMLayout.Spacing.sm)
+                                .padding(.vertical, SOOMLayout.Spacing.xs)
                                 .background(SOOMColor.accentSurface)
                                 .clipShape(Capsule())
                         }
@@ -319,8 +319,8 @@ private struct ClubRecommendedCard: View {
             Text("둘러보기")
                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.accentInk)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, SOOMLayout.Spacing.md)
+                .padding(.vertical, SOOMLayout.Spacing.sm)
                 .background(SOOMColor.accentSurface)
                 .clipShape(Capsule())
         }
@@ -360,8 +360,8 @@ private struct ClubStatusHero: View {
                         Text(tag)
                             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(SOOMColor.accentInk)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, SOOMLayout.Spacing.sm)
+                            .padding(.vertical, SOOMLayout.Spacing.sm)
                             .background(SOOMColor.accentSurface)
                             .clipShape(Capsule())
                     }
@@ -380,7 +380,7 @@ private struct ClubStatusHero: View {
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(detail.membershipState == .joined ? SOOMColor.accent : SOOMColor.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
+                        .padding(.vertical, SOOMLayout.Spacing.md)
                         .background(detail.membershipState == .joined ? SOOMColor.accentSurface : SOOMColor.accent)
                         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                 }
@@ -420,13 +420,13 @@ private struct ClubMotivationSummaryStrip: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceSecondary)
         .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2)
+            RoundedRectangle(cornerRadius: SOOMRadius.hairline)
                 .fill(SOOMColor.accent)
                 .frame(width: 3)
-                .padding(.vertical, 12)
+                .padding(.vertical, SOOMLayout.Spacing.md)
         }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -510,7 +510,7 @@ private struct ClubStatTile: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -556,7 +556,7 @@ private struct ClubRuleChip: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
-        .padding(10)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -601,8 +601,8 @@ private struct ClubMemberAvatarCard: View {
             Text(member.role)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(member.tone.color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.horizontal, SOOMLayout.Spacing.sm)
+                .padding(.vertical, SOOMLayout.Spacing.xs)
                 .background(member.tone.color.opacity(0.10))
                 .clipShape(Capsule())
                 .lineLimit(1)
@@ -613,7 +613,7 @@ private struct ClubMemberAvatarCard: View {
                 .lineLimit(1)
         }
         .frame(width: 128, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceAmbient)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -759,7 +759,7 @@ private struct ClubRankingGraph: View {
                 }
             }
         }
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -852,7 +852,7 @@ private struct ClubChallengesSection: View {
                     .accessibilityLabel(challenge.title)
                     .accessibilityValue(challenge.progressText)
                 }
-                .padding(12)
+                .padding(SOOMLayout.Spacing.md)
                 .background(SOOMColor.surfaceAmbient)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
@@ -884,8 +884,8 @@ private struct ClubBadgeWallSection: View {
                         Text(badge.subtitle)
                             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(badge.state.tint)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
+                            .padding(.horizontal, SOOMLayout.Spacing.sm)
+                            .padding(.vertical, SOOMLayout.Spacing.xs)
                             .background(badge.state.tint.opacity(0.10))
                             .clipShape(Capsule())
                             .lineLimit(1)
@@ -964,7 +964,7 @@ private struct ClubEmptyStateView: View {
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, SOOMLayout.Spacing.lg)
                     .background(SOOMColor.accent)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
@@ -1034,13 +1034,13 @@ private struct ClubCreateSheet: View {
                 TextField("클럽 이름", text: $name)
                     .textInputAutocapitalization(.never)
                     .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                    .padding(14)
+                    .padding(SOOMLayout.Spacing.lg)
                     .background(SOOMColor.surfaceAmbient)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
                 TextField("클럽 목적", text: $purpose)
                     .font(SOOMFont.body(15, relativeTo: .subheadline))
-                    .padding(14)
+                    .padding(SOOMLayout.Spacing.lg)
                     .background(SOOMColor.surfaceAmbient)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
@@ -1073,7 +1073,7 @@ private struct ClubCreateSheet: View {
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, SOOMLayout.Spacing.lg)
                     .background(canCreate ? SOOMColor.accent : SOOMColor.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
@@ -1132,7 +1132,7 @@ private struct ClubMembershipPlaceholderSheet: View {
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.accent)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
+                        .padding(.vertical, SOOMLayout.Spacing.md)
                         .background(SOOMColor.accentSurface)
                         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
                 }

@@ -66,7 +66,7 @@ struct ProfileSummaryCard: View {
                                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                                     .foregroundStyle(SOOMColor.accentInk)
                                     .padding(.horizontal, SOOMLayout.Metrics.tagSpacing)
-                                    .padding(.vertical, 4)
+                                    .padding(.vertical, SOOMLayout.Spacing.xs)
                                     .background(SOOMColor.accentSurface)
                                     .clipShape(Capsule())
                             }
@@ -100,7 +100,7 @@ struct ProfileSummaryCard: View {
                 .fill(SOOMColor.surface)
             Circle()
                 .stroke(SOOMColor.accentLine, lineWidth: 2)
-                .padding(2)
+                .padding(SOOMLayout.Spacing.xs)
             Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 46, weight: .semibold))
                 .foregroundStyle(SOOMColor.accent)
@@ -113,7 +113,7 @@ struct ProfileSummaryCard: View {
     private var representativeBadge: some View {
         HStack(spacing: 12) {
             Image(systemName: "seal.fill")
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: SOOMFont.Size.title, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 42, height: 42)
                 .background(SOOMColor.accentSurface)
@@ -136,19 +136,13 @@ struct ProfileSummaryCard: View {
             Text(representativeBadgeState)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.accentInk)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
+                .padding(.horizontal, SOOMLayout.Spacing.sm)
+                .padding(.vertical, SOOMLayout.Spacing.xs)
                 .background(SOOMColor.accentSurface)
                 .clipShape(Capsule())
         }
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted.opacity(0.92))
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(SOOMColor.accent)
-                .frame(width: 3)
-                .padding(.vertical, 14)
-        }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
     }
 
@@ -168,6 +162,6 @@ struct ProfileSummaryCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, SOOMLayout.Spacing.xs)
     }
 }

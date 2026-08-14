@@ -131,7 +131,7 @@ struct FeedView: View {
     private func headerIconButton(icon: String, label: String) -> some View {
         Button(action: {}) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                 .foregroundStyle(SOOMColor.ink)
                 .frame(width: 38, height: 38)
                 .background(SOOMColor.surfaceMuted)
@@ -160,7 +160,7 @@ struct FeedView: View {
     private var aiDiscoveryCard: some View {
         HStack(spacing: 10) {
             Image(systemName: SOOMIcon.sparkles)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .semibold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 28, height: 28)
                 .background(SOOMColor.accentMuted)
@@ -179,8 +179,8 @@ struct FeedView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, SOOMLayout.Spacing.lg)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceAmbient.opacity(0.78))
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
         .overlay {
@@ -265,7 +265,7 @@ private struct FeedCoachAccessBanner: View {
                     .fill(SOOMColor.accentMuted)
 
                 Image(systemName: SOOMIcon.sparkles)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
                     .foregroundStyle(SOOMColor.accent)
             }
             .frame(width: 36, height: 36)
@@ -288,7 +288,7 @@ private struct FeedCoachAccessBanner: View {
 
             Button(action: onClose) {
                 Image(systemName: SOOMIcon.close)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .frame(width: 32, height: 32)
                     .background(SOOMColor.surfaceMuted)
@@ -297,8 +297,8 @@ private struct FeedCoachAccessBanner: View {
             .buttonStyle(.plain)
             .accessibilityLabel("회복 코치 안내 닫기")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, SOOMLayout.Spacing.lg)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
         .overlay {
@@ -339,11 +339,11 @@ private struct FeedFirstJourneyStoryPreview: View {
                         Text("예시 route")
                             .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(SOOMColor.tertiaryInk)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, SOOMLayout.Spacing.sm)
+                            .padding(.vertical, SOOMLayout.Spacing.sm)
                             .background(SOOMColor.surface.opacity(0.72))
                             .clipShape(Capsule())
-                            .padding(12)
+                            .padding(SOOMLayout.Spacing.md)
                     }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -355,7 +355,7 @@ private struct FeedFirstJourneyStoryPreview: View {
                         .foregroundStyle(SOOMColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(14)
+                .padding(SOOMLayout.Spacing.lg)
             }
 
             HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
@@ -365,7 +365,7 @@ private struct FeedFirstJourneyStoryPreview: View {
             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
             .foregroundStyle(SOOMColor.secondaryInk)
             .padding(.horizontal, SOOMLayout.Card.padding)
-            .padding(.vertical, 12)
+            .padding(.vertical, SOOMLayout.Spacing.md)
         }
         .background(SOOMColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
@@ -442,15 +442,15 @@ private struct FeedSurfaceCard: View {
                 Text(kind)
                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(tint.opacity(0.52))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, SOOMLayout.Spacing.sm)
+                    .padding(.vertical, SOOMLayout.Spacing.xs)
                     .background(tint.opacity(0.035))
                     .clipShape(Capsule())
 
                 Spacer(minLength: 6)
 
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.subheadline, weight: .semibold))
                     .foregroundStyle(tint.opacity(0.42))
             }
 

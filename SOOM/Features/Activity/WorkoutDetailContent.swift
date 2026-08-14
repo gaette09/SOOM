@@ -463,7 +463,7 @@ private struct ActivityDetailRouteMissingCard: View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
                 Image(systemName: SOOMIcon.map)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: 32, height: 32)
                     .background(tint.opacity(0.12))
@@ -610,15 +610,10 @@ private struct ActivityDetailStatTile: View {
                 .minimumScaleFactor(0.68)
         }
         .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
+        .padding(.horizontal, SOOMLayout.Spacing.md)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous)
-                .fill(tint.opacity(0.18))
-                .frame(width: 3)
-        }
     }
 }
 
@@ -630,7 +625,7 @@ private struct ActivityDetailRhythmCard: View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
                 Image(systemName: SOOMIcon.waveform)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: 32, height: 32)
                     .background(tint.opacity(0.12))
@@ -795,7 +790,7 @@ private struct ShareCardComposer: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                             .foregroundStyle(SOOMColor.ink)
                     }
                     .accessibilityLabel("공유 카드 닫기")

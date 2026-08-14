@@ -155,7 +155,7 @@ struct RecordView: View {
             }
         } label: {
             Image(systemName: "chevron.left")
-                .font(.system(size: 17, weight: .bold))
+                .font(.system(size: SOOMFont.Size.headline, weight: .bold))
                 .foregroundStyle(SOOMColor.ink)
                 .frame(width: 44, height: 44)
                 .background(SOOMColor.surface.opacity(0.94))
@@ -173,7 +173,7 @@ struct RecordView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 7) {
                 Image(systemName: "sparkle")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                     .foregroundStyle(SOOMColor.accent)
                 Text("오늘의 출발 기준")
                     .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
@@ -192,8 +192,8 @@ struct RecordView: View {
                 .lineLimit(RecordMapHeaderLayout.maxBodyLineCount)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
+        .padding(.horizontal, SOOMLayout.Spacing.lg)
+        .padding(.vertical, SOOMLayout.Spacing.sm)
         .frame(minHeight: RecordMapHeaderLayout.guidanceMinHeight, maxHeight: RecordMapHeaderLayout.guidanceMaxHeight, alignment: .center)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SOOMColor.surface.opacity(0.96))
@@ -251,7 +251,7 @@ struct RecordView: View {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 2) {
                     Image(systemName: weatherSnapshot.conditionIconName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: SOOMFont.Size.subheadline, weight: .semibold))
                         .foregroundStyle(weatherIconTint)
 
                     Text(weatherSnapshot.temperatureText)
@@ -472,7 +472,7 @@ struct RecordView: View {
                 .overlay {
                     Circle()
                         .stroke(SOOMColor.white.opacity(0.18), lineWidth: 1.2)
-                        .padding(8)
+                        .padding(SOOMLayout.Spacing.sm)
                 }
         )
         .scaleEffect(isReadyFocusMode ? 0.96 : 1.0)
@@ -530,7 +530,7 @@ struct RecordView: View {
 
         return VStack(spacing: 5) {
             Image(systemName: item.sport.iconName)
-                .font(.system(size: 19, weight: .bold))
+                .font(.system(size: SOOMFont.Size.headline, weight: .bold))
             Text(item.sport.title)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
         }
@@ -650,7 +650,7 @@ struct RecordView: View {
                         isWeatherDetailPresented = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                             .foregroundStyle(SOOMColor.secondaryInk)
                             .frame(width: 34, height: 34)
                             .background(SOOMColor.background)
@@ -728,7 +728,7 @@ struct RecordView: View {
                         isRouteRecommendationPresented = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                             .foregroundStyle(SOOMColor.secondaryInk)
                             .frame(width: 34, height: 34)
                             .background(SOOMColor.background)
@@ -753,7 +753,7 @@ struct RecordView: View {
     private func weatherDetailMetric(title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
             Text(value)
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
@@ -765,15 +765,15 @@ struct RecordView: View {
                 .foregroundStyle(SOOMColor.tertiaryInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.background)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
     }
 
     private func airQualityMetric(title: String, value: String, level: RecordAirQualityLevel) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: title == "미세" ? "aqi.medium" : "circle.hexagongrid.fill")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(airQualityColor(level))
             Text(value)
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
@@ -785,11 +785,11 @@ struct RecordView: View {
                 .foregroundStyle(SOOMColor.tertiaryInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(airQualityColor(level).opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous)
                 .stroke(airQualityColor(level).opacity(0.22), lineWidth: 1)
         }
     }
@@ -799,7 +799,7 @@ struct RecordView: View {
 
         return HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkle")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 26, height: 26)
                 .background(SOOMColor.accentSurface)
@@ -810,9 +810,9 @@ struct RecordView: View {
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(SOOMLayout.Spacing.lg)
         .background(SOOMColor.background)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
     }
 
     private func hourlyForecastSection(_ forecasts: [RecordHourlyWeather]) -> some View {
@@ -829,16 +829,16 @@ struct RecordView: View {
                                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                                 .foregroundStyle(SOOMColor.tertiaryInk)
                             Image(systemName: forecast.iconName)
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: SOOMFont.Size.body, weight: .bold))
                                 .foregroundStyle(SOOMColor.accent)
                             Text(forecast.temperatureText)
                                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                                 .foregroundStyle(SOOMColor.ink)
                         }
                         .frame(width: 64)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, SOOMLayout.Spacing.md)
                         .background(SOOMColor.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
                     }
                 }
             }
@@ -859,7 +859,7 @@ struct RecordView: View {
                             .foregroundStyle(SOOMColor.ink)
                             .frame(width: 44, alignment: .leading)
                         Image(systemName: forecast.iconName)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                             .foregroundStyle(SOOMColor.accent)
                             .frame(width: 24)
                         Text(forecast.conditionLabel)
@@ -871,10 +871,10 @@ struct RecordView: View {
                             .foregroundStyle(SOOMColor.ink)
                             .monospacedDigit()
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 11)
+                    .padding(.horizontal, SOOMLayout.Spacing.md)
+                    .padding(.vertical, SOOMLayout.Spacing.md)
                     .background(SOOMColor.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
                 }
             }
         }
@@ -923,7 +923,7 @@ struct RecordView: View {
                         .fill(isSelected ? SOOMColor.accentSurface : SOOMColor.background)
                         .frame(width: 48, height: 48)
                     Image(systemName: RecordLaunchControl.routeRecommendation.iconName)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: SOOMFont.Size.body, weight: .bold))
                         .foregroundStyle(isSelected ? SOOMColor.accent : SOOMColor.secondaryInk)
                 }
 
@@ -936,8 +936,8 @@ struct RecordView: View {
                         Text(option.tag)
                             .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(SOOMColor.accentInk)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, SOOMLayout.Spacing.sm)
+                            .padding(.vertical, SOOMLayout.Spacing.xs)
                             .background(SOOMColor.accentSurface)
                             .clipShape(Capsule())
                     }
@@ -952,15 +952,15 @@ struct RecordView: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: SOOMFont.Size.headline, weight: .bold))
                         .foregroundStyle(SOOMColor.accent)
                 }
             }
-            .padding(14)
+            .padding(SOOMLayout.Spacing.lg)
             .background(SOOMColor.background)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
                     .stroke(isSelected ? SOOMColor.accentLine : SOOMColor.line.opacity(0.82), lineWidth: 1)
             }
         }
@@ -998,7 +998,7 @@ struct RecordView: View {
                     activeSessionActions(for: session)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SOOMLayout.Spacing.lg)
             .padding(.bottom, max(safeAreaInsets.bottom, 16) + 14)
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: activeHUDMode)
         }
@@ -1053,7 +1053,7 @@ struct RecordView: View {
                     labelFirst: true
                 )
             }
-            .padding(.top, 2)
+            .padding(.top, SOOMLayout.Spacing.xs)
             .padding(.horizontal, 34)
 
             activeHUDModeButton(
@@ -1108,7 +1108,7 @@ struct RecordView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 36, height: 36)
                 .background(SOOMColor.accentSurface)
@@ -1121,7 +1121,7 @@ struct RecordView: View {
     private func activeHUDSportStatusChip(session: RecordWorkoutSession) -> some View {
         HStack(spacing: 8) {
             Image(systemName: session.sport.iconName)
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
 
             Text(session.sport.title)
@@ -1131,8 +1131,8 @@ struct RecordView: View {
             Text(session.statusLabel)
                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.textSecondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, SOOMLayout.Spacing.sm)
+                .padding(.vertical, SOOMLayout.Spacing.xs)
                 .background((session.state == .paused ? SOOMColor.warning : SOOMColor.surfaceSecondary).opacity(session.state == .paused ? 0.12 : 1))
                 .clipShape(Capsule())
         }
@@ -1199,7 +1199,7 @@ struct RecordView: View {
             VStack(alignment: .trailing, spacing: 7) {
                 HStack(spacing: 7) {
                     Image(systemName: session.sport.iconName)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                     Text(session.sport.title)
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 }
@@ -1208,8 +1208,8 @@ struct RecordView: View {
                 Text(session.statusLabel)
                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(session.state == .paused ? SOOMColor.warning : SOOMColor.textSecondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, SOOMLayout.Spacing.sm)
+                    .padding(.vertical, SOOMLayout.Spacing.xs)
                     .background((session.state == .paused ? SOOMColor.warning : SOOMColor.surfaceSecondary).opacity(session.state == .paused ? 0.12 : 1))
                     .clipShape(Capsule())
             }
@@ -1236,7 +1236,7 @@ struct RecordView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
+        .padding(.vertical, SOOMLayout.Spacing.xs)
     }
 
     private func activeHUDMetricGrid(_ metrics: [RecordActiveHUDMetric]) -> some View {
@@ -1276,10 +1276,10 @@ struct RecordView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, SOOMLayout.Spacing.md)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceSecondary)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.small, style: .continuous))
     }
 
     private func activeSessionActions(for session: RecordWorkoutSession) -> some View {
@@ -1294,7 +1294,7 @@ struct RecordView: View {
                     .font(SOOMFont.body(13, weight: .bold, relativeTo: .callout))
                     .foregroundStyle(SOOMColor.ink)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, SOOMLayout.Spacing.md)
                     .background(SOOMColor.background)
                     .clipShape(Capsule())
             }
@@ -1311,7 +1311,7 @@ struct RecordView: View {
                     .font(SOOMFont.body(13, weight: .bold, relativeTo: .callout))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, SOOMLayout.Spacing.md)
                     .background(SOOMColor.ink)
                     .clipShape(Capsule())
             }
@@ -1326,7 +1326,7 @@ struct RecordView: View {
                 }
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .frame(width: 42, height: 42)
                     .background(SOOMColor.background)
@@ -1335,11 +1335,11 @@ struct RecordView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("기록 취소")
         }
-        .padding(10)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfacePrimary.opacity(0.94))
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.detailSheetTop, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SOOMRadius.detailSheetTop, style: .continuous)
                 .stroke(SOOMColor.line.opacity(0.72), lineWidth: 1)
         }
         .shadow(color: SOOMColor.ink.opacity(0.11), radius: 18, x: 0, y: 10)
@@ -1398,7 +1398,7 @@ struct RecordView: View {
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.secondaryInk)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .padding(.vertical, SOOMLayout.Spacing.lg)
                                 .background(SOOMColor.background)
                                 .clipShape(Capsule())
                         }
@@ -1415,7 +1415,7 @@ struct RecordView: View {
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .padding(.vertical, SOOMLayout.Spacing.lg)
                                 .background(SOOMColor.accent)
                                 .clipShape(Capsule())
                         }
@@ -1432,7 +1432,7 @@ struct RecordView: View {
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.secondaryInk)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .padding(.vertical, SOOMLayout.Spacing.lg)
                                 .background(SOOMColor.background)
                                 .clipShape(Capsule())
                         }
@@ -1449,7 +1449,7 @@ struct RecordView: View {
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .padding(.vertical, SOOMLayout.Spacing.lg)
                                 .background(SOOMColor.accent)
                                 .clipShape(Capsule())
                         }
@@ -1466,7 +1466,7 @@ struct RecordView: View {
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                         .foregroundStyle(SOOMColor.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, SOOMLayout.Spacing.lg)
                         .background(SOOMColor.accent)
                         .clipShape(Capsule())
                 }
@@ -1487,10 +1487,10 @@ struct RecordView: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
+        .padding(.horizontal, SOOMLayout.Spacing.md)
+        .padding(.vertical, SOOMLayout.Spacing.sm)
         .background(SOOMColor.background)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.small, style: .continuous))
     }
 
     @MainActor
@@ -1629,7 +1629,7 @@ struct RecordView: View {
         case .snow:
             return SOOMColor.secondaryInk
         case .cloudy, .unknown:
-            return SOOMColor.accent
+            return SOOMColor.secondaryInk
         }
     }
 
@@ -1700,7 +1700,7 @@ struct RecordView: View {
         stroke: Color
     ) -> some View {
         Image(systemName: icon)
-            .font(.system(size: 17, weight: .bold))
+            .font(.system(size: SOOMFont.Size.headline, weight: .bold))
             .foregroundStyle(tint)
             .frame(width: RecordMapHeaderLayout.controlSize, height: RecordMapHeaderLayout.controlSize)
             .background(background)
@@ -1738,20 +1738,20 @@ struct RecordMapFallbackSurface: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color(hex: 0xDDE7DC),
+                        SOOMColor.mapFallbackGradientStart,
                         SOOMColor.background,
-                        Color(hex: 0xE8E1D2)
+                        SOOMColor.mapFallbackGradientEnd
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
 
                 parkShape(in: proxy.size)
-                    .fill(Color(hex: 0xC9D7C4).opacity(0.70))
+                    .fill(SOOMColor.mapFallbackPark.opacity(0.70))
                     .blur(radius: 0.5)
 
                 riverShape(in: proxy.size)
-                    .fill(Color(hex: 0xB8CAD0).opacity(0.58))
+                    .fill(SOOMColor.mapFallbackRiver.opacity(0.58))
 
                 roadNetwork(in: proxy.size)
                     .stroke(SOOMColor.white.opacity(0.72), style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
@@ -1776,7 +1776,7 @@ struct RecordMapFallbackSurface: View {
                     Text("현재 위치를 준비 중이에요")
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.tertiaryInk)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, SOOMLayout.Spacing.md)
                 }
                 .allowsHitTesting(false)
             }
@@ -1794,8 +1794,8 @@ struct RecordMapFallbackSurface: View {
                 .foregroundStyle(SOOMColor.secondaryInk)
         }
         .foregroundStyle(SOOMColor.ink)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.horizontal, SOOMLayout.Spacing.md)
+        .padding(.vertical, SOOMLayout.Spacing.sm)
         .background(SOOMColor.surface.opacity(0.88))
         .clipShape(Capsule())
         .overlay {

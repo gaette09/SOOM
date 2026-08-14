@@ -259,7 +259,7 @@ private struct FloatingRecoveryCoach: View {
                 collapsePreview()
             } label: {
                 Image(systemName: SOOMIcon.close)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                     .foregroundStyle(SOOMColor.tertiaryInk)
                     .frame(width: 28, height: 28)
             }
@@ -270,9 +270,9 @@ private struct FloatingRecoveryCoach: View {
         .padding(.vertical, SOOMLayout.FloatingCoach.previewVerticalPadding)
         .frame(maxWidth: SOOMLayout.FloatingCoach.previewMaxWidth, alignment: .leading)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
                 .stroke(SOOMColor.line.opacity(0.58), lineWidth: 1)
         }
         .shadow(color: SOOMColor.ink.opacity(0.055), radius: 14, x: 0, y: 8)
@@ -310,7 +310,7 @@ private struct FloatingRecoveryCoach: View {
                             .stroke(SOOMColor.accent, lineWidth: 1.2)
                     }
                     .shadow(color: SOOMColor.ink.opacity(0.10), radius: 4, x: 0, y: 2)
-                    .padding(2)
+                    .padding(SOOMLayout.Spacing.xs)
             }
             .frame(width: SOOMLayout.FloatingCoach.buttonSize, height: SOOMLayout.FloatingCoach.buttonSize)
             .shadow(color: SOOMColor.ink.opacity(0.12), radius: 14, x: 0, y: 8)
@@ -470,12 +470,12 @@ private struct FloatingRecoveryCoach: View {
             recoveryContextRow(title: "리듬", value: "무리한 강도보다 호흡 유지")
             recoveryContextRow(title: "추천", value: "짧은 산책이나 낮은 강도의 러닝")
         }
-        .padding(16)
+        .padding(SOOMLayout.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
                 .stroke(SOOMColor.line.opacity(0.7), lineWidth: 1)
         }
     }
@@ -504,7 +504,7 @@ private struct FloatingRecoveryCoach: View {
 
             coachDetailButton
         }
-        .padding(.bottom, 4)
+        .padding(.bottom, SOOMLayout.Spacing.xs)
     }
 
     private var coachDetailButton: some View {
@@ -518,9 +518,9 @@ private struct FloatingRecoveryCoach: View {
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
+                .padding(.vertical, SOOMLayout.Spacing.md)
                 .background(SOOMColor.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(isDetailExpanded)
@@ -934,7 +934,7 @@ private struct ActivityLibraryEntry: Identifiable {
     private static func tint(for workoutType: UnifiedWorkoutType) -> Color {
         switch workoutType {
         case .walking:
-            return Color(hex: 0x9FC8A8)
+            return SOOMColor.walk
         case .running:
             return SOOMColor.run
         case .cycling:
@@ -973,8 +973,8 @@ private struct ActivityCalendarSection: View {
                                 Text(calendarMode.title)
                                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                                     .foregroundStyle(mode == calendarMode ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, 7)
+                                    .padding(.horizontal, SOOMLayout.Spacing.sm)
+                                    .padding(.vertical, SOOMLayout.Spacing.sm)
                                     .background(mode == calendarMode ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
                                     .clipShape(Capsule())
                             }
@@ -1044,7 +1044,7 @@ private struct ActivityCalendarSection: View {
 
     private var calendarLegend: some View {
         HStack(spacing: 12) {
-            legendDot(title: "걷기", color: Color(hex: 0x9FC8A8))
+            legendDot(title: "걷기", color: SOOMColor.walk)
             legendDot(title: "러닝", color: SOOMColor.run)
             legendDot(title: "라이딩", color: SOOMColor.bike)
         }
@@ -1070,9 +1070,9 @@ private struct ActivityCalendarSection: View {
             .frame(height: 6)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, SOOMLayout.Spacing.sm)
         .background(dayEntries.isEmpty ? SOOMColor.surfaceMuted.opacity(0.55) : SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.tight, style: .continuous))
     }
 
     private func legendDot(title: String, color: Color) -> some View {
@@ -1124,7 +1124,7 @@ private struct ActivityWorkoutLibraryCard: View {
                 VStack(alignment: .leading, spacing: 7) {
                     HStack(spacing: 7) {
                         Image(systemName: entry.iconName)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                             .foregroundStyle(entry.tint)
                             .frame(width: 24, height: 24)
                             .background(entry.tint.opacity(0.12))
@@ -1174,7 +1174,7 @@ private struct ActivityCompactMediaStrip: View {
             ActivityPhotoThumbnail(tint: entry.tint, showsLabel: false)
                 .frame(width: 39)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
     }
 }
 
@@ -1186,13 +1186,13 @@ private struct ActivityRoutePreview: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: 0xDDE8DC),
-                                Color(hex: 0xEFF0E8),
-                                Color(hex: 0xD5DFD3)
+                                SOOMColor.routePreviewGradientStart,
+                                SOOMColor.routePreviewGradientMid,
+                                SOOMColor.routePreviewGradientEnd
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -1205,22 +1205,22 @@ private struct ActivityRoutePreview: View {
                 ActivityRouteShape(points: normalizedPoints)
                     .stroke(tint, style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
                     .shadow(color: tint.opacity(0.16), radius: 5, x: 0, y: 3)
-                    .padding(18)
+                    .padding(SOOMLayout.Spacing.xl)
 
                 routeDot(at: normalizedPoints.first ?? CGPoint(x: 0.18, y: 0.72), color: SOOMColor.white, in: proxy.size)
                 routeDot(at: normalizedPoints.last ?? CGPoint(x: 0.82, y: 0.32), color: tint, in: proxy.size)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
             .overlay(alignment: .bottomLeading) {
                 if showsLabel {
                     Text(points.isEmpty ? "route 준비" : "route")
                         .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.ink)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, SOOMLayout.Spacing.sm)
+                        .padding(.vertical, SOOMLayout.Spacing.xs)
                         .background(SOOMColor.surface.opacity(0.86))
                         .clipShape(Capsule())
-                        .padding(9)
+                        .padding(SOOMLayout.Spacing.sm)
                 }
             }
         }
@@ -1310,13 +1310,13 @@ private struct ActivityPhotoThumbnail: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
                             tint.opacity(0.24),
-                            Color(hex: 0xEEF0E7),
-                            Color(hex: 0xC9D7C4)
+                            SOOMColor.photoThumbnailGradientStart,
+                            SOOMColor.photoThumbnailGradientEnd
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1331,14 +1331,14 @@ private struct ActivityPhotoThumbnail: View {
                 Text("photo")
                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(SOOMColor.ink)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, SOOMLayout.Spacing.sm)
+                    .padding(.vertical, SOOMLayout.Spacing.xs)
                     .background(SOOMColor.surface.opacity(0.86))
                     .clipShape(Capsule())
-                    .padding(9)
+                    .padding(SOOMLayout.Spacing.sm)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
     }
 }
 
@@ -1358,7 +1358,7 @@ private struct ActivityMetricEvidence: View {
                 .minimumScaleFactor(0.76)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 2)
+        .padding(.vertical, SOOMLayout.Spacing.xs)
     }
 }
 
@@ -1377,9 +1377,9 @@ private struct ActivityDirectionPill: View {
                 .foregroundStyle(tint)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, SOOMLayout.Spacing.md)
         .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
     }
 }
 
@@ -1424,9 +1424,9 @@ private struct ActivityStatTile: View {
                 .minimumScaleFactor(0.72)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
     }
 }
 

@@ -288,7 +288,7 @@ struct SettingsView: View {
                 .foregroundStyle(SOOMColor.tertiaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 2)
+        .padding(.horizontal, SOOMLayout.Spacing.xs)
     }
 
     private var trainingBaselineSection: some View {
@@ -598,7 +598,7 @@ private struct ProfileIdentityTile: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(tint)
                 .frame(width: 30, height: 30)
                 .background(tint.opacity(0.12))
@@ -617,7 +617,7 @@ private struct ProfileIdentityTile: View {
 
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
@@ -629,7 +629,7 @@ private struct ProfileBestRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: best.icon)
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: SOOMFont.Size.body, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 36, height: 36)
                 .background(SOOMColor.accentSurface)
@@ -649,7 +649,7 @@ private struct ProfileBestRow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
@@ -661,7 +661,7 @@ private struct ProfileRouteIdentityCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: SOOMIcon.map)
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: SOOMFont.Size.body, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 32, height: 32)
                 .background(SOOMColor.accentSurface)
@@ -683,7 +683,7 @@ private struct ProfileRouteIdentityCard: View {
                 .lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
@@ -696,7 +696,7 @@ private struct ProfileBadgeTile: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
                 Image(systemName: SOOMIcon.medal)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.body, weight: .bold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 34, height: 34)
                     .background(SOOMColor.accentSurface)
@@ -707,8 +707,8 @@ private struct ProfileBadgeTile: View {
                 Text(badge.state)
                     .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(badge.isRare ? SOOMColor.accentInk : SOOMColor.secondaryInk)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, SOOMLayout.Spacing.sm)
+                    .padding(.vertical, SOOMLayout.Spacing.xs)
                     .background(badge.isRare ? SOOMColor.accentSurface : SOOMColor.surface)
                     .clipShape(Capsule())
             }
@@ -732,7 +732,7 @@ private struct ProfileBadgeTile: View {
                 .accessibilityLabel("\(badge.title) 진행률")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
@@ -745,7 +745,7 @@ private struct ProfilePatternCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: pattern.icon)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                     .foregroundStyle(pattern.isPrimary ? SOOMColor.accent : SOOMColor.secondaryInk)
                     .frame(width: 30, height: 30)
                     .background(pattern.isPrimary ? SOOMColor.accentSurface : SOOMColor.surface)
@@ -766,16 +766,8 @@ private struct ProfilePatternCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SOOMLayout.Spacing.md)
         .background(SOOMColor.surfaceMuted)
-        .overlay(alignment: .leading) {
-            if pattern.isPrimary {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(SOOMColor.accent)
-                    .frame(width: 3)
-                    .padding(.vertical, 12)
-            }
-        }
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
     }
 }

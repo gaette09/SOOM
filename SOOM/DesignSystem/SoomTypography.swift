@@ -6,6 +6,14 @@ enum SOOMFont {
         case bold
     }
 
+    enum Size {
+        static let caption: CGFloat = 12
+        static let subheadline: CGFloat = 14
+        static let body: CGFloat = 16
+        static let headline: CGFloat = 18
+        static let title: CGFloat = 22
+    }
+
     static let displayBoldName = "GmarketSansTTFBold"
     static let displayMediumName = "GmarketSansTTFMedium"
     static let bodyRegularName = "NanumSquareNeoTTF-bRg"

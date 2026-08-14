@@ -281,8 +281,8 @@ private struct UnifiedWorkoutLibraryRow: View {
                     Text("경로 저장")
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.accentInk)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, SOOMLayout.Spacing.sm)
+                        .padding(.vertical, SOOMLayout.Spacing.xs)
                         .background(SOOMColor.accentSurface)
                         .clipShape(Capsule())
                 }

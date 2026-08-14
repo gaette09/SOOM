@@ -204,7 +204,7 @@ struct SOOMFirstJourneyCard: View {
         SOOMCard(depth: .ambient) {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
                 Image(systemName: prompt.iconName)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                     .foregroundStyle(prompt.accent.color)
                     .frame(width: 36, height: 36)
                     .background(prompt.accent.color.opacity(0.1))
@@ -230,7 +230,7 @@ struct SOOMFirstJourneyCard: View {
                     ForEach(actions) { action in
                         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                             Image(systemName: action.iconName)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: SOOMFont.Size.caption, weight: .semibold))
                                 .foregroundStyle(prompt.accent.color.opacity(0.78))
                                 .frame(width: 24, height: 24)
                                 .background(prompt.accent.color.opacity(0.08))
@@ -251,14 +251,14 @@ struct SOOMFirstJourneyCard: View {
                         }
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, SOOMLayout.Spacing.xs)
             }
 
             if let footer {
                 Text(footer)
                     .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.tertiaryInk)
-                    .padding(.top, 2)
+                    .padding(.top, SOOMLayout.Spacing.xs)
             }
         }
         .accessibilityElement(children: .combine)

@@ -68,7 +68,7 @@ struct ProgressionIntelligenceCard: View {
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, SOOMLayout.Spacing.xs)
     }
 }
 

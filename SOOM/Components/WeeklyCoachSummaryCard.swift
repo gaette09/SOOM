@@ -24,7 +24,7 @@ struct WeeklyCoachSummaryCard: View {
 
                 HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
                     Image(systemName: SOOMIcon.sparkles)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: SOOMFont.Size.subheadline, weight: .semibold))
                         .foregroundStyle(SOOMColor.orange)
                         .accessibilityHidden(true)
 

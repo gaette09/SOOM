@@ -14,6 +14,17 @@ enum SOOMColor {
     static let orange = Color(hex: 0xB9853B)
     static let green = Color(hex: 0x496B5B)
     static let red = Color(hex: 0x9A5A50)
+    static let walk = Color(hex: 0x9FC8A8)
+    static let routePreviewGradientStart = Color(hex: 0xDDE8DC)
+    static let routePreviewGradientMid = Color(hex: 0xEFF0E8)
+    static let routePreviewGradientEnd = Color(hex: 0xD5DFD3)
+    static let photoThumbnailGradientStart = Color(hex: 0xEEF0E7)
+    static let photoThumbnailGradientEnd = Color(hex: 0xC9D7C4)
+    static let mapFallbackGradientStart = Color(hex: 0xDDE7DC)
+    static let mapFallbackGradientEnd = Color(hex: 0xE8E1D2)
+    static let mapFallbackPark = Color(hex: 0xC9D7C4)
+    static let mapFallbackRiver = Color(hex: 0xB8CAD0)
+    static let mapPreviewBackground = Color(red: 0.86, green: 0.89, blue: 0.84)
     static let black = textPrimary
     static let white = surfacePrimary
 
