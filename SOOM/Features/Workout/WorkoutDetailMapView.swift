@@ -54,6 +54,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
         )
         mapView.ornaments.options.logo.margins = CGPoint(x: 10, y: 10)
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: 10, y: 10)
+        mapView.ornaments.options.scaleBar.margins = CGPoint(x: 10, y: cameraPadding.top)
         mapView.gestures.options.rotateEnabled = false
         mapView.gestures.options.pitchEnabled = false
         context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
@@ -61,6 +62,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MapView, context: Context) {
+        mapView.ornaments.options.scaleBar.margins = CGPoint(x: 10, y: cameraPadding.top)
         context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
     }
 
