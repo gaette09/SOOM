@@ -58,6 +58,7 @@ struct WorkoutMapBackground: View {
     @Binding var position: MapCameraPosition
     let sheetPosition: WorkoutSheetPosition
     let cameraPadding: UIEdgeInsets
+    var achievements: [WorkoutAchievement] = []
 
     private var route: WorkoutRoute? {
         WorkoutMapSheetRouteContext.route(for: workout, override: routeOverride)
@@ -75,7 +76,8 @@ struct WorkoutMapBackground: View {
                     bounds: route.bounds,
                     tint: SOOMRouteRenderingStyle.accentUIColor,
                     lineWidth: SOOMRouteRenderingStyle.detailLineWidth,
-                    cameraPadding: cameraPadding
+                    cameraPadding: cameraPadding,
+                    achievements: achievements
                 )
                 .accessibilityHidden(true)
             } else {

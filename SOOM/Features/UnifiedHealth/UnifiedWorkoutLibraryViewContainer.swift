@@ -15,6 +15,8 @@ struct UnifiedWorkoutLibraryViewContainer: View {
                 persistedRouteProvider: routeCandidateProvider
             ),
             detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore),
+            relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(store: store),
+            achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(workoutStore: store, routeStore: routeStore),
             gpxRouteAttachmentService: GPXRouteAttachmentService(
                 workoutStore: store,
                 routeStore: routeStore
@@ -26,7 +28,8 @@ struct UnifiedWorkoutLibraryViewContainer: View {
             tcxRouteAttachmentService: TCXRouteAttachmentService(
                 workoutStore: store,
                 routeStore: routeStore
-            )
+            ),
+            companionUpdateService: WorkoutCompanionUpdateService(workoutStore: store)
         )
     }
 }

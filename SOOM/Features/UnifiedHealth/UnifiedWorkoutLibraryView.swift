@@ -4,24 +4,33 @@ struct UnifiedWorkoutLibraryView: View {
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
     private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    private let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
+    private let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
     private let gpxRouteAttachmentService: GPXRouteAttachmentService?
     private let fitRouteAttachmentService: FITRouteAttachmentService?
     private let tcxRouteAttachmentService: TCXRouteAttachmentService?
+    private let companionUpdateService: WorkoutCompanionUpdateService?
 
     init(
         viewModel: UnifiedWorkoutLibraryViewModel,
         similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
         detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
+        relativeEffortHistoryProvider: RelativeEffortHistoryProviding? = nil,
+        achievementHistoryProvider: WorkoutAchievementHistoryProviding? = nil,
         gpxRouteAttachmentService: GPXRouteAttachmentService? = nil,
         fitRouteAttachmentService: FITRouteAttachmentService? = nil,
-        tcxRouteAttachmentService: TCXRouteAttachmentService? = nil
+        tcxRouteAttachmentService: TCXRouteAttachmentService? = nil,
+        companionUpdateService: WorkoutCompanionUpdateService? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.similarCandidateProvider = similarCandidateProvider
         self.detailRouteContextProvider = detailRouteContextProvider
+        self.relativeEffortHistoryProvider = relativeEffortHistoryProvider
+        self.achievementHistoryProvider = achievementHistoryProvider
         self.gpxRouteAttachmentService = gpxRouteAttachmentService
         self.fitRouteAttachmentService = fitRouteAttachmentService
         self.tcxRouteAttachmentService = tcxRouteAttachmentService
+        self.companionUpdateService = companionUpdateService
     }
 
     var body: some View {
@@ -169,9 +178,12 @@ struct UnifiedWorkoutLibraryView: View {
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
                     similarCandidateProvider: similarCandidateProvider,
                     detailRouteContextProvider: detailRouteContextProvider,
+                    relativeEffortHistoryProvider: relativeEffortHistoryProvider,
+                    achievementHistoryProvider: achievementHistoryProvider,
                     gpxRouteAttachmentService: gpxRouteAttachmentService,
                     fitRouteAttachmentService: fitRouteAttachmentService,
                     tcxRouteAttachmentService: tcxRouteAttachmentService,
+                    companionUpdateService: companionUpdateService,
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -192,9 +204,12 @@ private struct UnifiedWorkoutLibraryRow: View {
     let isUpdating: Bool
     let similarCandidateProvider: SimilarWorkoutCandidateProviding?
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
+    let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
     let gpxRouteAttachmentService: GPXRouteAttachmentService?
     let fitRouteAttachmentService: FITRouteAttachmentService?
     let tcxRouteAttachmentService: TCXRouteAttachmentService?
+    let companionUpdateService: WorkoutCompanionUpdateService?
     let onToggleExcluded: () -> Void
     @State private var hasPersistedRoute = false
 
@@ -206,9 +221,12 @@ private struct UnifiedWorkoutLibraryRow: View {
                         unifiedWorkout: workout,
                         similarCandidateProvider: similarCandidateProvider,
                         detailRouteContextProvider: detailRouteContextProvider,
+                        relativeEffortHistoryProvider: relativeEffortHistoryProvider,
+                        achievementHistoryProvider: achievementHistoryProvider,
                         gpxRouteAttachmentService: gpxRouteAttachmentService,
                         fitRouteAttachmentService: fitRouteAttachmentService,
-                        tcxRouteAttachmentService: tcxRouteAttachmentService
+                        tcxRouteAttachmentService: tcxRouteAttachmentService,
+                        companionUpdateService: companionUpdateService
                     )
                 } label: {
                     rowSummary
@@ -364,14 +382,17 @@ private struct UnifiedWorkoutLibraryRow: View {
     }()
 }
 
-private struct UnifiedWorkoutDetailDestination: View {
+struct UnifiedWorkoutDetailDestination: View {
     let unifiedWorkout: UnifiedWorkout
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
     var similarCandidateProvider: SimilarWorkoutCandidateProviding?
     var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
+    var relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
+    var achievementHistoryProvider: WorkoutAchievementHistoryProviding?
     var gpxRouteAttachmentService: GPXRouteAttachmentService?
     var fitRouteAttachmentService: FITRouteAttachmentService?
     var tcxRouteAttachmentService: TCXRouteAttachmentService?
+    var companionUpdateService: WorkoutCompanionUpdateService? = nil
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var persistedRoute: WorkoutRoute?
@@ -379,9 +400,14 @@ private struct UnifiedWorkoutDetailDestination: View {
     @State private var courseRecord: CourseRecord?
     @State private var courseProgression: CourseProgressionTimeline?
     @State private var climbInsight: ClimbInsight?
+    @State private var chartSamples: [WorkoutSample]?
+    @State private var chartSplits: [WorkoutSplit]?
+    @State private var heartRateChartSamples: [WorkoutDistanceChartSample]?
+    @State private var relativeEffortComparison: RelativeEffortComparison?
+    @State private var achievements: [WorkoutAchievement] = []
 
     var body: some View {
-        WorkoutDetailView(
+        WorkoutDeepDetailView(
             workout: Workout(unifiedWorkout: unifiedWorkout),
             healthKitWorkout: zoneContext.healthKitWorkout,
             zoneDataProvider: zoneContext.zoneDataProvider,
@@ -391,8 +417,14 @@ private struct UnifiedWorkoutDetailDestination: View {
             courseProgressionOverride: courseProgression,
             climbInsightOverride: climbInsight,
             detailRouteOverride: persistedRoute,
+            samplesOverride: chartSamples,
+            splitsOverride: chartSplits,
+            heartRateChartSamplesOverride: heartRateChartSamples,
+            relativeEffortComparisonOverride: relativeEffortComparison,
+            achievementsOverride: achievements,
             sourceUnifiedWorkout: unifiedWorkout,
-            routeAttachmentAction: routeAttachmentAction
+            routeAttachmentAction: routeAttachmentAction,
+            companionUpdateAction: companionUpdateAction
         )
         .task(id: unifiedWorkout.id) {
             zoneContext = await contextProvider.context(for: unifiedWorkout)
@@ -402,7 +434,59 @@ private struct UnifiedWorkoutDetailDestination: View {
             courseRecord = buildCourseRecord(from: candidateResult)
             courseProgression = buildCourseProgression(from: candidateResult)
             climbInsight = buildClimbInsight()
+            await loadChartData()
+            await loadRelativeEffortComparison()
+            await loadAchievements()
         }
+    }
+
+    private func loadAchievements() async {
+        guard let achievementHistoryProvider, let persistedRoute else { return }
+
+        let todayEfforts = WorkoutSegmentBestEffortFinder.bestEfforts(from: persistedRoute)
+        guard !todayEfforts.isEmpty else { return }
+
+        let historicalEffortsByDuration = await achievementHistoryProvider.recentBestEfforts(
+            excluding: unifiedWorkout.id,
+            workoutType: unifiedWorkout.workoutType,
+            before: unifiedWorkout.startDate,
+            lookbackMonths: WorkoutAchievementConfig.lookbackMonths
+        )
+
+        achievements = WorkoutAchievementBuilder.build(
+            todayEfforts: todayEfforts,
+            historicalEffortsByDuration: historicalEffortsByDuration,
+            workoutType: unifiedWorkout.workoutType
+        )
+    }
+
+    private func loadRelativeEffortComparison() async {
+        guard let relativeEffortHistoryProvider else { return }
+
+        let todayEffort = UnifiedWorkoutToRecoveryActivityMapper().map(unifiedWorkout).relativeEffort
+        let recentEfforts = await relativeEffortHistoryProvider.recentRelativeEfforts(
+            excluding: unifiedWorkout.id,
+            before: unifiedWorkout.startDate,
+            lookbackDays: 21
+        )
+        relativeEffortComparison = RelativeEffortComparisonBuilder.build(
+            todayEffort: todayEffort,
+            recentEfforts: recentEfforts
+        )
+    }
+
+    private func loadChartData() async {
+        guard let persistedRoute else { return }
+
+        var heartRateSamples: [HealthKitWorkoutMetricSample] = []
+        if let healthKitWorkout = zoneContext.healthKitWorkout {
+            let fetched = try? await HealthKitWorkoutMetricStreamFetcher().fetchZoneMetricSamples(for: healthKitWorkout)
+            heartRateSamples = fetched?[.heartRate] ?? []
+        }
+
+        chartSamples = WorkoutChartDataBuilder.samples(from: persistedRoute, heartRateSamples: heartRateSamples)
+        chartSplits = WorkoutChartDataBuilder.splits(from: persistedRoute, heartRateSamples: heartRateSamples)
+        heartRateChartSamples = WorkoutChartDataBuilder.heartRateSamples(from: persistedRoute, heartRateSamples: heartRateSamples)
     }
 
     private var routeAttachmentAction: ActivityDetailGPXRouteImportAction? {
@@ -418,6 +502,14 @@ private struct UnifiedWorkoutDetailDestination: View {
 
         return ActivityDetailGPXRouteImportAction { url in
             await attachRoute(from: url)
+        }
+    }
+
+    private var companionUpdateAction: WorkoutCompanionUpdateAction? {
+        guard let companionUpdateService else { return nil }
+
+        return WorkoutCompanionUpdateAction { names in
+            await companionUpdateService.updateCompanions(workoutId: unifiedWorkout.id, names: names)
         }
     }
 
@@ -789,6 +881,7 @@ private final class PreviewUnifiedWorkoutLibraryStore: UnifiedWorkoutStore {
     func fetchWorkout(id: UUID) async throws -> UnifiedWorkout? { nil }
     func fetchByExternalId(_ externalId: String, source: UnifiedDataSource) async throws -> UnifiedWorkout? { nil }
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws {}
+    func updateCompanions(id: UUID, names: [String]) async throws {}
     func deleteWorkout(id: UUID) async throws {}
 
     private func makeWorkout(

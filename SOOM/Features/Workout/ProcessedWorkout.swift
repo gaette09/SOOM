@@ -17,6 +17,10 @@ struct ProcessedWorkout: Identifiable, Equatable {
     let averageHeartRate: Double?
     let maxHeartRate: Double?
     let elevationGainMeters: Double?
+    /// Always nil today — `UnifiedWorkout` has no power source yet (WorkoutDeepDetailView
+    /// batch 1: field added so the model shape is forward-compatible, not wired to any
+    /// data source). See feed-detail-migration-plan.md Phase A batch 3.
+    let averagePowerWatts: Double?
     let route: ProcessedWorkoutRoute?
     let routeMissingReason: WorkoutRouteMissingReason
     let metricAvailability: [ProcessedWorkoutMetric: ProcessedWorkoutMetricState]
@@ -61,6 +65,25 @@ enum ProcessedWorkoutMetric: String, Hashable {
     case route
     case splits
     case zones
+    /// Distinct from `.speed` — `.speed` tracks whether a single average-speed
+    /// figure exists (measured or derived from total distance/duration), while
+    /// this tracks whether a per-point route timestamp series exists to plot a
+    /// distance-axis speed chart. The two can disagree (e.g. manually entered
+    /// distance/duration with no route → `.speed` measured, `.speedSeries` missing).
+    case speedSeries
+    /// Distinct from `.elevation` — `.elevation` tracks the aggregate elevation
+    /// gain figure (barometer-based, present even for `.soomLocal`), while this
+    /// tracks whether route points carry per-point altitude to plot a chart.
+    /// `.soomLocal` never has this (Record doesn't capture GPS altitude);
+    /// HealthKit/GPX/FIT/TCX imports do. See feed-detail-migration-plan.md batch 3.
+    case elevationSeries
+    /// Distinct from `.averageHeartRate` for the same reason as `.speedSeries` vs
+    /// `.speed`. Unlike speed/elevation, this can't be judged from `route` alone —
+    /// the per-timestamp HR stream is fetched asynchronously from HealthKit, outside
+    /// `ProcessedWorkoutBuilder`'s synchronous scope — so callers resolve the stream
+    /// first and pass `hasHeartRateSeries` into `ProcessedWorkoutBuilder.make(...)`.
+    /// See feed-detail-migration-plan.md batch 4.
+    case heartRateSeries
 }
 
 enum ProcessedWorkoutMetricState: String, Equatable {
@@ -87,6 +110,7 @@ struct WorkoutDisplaySnapshot: Equatable {
     let caloriesText: String
     let averageHeartRateText: String
     let maxHeartRateText: String
+    let averagePowerText: String?
     let dataQualityLabel: String
     let routeBadgeLabel: String?
 }

@@ -8,7 +8,9 @@ struct WorkoutChartStack: View {
         SOOMCard {
             SOOMSectionHeader("그래프", caption: "페이스, 심박, 파워 흐름")
 
-            heartRateChart
+            if workout.samples.contains(where: { $0.heartRate != nil }) {
+                heartRateChart
+            }
             paceChart
 
             if workout.samples.contains(where: { $0.power != nil }) {
@@ -19,9 +21,11 @@ struct WorkoutChartStack: View {
 
     private var heartRateChart: some View {
         Chart(workout.samples) { sample in
-            LineMark(x: .value("분", sample.minute), y: .value("심박", sample.heartRate))
-                .foregroundStyle(SOOMColor.run)
-                .interpolationMethod(.catmullRom)
+            if let heartRate = sample.heartRate {
+                LineMark(x: .value("분", sample.minute), y: .value("심박", heartRate))
+                    .foregroundStyle(SOOMColor.run)
+                    .interpolationMethod(.catmullRom)
+            }
         }
         .chartYAxisLabel("bpm")
         .frame(height: 150)
@@ -66,7 +70,9 @@ struct WorkoutSplitsCard: View {
                 SOOMMetricRow(
                     leading: split.label,
                     title: "\(split.distance) · \(split.time)",
-                    subtitle: "\(split.pace) · \(split.heartRate)bpm" + (split.power.map { " · \($0)w" } ?? ""),
+                    subtitle: split.pace
+                        + (split.heartRate.map { " · \($0)bpm" } ?? "")
+                        + (split.power.map { " · \($0)w" } ?? ""),
                     tint: workout.sport.tint
                 )
                 Divider()

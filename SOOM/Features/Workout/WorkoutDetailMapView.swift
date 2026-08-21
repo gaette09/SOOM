@@ -7,6 +7,7 @@ struct WorkoutDetailMapView: View {
     let fallbackStyle: StaticRouteFallbackStyle
     let tint: Color
     var routeLineWidth: Double = SOOMRouteRenderingStyle.detailLineWidth
+    var achievements: [WorkoutAchievement] = []
 
     private var coordinates: [CLLocationCoordinate2D] {
         route?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
@@ -19,7 +20,8 @@ struct WorkoutDetailMapView: View {
                     coordinates: coordinates,
                     bounds: route?.bounds,
                     tint: SOOMRouteRenderingStyle.accentUIColor,
-                    lineWidth: routeLineWidth
+                    lineWidth: routeLineWidth,
+                    achievements: achievements
                 )
                 .accessibilityHidden(true)
             } else {
@@ -40,6 +42,7 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
     let tint: UIColor
     var lineWidth = SOOMRouteRenderingStyle.detailLineWidth
     var cameraPadding = UIEdgeInsets(top: 36, left: 28, bottom: 72, right: 28)
+    var achievements: [WorkoutAchievement] = []
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -57,17 +60,18 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
         mapView.ornaments.options.scaleBar.margins = CGPoint(x: 10, y: cameraPadding.top)
         mapView.gestures.options.rotateEnabled = false
         mapView.gestures.options.pitchEnabled = false
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding, achievements: achievements)
         return mapView
     }
 
     func updateUIView(_ mapView: MapView, context: Context) {
         mapView.ornaments.options.scaleBar.margins = CGPoint(x: 10, y: cameraPadding.top)
-        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
+        context.coordinator.configure(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding, achievements: achievements)
     }
 
     final class Coordinator {
         private var annotationManager: PolylineAnnotationManager?
+        private var achievementAnnotationManager: PointAnnotationManager?
         private var lastSignature: String?
         private var hasAppliedCamera = false
         private var styleLoadToken = 0
@@ -78,12 +82,13 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
             lineWidth: Double,
-            cameraPadding: UIEdgeInsets
+            cameraPadding: UIEdgeInsets,
+            achievements: [WorkoutAchievement]
         ) {
-            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding) else {
+            guard ensureSOOMStyle(on: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding, achievements: achievements) else {
                 return
             }
-            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
+            applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding, achievements: achievements)
         }
 
         private func ensureSOOMStyle(
@@ -92,7 +97,8 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
             lineWidth: Double,
-            cameraPadding: UIEdgeInsets
+            cameraPadding: UIEdgeInsets,
+            achievements: [WorkoutAchievement]
         ) -> Bool {
             let expectedStyle = SOOMMapboxConfiguration.styleURI
             guard mapView.mapboxMap.styleURI != expectedStyle else { return true }
@@ -101,10 +107,11 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             let currentToken = styleLoadToken
             lastSignature = nil
             annotationManager = nil
+            achievementAnnotationManager = nil
 
             mapView.mapboxMap.loadStyle(expectedStyle) { [weak self, weak mapView] error in
                 guard let self, currentToken == self.styleLoadToken, error == nil, let mapView else { return }
-                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding)
+                self.applyRoute(mapView: mapView, coordinates: coordinates, bounds: bounds, tint: tint, lineWidth: lineWidth, cameraPadding: cameraPadding, achievements: achievements)
             }
 
             return false
@@ -116,11 +123,13 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             bounds: WorkoutRouteBounds?,
             tint: UIColor,
             lineWidth: Double,
-            cameraPadding: UIEdgeInsets
+            cameraPadding: UIEdgeInsets,
+            achievements: [WorkoutAchievement]
         ) {
             let paddingSignature = "\(cameraPadding.top),\(cameraPadding.left),\(cameraPadding.bottom),\(cameraPadding.right)"
             let mapSizeSignature = "\(Int(mapView.bounds.width.rounded())),\(Int(mapView.bounds.height.rounded()))"
-            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|") + "|\(lineWidth)|\(paddingSignature)|\(mapSizeSignature)"
+            let achievementSignature = achievements.map { "\($0.id)" }.joined(separator: "|")
+            let signature = coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|") + "|\(lineWidth)|\(paddingSignature)|\(mapSizeSignature)|\(achievementSignature)"
             guard signature != lastSignature else { return }
             lastSignature = signature
 
@@ -134,7 +143,63 @@ struct SOOMMapboxRouteMap: UIViewRepresentable {
             annotation.lineOpacity = 0.9
             annotationManager?.annotations = [annotation]
 
+            applyAchievements(mapView: mapView, tint: tint, achievements: achievements)
             setCamera(on: mapView, coordinates: coordinates, bounds: bounds, cameraPadding: cameraPadding)
+        }
+
+        private func applyAchievements(mapView: MapView, tint: UIColor, achievements: [WorkoutAchievement]) {
+            guard !achievements.isEmpty else {
+                achievementAnnotationManager?.annotations = []
+                return
+            }
+
+            if achievementAnnotationManager == nil {
+                achievementAnnotationManager = mapView.annotations.makePointAnnotationManager()
+            }
+
+            let markerImage = Self.markerImage(tint: tint)
+
+            achievementAnnotationManager?.annotations = achievements.map { achievement in
+                var annotation = PointAnnotation(
+                    id: achievement.id.uuidString,
+                    coordinate: CLLocationCoordinate2D(
+                        latitude: achievement.coordinate.latitude,
+                        longitude: achievement.coordinate.longitude
+                    )
+                )
+                annotation.image = PointAnnotation.Image(image: markerImage, name: "workout-achievement-marker")
+                annotation.textField = achievement.pinLabel
+                annotation.textSize = 11
+                annotation.textColor = StyleColor(UIColor.label)
+                annotation.textHaloColor = StyleColor(UIColor.systemBackground)
+                annotation.textHaloWidth = 1.5
+                annotation.textOffset = [0, 1.4]
+                annotation.textAnchor = .top
+                return annotation
+            }
+        }
+
+        private static func markerImage(tint: UIColor) -> UIImage {
+            let diameter: CGFloat = 30
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
+            return renderer.image { _ in
+                let rect = CGRect(x: 0, y: 0, width: diameter, height: diameter)
+                UIColor.white.setFill()
+                UIBezierPath(ovalIn: rect).fill()
+
+                let strokeRect = rect.insetBy(dx: 1.5, dy: 1.5)
+                tint.setStroke()
+                let strokePath = UIBezierPath(ovalIn: strokeRect)
+                strokePath.lineWidth = 2
+                strokePath.stroke()
+
+                let symbolConfig = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+                if let symbol = UIImage(systemName: SOOMIcon.medal, withConfiguration: symbolConfig)?
+                    .withTintColor(tint, renderingMode: .alwaysOriginal) {
+                    let origin = CGPoint(x: (diameter - symbol.size.width) / 2, y: (diameter - symbol.size.height) / 2)
+                    symbol.draw(at: origin)
+                }
+            }
         }
 
         private func setCamera(

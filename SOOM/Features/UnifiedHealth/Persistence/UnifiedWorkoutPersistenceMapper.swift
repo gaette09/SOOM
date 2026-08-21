@@ -25,7 +25,8 @@ struct UnifiedWorkoutPersistenceMapper {
             createdAt: workout.createdAt,
             updatedAt: workout.updatedAt,
             syncTimestamp: syncTimestamp,
-            isExcludedFromAnalysis: isExcludedFromAnalysis
+            isExcludedFromAnalysis: isExcludedFromAnalysis,
+            companionNames: workout.companionNames
         )
     }
 
@@ -48,7 +49,8 @@ struct UnifiedWorkoutPersistenceMapper {
             dataQuality: UnifiedDataQuality(rawValue: record.dataQualityRaw) ?? .unknown,
             isExcludedFromAnalysis: record.isExcludedFromAnalysis,
             createdAt: record.createdAt,
-            updatedAt: record.updatedAt
+            updatedAt: record.updatedAt,
+            companionNames: record.companionNames
         )
     }
 

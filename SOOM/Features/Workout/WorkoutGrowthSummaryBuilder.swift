@@ -105,8 +105,8 @@ struct WorkoutGrowthSummaryBuilder {
         let segmentSize = max(orderedSamples.count / 3, 1)
         let firstSegment = orderedSamples.prefix(segmentSize)
         let lastSegment = orderedSamples.suffix(segmentSize)
-        let firstAverage = averageHeartRate(firstSegment.map(\.heartRate))
-        let lastAverage = averageHeartRate(lastSegment.map(\.heartRate))
+        let firstAverage = averageHeartRate(firstSegment.compactMap(\.heartRate))
+        let lastAverage = averageHeartRate(lastSegment.compactMap(\.heartRate))
 
         return lastAverage - firstAverage <= 8
     }

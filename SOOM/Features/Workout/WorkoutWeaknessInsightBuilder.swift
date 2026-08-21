@@ -129,11 +129,11 @@ struct WorkoutWeaknessInsightBuilder {
     }
 
     private func earlyAverageHeartRate(_ workout: Workout) -> Double {
-        average(segmentValues(workout, segment: .early).map { Double($0.heartRate) })
+        average(segmentValues(workout, segment: .early).compactMap { $0.heartRate.map(Double.init) })
     }
 
     private func lateAverageHeartRate(_ workout: Workout) -> Double {
-        average(segmentValues(workout, segment: .late).map { Double($0.heartRate) })
+        average(segmentValues(workout, segment: .late).compactMap { $0.heartRate.map(Double.init) })
     }
 
     private enum Segment {

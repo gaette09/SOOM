@@ -13,13 +13,19 @@ struct WorkoutDetailView: View {
     var climbInsightOverride: ClimbInsight?
     var terrainInsightOverride: TerrainInsight?
     var detailRouteOverride: WorkoutRoute?
+    var samplesOverride: [WorkoutSample]?
+    var splitsOverride: [WorkoutSplit]?
+    var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
+    var relativeEffortComparisonOverride: RelativeEffortComparison?
+    var achievementsOverride: [WorkoutAchievement]?
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
+    var companionUpdateAction: WorkoutCompanionUpdateAction?
 
     var body: some View {
         Group {
             if detailMapRoute != nil {
-                WorkoutMapSheetScaffold(workout: workout, routeOverride: detailMapRoute, navigationTitle: "운동 상세") {
+                WorkoutMapSheetScaffold(workout: workout, routeOverride: detailMapRoute, navigationTitle: "운동 상세", achievements: achievementsOverride ?? []) {
                     detailContent(showsHeader: false, presentationStyle: .mapSheet)
                 }
             } else {
@@ -58,9 +64,15 @@ struct WorkoutDetailView: View {
             mapRoute: detailMapRoute,
             sourceUnifiedWorkout: sourceUnifiedWorkout,
             routeAttachmentAction: routeAttachmentAction,
+            companionUpdateAction: companionUpdateAction,
             healthKitWorkout: healthKitWorkout,
             zoneDataProvider: zoneDataProvider,
-            splitDataProvider: splitDataProvider
+            splitDataProvider: splitDataProvider,
+            samplesOverride: samplesOverride,
+            splitsOverride: splitsOverride,
+            heartRateChartSamplesOverride: heartRateChartSamplesOverride,
+            relativeEffortComparisonOverride: relativeEffortComparisonOverride,
+            achievementsOverride: achievementsOverride
         )
     }
 

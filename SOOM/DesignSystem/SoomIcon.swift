@@ -29,6 +29,7 @@ enum SOOMIcon {
     static let sync = "arrow.triangle.2.circlepath"
     static let package = "shippingbox"
     static let people = "person.3"
+    static let personAdd = "person.badge.plus"
     static let medal = "medal"
     static let comment = "bubble.right"
     static let thumbsUp = "hand.thumbsup"

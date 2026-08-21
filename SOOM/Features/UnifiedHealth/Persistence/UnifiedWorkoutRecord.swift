@@ -22,6 +22,9 @@ final class UnifiedWorkoutRecord {
     var updatedAt: Date
     var syncTimestamp: Date?
     var isExcludedFromAnalysis: Bool
+    /// Free-text names only (batch 8) — no `profiles`/`follows` lookup, so this
+    /// works regardless of Supabase login state. See feed-detail-migration-plan.md.
+    var companionNames: [String] = []
 
     init(
         id: UUID = UUID(),
@@ -42,7 +45,8 @@ final class UnifiedWorkoutRecord {
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         syncTimestamp: Date? = nil,
-        isExcludedFromAnalysis: Bool = false
+        isExcludedFromAnalysis: Bool = false,
+        companionNames: [String] = []
     ) {
         self.id = id
         self.externalId = externalId
@@ -63,5 +67,6 @@ final class UnifiedWorkoutRecord {
         self.updatedAt = updatedAt
         self.syncTimestamp = syncTimestamp
         self.isExcludedFromAnalysis = isExcludedFromAnalysis
+        self.companionNames = companionNames
     }
 }

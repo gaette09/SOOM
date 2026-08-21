@@ -92,7 +92,7 @@ struct AnalysisView: View {
                     .font(SOOMFont.displayMedium(17, relativeTo: .headline))
                 ForEach(dashboardViewModel.workouts) { workout in
                     NavigationLink {
-                        WorkoutDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
+                        WorkoutDeepDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
                     } label: {
                         SOOMCard {
                             SOOMActionRow(icon: workout.sport.iconName, title: workout.title, subtitle: "\(workout.formattedDistance) · \(workout.formattedPace)", tint: workout.sport.tint)

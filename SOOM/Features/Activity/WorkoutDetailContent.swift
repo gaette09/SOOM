@@ -30,9 +30,15 @@ struct WorkoutDetailContent: View {
     var mapRoute: WorkoutRoute?
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
+    var companionUpdateAction: WorkoutCompanionUpdateAction?
     var healthKitWorkout: HKWorkout?
     var zoneDataProvider: WorkoutZoneDataProviding?
     var splitDataProvider: WorkoutSplitDataProviding?
+    var samplesOverride: [WorkoutSample]?
+    var splitsOverride: [WorkoutSplit]?
+    var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
+    var relativeEffortComparisonOverride: RelativeEffortComparison?
+    var achievementsOverride: [WorkoutAchievement]?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
@@ -48,6 +54,10 @@ struct WorkoutDetailContent: View {
     @State private var isAttachingRouteFile = false
     @State private var routeAttachmentMessage: String?
     @State private var routeAttachmentErrorMessage: String?
+    @State private var companionNamesOverride: [String]?
+    @State private var isCompanionSheetPresented = false
+    @State private var isUpdatingCompanions = false
+    @State private var companionUpdateErrorMessage: String?
 
     static let sharePrivacyCopy = "스토리에 올릴 이미지를 고르세요."
     static let shareComposerTitle = "공유 카드"
@@ -65,7 +75,10 @@ struct WorkoutDetailContent: View {
             }
 
             if presentationStyle == .standalone {
-                ActivityDetailHeroMap(workout: workout, route: mapRoute)
+                ActivityDetailHeroMap(workout: workout, route: mapRoute, achievements: achievements)
+            }
+            ForEach(achievements) { achievement in
+                WorkoutAchievementCard(achievement: achievement, tint: workout.sport.tint)
             }
             if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
                 ActivityDetailRouteMissingCard(
@@ -80,14 +93,23 @@ struct WorkoutDetailContent: View {
             }
             ActivityDetailSummaryCard(
                 workout: workout,
-                processedWorkout: processedWorkout,
-                recoveryImpact: recoveryImpact
+                processedWorkout: processedWorkout
             )
             ActivityDetailRhythmCard(insight: rhythmInsight, tint: workout.sport.tint)
 
             if let terrainInsight, terrainInsight.isVisible {
                 TerrainInsightCue(insight: terrainInsight, tint: workout.sport.tint)
             }
+
+            WorkoutCompanionCard(
+                sourceTag: processedWorkout.display.sourceTitle,
+                companions: companions,
+                tint: workout.sport.tint,
+                canEditCompanions: companionUpdateAction != nil,
+                isUpdating: isUpdatingCompanions,
+                errorMessage: companionUpdateErrorMessage,
+                onTapEdit: { isCompanionSheetPresented = true }
+            )
 
             detailSection(.core) {
                 if let sessionSummary {
@@ -137,16 +159,75 @@ struct WorkoutDetailContent: View {
                             didFailLoadingStream: didFailLoadingZoneSummaries
                         )
                     }
-                    if ActivityDetailVisibilityPolicy.showsCharts(workout: workout) {
-                        WorkoutChartStack(workout: workout)
+                    if ActivityDetailVisibilityPolicy.showsCharts(workout: effectiveWorkout) {
+                        WorkoutChartStack(workout: effectiveWorkout)
                     }
-                    if ActivityDetailVisibilityPolicy.showsSplits(workout: workout) {
-                        WorkoutSplitsCard(workout: workout)
+                    if ActivityDetailVisibilityPolicy.showsSplits(workout: effectiveWorkout) {
+                        WorkoutSplitsCard(workout: effectiveWorkout)
                     }
+
+                    WorkoutDistanceChartCard(
+                        title: "파워",
+                        unitLabel: "W",
+                        samples: [],
+                        tint: workout.sport.tint,
+                        placeholderMessage: "파워 데이터가 있는 워크아웃에서 제공됩니다."
+                    )
+
+                    WorkoutDistanceChartCard(
+                        title: "심박수",
+                        unitLabel: "bpm",
+                        samples: heartRateChartSamples,
+                        tint: workout.sport.tint,
+                        placeholderMessage: heartRateChartSamples.isEmpty ? "Apple Health 연동 시 제공됩니다." : nil,
+                        stats: heartRateStats
+                    )
+
+                    if let heartRateInsightText {
+                        WorkoutInsightCueCard(
+                            icon: SOOMIcon.heart,
+                            eyebrow: "심박 흐름",
+                            message: heartRateInsightText,
+                            tint: workout.sport.tint,
+                            accessibilityLabel: "심박 흐름",
+                            accessibilityValue: heartRateInsightText
+                        )
+                    }
+
+                    WorkoutDistanceChartCard(
+                        title: "속도",
+                        unitLabel: "km/h",
+                        samples: speedChartSamples,
+                        tint: workout.sport.tint,
+                        showsInfoIcon: false,
+                        placeholderMessage: speedChartSamples.isEmpty ? "GPS 경로 데이터가 있는 워크아웃에서 제공됩니다." : nil,
+                        stats: speedStats
+                    )
+
+                    WorkoutDistanceChartCard(
+                        title: "케이던스",
+                        unitLabel: "rpm",
+                        samples: [],
+                        tint: workout.sport.tint,
+                        placeholderMessage: "케이던스 데이터가 있는 워크아웃에서 제공됩니다."
+                    )
+
+                    WorkoutDistanceChartCard(
+                        title: "고도",
+                        unitLabel: "m",
+                        samples: elevationChartSamples,
+                        tint: workout.sport.tint,
+                        placeholderMessage: elevationChartSamples.isEmpty ? "GPS 고도 데이터가 있는 워크아웃에서 제공됩니다." : nil,
+                        stats: elevationStats
+                    )
                 }
             }
 
             detailSection(.recovery) {
+                if let relativeEffortComparisonOverride {
+                    RelativeEffortCard(comparison: relativeEffortComparisonOverride)
+                }
+
                 if let recoveryImpact {
                     WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
                 }
@@ -195,6 +276,13 @@ struct WorkoutDetailContent: View {
         ) { result in
             handleRouteFileImport(result)
         }
+        .sheet(isPresented: $isCompanionSheetPresented) {
+            WorkoutCompanionEditSheet(
+                initialNames: companions,
+                tint: workout.sport.tint,
+                onSave: { names in await updateCompanions(names) }
+            )
+        }
         .task(id: healthKitWorkout?.uuid) {
             await loadStreamZoneSummaries()
             await loadStreamSplitInsight()
@@ -240,6 +328,25 @@ struct WorkoutDetailContent: View {
             routeAttachmentMessage = nil
             routeAttachmentErrorMessage = ActivityDetailGPXRouteImportError.unreadableFile.message
         }
+    }
+
+    @MainActor
+    private func updateCompanions(_ names: [String]) async {
+        guard let companionUpdateAction else { return }
+
+        isUpdatingCompanions = true
+        companionUpdateErrorMessage = nil
+
+        let result = await companionUpdateAction.updateCompanions(names)
+        switch result {
+        case .success(let savedNames):
+            companionNamesOverride = savedNames
+            companionUpdateErrorMessage = nil
+        case .failure(let error):
+            companionUpdateErrorMessage = error.message
+        }
+
+        isUpdatingCompanions = false
     }
 
     @MainActor
@@ -298,12 +405,98 @@ struct WorkoutDetailContent: View {
 
     private var showsSensorDataSection: Bool {
         ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: streamZoneSummaries)
-            || ActivityDetailVisibilityPolicy.showsCharts(workout: workout)
-            || ActivityDetailVisibilityPolicy.showsSplits(workout: workout)
+            || ActivityDetailVisibilityPolicy.showsCharts(workout: effectiveWorkout)
+            || ActivityDetailVisibilityPolicy.showsSplits(workout: effectiveWorkout)
+    }
+
+    private var effectiveWorkout: Workout {
+        guard samplesOverride != nil || splitsOverride != nil else { return workout }
+        return workout.withChartData(
+            samples: samplesOverride ?? workout.samples,
+            splits: splitsOverride ?? workout.splits
+        )
     }
 
     private var processedWorkout: ProcessedWorkout {
-        ProcessedWorkoutBuilder().make(from: sourceUnifiedWorkout ?? unifiedWorkoutForDraft, route: mapRoute)
+        ProcessedWorkoutBuilder().make(
+            from: sourceUnifiedWorkout ?? unifiedWorkoutForDraft,
+            route: mapRoute,
+            hasHeartRateSeries: !heartRateChartSamples.isEmpty
+        )
+    }
+
+    private var speedChartSamples: [WorkoutDistanceChartSample] {
+        guard let mapRoute, processedWorkout.metricAvailability[.speedSeries] == .measured else { return [] }
+        return WorkoutChartDataBuilder.speedSamples(from: mapRoute)
+    }
+
+    private var elevationChartSamples: [WorkoutDistanceChartSample] {
+        guard let mapRoute, processedWorkout.metricAvailability[.elevationSeries] == .measured else { return [] }
+        return WorkoutChartDataBuilder.elevationSamples(from: mapRoute)
+    }
+
+    /// Resolved asynchronously by the caller (HealthKit stream fetch happens outside
+    /// `WorkoutDetailContent`'s scope, same pattern as `samplesOverride`/`splitsOverride`).
+    private var heartRateChartSamples: [WorkoutDistanceChartSample] {
+        heartRateChartSamplesOverride ?? []
+    }
+
+    /// Resolved asynchronously by the caller (route-batch fetch + ranking against
+    /// recent history happens outside this view's scope, same override pattern).
+    private var achievements: [WorkoutAchievement] {
+        achievementsOverride ?? []
+    }
+
+    /// Free-text companion names (batch 8) — `companionNamesOverride` reflects
+    /// an in-sheet edit immediately, before `sourceUnifiedWorkout` (owned by the
+    /// caller) has a chance to be refetched. `sourceUnifiedWorkout` is nil on the
+    /// legacy `Workout`-only navigation path, so this safely falls back to `[]`.
+    private var companions: [String] {
+        companionNamesOverride ?? sourceUnifiedWorkout?.companionNames ?? []
+    }
+
+    private var heartRateInsightText: String? {
+        guard !heartRateChartSamples.isEmpty else { return nil }
+        let avg = processedWorkout.display.averageHeartRateText
+        let max = processedWorkout.display.maxHeartRateText
+        guard avg != "—", max != "—" else { return nil }
+        return "평균 심박 \(avg), 최고 \(max)까지 올라갔어요."
+    }
+
+    /// Max Heart Rate uses the existing measured aggregate (`display.maxHeartRateText`,
+    /// a real HealthKit sensor reading) rather than the max of `heartRateChartSamples` —
+    /// unlike Speed/Elevation below, SOOM already has a genuine point-in-time max for HR,
+    /// which is more accurate than deriving one from 200m-bucket averages.
+    private var heartRateStats: [ActivityDetailMetric] {
+        guard !heartRateChartSamples.isEmpty else { return [] }
+        return [
+            ActivityDetailMetric(label: "평균 심박", value: processedWorkout.display.averageHeartRateText),
+            ActivityDetailMetric(label: "최고 심박", value: processedWorkout.display.maxHeartRateText)
+        ]
+    }
+
+    /// Max Speed/Max Elevation below have no existing aggregate anywhere in SOOM, so
+    /// they're derived from the same bucketed samples the chart already renders — the
+    /// max of ~200m-bucket averages, not a true instantaneous peak (slightly smoothed,
+    /// never fabricated). See feed-detail-migration-plan.md batch 5.
+    private var speedStats: [ActivityDetailMetric] {
+        guard !speedChartSamples.isEmpty else { return [] }
+        let maxSpeed = speedChartSamples.map(\.value).max() ?? 0
+        return [
+            ActivityDetailMetric(label: "평균 속도", value: processedWorkout.display.speedText),
+            ActivityDetailMetric(label: "최고 속도", value: String(format: "%.1f km/h", maxSpeed)),
+            ActivityDetailMetric(label: "이동 시간", value: processedWorkout.display.durationText),
+            ActivityDetailMetric(label: "경과 시간", value: processedWorkout.display.durationText)
+        ]
+    }
+
+    private var elevationStats: [ActivityDetailMetric] {
+        guard !elevationChartSamples.isEmpty else { return [] }
+        let maxElevation = elevationChartSamples.map(\.value).max() ?? 0
+        return [
+            ActivityDetailMetric(label: "상승 고도", value: processedWorkout.display.elevationText),
+            ActivityDetailMetric(label: "최고 고도", value: "\(Int(maxElevation.rounded()))m")
+        ]
     }
 
     private var workoutGrowthInput: WorkoutGrowthInput {
@@ -406,10 +599,11 @@ struct DetailHeader: View {
 private struct ActivityDetailHeroMap: View {
     let workout: Workout
     let route: WorkoutRoute?
+    var achievements: [WorkoutAchievement] = []
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            WorkoutDetailMapView(route: route, fallbackStyle: fallbackStyle, tint: workout.sport.tint)
+            WorkoutDetailMapView(route: route, fallbackStyle: fallbackStyle, tint: workout.sport.tint, achievements: achievements)
                 .frame(height: 310)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
 
@@ -544,7 +738,6 @@ private struct ActivityDetailRouteMissingCard: View {
 private struct ActivityDetailSummaryCard: View {
     let workout: Workout
     let processedWorkout: ProcessedWorkout
-    let recoveryImpact: WorkoutRecoveryImpact?
     private let columns = [GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing), GridItem(.flexible(), spacing: SOOMLayout.Metrics.gridSpacing)]
 
     var body: some View {
@@ -584,7 +777,7 @@ private struct ActivityDetailSummaryCard: View {
     }
 
     private var summaryMetrics: [ActivityDetailMetric] {
-        ActivityDetailSummaryMetrics.metrics(processedWorkout: processedWorkout, recoveryImpact: recoveryImpact)
+        ActivityDetailSummaryMetrics.metrics(processedWorkout: processedWorkout)
     }
 
     private var dateText: String {
@@ -622,31 +815,16 @@ private struct ActivityDetailRhythmCard: View {
     let tint: Color
 
     var body: some View {
-        SOOMCard {
-            HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
-                Image(systemName: SOOMIcon.waveform)
-                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 32, height: 32)
-                    .background(tint.opacity(0.12))
-                    .clipShape(Circle())
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("오늘의 리듬")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(tint)
-
-                    Text(insight)
-                        .font(SOOMFont.body(16, weight: .bold, relativeTo: .body))
-                        .foregroundStyle(SOOMColor.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("오늘의 리듬")
-        .accessibilityValue(insight)
+        WorkoutInsightCueCard(
+            icon: SOOMIcon.waveform,
+            eyebrow: "오늘의 리듬",
+            message: insight,
+            tint: tint,
+            messageFont: SOOMFont.body(16, weight: .bold, relativeTo: .body),
+            messageColor: SOOMColor.ink,
+            accessibilityLabel: "오늘의 리듬",
+            accessibilityValue: insight
+        )
     }
 }
 
@@ -1235,54 +1413,23 @@ struct ActivityDetailMetric: Identifiable, Equatable {
 }
 
 enum ActivityDetailSummaryMetrics {
-    static func metrics(workout: Workout, recoveryImpact: WorkoutRecoveryImpact?) -> [ActivityDetailMetric] {
-        metrics(
-            processedWorkout: ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: workout)),
-            recoveryImpact: recoveryImpact
-        )
+    /// PDF's "피드 상세 (2)" 통계 그리드(2열×3행, 6칸)와 필드/배치를 맞춘 순서.
+    /// 회복 영향은 그리드에서 뺐음 — WorkoutRecoveryImpactCard(회복 섹션)가 이미
+    /// 같은 값을 별도로 보여주고 있어 그리드에 남기면 중복이었음. See feed-detail-migration-plan.md batch 2.
+    static func metrics(workout: Workout) -> [ActivityDetailMetric] {
+        metrics(processedWorkout: ProcessedWorkoutBuilder().make(from: unifiedWorkout(from: workout)))
     }
 
-    static func metrics(
-        processedWorkout: ProcessedWorkout,
-        recoveryImpact: WorkoutRecoveryImpact?
-    ) -> [ActivityDetailMetric] {
+    static func metrics(processedWorkout: ProcessedWorkout) -> [ActivityDetailMetric] {
         let display = processedWorkout.display
         return [
             ActivityDetailMetric(label: "거리", value: display.distanceText),
+            ActivityDetailMetric(label: "상승 고도", value: display.elevationText),
             ActivityDetailMetric(label: "시간", value: display.durationText),
+            ActivityDetailMetric(label: "평균 파워", value: display.averagePowerText ?? "—"),
             ActivityDetailMetric(label: movementMetricLabel(for: processedWorkout), value: display.primaryMetricValue),
-            recoveryMetric(processedWorkout: processedWorkout, recoveryImpact: recoveryImpact)
+            ActivityDetailMetric(label: "활동 칼로리", value: display.caloriesText)
         ]
-    }
-
-    private static func recoveryMetric(
-        processedWorkout: ProcessedWorkout,
-        recoveryImpact: WorkoutRecoveryImpact?
-    ) -> ActivityDetailMetric {
-        if let recoveryImpact {
-            return ActivityDetailMetric(label: "회복 영향", value: value(for: recoveryImpact.impactLevel))
-        }
-
-        if processedWorkout.metricAvailability[.averageHeartRate] == .measured {
-            return ActivityDetailMetric(label: "평균 심박", value: processedWorkout.display.averageHeartRateText)
-        }
-
-        return ActivityDetailMetric(label: "회복 영향", value: "준비 중")
-    }
-
-    private static func value(for level: WorkoutRecoveryImpactLevel) -> String {
-        switch level {
-        case .recoveryFriendly:
-            return "가벼움"
-        case .light:
-            return "낮음"
-        case .moderate:
-            return "보통"
-        case .high:
-            return "높음"
-        case .insufficientData:
-            return "준비 중"
-        }
     }
 
     private static func movementMetricLabel(for processedWorkout: ProcessedWorkout) -> String {

@@ -5,6 +5,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     let workout: Workout
     let routeOverride: WorkoutRoute?
     let navigationTitle: String
+    let achievements: [WorkoutAchievement]
     let sheetContent: SheetContent
 
     @Environment(\.dismiss) private var dismiss
@@ -27,11 +28,13 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
         workout: Workout,
         routeOverride: WorkoutRoute? = nil,
         navigationTitle: String,
+        achievements: [WorkoutAchievement] = [],
         @ViewBuilder sheetContent: () -> SheetContent
     ) {
         self.workout = workout
         self.routeOverride = routeOverride
         self.navigationTitle = navigationTitle
+        self.achievements = achievements
         self.sheetContent = sheetContent()
         let coordinates = WorkoutMapSheetRouteContext.coordinates(for: workout, override: routeOverride)
         self._mapPosition = State(initialValue: .region(routeRegion(
@@ -59,7 +62,8 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                         for: sheetPosition,
                         sheetHeight: metrics.sheetHeight,
                         safeAreaInsets: proxy.safeAreaInsets
-                    )
+                    ),
+                    achievements: achievements
                 )
                     .ignoresSafeArea()
 

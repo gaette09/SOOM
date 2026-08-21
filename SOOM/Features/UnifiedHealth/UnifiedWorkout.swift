@@ -19,6 +19,8 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
     let isExcludedFromAnalysis: Bool
     let createdAt: Date
     let updatedAt: Date
+    /// Free-text names only (batch 8) — no `profiles`/`follows` lookup.
+    let companionNames: [String]
 
     init(
         id: UUID,
@@ -38,7 +40,8 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         dataQuality: UnifiedDataQuality,
         isExcludedFromAnalysis: Bool = false,
         createdAt: Date,
-        updatedAt: Date
+        updatedAt: Date,
+        companionNames: [String] = []
     ) {
         self.id = id
         self.externalId = externalId
@@ -58,6 +61,7 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         self.isExcludedFromAnalysis = isExcludedFromAnalysis
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.companionNames = companionNames
     }
 }
 
@@ -101,7 +105,32 @@ extension UnifiedWorkout {
             dataQuality: dataQuality,
             isExcludedFromAnalysis: isExcludedFromAnalysis,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            companionNames: companionNames
+        )
+    }
+
+    func withCompanionNames(_ names: [String], updatedAt: Date) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: id,
+            externalId: externalId,
+            source: source,
+            workoutType: workoutType,
+            startDate: startDate,
+            endDate: endDate,
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters,
+            activeEnergyKcal: activeEnergyKcal,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: maxHeartRate,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
+            elevationGainMeters: elevationGainMeters,
+            routeMissingReason: routeMissingReason,
+            dataQuality: dataQuality,
+            isExcludedFromAnalysis: isExcludedFromAnalysis,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            companionNames: names
         )
     }
 }

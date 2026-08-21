@@ -81,6 +81,31 @@ struct Workout: Identifiable {
         let seconds = Int(pace) % 60
         return "\(minutes):\(String(format: "%02d", seconds))/km"
     }
+
+    func withChartData(samples: [WorkoutSample], splits: [WorkoutSplit]) -> Workout {
+        Workout(
+            id: id,
+            sport: sport,
+            title: title,
+            date: date,
+            distanceMeters: distanceMeters,
+            duration: duration,
+            activeCalories: activeCalories,
+            avgHeartRate: avgHeartRate,
+            maxHeartRate: maxHeartRate,
+            avgPower: avgPower,
+            elevationGain: elevationGain,
+            cadence: cadence,
+            effort: effort,
+            source: source,
+            route: route,
+            splits: splits,
+            samples: samples,
+            zones: zones,
+            achievements: achievements,
+            aiSummary: aiSummary
+        )
+    }
 }
 
 struct RoutePoint: Identifiable {
@@ -95,14 +120,14 @@ struct WorkoutSplit: Identifiable {
     let distance: String
     let time: String
     let pace: String
-    let heartRate: Int
+    let heartRate: Int?
     let power: Int?
 }
 
 struct WorkoutSample: Identifiable {
     let id = UUID()
     let minute: Double
-    let heartRate: Int
+    let heartRate: Int?
     let paceSeconds: Double
     let power: Int?
 }

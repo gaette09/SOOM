@@ -191,38 +191,29 @@ struct ShareableWorkoutCardRendererTests {
         #expect(ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: nil))
     }
 
-    @Test func testActivityDetailUsesFourCoreStatTiles() {
+    @Test func testActivityDetailUsesSixCoreStatTiles() {
         let workout = makeSparseWorkout(
             avgHeartRate: 142,
             duration: 2_400,
             distanceMeters: 5_200
         )
-        let impact = WorkoutRecoveryImpact(
-            impactLevel: .light,
-            title: "부담이 크지 않은 운동",
-            shortMessage: "회복 흐름을 크게 흔들기보다 리듬을 이어가는 쪽에 가까워요.",
-            recommendation: "가볍게 마무리해도 좋아요.",
-            icon: SOOMIcon.trendFlat
-        )
 
-        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: impact)
+        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout)
 
-        #expect(metrics.map(\.label) == ["거리", "시간", "평균 페이스", "회복 영향"])
-        #expect(metrics.map(\.value).last == "낮음")
-        #expect(metrics.count == 4)
+        #expect(metrics.map(\.label) == ["거리", "상승 고도", "시간", "평균 파워", "평균 페이스", "활동 칼로리"])
+        #expect(metrics.count == 6)
     }
 
-    @Test func testActivityDetailFallsBackToHeartRateWhenRecoveryImpactIsMissing() {
+    @Test func testActivityDetailShowsPlaceholderForMissingAveragePower() {
         let workout = makeSparseWorkout(
             avgHeartRate: 142,
             duration: 2_400,
             distanceMeters: 5_200
         )
 
-        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout, recoveryImpact: nil)
+        let metrics = ActivityDetailSummaryMetrics.metrics(workout: workout)
 
-        #expect(metrics.last == ActivityDetailMetric(label: "평균 심박", value: "142bpm"))
-        #expect(metrics.count == 4)
+        #expect(metrics[3] == ActivityDetailMetric(label: "평균 파워", value: "—"))
     }
 
     @Test func testActivityDetailSummaryUsesProcessedSnapshotForCyclingSpeed() {
@@ -235,11 +226,10 @@ struct ShareableWorkoutCardRendererTests {
             )
         )
 
-        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed, recoveryImpact: nil)
+        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed)
 
-        #expect(metrics.map(\.label) == ["거리", "시간", "평균 속도", "회복 영향"])
-        #expect(metrics[2].value == "30.0 km/h")
-        #expect(metrics.last?.value == "준비 중")
+        #expect(metrics.map(\.label) == ["거리", "상승 고도", "시간", "평균 파워", "평균 속도", "활동 칼로리"])
+        #expect(metrics[4].value == "30.0 km/h")
     }
 
     @Test func testActivityDetailSummaryUsesProcessedMissingMetricCopy() {
@@ -252,11 +242,11 @@ struct ShareableWorkoutCardRendererTests {
             )
         )
 
-        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed, recoveryImpact: nil)
+        let metrics = ActivityDetailSummaryMetrics.metrics(processedWorkout: processed)
 
-        #expect(metrics.map(\.label) == ["거리", "시간", "평균 페이스", "회복 영향"])
+        #expect(metrics.map(\.label) == ["거리", "상승 고도", "시간", "평균 파워", "평균 페이스", "활동 칼로리"])
         #expect(metrics[0].value == "거리 준비 중")
-        #expect(metrics[2].value == "움직임 준비 중")
+        #expect(metrics[4].value == "움직임 준비 중")
     }
 
     @Test func testActivityDetailRhythmUsesMeaningBeforeNumbers() {

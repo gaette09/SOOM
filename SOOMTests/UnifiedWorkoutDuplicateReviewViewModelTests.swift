@@ -144,6 +144,8 @@ private final class FakeUnifiedWorkoutDuplicateReviewStore: UnifiedWorkoutStore 
         didMarkExcludedFromAnalysis = true
     }
 
+    func updateCompanions(id: UUID, names: [String]) async throws {}
+
     func deleteWorkout(id: UUID) async throws {
         didDeleteWorkout = true
     }

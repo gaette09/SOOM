@@ -5,39 +5,15 @@ struct TerrainInsightCue: View {
     let tint: Color
 
     var body: some View {
-        SOOMCard {
-            VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
-                HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    Image(systemName: iconName)
-                        .font(.system(size: SOOMLayout.IconButton.iconSize - 2, weight: .semibold))
-                        .foregroundStyle(toneTint)
-                        .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
-                        .background(toneTint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
-                        .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing) {
-                        Text("지형 맥락")
-                            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                            .foregroundStyle(toneTint)
-
-                        Text(titleText)
-                            .font(SOOMFont.displayMedium(16, relativeTo: .headline))
-                            .foregroundStyle(SOOMColor.ink)
-                    }
-
-                    Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
-                }
-
-                Text(insight.interpretation)
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("지형 맥락")
-        .accessibilityValue("\(titleText). \(insight.interpretation)")
+        WorkoutInsightCueCard(
+            icon: iconName,
+            eyebrow: "지형 맥락",
+            title: titleText,
+            message: insight.interpretation,
+            tint: toneTint,
+            accessibilityLabel: "지형 맥락",
+            accessibilityValue: "\(titleText). \(insight.interpretation)"
+        )
     }
 
     private var titleText: String {

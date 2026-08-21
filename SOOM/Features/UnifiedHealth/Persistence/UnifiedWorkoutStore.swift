@@ -8,6 +8,7 @@ protocol UnifiedWorkoutStore {
     func fetchWorkout(id: UUID) async throws -> UnifiedWorkout?
     func fetchByExternalId(_ externalId: String, source: UnifiedDataSource) async throws -> UnifiedWorkout?
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws
+    func updateCompanions(id: UUID, names: [String]) async throws
     func deleteWorkout(id: UUID) async throws
 }
 
@@ -90,6 +91,16 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
         }
 
         record.isExcludedFromAnalysis = isExcluded
+        record.updatedAt = referenceDate()
+        try modelContext.save()
+    }
+
+    func updateCompanions(id: UUID, names: [String]) async throws {
+        guard let record = try fetchRecord(id: id) else {
+            return
+        }
+
+        record.companionNames = names
         record.updatedAt = referenceDate()
         try modelContext.save()
     }

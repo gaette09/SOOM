@@ -844,7 +844,30 @@ private struct ActivityView: View {
         switch entry.destination {
         case .workout(let workout):
             NavigationLink {
-                WorkoutDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
+                WorkoutDeepDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
+            } label: {
+                ActivityWorkoutLibraryCard(entry: entry)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("운동 상세 흐름으로 이동합니다.")
+        case .directWorkout(let unifiedWorkout):
+            NavigationLink {
+                UnifiedWorkoutDetailDestination(
+                    unifiedWorkout: unifiedWorkout,
+                    detailRouteContextProvider: WorkoutDetailRouteContextProvider(
+                        store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+                    ),
+                    relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(
+                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+                    ),
+                    achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(
+                        workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
+                        routeStore: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+                    ),
+                    companionUpdateService: WorkoutCompanionUpdateService(
+                        workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+                    )
+                )
             } label: {
                 ActivityWorkoutLibraryCard(entry: entry)
             }
@@ -908,6 +931,7 @@ private enum ActivityCalendarMode: String, CaseIterable, Identifiable {
 
 private enum ActivityLibraryDestination {
     case workout(Workout)
+    case directWorkout(UnifiedWorkout)
     case library
 }
 
@@ -999,8 +1023,17 @@ private struct ActivityLibraryEntry: Identifiable {
             distanceMeters: workout.distanceMeters,
             durationSeconds: workout.durationSeconds,
             routePoints: [],
-            destination: .library
+            destination: destination(for: workout)
         )
+    }
+
+    private static func destination(for workout: UnifiedWorkout) -> ActivityLibraryDestination {
+        switch workout.source {
+        case .soomLocal, .manual:
+            return .directWorkout(workout)
+        case .appleHealthKit, .garmin, .samsungHealth, .healthConnect, .unknown:
+            return .library
+        }
     }
 
     private static func displayName(for workoutType: UnifiedWorkoutType) -> String {

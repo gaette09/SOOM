@@ -193,6 +193,8 @@ private final class FakeUnifiedWorkoutLibraryStore: UnifiedWorkoutStore {
         markedExclusionState[id] = isExcluded
     }
 
+    func updateCompanions(id: UUID, names: [String]) async throws {}
+
     func deleteWorkout(id: UUID) async throws {
         didDeleteWorkout = true
     }

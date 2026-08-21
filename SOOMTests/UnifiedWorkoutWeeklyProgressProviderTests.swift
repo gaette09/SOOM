@@ -115,5 +115,6 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
     func fetchWorkout(id: UUID) async throws -> UnifiedWorkout? { nil }
     func fetchByExternalId(_ externalId: String, source: UnifiedDataSource) async throws -> UnifiedWorkout? { nil }
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws {}
+    func updateCompanions(id: UUID, names: [String]) async throws {}
     func deleteWorkout(id: UUID) async throws {}
 }

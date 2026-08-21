@@ -253,6 +253,11 @@
 		010216 /* UnifiedWorkoutGrowthTrendProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020217 /* UnifiedWorkoutGrowthTrendProviderTests.swift */; };
 		010217 /* PersonalRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020218 /* PersonalRecord.swift */; };
 		010218 /* PersonalRecordBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020219 /* PersonalRecordBuilder.swift */; };
+		010601 /* WorkoutSegmentBestEffortFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020601 /* WorkoutSegmentBestEffortFinder.swift */; };
+		010602 /* WorkoutAchievementConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020602 /* WorkoutAchievementConfig.swift */; };
+		010603 /* WorkoutAchievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020603 /* WorkoutAchievement.swift */; };
+		010604 /* WorkoutAchievementHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020604 /* WorkoutAchievementHistoryProvider.swift */; };
+		010605 /* WorkoutAchievementCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020605 /* WorkoutAchievementCard.swift */; };
 		010219 /* UnifiedWorkoutPersonalRecordProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020220 /* UnifiedWorkoutPersonalRecordProvider.swift */; };
 		010220 /* PersonalRecordCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020221 /* PersonalRecordCard.swift */; };
 		010221 /* PersonalRecordBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020222 /* PersonalRecordBuilderTests.swift */; };
@@ -286,6 +291,12 @@
 		010250 /* RecoveryComparisonBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020250 /* RecoveryComparisonBuilder.swift */; };
 		010251 /* RecoveryComparisonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020251 /* RecoveryComparisonCard.swift */; };
 		010252 /* RecoveryComparisonBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020252 /* RecoveryComparisonBuilderTests.swift */; };
+		010606 /* WorkoutSegmentBestEffortFinderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020606 /* WorkoutSegmentBestEffortFinderTests.swift */; };
+		010607 /* WorkoutAchievementBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020607 /* WorkoutAchievementBuilderTests.swift */; };
+		010608 /* ActivityDetailCompanionTagging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020608 /* ActivityDetailCompanionTagging.swift */; };
+		010609 /* WorkoutCompanionUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020609 /* WorkoutCompanionUpdateService.swift */; };
+		01060A /* WorkoutCompanionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060A /* WorkoutCompanionCard.swift */; };
+		01060B /* WorkoutCompanionNameEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060B /* WorkoutCompanionNameEditingTests.swift */; };
 		010253 /* FeedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020253 /* FeedItem.swift */; };
 		010254 /* FeedMockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020254 /* FeedMockData.swift */; };
 		010255 /* FeedItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020255 /* FeedItemCard.swift */; };
@@ -304,6 +315,15 @@
 		010521 /* FeedShareDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020521 /* FeedShareDraftStore.swift */; };
 		010522 /* FeedShareDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020522 /* FeedShareDraftTests.swift */; };
 		0105F8 /* FeedStreakCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F8 /* FeedStreakCalculatorTests.swift */; };
+		0105F9 /* WorkoutDeepDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F9 /* WorkoutDeepDetailView.swift */; };
+		0105FA /* WorkoutInsightCueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FA /* WorkoutInsightCueCard.swift */; };
+		0105FB /* WorkoutDistanceChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FB /* WorkoutDistanceChartCard.swift */; };
+		0105FC /* RelativeEffortComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FC /* RelativeEffortComparison.swift */; };
+		0105FD /* RelativeEffortHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FD /* RelativeEffortHistoryProvider.swift */; };
+		0105FE /* RelativeEffortCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FE /* RelativeEffortCard.swift */; };
+		0105F5 /* WorkoutChartDataBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F5 /* WorkoutChartDataBuilderTests.swift */; };
+		0105FF /* RelativeEffortComparisonBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FF /* RelativeEffortComparisonBuilderTests.swift */; };
+		010600 /* RelativeEffortHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020600 /* RelativeEffortHistoryProviderTests.swift */; };
 		010509 /* RecordLaunchPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020509 /* RecordLaunchPlanTests.swift */; };
 		010513 /* RecordMapFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020513 /* RecordMapFoundationTests.swift */; };
 		010516 /* RecordWorkoutSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020516 /* RecordWorkoutSessionTests.swift */; };
@@ -384,6 +404,7 @@
 		010327 /* WorkoutSplitMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020327 /* WorkoutSplitMetric.swift */; };
 		010328 /* WorkoutSplitStreamBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020328 /* WorkoutSplitStreamBuilder.swift */; };
 		010329 /* WorkoutSplitDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020329 /* WorkoutSplitDataProvider.swift */; };
+		0105F4 /* WorkoutChartDataBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F4 /* WorkoutChartDataBuilder.swift */; };
 		010330 /* WorkoutSplitStreamBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020330 /* WorkoutSplitStreamBuilderTests.swift */; };
 		010331 /* WorkoutSplitDataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020331 /* WorkoutSplitDataProviderTests.swift */; };
 		010332 /* CourseRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020332 /* CourseRecord.swift */; };
@@ -744,6 +765,11 @@
 		020217 /* UnifiedWorkoutGrowthTrendProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutGrowthTrendProviderTests.swift; sourceTree = "<group>"; };
 		020218 /* PersonalRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecord.swift; sourceTree = "<group>"; };
 		020219 /* PersonalRecordBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordBuilder.swift; sourceTree = "<group>"; };
+		020601 /* WorkoutSegmentBestEffortFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSegmentBestEffortFinder.swift; sourceTree = "<group>"; };
+		020602 /* WorkoutAchievementConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAchievementConfig.swift; sourceTree = "<group>"; };
+		020603 /* WorkoutAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAchievement.swift; sourceTree = "<group>"; };
+		020604 /* WorkoutAchievementHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAchievementHistoryProvider.swift; sourceTree = "<group>"; };
+		020605 /* WorkoutAchievementCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAchievementCard.swift; sourceTree = "<group>"; };
 		020220 /* UnifiedWorkoutPersonalRecordProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutPersonalRecordProvider.swift; sourceTree = "<group>"; };
 		020221 /* PersonalRecordCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordCard.swift; sourceTree = "<group>"; };
 		020222 /* PersonalRecordBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordBuilderTests.swift; sourceTree = "<group>"; };
@@ -777,6 +803,12 @@
 		020250 /* RecoveryComparisonBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilder.swift; sourceTree = "<group>"; };
 		020251 /* RecoveryComparisonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonCard.swift; sourceTree = "<group>"; };
 		020252 /* RecoveryComparisonBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryComparisonBuilderTests.swift; sourceTree = "<group>"; };
+		020606 /* WorkoutSegmentBestEffortFinderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSegmentBestEffortFinderTests.swift; sourceTree = "<group>"; };
+		020607 /* WorkoutAchievementBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAchievementBuilderTests.swift; sourceTree = "<group>"; };
+		020608 /* ActivityDetailCompanionTagging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDetailCompanionTagging.swift; sourceTree = "<group>"; };
+		020609 /* WorkoutCompanionUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompanionUpdateService.swift; sourceTree = "<group>"; };
+		02060A /* WorkoutCompanionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompanionCard.swift; sourceTree = "<group>"; };
+		02060B /* WorkoutCompanionNameEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompanionNameEditingTests.swift; sourceTree = "<group>"; };
 		020253 /* FeedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItem.swift; sourceTree = "<group>"; };
 		020254 /* FeedMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedMockData.swift; sourceTree = "<group>"; };
 		020255 /* FeedItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemCard.swift; sourceTree = "<group>"; };
@@ -795,6 +827,15 @@
 		020521 /* FeedShareDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftStore.swift; sourceTree = "<group>"; };
 		020522 /* FeedShareDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftTests.swift; sourceTree = "<group>"; };
 		0205F8 /* FeedStreakCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStreakCalculatorTests.swift; sourceTree = "<group>"; };
+		0205F9 /* WorkoutDeepDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDeepDetailView.swift; sourceTree = "<group>"; };
+		0205FA /* WorkoutInsightCueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutInsightCueCard.swift; sourceTree = "<group>"; };
+		0205FB /* WorkoutDistanceChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDistanceChartCard.swift; sourceTree = "<group>"; };
+		0205FC /* RelativeEffortComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortComparison.swift; sourceTree = "<group>"; };
+		0205FD /* RelativeEffortHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortHistoryProvider.swift; sourceTree = "<group>"; };
+		0205FE /* RelativeEffortCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortCard.swift; sourceTree = "<group>"; };
+		0205F5 /* WorkoutChartDataBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutChartDataBuilderTests.swift; sourceTree = "<group>"; };
+		0205FF /* RelativeEffortComparisonBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortComparisonBuilderTests.swift; sourceTree = "<group>"; };
+		020600 /* RelativeEffortHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortHistoryProviderTests.swift; sourceTree = "<group>"; };
 		020509 /* RecordLaunchPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlanTests.swift; sourceTree = "<group>"; };
 		020513 /* RecordMapFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapFoundationTests.swift; sourceTree = "<group>"; };
 		020516 /* RecordWorkoutSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSessionTests.swift; sourceTree = "<group>"; };
@@ -874,6 +915,7 @@
 		020327 /* WorkoutSplitMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitMetric.swift; sourceTree = "<group>"; };
 		020328 /* WorkoutSplitStreamBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilder.swift; sourceTree = "<group>"; };
 		020329 /* WorkoutSplitDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProvider.swift; sourceTree = "<group>"; };
+		0205F4 /* WorkoutChartDataBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutChartDataBuilder.swift; sourceTree = "<group>"; };
 		020330 /* WorkoutSplitStreamBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitStreamBuilderTests.swift; sourceTree = "<group>"; };
 		020331 /* WorkoutSplitDataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSplitDataProviderTests.swift; sourceTree = "<group>"; };
 		020332 /* CourseRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseRecord.swift; sourceTree = "<group>"; };
@@ -1105,6 +1147,7 @@
 				020043 /* SoomActionRow.swift */,
 				020034 /* SoomSectionHeader.swift */,
 				020044 /* FlowTags.swift */,
+				02060A /* WorkoutCompanionCard.swift */,
 				020045 /* RecoveryScoreCard.swift */,
 				020251 /* RecoveryComparisonCard.swift */,
 				020046 /* InsightCard.swift */,
@@ -1124,6 +1167,9 @@
 				020351 /* CourseProgressionCard.swift */,
 				020355 /* ClimbInsightCard.swift */,
 				020363 /* TerrainInsightCue.swift */,
+				0205FA /* WorkoutInsightCueCard.swift */,
+				0205FB /* WorkoutDistanceChartCard.swift */,
+				0205FE /* RelativeEffortCard.swift */,
 				020371 /* ProgressionIntelligenceCard.swift */,
 				020323 /* WorkoutSplitInsightCard.swift */,
 				020234 /* ShareableWorkoutCardView.swift */,
@@ -1133,6 +1179,7 @@
 				020170 /* WeeklyWorkoutProgressCard.swift */,
 				020214 /* FourWeekWorkoutTrendCard.swift */,
 				020221 /* PersonalRecordCard.swift */,
+				020605 /* WorkoutAchievementCard.swift */,
 				020088 /* RecoveryExplanationCard.swift */,
 				020090 /* RecoveryTimelineCard.swift */,
 				020123 /* WeeklyCoachSummaryCard.swift */,
@@ -1242,6 +1289,7 @@
 				020517 /* RecordWorkoutSaveFlow.swift */,
 				020013 /* RecordView.swift */,
 				020016 /* DetailViews.swift */,
+				0205F9 /* WorkoutDeepDetailView.swift */,
 				020023 /* WorkoutMapSheetScaffold.swift */,
 				020035 /* WorkoutSheetState.swift */,
 				020036 /* WorkoutSheetHeader.swift */,
@@ -1250,6 +1298,7 @@
 				020039 /* WorkoutMetricsSection.swift */,
 				020024 /* WorkoutDetailContent.swift */,
 				020811 /* ActivityDetailGPXRouteImport.swift */,
+				020608 /* ActivityDetailCompanionTagging.swift */,
 				020025 /* WorkoutMetricCards.swift */,
 				020A01 /* StravaDetailFrameLockView.swift */,
 			);
@@ -1261,6 +1310,8 @@
 			children = (
 				040020 /* Persistence */,
 				020052 /* RecoveryModels.swift */,
+				0205FC /* RelativeEffortComparison.swift */,
+				0205FD /* RelativeEffortHistoryProvider.swift */,
 				020055 /* RecoveryActivityModels.swift */,
 				020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */,
 				020054 /* RecoveryDataProvider.swift */,
@@ -1425,6 +1476,7 @@
 				020802 /* ProcessedWorkoutBuilder.swift */,
 				020807 /* GPXRouteParser.swift */,
 				020809 /* GPXRouteAttachmentService.swift */,
+				020609 /* WorkoutCompanionUpdateService.swift */,
 				020813 /* FITRouteParser.swift */,
 				020815 /* FITRouteAttachmentService.swift */,
 				020817 /* TCXRouteParser.swift */,
@@ -1462,6 +1514,7 @@
 				020328 /* WorkoutSplitStreamBuilder.swift */,
 				020322 /* WorkoutSplitInsightBuilder.swift */,
 				020329 /* WorkoutSplitDataProvider.swift */,
+				0205F4 /* WorkoutChartDataBuilder.swift */,
 				020325 /* WorkoutDetailSectionGroup.swift */,
 				020265 /* WorkoutRoute.swift */,
 				020341 /* PersistedWorkoutRoute.swift */,
@@ -1504,6 +1557,10 @@
 				020215 /* UnifiedWorkoutGrowthTrendProvider.swift */,
 				020218 /* PersonalRecord.swift */,
 				020219 /* PersonalRecordBuilder.swift */,
+				020601 /* WorkoutSegmentBestEffortFinder.swift */,
+				020602 /* WorkoutAchievementConfig.swift */,
+				020603 /* WorkoutAchievement.swift */,
+				020604 /* WorkoutAchievementHistoryProvider.swift */,
 				020220 /* UnifiedWorkoutPersonalRecordProvider.swift */,
 			);
 			path = Workout;
@@ -1596,6 +1653,11 @@
 				020247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift */,
 				020248 /* RecoveryRealDataPreviewViewModelTests.swift */,
 				020252 /* RecoveryComparisonBuilderTests.swift */,
+				020606 /* WorkoutSegmentBestEffortFinderTests.swift */,
+				020607 /* WorkoutAchievementBuilderTests.swift */,
+				02060B /* WorkoutCompanionNameEditingTests.swift */,
+				0205FF /* RelativeEffortComparisonBuilderTests.swift */,
+				020600 /* RelativeEffortHistoryProviderTests.swift */,
 				020153 /* DailyReadinessBuilderTests.swift */,
 				020157 /* MorningCheckInStateBuilderTests.swift */,
 				020159 /* MorningCheckInSkipStoreTests.swift */,
@@ -1675,6 +1737,7 @@
 				020507 /* FeedDataSourceTests.swift */,
 				020522 /* FeedShareDraftTests.swift */,
 				0205F8 /* FeedStreakCalculatorTests.swift */,
+				0205F5 /* WorkoutChartDataBuilderTests.swift */,
 				020509 /* RecordLaunchPlanTests.swift */,
 				020513 /* RecordMapFoundationTests.swift */,
 				020516 /* RecordWorkoutSessionTests.swift */,
@@ -1820,6 +1883,7 @@
 				010041 /* SoomActionRow.swift in Sources */,
 				010032 /* SoomSectionHeader.swift in Sources */,
 				010042 /* FlowTags.swift in Sources */,
+				01060A /* WorkoutCompanionCard.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
@@ -1839,6 +1903,9 @@
 				010371 /* ProgressionIntelligenceCard.swift in Sources */,
 				010355 /* ClimbInsightCard.swift in Sources */,
 				010363 /* TerrainInsightCue.swift in Sources */,
+				0105FA /* WorkoutInsightCueCard.swift in Sources */,
+				0105FB /* WorkoutDistanceChartCard.swift in Sources */,
+				0105FE /* RelativeEffortCard.swift in Sources */,
 				010323 /* WorkoutSplitInsightCard.swift in Sources */,
 				010234 /* ShareableWorkoutCardView.swift in Sources */,
 				010241 /* ShareableWeeklyProgressCardView.swift in Sources */,
@@ -1847,6 +1914,7 @@
 				010169 /* WeeklyWorkoutProgressCard.swift in Sources */,
 				010213 /* FourWeekWorkoutTrendCard.swift in Sources */,
 				010220 /* PersonalRecordCard.swift in Sources */,
+				010605 /* WorkoutAchievementCard.swift in Sources */,
 				010065 /* CheckInSummaryCard.swift in Sources */,
 				010010 /* RootTabView.swift in Sources */,
 				010012 /* AnalysisView.swift in Sources */,
@@ -1879,6 +1947,7 @@
 				010015 /* ClubsView.swift in Sources */,
 				010524 /* ClubDomainFoundation.swift in Sources */,
 				010016 /* DetailViews.swift in Sources */,
+				0105F9 /* WorkoutDeepDetailView.swift in Sources */,
 				010021 /* WorkoutMapSheetScaffold.swift in Sources */,
 				010033 /* WorkoutSheetState.swift in Sources */,
 				010034 /* WorkoutSheetHeader.swift in Sources */,
@@ -1908,6 +1977,10 @@
 				010214 /* UnifiedWorkoutGrowthTrendProvider.swift in Sources */,
 				010217 /* PersonalRecord.swift in Sources */,
 				010218 /* PersonalRecordBuilder.swift in Sources */,
+				010601 /* WorkoutSegmentBestEffortFinder.swift in Sources */,
+				010602 /* WorkoutAchievementConfig.swift in Sources */,
+				010603 /* WorkoutAchievement.swift in Sources */,
+				010604 /* WorkoutAchievementHistoryProvider.swift in Sources */,
 				010219 /* UnifiedWorkoutPersonalRecordProvider.swift in Sources */,
 				010179 /* WorkoutGrowthInput.swift in Sources */,
 				010801 /* ProcessedWorkout.swift in Sources */,
@@ -1946,15 +2019,18 @@
 				010328 /* WorkoutSplitStreamBuilder.swift in Sources */,
 				010322 /* WorkoutSplitInsightBuilder.swift in Sources */,
 				010329 /* WorkoutSplitDataProvider.swift in Sources */,
+				0105F4 /* WorkoutChartDataBuilder.swift in Sources */,
 				010325 /* WorkoutDetailSectionGroup.swift in Sources */,
 				010264 /* WorkoutRoute.swift in Sources */,
 				010807 /* GPXRouteParser.swift in Sources */,
 				010809 /* GPXRouteAttachmentService.swift in Sources */,
+				010609 /* WorkoutCompanionUpdateService.swift in Sources */,
 				010813 /* FITRouteParser.swift in Sources */,
 				010815 /* FITRouteAttachmentService.swift in Sources */,
 				010817 /* TCXRouteParser.swift in Sources */,
 				010819 /* TCXRouteAttachmentService.swift in Sources */,
 				010811 /* ActivityDetailGPXRouteImport.swift in Sources */,
+				010608 /* ActivityDetailCompanionTagging.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
 				010342 /* WorkoutRouteMapper.swift in Sources */,
 				010272 /* WorkoutRouteStore.swift in Sources */,
@@ -1996,6 +2072,8 @@
 				0105F3 /* FeedItemDetailView.swift in Sources */,
 				010A01 /* StravaDetailFrameLockView.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
+				0105FC /* RelativeEffortComparison.swift in Sources */,
+				0105FD /* RelativeEffortHistoryProvider.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
 				010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */,
 				010052 /* RecoveryDataProvider.swift in Sources */,
@@ -2188,6 +2266,11 @@
 				010247 /* UnifiedWorkoutRecoveryPreviewProviderTests.swift in Sources */,
 				010248 /* RecoveryRealDataPreviewViewModelTests.swift in Sources */,
 				010252 /* RecoveryComparisonBuilderTests.swift in Sources */,
+				010606 /* WorkoutSegmentBestEffortFinderTests.swift in Sources */,
+				010607 /* WorkoutAchievementBuilderTests.swift in Sources */,
+				01060B /* WorkoutCompanionNameEditingTests.swift in Sources */,
+				0105FF /* RelativeEffortComparisonBuilderTests.swift in Sources */,
+				010600 /* RelativeEffortHistoryProviderTests.swift in Sources */,
 				010152 /* DailyReadinessBuilderTests.swift in Sources */,
 				010156 /* MorningCheckInStateBuilderTests.swift in Sources */,
 				010158 /* MorningCheckInSkipStoreTests.swift in Sources */,
@@ -2267,6 +2350,7 @@
 				010507 /* FeedDataSourceTests.swift in Sources */,
 				010522 /* FeedShareDraftTests.swift in Sources */,
 				0105F8 /* FeedStreakCalculatorTests.swift in Sources */,
+				0105F5 /* WorkoutChartDataBuilderTests.swift in Sources */,
 				010509 /* RecordLaunchPlanTests.swift in Sources */,
 				010513 /* RecordMapFoundationTests.swift in Sources */,
 				010516 /* RecordWorkoutSessionTests.swift in Sources */,

@@ -4,7 +4,7 @@ struct ProcessedWorkoutBuilder {
     var calendar: Calendar = .current
     var locale: Locale = Locale(identifier: "ko_KR")
 
-    func make(from workout: UnifiedWorkout, route: WorkoutRoute? = nil) -> ProcessedWorkout {
+    func make(from workout: UnifiedWorkout, route: WorkoutRoute? = nil, hasHeartRateSeries: Bool = false) -> ProcessedWorkout {
         let processedRoute = route.map(makeRoute)
         let measuredDistance = positive(workout.distanceMeters)
         let routeDistance = processedRoute?.hasRenderableRoute == true
@@ -48,7 +48,8 @@ struct ProcessedWorkoutBuilder {
             paceState: paceState,
             elevationState: elevationState,
             route: processedRoute,
-            workout: workout
+            workout: workout,
+            hasHeartRateSeries: hasHeartRateSeries
         )
 
         let processed = ProcessedWorkout(
@@ -68,6 +69,7 @@ struct ProcessedWorkoutBuilder {
             averageHeartRate: positive(workout.averageHeartRate),
             maxHeartRate: positive(workout.maxHeartRate),
             elevationGainMeters: elevationGain,
+            averagePowerWatts: nil,
             route: processedRoute,
             routeMissingReason: processedRoute?.hasRenderableRoute == true ? .none : workout.routeMissingReason,
             metricAvailability: availability,
@@ -93,6 +95,7 @@ struct ProcessedWorkoutBuilder {
             averageHeartRate: processed.averageHeartRate,
             maxHeartRate: processed.maxHeartRate,
             elevationGainMeters: processed.elevationGainMeters,
+            averagePowerWatts: processed.averagePowerWatts,
             route: processed.route,
             routeMissingReason: processed.routeMissingReason,
             metricAvailability: availability,
@@ -122,7 +125,8 @@ struct ProcessedWorkoutBuilder {
         paceState: ProcessedWorkoutMetricState,
         elevationState: ProcessedWorkoutMetricState,
         route: ProcessedWorkoutRoute?,
-        workout: UnifiedWorkout
+        workout: UnifiedWorkout,
+        hasHeartRateSeries: Bool
     ) -> [ProcessedWorkoutMetric: ProcessedWorkoutMetricState] {
         [
             .distance: distanceState,
@@ -137,8 +141,20 @@ struct ProcessedWorkoutBuilder {
             .cadence: supportsCadence(workoutType) ? .missing : .unsupported,
             .route: route?.hasRenderableRoute == true ? .measured : .missing,
             .splits: .missing,
-            .zones: .missing
+            .zones: .missing,
+            .speedSeries: hasSeries(route, minimum: 2) { $0.timestamp != nil } ? .measured : .missing,
+            .elevationSeries: hasSeries(route, minimum: 2) { $0.altitude != nil } ? .measured : .missing,
+            .heartRateSeries: hasHeartRateSeries ? .measured : .missing
         ]
+    }
+
+    private func hasSeries(
+        _ route: ProcessedWorkoutRoute?,
+        minimum: Int,
+        where predicate: (WorkoutRouteCoordinate) -> Bool
+    ) -> Bool {
+        guard let route else { return false }
+        return route.coordinates.filter(predicate).count >= minimum
     }
 
     private func displaySnapshot(
@@ -163,6 +179,7 @@ struct ProcessedWorkoutBuilder {
             caloriesText: caloriesText(workout.activeEnergyKcal),
             averageHeartRateText: heartRateText(workout.averageHeartRate),
             maxHeartRateText: heartRateText(workout.maxHeartRate),
+            averagePowerText: powerText(workout.averagePowerWatts),
             dataQualityLabel: dataQualityTitle(for: workout.dataQuality),
             routeBadgeLabel: availability[.route] == .measured ? "경로 저장" : nil
         )
@@ -275,6 +292,11 @@ struct ProcessedWorkoutBuilder {
         return "\(Int(bpm.rounded()))bpm"
     }
 
+    private func powerText(_ watts: Double?) -> String? {
+        guard let watts else { return nil }
+        return "\(Int(watts.rounded()))W"
+    }
+
     private func dateText(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -383,6 +405,7 @@ private extension WorkoutDisplaySnapshot {
         caloriesText: "",
         averageHeartRateText: "",
         maxHeartRateText: "",
+        averagePowerText: nil,
         dataQualityLabel: "",
         routeBadgeLabel: nil
     )
