@@ -17,7 +17,6 @@
 		010008 /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020008 /* CommunityViewModel.swift */; };
 		010009 /* SoomColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020009 /* SoomColor.swift */; };
 		010010 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020010 /* RootTabView.swift */; };
-		010011 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020011 /* HomeView.swift */; };
 		010012 /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020012 /* AnalysisView.swift */; };
 		010013 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020013 /* RecordView.swift */; };
 		010508 /* RecordLaunchPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020508 /* RecordLaunchPlan.swift */; };
@@ -43,7 +42,7 @@
 		010021 /* WorkoutMapSheetScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020023 /* WorkoutMapSheetScaffold.swift */; };
 		010022 /* WorkoutDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020024 /* WorkoutDetailContent.swift */; };
 		010023 /* WorkoutMetricCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020025 /* WorkoutMetricCards.swift */; };
-		010024 /* FeedPostDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020026 /* FeedPostDetailContent.swift */; };
+		0105F3 /* FeedItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F3 /* FeedItemDetailView.swift */; };
 		010A01 /* StravaDetailFrameLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020A01 /* StravaDetailFrameLockView.swift */; };
 		010025 /* SoomTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020027 /* SoomTypography.swift */; };
 		010026 /* SoomSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020028 /* SoomSpacing.swift */; };
@@ -72,6 +71,7 @@
 		010050 /* RecoveryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020052 /* RecoveryModels.swift */; };
 		010051 /* RecoveryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020053 /* RecoveryViewModel.swift */; };
 		010052 /* RecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020054 /* RecoveryDataProvider.swift */; };
+		0100F1 /* UnifiedWorkoutRecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0200F1 /* UnifiedWorkoutRecoveryDataProvider.swift */; };
 		010053 /* RecoveryActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020055 /* RecoveryActivityModels.swift */; };
 		010054 /* ActivityRecoveryDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020056 /* ActivityRecoveryDataProvider.swift */; };
 		010055 /* RecoveryActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020057 /* RecoveryActivityStore.swift */; };
@@ -296,12 +296,14 @@
 		010503 /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020503 /* FeedRepository.swift */; };
 		010504 /* SupabaseFeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020504 /* SupabaseFeedRepository.swift */; };
 		010505 /* FeedDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020505 /* FeedDataSource.swift */; };
+		0105F7 /* FeedStreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F7 /* FeedStreakCalculator.swift */; };
 		010506 /* FeedPostDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020506 /* FeedPostDTOTests.swift */; };
 		010507 /* FeedDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020507 /* FeedDataSourceTests.swift */; };
 		010519 /* FeedShareDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020519 /* FeedShareDraft.swift */; };
 		010520 /* FeedShareDraftBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020520 /* FeedShareDraftBuilder.swift */; };
 		010521 /* FeedShareDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020521 /* FeedShareDraftStore.swift */; };
 		010522 /* FeedShareDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020522 /* FeedShareDraftTests.swift */; };
+		0105F8 /* FeedStreakCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F8 /* FeedStreakCalculatorTests.swift */; };
 		010509 /* RecordLaunchPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020509 /* RecordLaunchPlanTests.swift */; };
 		010513 /* RecordMapFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020513 /* RecordMapFoundationTests.swift */; };
 		010516 /* RecordWorkoutSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020516 /* RecordWorkoutSessionTests.swift */; };
@@ -357,6 +359,7 @@
 		010306 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020305 /* SettingsViewModel.swift */; };
 		010307 /* ProfileSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020306 /* ProfileSummaryCard.swift */; };
 		010308 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020307 /* SettingsView.swift */; };
+		0105F6 /* ProfileIdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F6 /* ProfileIdentityView.swift */; };
 		010800 /* ProfileWorkoutAggregation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020800 /* ProfileWorkoutAggregation.swift */; };
 		010309 /* TrainingSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020308 /* TrainingSettingsStoreTests.swift */; };
 		010310 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020309 /* SettingsViewModelTests.swift */; };
@@ -503,7 +506,6 @@
 		020008 /* CommunityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
 		020009 /* SoomColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomColor.swift; sourceTree = "<group>"; };
 		020010 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
-		020011 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		020012 /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
 		020013 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
 		020508 /* RecordLaunchPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlan.swift; sourceTree = "<group>"; };
@@ -530,7 +532,7 @@
 		020023 /* WorkoutMapSheetScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMapSheetScaffold.swift; sourceTree = "<group>"; };
 		020024 /* WorkoutDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailContent.swift; sourceTree = "<group>"; };
 		020025 /* WorkoutMetricCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricCards.swift; sourceTree = "<group>"; };
-		020026 /* FeedPostDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDetailContent.swift; sourceTree = "<group>"; };
+		0205F3 /* FeedItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedItemDetailView.swift; sourceTree = "<group>"; };
 		020A01 /* StravaDetailFrameLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaDetailFrameLockView.swift; sourceTree = "<group>"; };
 		020027 /* SoomTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomTypography.swift; sourceTree = "<group>"; };
 		020028 /* SoomSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoomSpacing.swift; sourceTree = "<group>"; };
@@ -559,6 +561,7 @@
 		020052 /* RecoveryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryModels.swift; sourceTree = "<group>"; };
 		020053 /* RecoveryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryViewModel.swift; sourceTree = "<group>"; };
 		020054 /* RecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryDataProvider.swift; sourceTree = "<group>"; };
+		0200F1 /* UnifiedWorkoutRecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutRecoveryDataProvider.swift; sourceTree = "<group>"; };
 		020055 /* RecoveryActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityModels.swift; sourceTree = "<group>"; };
 		020056 /* ActivityRecoveryDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRecoveryDataProvider.swift; sourceTree = "<group>"; };
 		020057 /* RecoveryActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryActivityStore.swift; sourceTree = "<group>"; };
@@ -784,12 +787,14 @@
 		020503 /* FeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepository.swift; sourceTree = "<group>"; };
 		020504 /* SupabaseFeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseFeedRepository.swift; sourceTree = "<group>"; };
 		020505 /* FeedDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSource.swift; sourceTree = "<group>"; };
+		0205F7 /* FeedStreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStreakCalculator.swift; sourceTree = "<group>"; };
 		020506 /* FeedPostDTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDTOTests.swift; sourceTree = "<group>"; };
 		020507 /* FeedDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSourceTests.swift; sourceTree = "<group>"; };
 		020519 /* FeedShareDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraft.swift; sourceTree = "<group>"; };
 		020520 /* FeedShareDraftBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftBuilder.swift; sourceTree = "<group>"; };
 		020521 /* FeedShareDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftStore.swift; sourceTree = "<group>"; };
 		020522 /* FeedShareDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedShareDraftTests.swift; sourceTree = "<group>"; };
+		0205F8 /* FeedStreakCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStreakCalculatorTests.swift; sourceTree = "<group>"; };
 		020509 /* RecordLaunchPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordLaunchPlanTests.swift; sourceTree = "<group>"; };
 		020513 /* RecordMapFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordMapFoundationTests.swift; sourceTree = "<group>"; };
 		020516 /* RecordWorkoutSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWorkoutSessionTests.swift; sourceTree = "<group>"; };
@@ -844,6 +849,7 @@
 		020305 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		020306 /* ProfileSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSummaryCard.swift; sourceTree = "<group>"; };
 		020307 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		0205F6 /* ProfileIdentityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileIdentityView.swift; sourceTree = "<group>"; };
 		020800 /* ProfileWorkoutAggregation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileWorkoutAggregation.swift; sourceTree = "<group>"; };
 		020308 /* TrainingSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsStoreTests.swift; sourceTree = "<group>"; };
 		020309 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
@@ -1167,7 +1173,6 @@
 		040014 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				040015 /* Home */,
 				040016 /* Activity */,
 				040022 /* Workout */,
 				040019 /* Feed */,
@@ -1222,14 +1227,6 @@
 			path = Auth;
 			sourceTree = "<group>";
 		};
-		040015 /* Home */ = {
-			isa = PBXGroup;
-			children = (
-				020011 /* HomeView.swift */,
-			);
-			path = Home;
-			sourceTree = "<group>";
-		};
 		040016 /* Activity */ = {
 			isa = PBXGroup;
 			children = (
@@ -1267,6 +1264,7 @@
 				020055 /* RecoveryActivityModels.swift */,
 				020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */,
 				020054 /* RecoveryDataProvider.swift */,
+				0200F1 /* UnifiedWorkoutRecoveryDataProvider.swift */,
 				020057 /* RecoveryActivityStore.swift */,
 				020060 /* LocalActivityStore.swift */,
 				020059 /* RecoveryActivityMapper.swift */,
@@ -1341,6 +1339,7 @@
 				020503 /* FeedRepository.swift */,
 				020504 /* SupabaseFeedRepository.swift */,
 				020505 /* FeedDataSource.swift */,
+				0205F7 /* FeedStreakCalculator.swift */,
 				020519 /* FeedShareDraft.swift */,
 				020520 /* FeedShareDraftBuilder.swift */,
 				020521 /* FeedShareDraftStore.swift */,
@@ -1349,7 +1348,7 @@
 				02F003 /* FeedViewContainer.swift */,
 				02F004 /* FeedFoundationCards.swift */,
 				020014 /* FeedView.swift */,
-				020026 /* FeedPostDetailContent.swift */,
+				0205F3 /* FeedItemDetailView.swift */,
 			);
 			path = Feed;
 			sourceTree = "<group>";
@@ -1362,6 +1361,7 @@
 				020305 /* SettingsViewModel.swift */,
 				020306 /* ProfileSummaryCard.swift */,
 				020307 /* SettingsView.swift */,
+				0205F6 /* ProfileIdentityView.swift */,
 				020800 /* ProfileWorkoutAggregation.swift */,
 			);
 			path = Settings;
@@ -1674,6 +1674,7 @@
 				020506 /* FeedPostDTOTests.swift */,
 				020507 /* FeedDataSourceTests.swift */,
 				020522 /* FeedShareDraftTests.swift */,
+				0205F8 /* FeedStreakCalculatorTests.swift */,
 				020509 /* RecordLaunchPlanTests.swift */,
 				020513 /* RecordMapFoundationTests.swift */,
 				020516 /* RecordWorkoutSessionTests.swift */,
@@ -1848,7 +1849,6 @@
 				010220 /* PersonalRecordCard.swift in Sources */,
 				010065 /* CheckInSummaryCard.swift in Sources */,
 				010010 /* RootTabView.swift in Sources */,
-				010011 /* HomeView.swift in Sources */,
 				010012 /* AnalysisView.swift in Sources */,
 				010208 /* AnalysisViewModel.swift in Sources */,
 				010209 /* AnalysisViewContainer.swift in Sources */,
@@ -1867,6 +1867,7 @@
 				010503 /* FeedRepository.swift in Sources */,
 				010504 /* SupabaseFeedRepository.swift in Sources */,
 				010505 /* FeedDataSource.swift in Sources */,
+				0105F7 /* FeedStreakCalculator.swift in Sources */,
 				010519 /* FeedShareDraft.swift in Sources */,
 				010520 /* FeedShareDraftBuilder.swift in Sources */,
 				010521 /* FeedShareDraftStore.swift in Sources */,
@@ -1992,12 +1993,13 @@
 				010200 /* UnifiedWorkoutDuplicateReviewViewModel.swift in Sources */,
 				010201 /* UnifiedWorkoutDuplicateReviewView.swift in Sources */,
 				010202 /* UnifiedWorkoutDuplicateReviewViewContainer.swift in Sources */,
-				010024 /* FeedPostDetailContent.swift in Sources */,
+				0105F3 /* FeedItemDetailView.swift in Sources */,
 				010A01 /* StravaDetailFrameLockView.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
 				010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */,
 				010052 /* RecoveryDataProvider.swift in Sources */,
+				0100F1 /* UnifiedWorkoutRecoveryDataProvider.swift in Sources */,
 				010055 /* RecoveryActivityStore.swift in Sources */,
 				010058 /* LocalActivityStore.swift in Sources */,
 				010057 /* RecoveryActivityMapper.swift in Sources */,
@@ -2070,6 +2072,7 @@
 				010306 /* SettingsViewModel.swift in Sources */,
 				010307 /* ProfileSummaryCard.swift in Sources */,
 				010308 /* SettingsView.swift in Sources */,
+				0105F6 /* ProfileIdentityView.swift in Sources */,
 				010800 /* ProfileWorkoutAggregation.swift in Sources */,
 				010373 /* AppUser.swift in Sources */,
 				010374 /* AuthSession.swift in Sources */,
@@ -2263,6 +2266,7 @@
 				010506 /* FeedPostDTOTests.swift in Sources */,
 				010507 /* FeedDataSourceTests.swift in Sources */,
 				010522 /* FeedShareDraftTests.swift in Sources */,
+				0105F8 /* FeedStreakCalculatorTests.swift in Sources */,
 				010509 /* RecordLaunchPlanTests.swift in Sources */,
 				010513 /* RecordMapFoundationTests.swift in Sources */,
 				010516 /* RecordWorkoutSessionTests.swift in Sources */,

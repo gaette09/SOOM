@@ -15,8 +15,10 @@ struct HealthKitSettingsView: View {
             permissionCard
             workoutPreviewEntryCard
             workoutLibraryEntryCard
+            #if DEBUG
             realDataRecoveryPreviewEntryCard
             recoveryPreviewEntryCard
+            #endif
 
             if let errorMessage = viewModel.errorMessage {
                 errorCard(errorMessage)
@@ -113,6 +115,7 @@ struct HealthKitSettingsView: View {
         .accessibilityHint("HealthKit 운동 기록 미리보기 화면으로 이동합니다.")
     }
 
+    #if DEBUG
     private var recoveryPreviewEntryCard: some View {
         NavigationLink {
             HealthKitRecoveryPreviewViewContainer()
@@ -148,6 +151,7 @@ struct HealthKitSettingsView: View {
         .accessibilityLabel("실제 운동 기반 Recovery 미리보기")
         .accessibilityHint("가져온 UnifiedWorkout 기반 Recovery 미리보기 화면으로 이동합니다.")
     }
+    #endif
 
     private var workoutImportEntryCard: some View {
         NavigationLink {

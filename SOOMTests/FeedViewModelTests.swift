@@ -6,13 +6,15 @@ final class FeedViewModelTests: XCTestCase {
     func testLoadBuildsProductionReadModelFromProviders() async {
         let item = FeedMockData.items[0]
         let progress = makeProgress(workoutCount: 3)
+        let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = FeedViewModel(
             feedLoader: StubFeedLoader(items: [item]),
             weeklyProgressProvider: StubWeeklyProgressProvider(result: .success(progress)),
             recoveryPreviewProvider: StubRecoveryPreviewProvider(result: .success(
                 UnifiedWorkoutRecoveryPreviewResult(summary: .mockToday, usedWorkoutCount: 3)
             )),
-            now: { Date(timeIntervalSince1970: 1_800_000_000) }
+            streakDatesProvider: StubStreakDatesProvider(result: .success([referenceDate])),
+            now: { referenceDate }
         )
 
         await viewModel.load()
@@ -21,6 +23,8 @@ final class FeedViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.readModel.weeklySnapshot?.progress, progress)
         XCTAssertEqual(viewModel.readModel.weeklySnapshot?.sportSummary, "이번 주 3회 움직였어요")
         XCTAssertEqual(viewModel.readModel.recoveryInsight?.score, RecoverySummary.mockToday.score)
+        XCTAssertEqual(viewModel.readModel.streak.weekCount, 1)
+        XCTAssertEqual(viewModel.readModel.streak.activityCount, 1)
         XCTAssertFalse(viewModel.readModel.isLoading)
     }
 
@@ -29,7 +33,8 @@ final class FeedViewModelTests: XCTestCase {
         let viewModel = FeedViewModel(
             feedLoader: StubFeedLoader(items: [item]),
             weeklyProgressProvider: StubWeeklyProgressProvider(result: .failure(StubError.failed)),
-            recoveryPreviewProvider: StubRecoveryPreviewProvider(result: .failure(StubError.failed))
+            recoveryPreviewProvider: StubRecoveryPreviewProvider(result: .failure(StubError.failed)),
+            streakDatesProvider: StubStreakDatesProvider(result: .failure(StubError.failed))
         )
 
         await viewModel.load()
@@ -37,6 +42,7 @@ final class FeedViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.readModel.items, [item])
         XCTAssertNil(viewModel.readModel.weeklySnapshot)
         XCTAssertNil(viewModel.readModel.recoveryInsight)
+        XCTAssertEqual(viewModel.readModel.streak.weekCount, 0)
         XCTAssertFalse(viewModel.readModel.isLoading)
     }
 
@@ -74,6 +80,14 @@ private struct StubRecoveryPreviewProvider: FeedRecoveryPreviewProviding {
     let result: Result<UnifiedWorkoutRecoveryPreviewResult, Error>
 
     func fetchPreviewSummary() async throws -> UnifiedWorkoutRecoveryPreviewResult {
+        try result.get()
+    }
+}
+
+private struct StubStreakDatesProvider: FeedStreakWorkoutDatesProviding {
+    let result: Result<[Date], Error>
+
+    func fetchRecentWorkoutDates(days: Int) async throws -> [Date] {
         try result.get()
     }
 }

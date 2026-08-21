@@ -5,6 +5,7 @@ struct FeedView: View {
     let items: [FeedItem]
     let weeklySnapshot: FeedWeeklySnapshot?
     let recoveryInsight: FeedRecoveryInsight?
+    let streak: FeedStreakSnapshot
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
@@ -12,12 +13,14 @@ struct FeedView: View {
     init(
         items: [FeedItem] = FeedMockData.items,
         weeklySnapshot: FeedWeeklySnapshot? = nil,
-        recoveryInsight: FeedRecoveryInsight? = nil
+        recoveryInsight: FeedRecoveryInsight? = nil,
+        streak: FeedStreakSnapshot = FeedStreakSnapshot(weekCount: 0, activityCount: 0)
     ) {
         let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
         self.weeklySnapshot = weeklySnapshot
         self.recoveryInsight = recoveryInsight
+        self.streak = streak
         _visibleItems = State(initialValue: sortedItems)
     }
 
@@ -27,6 +30,10 @@ struct FeedView: View {
 
             if let weeklySnapshot {
                 FeedWeeklySnapshotCarousel(snapshot: weeklySnapshot)
+            }
+
+            if streak.weekCount > 0 {
+                FeedStreakCard(streak: streak)
             }
 
             if let recoveryInsight {
@@ -192,12 +199,7 @@ struct FeedView: View {
 
     @ViewBuilder
     private func feedDestination(for item: FeedItem) -> some View {
-        switch item.cardData {
-        case .workoutSession:
-            AnalysisViewContainer()
-        case .weeklyProgress:
-            AnalysisViewContainer()
-        }
+        FeedItemDetailView(item: item)
     }
 
     private var emptyState: some View {

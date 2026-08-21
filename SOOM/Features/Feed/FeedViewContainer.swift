@@ -9,7 +9,8 @@ struct FeedViewContainer: View {
         FeedView(
             items: readModel.items,
             weeklySnapshot: readModel.weeklySnapshot,
-            recoveryInsight: readModel.recoveryInsight
+            recoveryInsight: readModel.recoveryInsight,
+            streak: readModel.streak
         )
         .task {
             let viewModel = makeProductionViewModel()
@@ -23,7 +24,8 @@ struct FeedViewContainer: View {
         return FeedViewModel(
             feedLoader: FeedDataSource(draftStore: FileFeedShareDraftStore.live),
             weeklyProgressProvider: UnifiedWorkoutWeeklyProgressProvider(store: store),
-            recoveryPreviewProvider: UnifiedWorkoutRecoveryPreviewProvider(store: store)
+            recoveryPreviewProvider: UnifiedWorkoutRecoveryPreviewProvider(store: store),
+            streakDatesProvider: UnifiedWorkoutStoreStreakDatesProvider(store: store)
         )
     }
 }

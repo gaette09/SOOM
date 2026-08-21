@@ -225,7 +225,7 @@ struct FeedItemCard: View {
 
 }
 
-private struct FeedProfileAvatar: View {
+struct FeedProfileAvatar: View {
     var body: some View {
         Circle()
             .fill(SOOMColor.surfaceMuted)
@@ -243,7 +243,7 @@ private struct FeedProfileAvatar: View {
     }
 }
 
-private struct FeedReferenceMediaPreview: View {
+struct FeedReferenceMediaPreview: View {
     let routeStyle: StaticRouteFallbackStyle
     let routeExists: Bool
     let distanceText: String
@@ -595,13 +595,13 @@ private struct FeedReferenceRouteLine: Shape {
     }
 }
 
-private struct FeedReferenceMetric: Identifiable {
+struct FeedReferenceMetric: Identifiable {
     let id = UUID()
     let label: String
     let value: String
 }
 
-private struct FeedReferenceMetricGrid: View {
+struct FeedReferenceMetricGrid: View {
     let metrics: [FeedReferenceMetric]
 
     var body: some View {
@@ -662,7 +662,7 @@ private struct FeedReferenceAction: View {
     }
 }
 
-private extension UnifiedWorkoutType {
+extension UnifiedWorkoutType {
     var feedTint: Color {
         switch self {
         case .running:

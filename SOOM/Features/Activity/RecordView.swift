@@ -27,6 +27,7 @@ struct RecordView: View {
     @State private var isBottomGradientBreathing = false
     @State private var readyInteractionState = RecordReadyWaveInteractionState.idle
     @State private var activeHUDMode: RecordActiveHUDMode = .defaultMode
+    @State private var recoveryLabel = "회복 확인 중"
 
     private let plan = RecordLaunchPlan.mockToday
     private let sessionStarter = RecordWorkoutSessionStarter()
@@ -112,6 +113,9 @@ struct RecordView: View {
         .task {
             await fetchWeatherIfPossible(for: locationManager.state)
         }
+        .task {
+            await loadRecoveryLabel()
+        }
         .task(id: activeSession?.id) {
             guard activeSession != nil else { return }
 
@@ -181,7 +185,7 @@ struct RecordView: View {
                     .textCase(.uppercase)
             }
 
-            Text(plan.recommendation.recoveryLabel)
+            Text(recoveryLabel)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.accentInk)
                 .lineLimit(1)
@@ -205,7 +209,7 @@ struct RecordView: View {
         .shadow(color: SOOMColor.ink.opacity(0.045), radius: 8, x: 0, y: 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("오늘의 출발 기준")
-        .accessibilityValue("\(plan.recommendation.recoveryLabel). \(guidanceRecommendationText)")
+        .accessibilityValue("\(recoveryLabel). \(guidanceRecommendationText)")
     }
 
     private var rightEdgeControls: some View {
@@ -1634,6 +1638,17 @@ struct RecordView: View {
     }
 
     @MainActor
+    private func loadRecoveryLabel() async {
+        let provider = UnifiedWorkoutRecoveryDataProvider(
+            previewProvider: UnifiedWorkoutRecoveryPreviewProvider(
+                store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+            )
+        )
+
+        guard let summary = try? await provider.fetchRecoverySummary() else { return }
+        recoveryLabel = "회복 \(summary.score) · \(summary.status)"
+    }
+
     private func fetchWeatherIfPossible(for state: RecordLocationState, forceRefresh: Bool = false) async {
         guard state.canShowUserLocation,
               let coordinate = state.coordinate else {

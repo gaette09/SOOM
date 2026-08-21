@@ -162,7 +162,7 @@ struct RootTabView: View {
             }
         case .activity:
             NavigationStack {
-                ActivityView()
+                ActivityHubView()
             }
         case .clubs:
             NavigationStack {
@@ -170,7 +170,7 @@ struct RootTabView: View {
             }
         case .profile:
             NavigationStack {
-                SettingsView()
+                ProfileIdentityView()
             }
         }
     }
@@ -607,6 +607,120 @@ private struct FloatingRecoveryCoach: View {
             CharacterSet.whitespacesAndNewlines.contains(scalar) == false &&
             CharacterSet.punctuationCharacters.contains(scalar) == false
         }
+    }
+}
+
+private enum ActivityHubSection: String, CaseIterable, Identifiable {
+    case today
+    case workouts
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .today:
+            return "오늘"
+        case .workouts:
+            return "운동 목록"
+        }
+    }
+}
+
+/// Remembers the last-viewed sub-tab across sessions (Strava-style), not just
+/// within one screen lifetime — hence @AppStorage instead of plain @State.
+private struct ActivityHubView: View {
+    @AppStorage("activityHubSelectedSection") private var selectedSectionRawValue = ActivityHubSection.today.rawValue
+
+    private var selectedSection: ActivityHubSection {
+        ActivityHubSection(rawValue: selectedSectionRawValue) ?? .today
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            sectionPicker
+                .padding(.horizontal, SOOMLayout.screenPadding)
+                .padding(.top, SOOMLayout.Screen.topPadding)
+
+            switch selectedSection {
+            case .today:
+                ActivityTodaySection()
+            case .workouts:
+                ActivityView()
+            }
+        }
+    }
+
+    private var sectionPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(ActivityHubSection.allCases) { section in
+                Button {
+                    selectedSectionRawValue = section.rawValue
+                    SOOMHaptics.selection()
+                } label: {
+                    Text(section.title)
+                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(selectedSection == section ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, SOOMLayout.Spacing.sm)
+                        .background(selectedSection == section ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+/// MVP: 이미 있는 provider(UnifiedWorkoutWeeklyProgressProvider/UnifiedWorkoutRecoveryPreviewProvider)와
+/// Feed가 쓰는 것과 동일한 카드(FeedWeeklySnapshotCarousel/FeedRecoveryInsightCard)를 재사용한다.
+/// PDF 스펙의 4지표(신체에너지/스트레스/회복/운동강도) 분리 대시보드는 별도 배치(M4, 신규 모델링 필요).
+private struct ActivityTodaySection: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var weeklySnapshot: FeedWeeklySnapshot?
+    @State private var recoveryInsight: FeedRecoveryInsight?
+
+    var body: some View {
+        SOOMScreen {
+            if let weeklySnapshot {
+                FeedWeeklySnapshotCarousel(snapshot: weeklySnapshot)
+            }
+
+            if let recoveryInsight {
+                NavigationLink {
+                    RecoveryViewContainer()
+                } label: {
+                    FeedRecoveryInsightCard(insight: recoveryInsight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("회복 상세 화면으로 이동합니다.")
+            }
+        }
+        .task {
+            await loadTodayContent()
+        }
+    }
+
+    @MainActor
+    private func loadTodayContent() async {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let weeklyProgressProvider = UnifiedWorkoutWeeklyProgressProvider(store: store)
+        let recoveryPreviewProvider = UnifiedWorkoutRecoveryPreviewProvider(store: store)
+
+        async let weeklyProgress = weeklyProgressProvider.fetchWeeklyProgress(referenceDate: Date())
+        async let recoveryPreview = recoveryPreviewProvider.fetchPreviewSummary()
+
+        let progress = try? await weeklyProgress
+        let recovery = try? await recoveryPreview
+
+        weeklySnapshot = progress.map {
+            FeedWeeklySnapshot(progress: $0, sportSummary: sportSummary(for: $0))
+        }
+        recoveryInsight = recovery.map { FeedRecoveryInsight(summary: $0.summary) }
+    }
+
+    private func sportSummary(for progress: WeeklyWorkoutProgress) -> String {
+        guard progress.workoutCount > 0 else { return "이번 주 운동을 기다리고 있어요" }
+        return "이번 주 \(progress.workoutCount)회 움직였어요"
     }
 }
 

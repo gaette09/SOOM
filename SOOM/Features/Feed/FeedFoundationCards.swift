@@ -57,6 +57,49 @@ struct FeedWeeklySnapshotCarousel: View {
     }
 }
 
+/// Strava's real "Weekly Streak" rule (WeeklyStreakCalculator.swift): at least 1 activity
+/// per calendar week keeps it alive. Hidden entirely at weekCount == 0 (FeedView.swift) so a
+/// broken/reset streak doesn't read as a discouraging "0" card.
+struct FeedStreakCard: View {
+    let streak: FeedStreakSnapshot
+
+    var body: some View {
+        SOOMCard(depth: .ambient) {
+            HStack(spacing: 12) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: SOOMFont.Size.headline, weight: .bold))
+                    .foregroundStyle(SOOMColor.accent)
+                    .frame(width: 40, height: 40)
+                    .background(SOOMColor.accentSurface)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Your Streak")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.tertiaryInk)
+                    Text("\(streak.weekCount)주 연속")
+                        .font(SOOMFont.displayMedium(18, relativeTo: .headline))
+                        .foregroundStyle(SOOMColor.ink)
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("Streak Activities")
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(SOOMColor.tertiaryInk)
+                    Text("\(streak.activityCount)회")
+                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.ink)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("주간 스트릭")
+        .accessibilityValue("\(streak.weekCount)주 연속, 활동 \(streak.activityCount)회")
+    }
+}
+
 struct FeedRecoveryInsightCard: View {
     let insight: FeedRecoveryInsight
 

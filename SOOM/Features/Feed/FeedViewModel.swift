@@ -18,6 +18,18 @@ protocol FeedRecoveryPreviewProviding {
 
 extension UnifiedWorkoutRecoveryPreviewProvider: FeedRecoveryPreviewProviding {}
 
+protocol FeedStreakWorkoutDatesProviding {
+    func fetchRecentWorkoutDates(days: Int) async throws -> [Date]
+}
+
+struct UnifiedWorkoutStoreStreakDatesProvider: FeedStreakWorkoutDatesProviding {
+    let store: any UnifiedWorkoutStore
+
+    func fetchRecentWorkoutDates(days: Int) async throws -> [Date] {
+        try await store.fetchRecentWorkouts(days: days).map(\.startDate)
+    }
+}
+
 @MainActor
 final class FeedViewModel: ObservableObject {
     @Published private(set) var readModel: FeedReadModel
@@ -25,17 +37,20 @@ final class FeedViewModel: ObservableObject {
     private let feedLoader: any FeedLoading
     private let weeklyProgressProvider: any FeedWeeklyProgressProviding
     private let recoveryPreviewProvider: any FeedRecoveryPreviewProviding
+    private let streakDatesProvider: any FeedStreakWorkoutDatesProviding
     private let now: () -> Date
 
     init(
         feedLoader: any FeedLoading,
         weeklyProgressProvider: any FeedWeeklyProgressProviding,
         recoveryPreviewProvider: any FeedRecoveryPreviewProviding,
+        streakDatesProvider: any FeedStreakWorkoutDatesProviding,
         now: @escaping () -> Date = Date.init
     ) {
         self.feedLoader = feedLoader
         self.weeklyProgressProvider = weeklyProgressProvider
         self.recoveryPreviewProvider = recoveryPreviewProvider
+        self.streakDatesProvider = streakDatesProvider
         self.now = now
         self.readModel = .loading
     }
@@ -46,10 +61,12 @@ final class FeedViewModel: ObservableObject {
         async let feedItems = feedLoader.loadFeed(limit: 20)
         async let weeklyProgress = weeklyProgressProvider.fetchWeeklyProgress(referenceDate: referenceDate)
         async let recoveryPreview = recoveryPreviewProvider.fetchPreviewSummary()
+        async let streakDates = streakDatesProvider.fetchRecentWorkoutDates(days: 180)
 
         let items = await feedItems
         let progress = try? await weeklyProgress
         let recovery = try? await recoveryPreview
+        let workoutDates = (try? await streakDates) ?? []
 
         readModel = FeedReadModel(
             items: items,
@@ -57,6 +74,7 @@ final class FeedViewModel: ObservableObject {
                 FeedWeeklySnapshot(progress: $0, sportSummary: sportSummary(for: $0))
             },
             recoveryInsight: recovery.map { FeedRecoveryInsight(summary: $0.summary) },
+            streak: WeeklyStreakCalculator.calculate(workoutDates: workoutDates, referenceDate: referenceDate),
             isLoading: false
         )
     }
@@ -71,12 +89,14 @@ struct FeedReadModel: Equatable {
     var items: [FeedItem]
     var weeklySnapshot: FeedWeeklySnapshot?
     var recoveryInsight: FeedRecoveryInsight?
+    var streak: FeedStreakSnapshot
     var isLoading: Bool
 
     static let loading = FeedReadModel(
         items: [],
         weeklySnapshot: nil,
         recoveryInsight: nil,
+        streak: FeedStreakSnapshot(weekCount: 0, activityCount: 0),
         isLoading: true
     )
 }
