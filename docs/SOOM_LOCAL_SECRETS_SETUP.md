@@ -15,7 +15,11 @@ cp SOOM/Config/LocalSecrets.example.xcconfig SOOM/Config/LocalSecrets.xcconfig
 ```xcconfig
 MBX_ACCESS_TOKEN=pk.your_mapbox_token_here
 OPENWEATHER_API_KEY=your_openweather_key_here
+SOOM_SUPABASE_URL=https:/$()/your-project-ref.supabase.co
+SOOM_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
+
+`SOOM_SUPABASE_URL` needs the `$()` between the two `/` characters (`https:/$()/...`, not `https:$()//...` — that still leaves `//` adjacent and gets stripped the same way). xcconfig treats a bare `//` as the start of a comment, so `https://your-project-ref.supabase.co` silently truncates to `https:` at build time — `SupabaseClient` then crashes at launch with "supabaseURL must have a valid host" instead of falling back gracefully, because a truncated-but-nonempty URL string still passes the "is this configured" check. `$()` (an empty build-setting reference) breaks up the `//` without changing the resolved value.
 
 3. Debug builds are wired through `SOOM/Config/Debug.xcconfig`, which optional-includes `LocalSecrets.xcconfig`. Use the local file only on your machine:
 
