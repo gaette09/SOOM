@@ -6,9 +6,11 @@ struct FeedView: View {
     let weeklySnapshot: FeedWeeklySnapshot?
     let recoveryInsight: FeedRecoveryInsight?
     let streak: FeedStreakSnapshot
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
+    @State private var isSignInSheetPresented = false
 
     init(
         items: [FeedItem] = FeedMockData.items,
@@ -27,6 +29,12 @@ struct FeedView: View {
     var body: some View {
         SOOMScreen {
             topHeader
+
+            if !authViewModel.session.isSignedIn {
+                FeedSignInBanner {
+                    isSignInSheetPresented = true
+                }
+            }
 
             if let weeklySnapshot {
                 FeedWeeklySnapshotCarousel(snapshot: weeklySnapshot)
@@ -103,6 +111,24 @@ struct FeedView: View {
         .onChange(of: items) { _, newItems in
             visibleItems = Self.prioritizedItems(newItems)
         }
+        .onChange(of: authViewModel.session.isSignedIn) { _, isSignedIn in
+            if isSignedIn {
+                isSignInSheetPresented = false
+            }
+        }
+        .sheet(isPresented: $isSignInSheetPresented) {
+            signInSheet
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var signInSheet: some View {
+        VStack(alignment: .leading, spacing: SOOMLayout.Spacing.lg) {
+            AppleAuthCard(authViewModel: authViewModel)
+            Spacer()
+        }
+        .padding(SOOMLayout.Spacing.xl)
     }
 
     private var topHeader: some View {

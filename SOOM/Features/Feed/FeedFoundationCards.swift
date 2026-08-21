@@ -133,3 +133,25 @@ struct FeedRecoveryInsightCard: View {
         .accessibilityValue("\(insight.score)점, \(insight.status). \(insight.recommendation)")
     }
 }
+
+/// Shown only when signed out. Feed silently falls back to mock content and
+/// local-only share drafts when there's no Supabase session — this makes
+/// that state visible and actionable instead of leaving it unexplained.
+struct FeedSignInBanner: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            SOOMCard(depth: .ambient) {
+                SOOMActionRow(
+                    icon: "person.crop.circle.badge.plus",
+                    title: "로그인하고 다른 사람의 활동도 보기",
+                    subtitle: "지금은 로그인 없이 내 기록만 이 기기에 저장돼요.",
+                    tint: SOOMColor.accent
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("로그인 화면으로 이동합니다.")
+    }
+}

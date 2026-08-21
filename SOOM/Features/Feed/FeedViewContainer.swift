@@ -21,8 +21,18 @@ struct FeedViewContainer: View {
 
     private func makeProductionViewModel() -> FeedViewModel {
         let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
+        let remoteClient = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
+
         return FeedViewModel(
-            feedLoader: FeedDataSource(draftStore: FileFeedShareDraftStore.live),
+            feedLoader: FeedDataSource(
+                remoteRepository: SupabaseFeedRepository(
+                    clientProvider: clientProvider,
+                    remoteFetcher: remoteClient,
+                    profileFetcher: remoteClient
+                ),
+                draftStore: FileFeedShareDraftStore.live
+            ),
             weeklyProgressProvider: UnifiedWorkoutWeeklyProgressProvider(store: store),
             recoveryPreviewProvider: UnifiedWorkoutRecoveryPreviewProvider(store: store),
             streakDatesProvider: UnifiedWorkoutStoreStreakDatesProvider(store: store)

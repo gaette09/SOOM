@@ -14,6 +14,10 @@ protocol FeedRemotePostFetching {
     func fetchFeedPosts(limit: Int) async throws -> [FeedPostBundleDTO]
 }
 
+protocol FeedRemotePostPosting {
+    func postPublicPost(_ draft: FeedShareDraft) async throws
+}
+
 struct MockFeedRepository: FeedRepositoryProtocol {
     let items: [FeedItem]
 

@@ -94,24 +94,48 @@ enum RecordPostSaveShareAction: Equatable {
     case later
 }
 
+/// `postedRemotely` distinguishes a real Supabase post from the local-only
+/// draft fallback — without this, RecordView has no way to tell the user
+/// which one actually happened, and shows the same success message either
+/// way (see SOOM_KNOWN_ISSUES.md: "Share-to-Feed Success Is Indistinguishable
+/// From Local-Only Fallback").
+struct RecordShareOutcome: Equatable {
+    let draft: FeedShareDraft
+    let postedRemotely: Bool
+}
+
 struct RecordShareDraftCoordinator {
     let builder: FeedShareDraftBuilder
     let store: any FeedShareDraftStoreProtocol
+    let remotePoster: (any FeedRemotePostPosting)?
 
     init(
         builder: FeedShareDraftBuilder = FeedShareDraftBuilder(),
-        store: any FeedShareDraftStoreProtocol
+        store: any FeedShareDraftStoreProtocol,
+        remotePoster: (any FeedRemotePostPosting)? = nil
     ) {
         self.builder = builder
         self.store = store
+        self.remotePoster = remotePoster
     }
 
-    func handle(_ action: RecordPostSaveShareAction, workout: UnifiedWorkout) async throws -> FeedShareDraft? {
+    func handle(_ action: RecordPostSaveShareAction, workout: UnifiedWorkout) async throws -> RecordShareOutcome? {
         switch action {
         case .shareToFeed:
             let draft = builder.build(from: workout)
+
+            // Try posting for real first. Any failure here — no signed-in
+            // Supabase session (the common case today), RLS rejecting the
+            // insert, network down, anything — falls through to the local
+            // draft save below rather than surfacing an error. The local
+            // save is what already ran unconditionally before this batch,
+            // so this never makes share-to-feed less reliable than it was.
+            if let remotePoster, (try? await remotePoster.postPublicPost(draft)) != nil {
+                return RecordShareOutcome(draft: draft, postedRemotely: true)
+            }
+
             try await store.saveDraft(draft)
-            return draft
+            return RecordShareOutcome(draft: draft, postedRemotely: false)
         case .later:
             return nil
         }

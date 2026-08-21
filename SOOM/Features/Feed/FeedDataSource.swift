@@ -8,6 +8,14 @@ struct FeedSourceStrategy: Equatable {
 }
 
 final class FeedDataSource {
+    /// Feed shows all public posts until this flips to true. Do not flip it until both
+    /// ROADMAP items are done: `feed-follows-table` (the follows table/RLS to query
+    /// against) and `feed-follow-ui-and-visibility` (the UI to build/manage that graph) —
+    /// flipping this with no follows table behind it would just make the feed empty for
+    /// everyone. soom-migration-plan.md M6: this batch is the switch point only, no
+    /// filtering query logic yet.
+    static let isFollowFilterEnabled = false
+
     private let remoteRepository: FeedRepositoryProtocol?
     private let fallbackRepository: FeedRepositoryProtocol
     private let draftStore: (any FeedShareDraftStoreProtocol)?

@@ -104,6 +104,33 @@ struct FeedPostDTO: Codable, Equatable, Identifiable {
     }
 }
 
+/// Insert-only payload for `feed_posts`. Deliberately separate from
+/// `FeedPostDTO` — `id`/`created_at`/`updated_at` are server-generated and
+/// must never be sent on insert.
+struct FeedPostInsertDTO: Encodable, Equatable {
+    let userId: UUID
+    let sourceWorkoutId: UUID?
+    let sport: UnifiedWorkoutType
+    let title: String
+    let body: String?
+    let distanceMeters: Double?
+    let durationSeconds: Int?
+    let averagePaceSecondsPerKm: Int?
+    let visibility: FeedPostVisibility
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case sourceWorkoutId = "source_workout_id"
+        case sport
+        case title
+        case body
+        case distanceMeters = "distance_meters"
+        case durationSeconds = "duration_seconds"
+        case averagePaceSecondsPerKm = "average_pace_seconds_per_km"
+        case visibility
+    }
+}
+
 struct FeedPostBundleDTO: Equatable {
     let post: FeedPostDTO
     let media: [FeedPostMediaDTO]

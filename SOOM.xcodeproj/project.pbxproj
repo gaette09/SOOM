@@ -306,6 +306,8 @@
 		010502 /* FeedPostMediaDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020502 /* FeedPostMediaDTO.swift */; };
 		010503 /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020503 /* FeedRepository.swift */; };
 		010504 /* SupabaseFeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020504 /* SupabaseFeedRepository.swift */; };
+		0105F1 /* FeedProfileDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F1 /* FeedProfileDTO.swift */; };
+		0105F2 /* SupabaseFeedRemoteClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F2 /* SupabaseFeedRemoteClient.swift */; };
 		010505 /* FeedDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020505 /* FeedDataSource.swift */; };
 		0105F7 /* FeedStreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F7 /* FeedStreakCalculator.swift */; };
 		010506 /* FeedPostDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020506 /* FeedPostDTOTests.swift */; };
@@ -818,6 +820,8 @@
 		020502 /* FeedPostMediaDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostMediaDTO.swift; sourceTree = "<group>"; };
 		020503 /* FeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepository.swift; sourceTree = "<group>"; };
 		020504 /* SupabaseFeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseFeedRepository.swift; sourceTree = "<group>"; };
+		0205F1 /* FeedProfileDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedProfileDTO.swift; sourceTree = "<group>"; };
+		0205F2 /* SupabaseFeedRemoteClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseFeedRemoteClient.swift; sourceTree = "<group>"; };
 		020505 /* FeedDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDataSource.swift; sourceTree = "<group>"; };
 		0205F7 /* FeedStreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStreakCalculator.swift; sourceTree = "<group>"; };
 		020506 /* FeedPostDTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPostDTOTests.swift; sourceTree = "<group>"; };
@@ -1389,6 +1393,8 @@
 				020502 /* FeedPostMediaDTO.swift */,
 				020503 /* FeedRepository.swift */,
 				020504 /* SupabaseFeedRepository.swift */,
+				0205F1 /* FeedProfileDTO.swift */,
+				0205F2 /* SupabaseFeedRemoteClient.swift */,
 				020505 /* FeedDataSource.swift */,
 				0205F7 /* FeedStreakCalculator.swift */,
 				020519 /* FeedShareDraft.swift */,
@@ -1934,6 +1940,8 @@
 				010502 /* FeedPostMediaDTO.swift in Sources */,
 				010503 /* FeedRepository.swift in Sources */,
 				010504 /* SupabaseFeedRepository.swift in Sources */,
+				0105F1 /* FeedProfileDTO.swift in Sources */,
+				0105F2 /* SupabaseFeedRemoteClient.swift in Sources */,
 				010505 /* FeedDataSource.swift in Sources */,
 				0105F7 /* FeedStreakCalculator.swift in Sources */,
 				010519 /* FeedShareDraft.swift in Sources */,

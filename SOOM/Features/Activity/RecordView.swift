@@ -20,6 +20,7 @@ struct RecordView: View {
     @State private var savedWorkoutForShare: UnifiedWorkout?
     @State private var isCreatingShareDraft = false
     @State private var shareDraftErrorMessage: String?
+    @State private var shareDraftResultMessage: String?
     @State private var weatherSnapshot = RecordWeatherSnapshot.fallbackClear
     @State private var weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
     @State private var isFetchingWeather = false
@@ -1392,6 +1393,13 @@ struct RecordView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
+                if let shareDraftResultMessage {
+                    Text(shareDraftResultMessage)
+                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 if let savedWorkoutForShare {
                     HStack(spacing: 10) {
                         Button {
@@ -1523,10 +1531,21 @@ struct RecordView: View {
 
         isCreatingShareDraft = true
         shareDraftErrorMessage = nil
+        shareDraftResultMessage = nil
 
         do {
-            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live)
-            _ = try await coordinator.handle(.shareToFeed, workout: workout)
+            let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
+            let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
+            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live, remotePoster: remotePoster)
+            let outcome = try await coordinator.handle(.shareToFeed, workout: workout)
+            shareDraftResultMessage = (outcome?.postedRemotely == true)
+                ? "피드에 공개로 게시했어요."
+                : "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
+            // Hold the confirmation on screen briefly before the flow dismisses —
+            // otherwise a signed-in vs signed-out share would look identical,
+            // which was exactly the gap this batch closes. isCreatingShareDraft
+            // stays true through the hold so a stray tap can't re-enter.
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
             isCreatingShareDraft = false
             finishSavedWorkoutFlow(shareCompleted: true)
         } catch {
@@ -1544,6 +1563,7 @@ struct RecordView: View {
     private func finishSavedWorkoutFlow(shareCompleted: Bool) {
         savedWorkoutForShare = nil
         shareDraftErrorMessage = nil
+        shareDraftResultMessage = nil
         activeHUDMode = .defaultMode
         activeSession = nil
 
@@ -1569,6 +1589,7 @@ struct RecordView: View {
     private func resetFinishedShareState() {
         saveErrorMessage = nil
         shareDraftErrorMessage = nil
+        shareDraftResultMessage = nil
         savedWorkoutForShare = nil
         isSavingWorkout = false
         isCreatingShareDraft = false

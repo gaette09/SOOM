@@ -57,10 +57,11 @@ final class FeedShareDraftTests: XCTestCase {
             store: store
         )
 
-        let draft = try await coordinator.handle(.shareToFeed, workout: workout())
+        let outcome = try await coordinator.handle(.shareToFeed, workout: workout())
         let savedDrafts = try await store.fetchDrafts()
 
-        XCTAssertEqual(draft?.id, draftID)
+        XCTAssertEqual(outcome?.draft.id, draftID)
+        XCTAssertEqual(outcome?.postedRemotely, false)
         XCTAssertEqual(savedDrafts.map(\.id), [draftID])
     }
 
@@ -68,11 +69,39 @@ final class FeedShareDraftTests: XCTestCase {
         let store = InMemoryFeedShareDraftStore()
         let coordinator = RecordShareDraftCoordinator(store: store)
 
-        let draft = try await coordinator.handle(.later, workout: workout())
+        let outcome = try await coordinator.handle(.later, workout: workout())
         let savedDrafts = try await store.fetchDrafts()
 
-        XCTAssertNil(draft)
+        XCTAssertNil(outcome)
         XCTAssertTrue(savedDrafts.isEmpty)
+    }
+
+    func testSuccessfulRemotePostSkipsLocalDraftToAvoidDuplicate() async throws {
+        let store = InMemoryFeedShareDraftStore()
+        let coordinator = RecordShareDraftCoordinator(
+            store: store,
+            remotePoster: StubFeedRemotePostPosting(result: .success(()))
+        )
+
+        let outcome = try await coordinator.handle(.shareToFeed, workout: workout())
+        let savedDrafts = try await store.fetchDrafts()
+
+        XCTAssertEqual(outcome?.postedRemotely, true)
+        XCTAssertTrue(savedDrafts.isEmpty, "a successful remote post must not also write a local draft")
+    }
+
+    func testFailedRemotePostFallsBackToLocalDraft() async throws {
+        let store = InMemoryFeedShareDraftStore()
+        let coordinator = RecordShareDraftCoordinator(
+            store: store,
+            remotePoster: StubFeedRemotePostPosting(result: .failure(FeedRepositoryError.remoteFailed))
+        )
+
+        let outcome = try await coordinator.handle(.shareToFeed, workout: workout())
+        let savedDrafts = try await store.fetchDrafts()
+
+        XCTAssertEqual(outcome?.postedRemotely, false)
+        XCTAssertEqual(savedDrafts.count, 1)
     }
 
     private func workout(
@@ -111,5 +140,13 @@ final class InMemoryFeedShareDraftStore: FeedShareDraftStoreProtocol {
 
     func fetchDrafts() async throws -> [FeedShareDraft] {
         drafts
+    }
+}
+
+private struct StubFeedRemotePostPosting: FeedRemotePostPosting {
+    let result: Result<Void, Error>
+
+    func postPublicPost(_ draft: FeedShareDraft) async throws {
+        try result.get()
     }
 }
