@@ -16,3 +16,7 @@ build/
 # (e.g. real GPS routes) — never committed. Synthetic fixtures built in test
 # code (FITTestFileBuilder etc.) are unaffected, they aren't files on disk.
 SOOMTests/Fixtures/
+
+# Supabase CLI scratch state from `supabase link`/`db push` — includes a
+# pooler connection string, never committed.
+supabase/.temp/
