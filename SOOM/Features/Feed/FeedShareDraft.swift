@@ -68,6 +68,7 @@ struct FeedShareDraft: Identifiable, Codable, Equatable {
             itemType: .workoutSession,
             visibility: visibility.shareableVisibility,
             cardData: .workoutSession(card),
+            sourceWorkoutId: sourceWorkoutId,
             caption: body,
             photoPlaceholders: photoPlaceholders,
             activityContext: title,

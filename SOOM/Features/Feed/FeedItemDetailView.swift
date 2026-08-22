@@ -1,4 +1,91 @@
+import SwiftData
 import SwiftUI
+
+/// Feed-detail-migration-plan.md Phase B: routes a feed item to the right
+/// detail depth. "본인 글=Activity 수준 전체" needs no new presentation model —
+/// `UnifiedWorkoutDetailDestination` (built across Phase A batches 1-9)
+/// already renders full depth from a real `UnifiedWorkout`. Since Feed never
+/// stores other users' raw workouts locally (Q1 invariant — `ActivityView`/
+/// `UnifiedWorkoutDetailDestination` only ever query this device's own
+/// SwiftData store), a successful local lookup of `sourceWorkoutId` is
+/// itself sufficient proof this is the viewer's own post — no separate
+/// author-identity check needed. Anything else (someone else's post, or an
+/// own post whose local record is gone — e.g. shared from another device)
+/// falls back to the existing sanitized `FeedItemDetailView`, unchanged.
+struct FeedItemDetailDestination: View {
+    let item: FeedItem
+
+    @Environment(\.modelContext) private var modelContext
+
+    private enum ResolutionState {
+        case loading
+        case ownWorkout(UnifiedWorkout)
+        case sanitized
+    }
+
+    @State private var state: ResolutionState = .loading
+
+    var body: some View {
+        Group {
+            switch state {
+            case .loading:
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .ownWorkout(let workout):
+                ownWorkoutDestination(for: workout)
+            case .sanitized:
+                FeedItemDetailView(item: item)
+            }
+        }
+        .task(id: item.id) {
+            await resolve()
+        }
+    }
+
+    private func resolve() async {
+        guard let sourceWorkoutId = item.sourceWorkoutId else {
+            state = .sanitized
+            return
+        }
+
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        guard let workout = try? await store.fetchWorkout(id: sourceWorkoutId) else {
+            state = .sanitized
+            return
+        }
+        state = .ownWorkout(workout)
+    }
+
+    private func ownWorkoutDestination(for workout: UnifiedWorkout) -> some View {
+        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+        let routeStore = SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+        let routeCandidateProvider = PersistedRouteCandidateProvider(store: routeStore)
+        return UnifiedWorkoutDetailDestination(
+            unifiedWorkout: workout,
+            similarCandidateProvider: SimilarWorkoutCandidateProvider(
+                store: store,
+                persistedRouteProvider: routeCandidateProvider
+            ),
+            detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore),
+            relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(store: store),
+            achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(workoutStore: store, routeStore: routeStore),
+            fitnessTrendHistoryProvider: SwiftDataFitnessTrendHistoryProvider(store: store),
+            gpxRouteAttachmentService: GPXRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
+            ),
+            fitRouteAttachmentService: FITRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
+            ),
+            tcxRouteAttachmentService: TCXRouteAttachmentService(
+                workoutStore: store,
+                routeStore: routeStore
+            ),
+            companionUpdateService: WorkoutCompanionUpdateService(workoutStore: store)
+        )
+    }
+}
 
 /// Renders a single feed item's full detail. Deliberately reads only fields
 /// already present on `FeedItem`/`ShareableWorkoutCardModel` — those are the

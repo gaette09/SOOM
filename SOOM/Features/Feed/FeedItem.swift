@@ -88,6 +88,13 @@ struct FeedItem: Identifiable, Equatable {
     let itemType: FeedItemType
     let visibility: ShareableWorkoutVisibility
     let cardData: FeedCardData
+    /// The local `UnifiedWorkout.id` this post was shared from, if any. Used
+    /// only to check whether *this device* still has the full local record —
+    /// never trusted as an identity/ownership claim on its own. Feed never
+    /// stores other users' raw workouts locally (Q1 invariant), so a hit
+    /// here can only ever be the viewer's own workout. See
+    /// `FeedItemDetailDestination` in FeedItemDetailView.swift.
+    let sourceWorkoutId: UUID?
     let caption: String?
     let photoPlaceholders: [FeedPhotoPlaceholder]
     let activityContext: String
@@ -110,6 +117,7 @@ struct FeedItem: Identifiable, Equatable {
         itemType: FeedItemType,
         visibility: ShareableWorkoutVisibility,
         cardData: FeedCardData,
+        sourceWorkoutId: UUID? = nil,
         caption: String?,
         photoPlaceholders: [FeedPhotoPlaceholder] = [],
         activityContext: String,
@@ -131,6 +139,7 @@ struct FeedItem: Identifiable, Equatable {
         self.itemType = itemType
         self.visibility = visibility
         self.cardData = cardData
+        self.sourceWorkoutId = sourceWorkoutId
         self.caption = caption
         self.photoPlaceholders = photoPlaceholders
         self.activityContext = activityContext

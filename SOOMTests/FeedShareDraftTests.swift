@@ -37,6 +37,7 @@ final class FeedShareDraftTests: XCTestCase {
         let item = draft.makeFeedItem()
 
         XCTAssertNil(item.recoveryCue)
+        XCTAssertEqual(item.sourceWorkoutId, workoutID)
         XCTAssertEqual(item.contextLabels.first?.title, "초안")
         XCTAssertEqual(item.visibility, .privateOnly)
         guard case .workoutSession(let card) = item.cardData else {

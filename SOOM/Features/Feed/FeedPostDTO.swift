@@ -179,6 +179,7 @@ struct FeedPostBundleDTO: Equatable {
             itemType: .workoutSession,
             visibility: visibility,
             cardData: .workoutSession(workoutCard),
+            sourceWorkoutId: post.sourceWorkoutId,
             caption: post.body,
             photoPlaceholders: media.compactMap(\.photoPlaceholder),
             activityContext: post.title,

@@ -225,7 +225,7 @@ struct FeedView: View {
 
     @ViewBuilder
     private func feedDestination(for item: FeedItem) -> some View {
-        FeedItemDetailView(item: item)
+        FeedItemDetailDestination(item: item)
     }
 
     private var emptyState: some View {

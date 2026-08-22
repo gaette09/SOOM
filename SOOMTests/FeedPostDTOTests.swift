@@ -63,6 +63,7 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertEqual(item.reactions.first?.symbol, "👏")
         XCTAssertEqual(item.microComment, "좋은 흐름이에요.")
         XCTAssertNil(item.recoveryCue)
+        XCTAssertNil(item.sourceWorkoutId)
 
         guard case .workoutSession(let card) = item.cardData else {
             return XCTFail("Expected workout session card")
@@ -72,6 +73,23 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertEqual(card.workoutType, .running)
         XCTAssertTrue(card.staticRoutePreview?.routeExists == true)
         XCTAssertFalse(card.recoveryMessage.contains("82"))
+    }
+
+    func testFeedPostBundlePassesThroughSourceWorkoutId() {
+        let sourceWorkoutId = UUID(uuidString: "1F5B6D2D-3F1E-4A5A-9C31-8B2D6C5C1234")!
+        let post = FeedPostDTO(
+            id: UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!,
+            userId: UUID(uuidString: "585B05E6-EFC0-4813-B018-B2325B0BA476")!,
+            sourceWorkoutId: sourceWorkoutId,
+            sport: .running,
+            title: "아침 러닝",
+            createdAt: Date(timeIntervalSince1970: 1_800_420_000)
+        )
+        let bundle = FeedPostBundleDTO(post: post)
+
+        let item = bundle.makeFeedItem()
+
+        XCTAssertEqual(item.sourceWorkoutId, sourceWorkoutId)
     }
 
     func testVisibilityMapsToShareableVisibility() {

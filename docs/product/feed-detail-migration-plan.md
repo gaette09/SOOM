@@ -155,11 +155,14 @@ PDF의 Relative Effort(11번)는 "오늘 운동점수 + 최근 3주 평균 대�
 
 독립 배치가 아님 — 각 링크는 그 섹션의 "더 깊은 버전" 화면으로 연결되는데, 그 타겟 화면들(집계 Power/HR Zones, All Results, Fitness 트렌드 등) 자체가 아직 없다. 해당 섹션을 실제로 만드는 배치에 묶어서 같이 처리(예: Relative Effort 배치에서 "View Weekly Effort" 링크도 같이 판단).
 
-### 다음 세션 시작점 — 권장 순서
+**Phase B(본인/남의 글 분기) 완료 (2026-08-22, 배치 10)** — 착수 전 예상했던 "새 프레젠테이션 모델 + Feed 전용 어댑터"가 실제로는 필요 없었음:
 
-1. ~~Relative Effort~~ — 완료 (2026-08-22, 위 참고).
-2. ~~지도 위 성취 마커~~ — 배치 7 완료 (2026-08-22, 위 참고).
-3. ~~동승자 태깅~~ — 배치 8 완료 (2026-08-22, 위 참고).
-4. ~~Fitness Increased~~ — 배치 9 완료 (2026-08-22, 위 참고).
-5. **다음 후보** — Results / 경로 영상 리플레이 / Power Curve / Workout Analysis, 전부 최하위 티어(파워 데이터 소스나 도메인 모델처럼 이 마이그레이션 범위를 넘어서는 선행 작업이 생기기 전까진 보류). Phase A의 "완전 신규" 목록 중 남은 buildable 항목은 사실상 소진됨 — 다음 세션은 여기서 더 파거나(예: Results의 최소 도메인 모델 범위 재검토), Phase B(본인/남의 글 Feed 어댑터)로 전환하는 것 중 사용자 판단 필요.
-6. Phase B(본인/남의 글 분기, Feed 어댑터, `FeedItemDetailView` 교체) — Phase A 항목들과 독립적으로 아무 때나 시작 가능(정책은 이미 확정됨), 위 순서와 병행 검토 가능
+- **핵심 발견**: 이 문서 착수 시점(2026-08-21, Phase A 배치가 하나도 없던 때)에 세운 "뷰 레이아웃 하나 + 어댑터 2개" 계획은, Phase A가 실제로 `UnifiedWorkoutDetailDestination`(provider 주입 방식의 완전 재사용 가능한 상세 화면, 배치 1~9에 걸쳐 완성)을 만들어낸 뒤로는 불필요해졌음. "본인 글=Activity 상세와 동일한 전체 깊이"는 곧 "본인 글이면 `UnifiedWorkoutDetailDestination`을 그대로 재사용"과 동치 — 새 모델을 설계할 이유가 없었음. "남의 글=Q1 sanitize 유지"는 문자 그대로 기존 `FeedItemDetailView`를 전혀 안 건드리는 것과 동치.
+- **소유권 판단 방식**: `authorId`/세션 유저ID 비교 없이, `FeedItem.sourceWorkoutId`(← `FeedPostDTO.sourceWorkoutId`, 이미 존재하던 필드지만 지금까지 `FeedItem`에 전달되지 않고 버려지고 있었음)가 **이 기기의 로컬 SwiftData에서 실제로 조회되는지**만으로 판단. Activity 상세/`UnifiedWorkoutDetailDestination`이 항상 "이 기기 소유자의 워크아웃"만 담고 있다는 기존 Q1 불변식이 이미 이 경계를 구조적으로 보장하므로, 별도 인증 세션 비교가 필요 없음(로그인 안 된 현재 상태에서도 정확히 동작).
+- `FeedItemDetailDestination`(신규, `FeedItemDetailView.swift`) — `.task(id: item.id)`로 `sourceWorkoutId` 로컬 조회 후 3-상태 분기(`.loading`/`.ownWorkout`/`.sanitized`). 찾으면 `UnifiedWorkoutDetailDestination`(기존 provider 세트 그대로 재사용), 못 찾으면(다른 사람 글이거나, 본인 글인데 다른 기기에서 올려 로컬 기록이 없는 경우) 기존 `FeedItemDetailView` 그대로.
+- `FeedView.feedDestination(for:)`가 `FeedItemDetailDestination`을 가리키도록 교체 — 이 한 줄이 유일한 실제 라우팅 변경점.
+- 검증: 임시 시드 훅(`FeedShareDraftBuilder`로 실 `UnifiedWorkout` + 로컬 `FeedShareDraft` 생성)으로 격리 시뮬레이터 `SOOM-Verify`에서 양쪽 경로 전부 접근성 트리로 확인 — 본인 글 탭 → "운동 상세"(Activity 전체 깊이, 성장 흐름/지형 맥락/태그 등 Phase A 블록 전부 렌더링) / 다른 사람 글(mock) 탭 → "피드 상세"(기존 sanitize 그대로, 변경 없음). 검증 중 사용자의 동시 세션이 쓰던 Simulator 창을 일시적으로 SOOM-Verify로 전환해야 했음(같은 Simulator.app 프로세스가 창 하나만 표시하는 제약) — 사전 확인 받고 진행, 기기 boot 상태는 내내 보존됨, 검증 즉시 원래 창으로 복원.
+
+### 남은 백로그 (다음 세션 판단 필요, 오늘은 보류)
+
+Results / 경로 영상 리플레이 / Power Curve / Workout Analysis — 전부 최하위 티어. 시작하려면 먼저 "Segments 기능을 정말 만들 것인가, 만든다면 얼마나 축소된 버전으로"(SOOM엔 구간 정의/GPS 매칭/유저 간 순위표 개념 자체가 없어 사실상 신규 멀티플레이어 기능 하나를 새로 기획하는 수준) 같은 제품 범위 결정이 선행돼야 함 — 오늘 세션에서는 열지 않기로 함.
