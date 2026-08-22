@@ -10,6 +10,7 @@ struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.modelContext) private var modelContext
     @State private var isShowingDisconnectConfirmation = false
+    @State private var isShowingDeleteAccountConfirmation = false
     @State private var localDataPresence: LocalDataPresence = .empty
     private let authEnvironment: AuthEnvironment
 
@@ -32,6 +33,9 @@ struct SettingsView: View {
             #if DEBUG
             prototypeSection
             #endif
+            if authViewModel.session.currentUser != nil {
+                dangerZoneSection
+            }
             appInfoSection
         }
         .navigationTitle("설정")
@@ -69,6 +73,18 @@ struct SettingsView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("이 기기의 운동 기록, 설정, route 데이터는 삭제하지 않아요. 로컬 기록은 그대로 유지됩니다.")
+        }
+        .sheet(isPresented: $isShowingDeleteAccountConfirmation) {
+            AccountDeletionConfirmationSheet(
+                isGuestUser: authViewModel.session.currentUser?.authProvider != .supabase,
+                onConfirm: {
+                    Task {
+                        await performAccountDeletion()
+                    }
+                }
+            )
+            .presentationDetents([.height(420)])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -276,6 +292,47 @@ struct SettingsView: View {
         }
     }
     #endif
+
+    private var dangerZoneSection: some View {
+        SOOMCard {
+            SOOMSectionHeader("위험 영역", caption: "되돌릴 수 없는 작업이에요. 신중하게 진행해주세요.")
+
+            SOOMActionRow(
+                icon: "trash",
+                title: dangerZoneActionTitle,
+                subtitle: dangerZoneActionSubtitle,
+                tint: SOOMColor.warning
+            )
+
+            Button(dangerZoneActionTitle) {
+                isShowingDeleteAccountConfirmation = true
+            }
+            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+            .foregroundStyle(SOOMColor.warning)
+        }
+    }
+
+    private var dangerZoneActionTitle: String {
+        authViewModel.session.currentUser?.authProvider == .supabase ? "계정 삭제" : "기기 데이터 초기화"
+    }
+
+    private var dangerZoneActionSubtitle: String {
+        authViewModel.session.currentUser?.authProvider == .supabase
+            ? "Supabase 계정과 이 기기의 모든 기록을 삭제합니다. 되돌릴 수 없어요."
+            : "이 기기에 저장된 모든 운동 기록과 설정을 삭제합니다. 되돌릴 수 없어요."
+    }
+
+    @MainActor
+    private func performAccountDeletion() async {
+        let deletionCommitted = await authViewModel.deleteAccount()
+        guard deletionCommitted else {
+            return
+        }
+
+        let eraser = LocalAccountDataEraser.live(modelContext: modelContext)
+        await eraser.eraseAll()
+        await refreshLocalDataPresence()
+    }
 
     private var appInfoSection: some View {
         SOOMCard {

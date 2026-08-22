@@ -18,7 +18,8 @@ struct SOOMApp: App {
         let authViewModel = AuthViewModel(
             remoteSessionLoader: remoteAuthProvider,
             appleSignInHandler: remoteAuthProvider.signInWithAppleCredential,
-            remoteSignOutHandler: remoteAuthProvider.signOut
+            remoteSignOutHandler: remoteAuthProvider.signOut,
+            remoteAccountDeleteHandler: remoteAuthProvider.deleteAccount
         )
         _dashboardViewModel = StateObject(wrappedValue: DashboardViewModel(harness: harness))
         _communityViewModel = StateObject(wrappedValue: CommunityViewModel(harness: harness))

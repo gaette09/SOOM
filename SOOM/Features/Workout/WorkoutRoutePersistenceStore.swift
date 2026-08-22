@@ -6,6 +6,7 @@ protocol WorkoutRoutePersistenceStoring {
     func fetchRoute(workoutId: UUID) async throws -> WorkoutRoute?
     func fetchRoutes(workoutIds: [UUID]) async throws -> [WorkoutRoute]
     func deleteRoute(workoutId: UUID) async throws
+    func deleteAllRoutes() async throws
 }
 
 @MainActor
@@ -76,6 +77,16 @@ final class SwiftDataWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStorin
         }
 
         modelContext.delete(record)
+        try modelContext.save()
+    }
+
+    func deleteAllRoutes() async throws {
+        let records = try modelContext.fetch(FetchDescriptor<PersistedWorkoutRoute>())
+
+        for record in records {
+            modelContext.delete(record)
+        }
+
         try modelContext.save()
     }
 

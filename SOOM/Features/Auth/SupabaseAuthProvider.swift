@@ -17,6 +17,10 @@ protocol SupabaseRemoteSignOutRequesting {
     func signOut() async throws
 }
 
+protocol SupabaseAccountDeleting {
+    func deleteAccount() async throws
+}
+
 struct SupabaseClientEmailMagicLinkRequester: SupabaseEmailMagicLinkRequesting {
     private let client: SupabaseClient
 
@@ -98,6 +102,18 @@ struct SupabaseClientRemoteSignOutRequester: SupabaseRemoteSignOutRequesting {
     }
 }
 
+struct SupabaseClientAccountDeleter: SupabaseAccountDeleting {
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
+    func deleteAccount() async throws {
+        try await client.rpc("delete_own_account").execute()
+    }
+}
+
 final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionHandling {
     private let clientProvider: SupabaseClientProvider
     private let sessionProbe: SupabaseAuthSessionProbe
@@ -106,6 +122,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
     private let appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)?
     private let callbackSessionLoader: (any SupabaseAuthCallbackSessionLoading)?
     private let remoteSignOutRequester: (any SupabaseRemoteSignOutRequesting)?
+    private let accountDeleter: (any SupabaseAccountDeleting)?
     private let appleSignInProvider: AppleSignInProvider
     private let now: () -> Date
 
@@ -119,6 +136,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.callbackSessionLoader = client.map { SupabaseClientAuthCallbackSessionLoader(client: $0, now: now) }
         self.remoteSignOutRequester = client.map(SupabaseClientRemoteSignOutRequester.init(client:))
+        self.accountDeleter = client.map(SupabaseClientAccountDeleter.init(client:))
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
@@ -132,6 +150,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
         self.callbackSessionLoader = client.map { SupabaseClientAuthCallbackSessionLoader(client: $0, now: now) }
         self.remoteSignOutRequester = client.map(SupabaseClientRemoteSignOutRequester.init(client:))
+        self.accountDeleter = client.map(SupabaseClientAccountDeleter.init(client:))
         self.appleSignInProvider = AppleSignInProvider(now: now)
         self.now = now
     }
@@ -144,6 +163,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         appleCredentialExchanger: (any SupabaseAppleCredentialExchanging)? = nil,
         callbackSessionLoader: (any SupabaseAuthCallbackSessionLoading)? = nil,
         remoteSignOutRequester: (any SupabaseRemoteSignOutRequesting)? = nil,
+        accountDeleter: (any SupabaseAccountDeleting)? = nil,
         appleSignInProvider: AppleSignInProvider = AppleSignInProvider(),
         now: @escaping () -> Date = { Date() }
     ) {
@@ -154,6 +174,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         self.appleCredentialExchanger = appleCredentialExchanger
         self.callbackSessionLoader = callbackSessionLoader
         self.remoteSignOutRequester = remoteSignOutRequester
+        self.accountDeleter = accountDeleter
         self.appleSignInProvider = appleSignInProvider
         self.now = now
     }
@@ -247,5 +268,13 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
 
         try await remoteSignOutRequester.signOut()
         return .signedOut
+    }
+
+    func deleteAccount() async throws {
+        guard clientProvider.state == .ready, let accountDeleter else {
+            throw AuthError.futureRemoteAuthNotConfigured
+        }
+
+        try await accountDeleter.deleteAccount()
     }
 }

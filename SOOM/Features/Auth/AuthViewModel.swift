@@ -13,6 +13,7 @@ final class AuthViewModel: ObservableObject {
     private let sessionRestorer: AuthSessionRestorer
     private let appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)?
     private let remoteSignOutHandler: (() async throws -> AuthSession)?
+    private let remoteAccountDeleteHandler: (() async throws -> Void)?
     private var initializeSessionTask: Task<Void, Never>?
 
     init(
@@ -20,7 +21,8 @@ final class AuthViewModel: ObservableObject {
         remoteSessionLoader: (any RemoteAuthSessionLoading)? = nil,
         restorePolicy: AuthSessionRestorePolicy = .preferRemoteIfAvailable,
         appleSignInHandler: ((AppleSignInCredential) async throws -> AuthSession)? = nil,
-        remoteSignOutHandler: (() async throws -> AuthSession)? = nil
+        remoteSignOutHandler: (() async throws -> AuthSession)? = nil,
+        remoteAccountDeleteHandler: (() async throws -> Void)? = nil
     ) {
         let loadedSession = repository.loadSession()
         self.repository = repository
@@ -32,6 +34,7 @@ final class AuthViewModel: ObservableObject {
         )
         self.appleSignInHandler = appleSignInHandler
         self.remoteSignOutHandler = remoteSignOutHandler
+        self.remoteAccountDeleteHandler = remoteAccountDeleteHandler
         self.session = loadedSession
         self.displayNameText = loadedSession.currentUser?.displayName ?? ""
         self.errorMessage = loadedSession.errorMessage
@@ -168,6 +171,34 @@ final class AuthViewModel: ObservableObject {
         } catch {
             errorMessage = userMessage(for: error)
         }
+    }
+
+    /// Deletes the account: for a Supabase-linked user this calls the remote
+    /// `delete_own_account` RPC first (local session is only cleared if that
+    /// succeeds, so a failed remote call never strands the user with a
+    /// remote account but no local record of it); for a local-only (guest)
+    /// user there is no remote step, so this only clears the local session.
+    /// Returns whether the caller should proceed with wiping local stores.
+    @discardableResult
+    func deleteAccount() async -> Bool {
+        if session.currentUser?.authProvider == .supabase {
+            guard let remoteAccountDeleteHandler else {
+                errorMessage = AuthError.futureRemoteAuthNotConfigured.userMessage
+                return false
+            }
+
+            do {
+                try await remoteAccountDeleteHandler()
+            } catch {
+                errorMessage = userMessage(for: error)
+                return false
+            }
+        }
+
+        session = repository.signOut()
+        displayNameText = ""
+        errorMessage = nil
+        return true
     }
 
     private func userMessage(for error: Error) -> String {

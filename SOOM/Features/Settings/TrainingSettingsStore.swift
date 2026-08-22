@@ -64,6 +64,13 @@ final class TrainingSettingsStore {
         userDefaults.set(value.rawValue, forKey: Key.privacyDefault)
     }
 
+    func resetAll() {
+        userDefaults.removeObject(forKey: Key.maxHeartRate)
+        userDefaults.removeObject(forKey: Key.cyclingFTP)
+        userDefaults.removeObject(forKey: Key.preferredUnit)
+        userDefaults.removeObject(forKey: Key.privacyDefault)
+    }
+
     private func optionalInt(forKey key: String) -> Int? {
         guard userDefaults.object(forKey: key) != nil else { return nil }
         return userDefaults.integer(forKey: key)

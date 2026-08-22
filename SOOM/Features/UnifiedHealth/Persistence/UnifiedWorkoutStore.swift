@@ -10,6 +10,7 @@ protocol UnifiedWorkoutStore {
     func markExcludedFromAnalysis(id: UUID, isExcluded: Bool) async throws
     func updateCompanions(id: UUID, names: [String]) async throws
     func deleteWorkout(id: UUID) async throws
+    func deleteAllWorkouts() async throws
 }
 
 @MainActor
@@ -111,6 +112,16 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
         }
 
         modelContext.delete(record)
+        try modelContext.save()
+    }
+
+    func deleteAllWorkouts() async throws {
+        let records = try modelContext.fetch(FetchDescriptor<UnifiedWorkoutRecord>())
+
+        for record in records {
+            modelContext.delete(record)
+        }
+
         try modelContext.save()
     }
 

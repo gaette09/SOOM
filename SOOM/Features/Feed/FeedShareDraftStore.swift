@@ -3,6 +3,7 @@ import Foundation
 protocol FeedShareDraftStoreProtocol {
     func saveDraft(_ draft: FeedShareDraft) async throws
     func fetchDrafts() async throws -> [FeedShareDraft]
+    func deleteAllDrafts() async throws
 }
 
 actor FileFeedShareDraftStore: FeedShareDraftStoreProtocol {
@@ -35,6 +36,14 @@ actor FileFeedShareDraftStore: FeedShareDraftStoreProtocol {
 
     func fetchDrafts() async throws -> [FeedShareDraft] {
         try loadDrafts().sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func deleteAllDrafts() async throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        try FileManager.default.removeItem(at: fileURL)
     }
 
     private func ensureDirectoryExists() throws {
