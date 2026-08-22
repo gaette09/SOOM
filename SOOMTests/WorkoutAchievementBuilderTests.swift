@@ -15,16 +15,17 @@ final class WorkoutAchievementBuilderTests: XCTestCase {
         // Today's 5.0 beats 3.0 and 2.0, loses to nothing -> rank 1.
         let history: [Int: [Double]] = [5: [3.0, 2.0]]
 
-        let achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: today,
             historicalEffortsByDuration: history,
             workoutType: .running
         )
 
-        XCTAssertEqual(achievements.count, 1)
-        XCTAssertEqual(achievements.first?.rank, 1)
-        XCTAssertEqual(achievements.first?.durationMinutes, 5)
-        XCTAssertTrue(achievements.first?.isPaceBased ?? false)
+        XCTAssertEqual(result.markers.count, 1)
+        XCTAssertEqual(result.totalCount, 1)
+        XCTAssertEqual(result.markers.first?.rank, 1)
+        XCTAssertEqual(result.markers.first?.durationMinutes, 5)
+        XCTAssertTrue(result.markers.first?.isPaceBased ?? false)
     }
 
     func testBelowThresholdRankIsExcluded() {
@@ -32,13 +33,14 @@ final class WorkoutAchievementBuilderTests: XCTestCase {
         // Today's 3.0 loses to 5.0, 4.5, 4.0, 3.5 -> rank 5, outside top-3.
         let history: [Int: [Double]] = [5: [5.0, 4.5, 4.0, 3.5]]
 
-        let achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: today,
             historicalEffortsByDuration: history,
             workoutType: .running
         )
 
-        XCTAssertTrue(achievements.isEmpty)
+        XCTAssertTrue(result.markers.isEmpty)
+        XCTAssertEqual(result.totalCount, 0)
     }
 
     func testInsufficientHistoryHidesAchievement() {
@@ -46,16 +48,17 @@ final class WorkoutAchievementBuilderTests: XCTestCase {
         // Only 1 historical entry — below minimumHistoryCount (2).
         let history: [Int: [Double]] = [5: [3.0]]
 
-        let achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: today,
             historicalEffortsByDuration: history,
             workoutType: .running
         )
 
-        XCTAssertTrue(achievements.isEmpty)
+        XCTAssertTrue(result.markers.isEmpty)
+        XCTAssertEqual(result.totalCount, 0)
     }
 
-    func testCapsAtMaximumMarkersPreferringBetterRanks() {
+    func testCapsMarkersButTotalCountReflectsAllQualifyingFinishes() {
         let today = [
             makeEffort(durationMinutes: 1, speed: 5.0),  // rank 1
             makeEffort(durationMinutes: 5, speed: 4.0),  // rank 2
@@ -67,27 +70,29 @@ final class WorkoutAchievementBuilderTests: XCTestCase {
             10: [3.5, 3.2]
         ]
 
-        let achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: today,
             historicalEffortsByDuration: history,
             workoutType: .cycling
         )
 
-        XCTAssertEqual(achievements.count, WorkoutAchievementConfig.maximumMarkers)
-        XCTAssertEqual(achievements.map(\.rank), [1, 2])
+        XCTAssertEqual(result.markers.count, WorkoutAchievementConfig.maximumMarkers)
+        XCTAssertEqual(result.markers.map(\.rank), [1, 2])
+        // All 3 qualified (top-3 threshold), even though only 2 are pinned as markers.
+        XCTAssertEqual(result.totalCount, 3)
     }
 
     func testSpeedFormattingForNonPaceSport() {
         let today = [makeEffort(durationMinutes: 5, speed: 10.0)] // 36 km/h
         let history: [Int: [Double]] = [5: [8.0, 7.0]]
 
-        let achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: today,
             historicalEffortsByDuration: history,
             workoutType: .cycling
         )
 
-        XCTAssertEqual(achievements.first?.valueText, "36.0 km/h")
-        XCTAssertFalse(achievements.first?.isPaceBased ?? true)
+        XCTAssertEqual(result.markers.first?.valueText, "36.0 km/h")
+        XCTAssertFalse(result.markers.first?.isPaceBased ?? true)
     }
 }

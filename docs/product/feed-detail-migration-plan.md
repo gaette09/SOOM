@@ -163,6 +163,24 @@ PDF의 Relative Effort(11번)는 "오늘 운동점수 + 최근 3주 평균 대�
 - `FeedView.feedDestination(for:)`가 `FeedItemDetailDestination`을 가리키도록 교체 — 이 한 줄이 유일한 실제 라우팅 변경점.
 - 검증: 임시 시드 훅(`FeedShareDraftBuilder`로 실 `UnifiedWorkout` + 로컬 `FeedShareDraft` 생성)으로 격리 시뮬레이터 `SOOM-Verify`에서 양쪽 경로 전부 접근성 트리로 확인 — 본인 글 탭 → "운동 상세"(Activity 전체 깊이, 성장 흐름/지형 맥락/태그 등 Phase A 블록 전부 렌더링) / 다른 사람 글(mock) 탭 → "피드 상세"(기존 sanitize 그대로, 변경 없음). 검증 중 사용자의 동시 세션이 쓰던 Simulator 창을 일시적으로 SOOM-Verify로 전환해야 했음(같은 Simulator.app 프로세스가 창 하나만 표시하는 제약) — 사전 확인 받고 진행, 기기 boot 상태는 내내 보존됨, 검증 즉시 원래 창으로 복원.
 
-### 남은 백로그 (다음 세션 판단 필요, 오늘은 보류)
+**배치 11(평균 파워/케이던스 노출 + distance/speed 버그 픽스) 완료 (2026-08-22)** — Power Curve 제품 범위 판단 중 사용자가 제공한 실제 파워미터 FIT 픽스처로 직접 검증하다가 발견한 재정정:
 
-Results / 경로 영상 리플레이 / Power Curve / Workout Analysis — 전부 최하위 티어. 시작하려면 먼저 "Segments 기능을 정말 만들 것인가, 만든다면 얼마나 축소된 버전으로"(SOOM엔 구간 정의/GPS 매칭/유저 간 순위표 개념 자체가 없어 사실상 신규 멀티플레이어 기능 하나를 새로 기획하는 수준) 같은 제품 범위 결정이 선행돼야 함 — 오늘 세션에서는 열지 않기로 함.
+- **재정정**: "파워 데이터 소스 자체가 없다"던 배치 3/재평가 판단은 HealthKit 임포트 경로 기준으로만 맞았음. FIT 임포트 경로는 `FITRouteParser`가 이미 세션 단위 `averagePower`/`averageCadence`를 정확히 추출하고 있었는데(실 픽스처로 93W/87rpm 확인), `FITRouteAttachmentService.attachRoute`가 그 값을 `withRouteMissingReason(.none, ...)` 한 줄만 거치게 하고 통째로 버리고 있었음 — distance/speed도 마찬가지로 버려지고 있던 것을 같이 발견(같은 원인이라 한 배치로 처리).
+- `UnifiedWorkout.withFITSummaryMerged(_:updatedAt:)` 신설 — distance/speed는 "measured > derived"(기존 값이 있으면 유지, nil일 때만 백필), power/cadence는 다른 소스가 없어서 무조건 채움. `UnifiedWorkout`/`UnifiedWorkoutRecord`/`UnifiedWorkoutPersistenceMapper`에 `averagePowerWatts`/`averageCadence` 필드 추가(배치 8의 `companionNames` 추가와 동일 패턴, 마이그레이션 불필요).
+- `ProcessedWorkoutBuilder`의 `metricAvailability[.power]`/`[.cadence]`가 실제 값과 무관하게 항상 `.missing`으로 하드코딩돼 있던 것도 같이 고침. 케이던스는 배치 5에서 UI 슬롯 자체를 스킵했었어서, `WorkoutDistanceChartCard`가 placeholder 모드에서도 `stats` 행을 렌더링하도록 확장(그리드에 7번째 칸을 추가하는 것보다 가벼움 — 2열 그리드에 빈 칸이 안 남음).
+- 검증: 실제 FIT 픽스처(GEOID_CC600, 실 GPS 경로 포함)를 실제 `FITRouteAttachmentService`로 끝까지 실행 — 격리 시뮬레이터에서 "평균 파워 93W"/"평균 케이던스 87rpm" 정확히 렌더링 확인. 이 픽스처 파일 자체는 실 위치정보가 담긴 개인 파일이라 `.gitignore`에 `SOOMTests/Fixtures/` 추가, 커밋하지 않음.
+- Power Curve/Workout Analysis(레코드 단위 시계열 필요)는 여전히 별도 — `soom-power-cadence-timeseries`로 SOOM-OS ROADMAP.yaml에 blocked 상태로 분리.
+
+**배치 12(Results 축소 카드 — Achievements만) 완료 (2026-08-22)** — Segments는 여전히 제외(신규 멀티플레이어 기능), Challenges도 제외(아래 참고):
+
+- `WorkoutAchievementBuilder.build(...)` 반환 타입을 `[WorkoutAchievement]` → `WorkoutAchievementBuildResult(markers:, totalCount:)`로 변경 — 기존엔 지도 핀용으로 `maximumMarkers`(2)까지 잘라서 반환했는데, 그 자르기 전 총 개수를 같이 노출. 호출부가 한 곳뿐이라 시그니처 변경이 별도 함수 추가보다 안전(로직 중복 없음).
+- `WorkoutResultsCard`(신규) — "성과 N개", `achievementCountOverride`로 배선(`UnifiedWorkoutDetailDestination` → `WorkoutDeepDetailView` → `WorkoutDetailView` → `WorkoutDetailContent`, 기존 override 체인과 동일 패턴). 지도 마커 배너(`WorkoutAchievementCard`, 최대 2개) 바로 아래 배치.
+- 검증: 실 파이프라인으로 오늘 워크아웃이 1/5/10분 3개 구간 전부에서 상위권을 기록하는 실제 시나리오를 시드(과거 느린 워크아웃 2개 + 오늘 빠른 워크아웃 1개, 전부 실 좌표+타임스탬프 경로) → 격리 시뮬레이터에서 지도 배너는 정확히 2개(1분/5분 구간)만 뜨고, `WorkoutResultsCard`는 "성과 3개"로 10분 구간까지 포함한 정확한 총 개수를 보여줌을 접근성 트리로 확인 — 마커 캡(2)에 안 잘리는 것 확인 완료.
+- **Challenges 제외 사유**: `supabase/club_foundation_v1.sql` 헤더 자체에 "Deferred: ranking engine, challenge progress engine"으로 명시돼 있고, `club_challenges` 테이블엔 진행률 컬럼조차 없음 — `ClubChallenge.currentValue`는 전부 하드코딩 목 데이터. `ClubDomainFoundation.swift` 전체에 `UnifiedWorkout` 참조 0건 — Club과 Workout 도메인이 완전히 분리돼 있어 "연결"이 아니라 "챌린지 진행률 엔진 신설"이 필요한 별도 프로젝트. `soom-club-challenge-progress-engine`으로 ROADMAP.yaml에 blocked 상태로 분리(Club이 IA 우선순위 위로 올라올 때까지).
+
+### 남은 백로그
+
+- **Segments** — 구간 정의/GPS 매칭/유저 간 순위표 개념 자체가 없어 사실상 신규 멀티플레이어 기능. 다음에 열려면 "정말 만들 것인가, 얼마나 축소할 것인가" 제품 범위 판단부터.
+- **경로 영상 리플레이** — 인코딩/렌더링 파이프라인 전무, 가장 큰 미지수.
+- **Power Curve/Workout Analysis** — `soom-power-cadence-timeseries`(blocked) 완료 후.
+- **Challenges** — `soom-club-challenge-progress-engine`(blocked) 완료 후.

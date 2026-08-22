@@ -412,6 +412,7 @@ struct UnifiedWorkoutDetailDestination: View {
     @State private var heartRateChartSamples: [WorkoutDistanceChartSample]?
     @State private var relativeEffortComparison: RelativeEffortComparison?
     @State private var achievements: [WorkoutAchievement] = []
+    @State private var achievementCount = 0
     @State private var fitnessTrend: FitnessTrend?
 
     var body: some View {
@@ -430,6 +431,7 @@ struct UnifiedWorkoutDetailDestination: View {
             heartRateChartSamplesOverride: heartRateChartSamples,
             relativeEffortComparisonOverride: relativeEffortComparison,
             achievementsOverride: achievements,
+            achievementCountOverride: achievementCount,
             fitnessTrendOverride: fitnessTrend,
             sourceUnifiedWorkout: unifiedWorkout,
             routeAttachmentAction: routeAttachmentAction,
@@ -473,11 +475,13 @@ struct UnifiedWorkoutDetailDestination: View {
             lookbackMonths: WorkoutAchievementConfig.lookbackMonths
         )
 
-        achievements = WorkoutAchievementBuilder.build(
+        let result = WorkoutAchievementBuilder.build(
             todayEfforts: todayEfforts,
             historicalEffortsByDuration: historicalEffortsByDuration,
             workoutType: unifiedWorkout.workoutType
         )
+        achievements = result.markers
+        achievementCount = result.totalCount
     }
 
     private func loadRelativeEffortComparison() async {

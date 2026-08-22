@@ -18,6 +18,7 @@ struct WorkoutDetailView: View {
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
+    var achievementCountOverride: Int?
     var fitnessTrendOverride: FitnessTrend?
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
@@ -74,6 +75,7 @@ struct WorkoutDetailView: View {
             heartRateChartSamplesOverride: heartRateChartSamplesOverride,
             relativeEffortComparisonOverride: relativeEffortComparisonOverride,
             achievementsOverride: achievementsOverride,
+            achievementCountOverride: achievementCountOverride,
             fitnessTrendOverride: fitnessTrendOverride
         )
     }

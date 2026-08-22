@@ -39,6 +39,7 @@ struct WorkoutDetailContent: View {
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
+    var achievementCountOverride: Int?
     var fitnessTrendOverride: FitnessTrend?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
@@ -80,6 +81,9 @@ struct WorkoutDetailContent: View {
             }
             ForEach(achievements) { achievement in
                 WorkoutAchievementCard(achievement: achievement, tint: workout.sport.tint)
+            }
+            if let achievementCountOverride, achievementCountOverride > 0 {
+                WorkoutResultsCard(achievementCount: achievementCountOverride, tint: workout.sport.tint)
             }
             if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
                 ActivityDetailRouteMissingCard(

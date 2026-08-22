@@ -27,6 +27,15 @@ struct WorkoutAchievement: Identifiable, Equatable {
     }
 }
 
+/// `build(...)`'s result: `markers` is what's actually pinned on the map (capped at
+/// `WorkoutAchievementConfig.maximumMarkers`), `totalCount` is every qualifying
+/// finish before that cap — for the Results count card (feed-detail-migration-plan.md
+/// batch 12), which needs "how many, total" rather than "which top few."
+struct WorkoutAchievementBuildResult: Equatable {
+    let markers: [WorkoutAchievement]
+    let totalCount: Int
+}
+
 enum WorkoutAchievementBuilder {
     /// `historicalEffortsByDuration`: durationMinutes -> best-effort speeds (m/s)
     /// from other same-sport workouts in the comparison window. Ranking excludes
@@ -36,7 +45,7 @@ enum WorkoutAchievementBuilder {
         todayEfforts: [WorkoutBestEffort],
         historicalEffortsByDuration: [Int: [Double]],
         workoutType: UnifiedWorkoutType
-    ) -> [WorkoutAchievement] {
+    ) -> WorkoutAchievementBuildResult {
         let candidates: [WorkoutAchievement] = todayEfforts.compactMap { effort in
             let historical = historicalEffortsByDuration[effort.durationMinutes] ?? []
             guard historical.count >= WorkoutAchievementConfig.minimumHistoryCount else { return nil }
@@ -53,11 +62,12 @@ enum WorkoutAchievementBuilder {
             )
         }
 
-        return Array(
+        let markers = Array(
             candidates
                 .sorted { $0.rank < $1.rank }
                 .prefix(WorkoutAchievementConfig.maximumMarkers)
         )
+        return WorkoutAchievementBuildResult(markers: markers, totalCount: candidates.count)
     }
 
     /// Matches `ActivityDetailSummaryMetrics.movementMetricLabel`'s existing

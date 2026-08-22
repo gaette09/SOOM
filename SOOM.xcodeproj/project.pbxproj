@@ -325,6 +325,7 @@
 		01060D /* FitnessTrendHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060D /* FitnessTrendHistoryProvider.swift */; };
 		01060E /* FitnessTrendCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060E /* FitnessTrendCard.swift */; };
 		01060F /* FitnessTrendCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060F /* FitnessTrendCalculatorTests.swift */; };
+		010614 /* WorkoutResultsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020614 /* WorkoutResultsCard.swift */; };
 		010610 /* FitnessTrendHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020610 /* FitnessTrendHistoryProviderTests.swift */; };
 		0105FD /* RelativeEffortHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FD /* RelativeEffortHistoryProvider.swift */; };
 		0105FE /* RelativeEffortCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FE /* RelativeEffortCard.swift */; };
@@ -844,6 +845,7 @@
 		02060D /* FitnessTrendHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProvider.swift; sourceTree = "<group>"; };
 		02060E /* FitnessTrendCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCard.swift; sourceTree = "<group>"; };
 		02060F /* FitnessTrendCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCalculatorTests.swift; sourceTree = "<group>"; };
+		020614 /* WorkoutResultsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutResultsCard.swift; sourceTree = "<group>"; };
 		020610 /* FitnessTrendHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProviderTests.swift; sourceTree = "<group>"; };
 		0205FD /* RelativeEffortHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortHistoryProvider.swift; sourceTree = "<group>"; };
 		0205FE /* RelativeEffortCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortCard.swift; sourceTree = "<group>"; };
@@ -1163,6 +1165,7 @@
 				020044 /* FlowTags.swift */,
 				02060A /* WorkoutCompanionCard.swift */,
 				02060E /* FitnessTrendCard.swift */,
+				020614 /* WorkoutResultsCard.swift */,
 				020045 /* RecoveryScoreCard.swift */,
 				020251 /* RecoveryComparisonCard.swift */,
 				020046 /* InsightCard.swift */,
@@ -1906,6 +1909,7 @@
 				010042 /* FlowTags.swift in Sources */,
 				01060A /* WorkoutCompanionCard.swift in Sources */,
 				01060E /* FitnessTrendCard.swift in Sources */,
+				010614 /* WorkoutResultsCard.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
