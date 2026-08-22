@@ -19,6 +19,25 @@ enum FeedPostVisibility: String, Codable, Equatable {
     }
 }
 
+extension ShareableWorkoutVisibility {
+    /// `.followers` maps to `.privatePost`, not `.followers` — the `follows`
+    /// table doesn't exist yet (ROADMAP: feed-follows-table/
+    /// feed-follow-ui-and-visibility), so `feed_posts_select_owner_or_public`
+    /// treats a `followers`-visibility row as visible to nobody but the
+    /// owner. Posting as `.privatePost` is what that RLS actually enforces
+    /// today, so this keeps the DB row's meaning honest even if a stale
+    /// local setting still has `.followers` saved from before the picker
+    /// stopped offering it.
+    var feedPostVisibility: FeedPostVisibility {
+        switch self {
+        case .privateOnly, .followers:
+            return .privatePost
+        case .publicFeed:
+            return .publicPost
+        }
+    }
+}
+
 struct FeedRouteSummaryDTO: Codable, Equatable {
     let title: String?
     let distanceText: String?

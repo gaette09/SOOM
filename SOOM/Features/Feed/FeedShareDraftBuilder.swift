@@ -102,27 +102,37 @@ enum RecordPostSaveShareAction: Equatable {
 struct RecordShareOutcome: Equatable {
     let draft: FeedShareDraft
     let postedRemotely: Bool
+    /// The visibility actually applied. Always `.privateOnly` when
+    /// `postedRemotely` is false — a local-only draft isn't visible to
+    /// anyone else regardless of what the user had picked as their default.
+    let visibility: ShareableWorkoutVisibility
 }
 
 struct RecordShareDraftCoordinator {
     let builder: FeedShareDraftBuilder
     let store: any FeedShareDraftStoreProtocol
     let remotePoster: (any FeedRemotePostPosting)?
+    let visibilityProvider: () -> ShareableWorkoutVisibility
 
     init(
         builder: FeedShareDraftBuilder = FeedShareDraftBuilder(),
         store: any FeedShareDraftStoreProtocol,
-        remotePoster: (any FeedRemotePostPosting)? = nil
+        remotePoster: (any FeedRemotePostPosting)? = nil,
+        visibilityProvider: @escaping () -> ShareableWorkoutVisibility = {
+            TrainingSettingsStore.shared.loadSettings().privacyDefault
+        }
     ) {
         self.builder = builder
         self.store = store
         self.remotePoster = remotePoster
+        self.visibilityProvider = visibilityProvider
     }
 
     func handle(_ action: RecordPostSaveShareAction, workout: UnifiedWorkout) async throws -> RecordShareOutcome? {
         switch action {
         case .shareToFeed:
             let draft = builder.build(from: workout)
+            let chosenVisibility = visibilityProvider()
 
             // Try posting for real first. Any failure here — no signed-in
             // Supabase session (the common case today), RLS rejecting the
@@ -130,12 +140,13 @@ struct RecordShareDraftCoordinator {
             // draft save below rather than surfacing an error. The local
             // save is what already ran unconditionally before this batch,
             // so this never makes share-to-feed less reliable than it was.
-            if let remotePoster, (try? await remotePoster.postPublicPost(draft)) != nil {
-                return RecordShareOutcome(draft: draft, postedRemotely: true)
+            if let remotePoster,
+               (try? await remotePoster.postPublicPost(draft, visibility: chosenVisibility.feedPostVisibility)) != nil {
+                return RecordShareOutcome(draft: draft, postedRemotely: true, visibility: chosenVisibility)
             }
 
             try await store.saveDraft(draft)
-            return RecordShareOutcome(draft: draft, postedRemotely: false)
+            return RecordShareOutcome(draft: draft, postedRemotely: false, visibility: .privateOnly)
         case .later:
             return nil
         }

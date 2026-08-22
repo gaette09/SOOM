@@ -79,7 +79,7 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
     /// local draft, producing a real duplicate (one row on the server, one
     /// draft that never syncs away). The caller only needs to know whether
     /// the insert itself succeeded.
-    func postPublicPost(_ draft: FeedShareDraft) async throws {
+    func postPublicPost(_ draft: FeedShareDraft, visibility: FeedPostVisibility) async throws {
         let session = try await client.auth.session
         let request = FeedPostInsertDTO(
             userId: session.user.id,
@@ -90,7 +90,7 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             distanceMeters: draft.distanceMeters,
             durationSeconds: Int(draft.durationSeconds),
             averagePaceSecondsPerKm: draft.averagePaceSecondsPerKm,
-            visibility: .privatePost
+            visibility: visibility
         )
 
         try await client

@@ -15,7 +15,7 @@ protocol FeedRemotePostFetching {
 }
 
 protocol FeedRemotePostPosting {
-    func postPublicPost(_ draft: FeedShareDraft) async throws
+    func postPublicPost(_ draft: FeedShareDraft, visibility: FeedPostVisibility) async throws
 }
 
 struct MockFeedRepository: FeedRepositoryProtocol {

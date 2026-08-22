@@ -248,19 +248,18 @@ struct SettingsView: View {
 
     private var privacySection: some View {
         SOOMCard {
-            SOOMSectionHeader("공개 범위", caption: "공유 기본값은 사용자가 선택할 때만 적용되는 후보 설정입니다.")
+            SOOMSectionHeader("공개 범위", caption: "운동을 피드에 공유할 때 기본으로 적용되는 공개 범위입니다.")
 
             Picker("공유 기본값", selection: Binding(
                 get: { viewModel.settings.privacyDefault },
                 set: { viewModel.updatePrivacyDefault($0) }
             )) {
                 Text(ShareableWorkoutVisibility.privateOnly.title).tag(ShareableWorkoutVisibility.privateOnly)
-                Text(ShareableWorkoutVisibility.followers.title).tag(ShareableWorkoutVisibility.followers)
                 Text(ShareableWorkoutVisibility.publicFeed.title).tag(ShareableWorkoutVisibility.publicFeed)
             }
             .pickerStyle(.segmented)
 
-            Text("위치, 심박, 체크인 메모는 기본 공유 항목에 포함하지 않습니다.")
+            Text("위치, 심박, 체크인 메모는 기본 공유 항목에 포함하지 않습니다. 팔로워 공개는 팔로우 기능 출시 후 추가돼요.")
                 .font(SOOMFont.body(12, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
         }
