@@ -75,6 +75,59 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertFalse(card.recoveryMessage.contains("82"))
     }
 
+    func testFeedPostBundleSetsAuthorIdAndIsNotALocalDraft() {
+        let authorId = UUID(uuidString: "585B05E6-EFC0-4813-B018-B2325B0BA476")!
+        let bundle = FeedPostBundleDTO(post: makePost())
+
+        let item = bundle.makeFeedItem()
+
+        XCTAssertEqual(item.authorId, authorId)
+        XCTAssertFalse(item.isLocalDraft)
+    }
+
+    func testFeedPostBundleMarksViewerHasCheeredWhenCurrentUserHasACheerReaction() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            reactions: [
+                FeedReactionDTO(
+                    id: UUID(),
+                    postId: postId,
+                    userId: currentUserId,
+                    reactionType: "cheer",
+                    createdAt: Date(timeIntervalSince1970: 1_800_420_100)
+                )
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: currentUserId)
+
+        XCTAssertTrue(item.viewerHasCheered)
+    }
+
+    func testFeedPostBundleDoesNotMarkViewerHasCheeredForAnotherUsersReaction() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let someoneElse = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            reactions: [
+                FeedReactionDTO(
+                    id: UUID(),
+                    postId: postId,
+                    userId: someoneElse,
+                    reactionType: "cheer",
+                    createdAt: Date(timeIntervalSince1970: 1_800_420_100)
+                )
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: currentUserId)
+
+        XCTAssertFalse(item.viewerHasCheered)
+    }
+
     func testFeedPostBundlePassesThroughSourceWorkoutId() {
         let sourceWorkoutId = UUID(uuidString: "1F5B6D2D-3F1E-4A5A-9C31-8B2D6C5C1234")!
         let post = FeedPostDTO(

@@ -28,6 +28,17 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertTrue(draft.tags.contains("라이딩"))
     }
 
+    func testDraftFeedItemIsMarkedAsLocalDraft() {
+        let draft = FeedShareDraftBuilder(
+            dateProvider: { self.now },
+            idProvider: { self.draftID }
+        ).build(from: workout())
+
+        let item = draft.makeFeedItem()
+
+        XCTAssertTrue(item.isLocalDraft)
+    }
+
     func testDraftDoesNotIncludeRecoveryGuidanceInFeedFields() {
         let draft = FeedShareDraftBuilder(
             dateProvider: { self.now },
@@ -153,6 +164,21 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertEqual(savedDrafts.count, 1)
     }
 
+    func testFileStoreDeleteDraftRemovesOnlyTheMatchingDraft() async throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FeedShareDraftTests-\(UUID().uuidString).json")
+        let store = FileFeedShareDraftStore(fileURL: fileURL)
+        let kept = makeDraft(id: UUID(), sourceWorkoutId: UUID())
+        let deleted = makeDraft(id: UUID(), sourceWorkoutId: UUID())
+
+        try await store.saveDraft(kept)
+        try await store.saveDraft(deleted)
+        try await store.deleteDraft(id: deleted.id)
+        let remaining = try await store.fetchDrafts()
+
+        XCTAssertEqual(remaining.map(\.id), [kept.id])
+    }
+
     func testFileStoreDeleteAllDraftsRemovesEverySavedDraft() async throws {
         let fileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("FeedShareDraftTests-\(UUID().uuidString).json")
@@ -181,8 +207,27 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertTrue(remaining.isEmpty)
     }
 
-    private func makeDraft() -> FeedShareDraft {
-        FeedShareDraftBuilder(dateProvider: { self.now }, idProvider: { self.draftID }).build(from: workout())
+    private func makeDraft(id: UUID? = nil, sourceWorkoutId: UUID? = nil) -> FeedShareDraft {
+        let built = FeedShareDraftBuilder(dateProvider: { self.now }, idProvider: { id ?? self.draftID }).build(from: workout())
+        guard let sourceWorkoutId else {
+            return built
+        }
+
+        return FeedShareDraft(
+            id: built.id,
+            sourceWorkoutId: sourceWorkoutId,
+            sport: built.sport,
+            title: built.title,
+            body: built.body,
+            distanceMeters: built.distanceMeters,
+            durationSeconds: built.durationSeconds,
+            averagePaceSecondsPerKm: built.averagePaceSecondsPerKm,
+            routePreviewPayload: built.routePreviewPayload,
+            photoPlaceholders: built.photoPlaceholders,
+            tags: built.tags,
+            visibility: built.visibility,
+            createdAt: built.createdAt
+        )
     }
 
     private func workout(
@@ -221,6 +266,10 @@ final class InMemoryFeedShareDraftStore: FeedShareDraftStoreProtocol {
 
     func fetchDrafts() async throws -> [FeedShareDraft] {
         drafts
+    }
+
+    func deleteDraft(id: UUID) async throws {
+        drafts.removeAll { $0.id == id }
     }
 
     func deleteAllDrafts() async throws {
