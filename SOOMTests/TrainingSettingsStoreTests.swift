@@ -77,4 +77,20 @@ final class TrainingSettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.loadSettings(), settings)
     }
+
+    func testResetAllClearsEverySavedValue() {
+        store.saveSettings(
+            TrainingSettings(
+                maxHeartRate: 192,
+                cyclingFTP: 280,
+                preferredUnit: .imperial,
+                privacyDefault: .publicFeed
+            )
+        )
+
+        store.resetAll()
+
+        XCTAssertFalse(store.hasAnySavedTrainingSetting())
+        XCTAssertEqual(store.loadSettings(), TrainingSettings())
+    }
 }

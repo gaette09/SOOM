@@ -64,6 +64,19 @@ final class WorkoutRoutePersistenceStoreTests: XCTestCase {
         XCTAssertNil(fetched)
     }
 
+    func testDeleteAllRoutesRemovesEveryStoredRoute() async throws {
+        let fixture = try makeFixture()
+        let first = makeRoute(distance: 1_000)
+        let second = makeRoute(distance: 2_000)
+
+        try await fixture.store.saveRoute(first)
+        try await fixture.store.saveRoute(second)
+        try await fixture.store.deleteAllRoutes()
+        let fetched = try await fixture.store.fetchRoutes(workoutIds: [first.workoutId, second.workoutId])
+
+        XCTAssertTrue(fetched.isEmpty)
+    }
+
     func testEmptyRouteIsStoredSafely() async throws {
         let fixture = try makeFixture()
         let route = WorkoutRoute(

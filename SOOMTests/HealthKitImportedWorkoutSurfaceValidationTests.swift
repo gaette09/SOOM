@@ -390,6 +390,11 @@ private final class SurfaceValidationUnifiedWorkoutStore: UnifiedWorkoutStore {
         savedWorkouts.removeAll { $0.id == id }
         existingWorkouts.removeAll { $0.id == id }
     }
+
+    func deleteAllWorkouts() async throws {
+        savedWorkouts.removeAll()
+        existingWorkouts.removeAll()
+    }
 }
 
 private final class SurfaceValidationWorkoutRouteStore: WorkoutRoutePersistenceStoring {
@@ -409,6 +414,10 @@ private final class SurfaceValidationWorkoutRouteStore: WorkoutRoutePersistenceS
 
     func deleteRoute(workoutId: UUID) async throws {
         routesByWorkoutID.removeValue(forKey: workoutId)
+    }
+
+    func deleteAllRoutes() async throws {
+        routesByWorkoutID.removeAll()
     }
 }
 

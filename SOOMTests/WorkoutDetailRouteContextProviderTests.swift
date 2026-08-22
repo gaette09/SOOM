@@ -217,4 +217,6 @@ private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceSto
     }
 
     func deleteRoute(workoutId: UUID) async throws {}
+
+    func deleteAllRoutes() async throws {}
 }

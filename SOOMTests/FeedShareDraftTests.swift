@@ -105,6 +105,34 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertEqual(savedDrafts.count, 1)
     }
 
+    func testFileStoreDeleteAllDraftsRemovesEverySavedDraft() async throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FeedShareDraftTests-\(UUID().uuidString).json")
+        let store = FileFeedShareDraftStore(fileURL: fileURL)
+        let draft = FeedShareDraftBuilder(
+            dateProvider: { self.now },
+            idProvider: { self.draftID }
+        ).build(from: workout())
+
+        try await store.saveDraft(draft)
+        try await store.deleteAllDrafts()
+        let remaining = try await store.fetchDrafts()
+
+        XCTAssertTrue(remaining.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
+    func testFileStoreDeleteAllDraftsIsSafeWhenNothingWasEverSaved() async throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FeedShareDraftTests-\(UUID().uuidString).json")
+        let store = FileFeedShareDraftStore(fileURL: fileURL)
+
+        try await store.deleteAllDrafts()
+        let remaining = try await store.fetchDrafts()
+
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
     private func workout(
         distanceMeters: Double? = 8_200,
         durationSeconds: TimeInterval = 2_460
@@ -141,6 +169,10 @@ final class InMemoryFeedShareDraftStore: FeedShareDraftStoreProtocol {
 
     func fetchDrafts() async throws -> [FeedShareDraft] {
         drafts
+    }
+
+    func deleteAllDrafts() async throws {
+        drafts.removeAll()
     }
 }
 

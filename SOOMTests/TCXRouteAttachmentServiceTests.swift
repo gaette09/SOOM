@@ -419,6 +419,10 @@ private final class FakeTCXWorkoutStore: UnifiedWorkoutStore {
     func deleteWorkout(id: UUID) async throws {
         savedWorkouts.removeAll { $0.id == id }
     }
+
+    func deleteAllWorkouts() async throws {
+        savedWorkouts.removeAll()
+    }
 }
 
 private final class FakeTCXRouteStore: WorkoutRoutePersistenceStoring {
@@ -452,6 +456,10 @@ private final class FakeTCXRouteStore: WorkoutRoutePersistenceStoring {
 
     func deleteRoute(workoutId: UUID) async throws {
         savedRoutes.removeAll { $0.workoutId == workoutId }
+    }
+
+    func deleteAllRoutes() async throws {
+        savedRoutes.removeAll()
     }
 }
 

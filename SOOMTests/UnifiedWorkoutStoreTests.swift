@@ -149,6 +149,19 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
         XCTAssertEqual(fetched.map(\.id), [remaining.id])
     }
 
+    func testDeleteAllWorkoutsRemovesEveryStoredWorkout() async throws {
+        let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let fixture = try makeFixture(referenceDate: referenceDate)
+        let first = makeWorkout(startDate: referenceDate)
+        let second = makeWorkout(startDate: referenceDate.addingTimeInterval(-86_400))
+
+        try await fixture.store.saveWorkouts([first, second])
+        try await fixture.store.deleteAllWorkouts()
+        let fetched = try await fixture.store.fetchRecentWorkouts(days: 30)
+
+        XCTAssertTrue(fetched.isEmpty)
+    }
+
     func testFetchRecentWorkoutsFiltersByDays() async throws {
         let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
         let fixture = try makeFixture(referenceDate: referenceDate)

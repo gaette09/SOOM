@@ -404,6 +404,97 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertTrue(store.loadSession().isLocalOnly)
     }
 
+    func testDeleteAccountForGuestUserClearsLocalSessionWithoutRemoteCall() async {
+        let store = makeStore()
+        _ = store.continueAsLocalUser(displayName: "게스트")
+        var remoteDeleteCallCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteAccountDeleteHandler: {
+                remoteDeleteCallCount += 1
+            }
+        )
+
+        let committed = await viewModel.deleteAccount()
+
+        XCTAssertTrue(committed)
+        XCTAssertEqual(remoteDeleteCallCount, 0)
+        XCTAssertEqual(viewModel.session.sessionState, .signedOut)
+        XCTAssertTrue(viewModel.displayNameText.isEmpty)
+        XCTAssertEqual(store.loadSession().sessionState, .signedOut)
+    }
+
+    func testDeleteAccountForSupabaseUserCallsRemoteHandlerThenClearsSession() async {
+        let store = makeStore()
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "16161616-1616-1616-1616-161616161616")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        var remoteDeleteCallCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteAccountDeleteHandler: {
+                remoteDeleteCallCount += 1
+            }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        let committed = await viewModel.deleteAccount()
+
+        XCTAssertTrue(committed)
+        XCTAssertEqual(remoteDeleteCallCount, 1)
+        XCTAssertEqual(viewModel.session.sessionState, .signedOut)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(store.loadSession().sessionState, .signedOut)
+    }
+
+    func testDeleteAccountForSupabaseUserFailurePreservesSessionAndPublishesError() async {
+        let store = makeStore()
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "17171717-1717-1717-1717-171717171717")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            remoteAccountDeleteHandler: {
+                throw AuthError.unknown("계정을 삭제하지 못했어요.")
+            }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        let committed = await viewModel.deleteAccount()
+
+        XCTAssertFalse(committed)
+        XCTAssertEqual(viewModel.session.currentUser?.id, remoteUser.id)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.errorMessage, "계정을 삭제하지 못했어요.")
+    }
+
+    func testDeleteAccountForSupabaseUserWithoutHandlerFailsSafely() async {
+        let store = makeStore()
+        let remoteUser = AppUser(
+            id: UUID(uuidString: "18181818-1818-1818-1818-181818181818")!,
+            displayName: "remote",
+            email: "remote@example.com",
+            authProvider: .supabase,
+            createdAt: Date(timeIntervalSince1970: 1_800_000_100)
+        )
+        let viewModel = AuthViewModel(repository: LocalAuthRepository(store: store))
+        viewModel.applyRemoteSession(.signedIn(user: remoteUser))
+
+        let committed = await viewModel.deleteAccount()
+
+        XCTAssertFalse(committed)
+        XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(viewModel.errorMessage, AuthError.futureRemoteAuthNotConfigured.userMessage)
+    }
+
     func testViewModelDoesNotUseRecoveryCalculator() {
         let viewModel = AuthViewModel(store: makeStore())
         viewModel.continueAsLocalUser()

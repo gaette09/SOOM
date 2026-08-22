@@ -194,6 +194,83 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertEqual(requester.callCount, 1)
     }
 
+    func testProviderDeleteAccountAlsoStaysFutureOnly() async {
+        let provider = SupabaseAuthProvider(configuration: .empty)
+
+        do {
+            try await provider.deleteAccount()
+            XCTFail("Remote account deletion should stay future-only")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testConfiguredDeleteAccountUsesInjectedDeleter() async throws {
+        let deleter = ProviderFakeAccountDeleter()
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            accountDeleter: deleter
+        )
+
+        try await provider.deleteAccount()
+
+        XCTAssertEqual(deleter.callCount, 1)
+    }
+
+    func testConfiguredDeleteAccountWithoutDeleterFailsSafely() async {
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil)
+        )
+
+        do {
+            try await provider.deleteAccount()
+            XCTFail("Configured provider without an account deleter should fail safely")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .futureRemoteAuthNotConfigured)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testDeleteAccountFailurePropagates() async {
+        let deleter = ProviderFakeAccountDeleter(error: AuthError.unknown("계정을 삭제하지 못했어요."))
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            accountDeleter: deleter
+        )
+
+        do {
+            try await provider.deleteAccount()
+            XCTFail("Deleter failure should propagate")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .unknown("계정을 삭제하지 못했어요."))
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(deleter.callCount, 1)
+    }
+
     func testProviderCanReturnReadOnlySessionSmokeSnapshot() async {
         let probe = SupabaseAuthSessionProbe(
             isConfigured: true,
@@ -599,6 +676,20 @@ private final class ProviderFakeRemoteSignOutRequester: SupabaseRemoteSignOutReq
     }
 
     func signOut() async throws {
+        callCount += 1
+        if let error { throw error }
+    }
+}
+
+private final class ProviderFakeAccountDeleter: SupabaseAccountDeleting {
+    private let error: Error?
+    private(set) var callCount = 0
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
+
+    func deleteAccount() async throws {
         callCount += 1
         if let error { throw error }
     }

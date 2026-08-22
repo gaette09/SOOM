@@ -634,6 +634,10 @@ private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceSto
     func deleteRoute(workoutId: UUID) async throws {
         savedRoutes.removeAll { $0.workoutId == workoutId }
     }
+
+    func deleteAllRoutes() async throws {
+        savedRoutes.removeAll()
+    }
 }
 
 private func makeHKWorkout() -> HKWorkout {
@@ -706,6 +710,10 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
 
     func deleteWorkout(id: UUID) async throws {
         savedWorkouts.removeAll { $0.id == id }
+    }
+
+    func deleteAllWorkouts() async throws {
+        savedWorkouts.removeAll()
     }
 
     private func upsert(_ workout: UnifiedWorkout) {

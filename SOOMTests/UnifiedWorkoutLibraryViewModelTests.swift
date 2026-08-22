@@ -198,6 +198,8 @@ private final class FakeUnifiedWorkoutLibraryStore: UnifiedWorkoutStore {
     func deleteWorkout(id: UUID) async throws {
         didDeleteWorkout = true
     }
+
+    func deleteAllWorkouts() async throws {}
 }
 
 private enum SampleError: Error {
