@@ -106,6 +106,24 @@ struct RecordShareOutcome: Equatable {
     /// `postedRemotely` is false — a local-only draft isn't visible to
     /// anyone else regardless of what the user had picked as their default.
     let visibility: ShareableWorkoutVisibility
+
+    /// Shared between every share entry point (Record, workout detail) so
+    /// they can't drift into telling the user something that didn't
+    /// actually happen — this was itself the bug that motivated adding this
+    /// property (a message unconditionally said "공개로 게시했어요" while every
+    /// share was actually going out private).
+    var summaryMessage: String {
+        guard postedRemotely else {
+            return "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
+        }
+
+        switch visibility {
+        case .publicFeed:
+            return "피드에 공개로 게시했어요."
+        case .privateOnly, .followers:
+            return "피드에 나만 보기로 게시했어요."
+        }
+    }
 }
 
 struct RecordShareDraftCoordinator {

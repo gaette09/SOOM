@@ -1538,7 +1538,8 @@ struct RecordView: View {
             let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
             let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live, remotePoster: remotePoster)
             let outcome = try await coordinator.handle(.shareToFeed, workout: workout)
-            shareDraftResultMessage = Self.shareResultMessage(for: outcome)
+            shareDraftResultMessage = outcome?.summaryMessage
+                ?? "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
             // Hold the confirmation on screen briefly before the flow dismisses —
             // otherwise a signed-in vs signed-out share would look identical,
             // which was exactly the gap this batch closes. isCreatingShareDraft
@@ -1549,19 +1550,6 @@ struct RecordView: View {
         } catch {
             isCreatingShareDraft = false
             shareDraftErrorMessage = "피드 초안을 만들지 못했어요. 기록은 이 기기에 저장되어 있어요."
-        }
-    }
-
-    private static func shareResultMessage(for outcome: RecordShareOutcome?) -> String {
-        guard outcome?.postedRemotely == true else {
-            return "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
-        }
-
-        switch outcome?.visibility {
-        case .publicFeed:
-            return "피드에 공개로 게시했어요."
-        case .privateOnly, .followers, nil:
-            return "피드에 나만 보기로 게시했어요."
         }
     }
 

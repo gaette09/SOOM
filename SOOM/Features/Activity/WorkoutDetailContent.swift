@@ -542,9 +542,12 @@ struct WorkoutDetailContent: View {
         feedDraftErrorMessage = nil
 
         do {
-            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live)
-            _ = try await coordinator.handle(.shareToFeed, workout: unifiedWorkoutForDraft)
-            feedDraftMessage = "피드 초안으로 저장했어요. 공개 전까지는 나에게만 보여요."
+            let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
+            let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
+            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live, remotePoster: remotePoster)
+            let outcome = try await coordinator.handle(.shareToFeed, workout: unifiedWorkoutForDraft)
+            feedDraftMessage = outcome?.summaryMessage
+                ?? "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
         } catch {
             feedDraftErrorMessage = "피드 초안을 만들지 못했어요. 잠시 후 다시 시도해주세요."
         }

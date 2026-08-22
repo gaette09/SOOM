@@ -128,6 +128,16 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertEqual(outcome?.visibility, .privateOnly)
     }
 
+    func testSummaryMessageReflectsActualOutcome() {
+        let localOnly = RecordShareOutcome(draft: makeDraft(), postedRemotely: false, visibility: .privateOnly)
+        let remotePrivate = RecordShareOutcome(draft: makeDraft(), postedRemotely: true, visibility: .privateOnly)
+        let remotePublic = RecordShareOutcome(draft: makeDraft(), postedRemotely: true, visibility: .publicFeed)
+
+        XCTAssertEqual(localOnly.summaryMessage, "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요.")
+        XCTAssertEqual(remotePrivate.summaryMessage, "피드에 나만 보기로 게시했어요.")
+        XCTAssertEqual(remotePublic.summaryMessage, "피드에 공개로 게시했어요.")
+    }
+
     func testFailedRemotePostFallsBackToLocalDraft() async throws {
         let store = InMemoryFeedShareDraftStore()
         let coordinator = RecordShareDraftCoordinator(
@@ -169,6 +179,10 @@ final class FeedShareDraftTests: XCTestCase {
         let remaining = try await store.fetchDrafts()
 
         XCTAssertTrue(remaining.isEmpty)
+    }
+
+    private func makeDraft() -> FeedShareDraft {
+        FeedShareDraftBuilder(dateProvider: { self.now }, idProvider: { self.draftID }).build(from: workout())
     }
 
     private func workout(
