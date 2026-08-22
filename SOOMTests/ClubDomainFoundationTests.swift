@@ -232,6 +232,44 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertFalse(viewModel.challenges.isEmpty)
     }
 
+    func testClubsViewModelMarksLocalFallbackWhenServiceFallsBack() async {
+        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        viewModel.configure(service: FallbackClubService(
+            primary: SupabaseClubService(remoteClient: FailingSupabaseClubRemoteClient(), currentUserID: "current-user"),
+            fallback: InMemoryClubService(),
+            onDidUseFallback: viewModel.markUsingLocalFallback
+        ))
+
+        await viewModel.loadDirectory()
+        // markUsingLocalFallback hops to the main actor via Task {}; give it
+        // a beat to land, matching this suite's existing async-settling
+        // convention (see AuthViewModelTests' CountingRemoteSessionLoader).
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertTrue(viewModel.isShowingLocalFallbackData)
+        XCTAssertEqual(viewModel.directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
+    }
+
+    func testClubsViewModelDoesNotMarkLocalFallbackWhenPrimarySucceeds() async {
+        let viewModel = ClubsViewModel(service: InMemoryClubService())
+
+        await viewModel.loadDirectory()
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertFalse(viewModel.isShowingLocalFallbackData)
+    }
+
+    func testClubsViewModelResetsLocalFallbackFlagAtStartOfEachLoad() async {
+        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        viewModel.markUsingLocalFallback()
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        XCTAssertTrue(viewModel.isShowingLocalFallbackData)
+
+        await viewModel.loadDirectory()
+
+        XCTAssertFalse(viewModel.isShowingLocalFallbackData)
+    }
+
     func testSupabaseClubServiceMapsClubRows() async throws {
         let remote = FakeSupabaseClubRemoteClient()
         remote.directoryPayload = SupabaseClubDirectoryPayload(
@@ -308,6 +346,49 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
     }
 
+    func testClubServiceResolverCallsOnDidUseFallbackWithoutRemoteClient() async throws {
+        var fallbackUsedCount = 0
+        let service = ClubServiceResolver.makeService(
+            remoteClient: nil,
+            currentUserID: "current-user",
+            fallback: InMemoryClubService(),
+            onDidUseFallback: { fallbackUsedCount += 1 }
+        )
+
+        _ = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(fallbackUsedCount, 1)
+    }
+
+    func testClubServiceResolverCallsOnDidUseFallbackWithoutCurrentUserID() async throws {
+        var fallbackUsedCount = 0
+        let service = ClubServiceResolver.makeService(
+            remoteClient: FakeSupabaseClubRemoteClient(),
+            currentUserID: nil,
+            fallback: InMemoryClubService(),
+            onDidUseFallback: { fallbackUsedCount += 1 }
+        )
+
+        _ = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(fallbackUsedCount, 1)
+    }
+
+    func testClubServiceResolverDoesNotCallOnDidUseFallbackWhenRemoteClientSucceeds() async throws {
+        var fallbackUsedCount = 0
+        let remote = FakeSupabaseClubRemoteClient()
+        let service = ClubServiceResolver.makeService(
+            remoteClient: remote,
+            currentUserID: "current-user",
+            fallback: InMemoryClubService(),
+            onDidUseFallback: { fallbackUsedCount += 1 }
+        )
+
+        _ = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(fallbackUsedCount, 0)
+    }
+
     func testSupabaseClubServiceCreateJoinLeaveRequestMapping() async throws {
         let remote = FakeSupabaseClubRemoteClient()
         remote.createdClubRow = SupabaseClubRow(
@@ -358,6 +439,33 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
         XCTAssertEqual(created.name, "Fallback Club")
         XCTAssertEqual(created.membershipState, .owned)
+    }
+
+    func testFallbackClubServiceCallsOnDidUseFallbackWhenPrimaryFails() async throws {
+        var fallbackUsedCount = 0
+        let service = FallbackClubService(
+            primary: SupabaseClubService(remoteClient: FailingSupabaseClubRemoteClient(), currentUserID: "current-user"),
+            fallback: InMemoryClubService(),
+            onDidUseFallback: { fallbackUsedCount += 1 }
+        )
+
+        _ = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(fallbackUsedCount, 1)
+    }
+
+    func testFallbackClubServiceDoesNotCallOnDidUseFallbackWhenPrimarySucceeds() async throws {
+        var fallbackUsedCount = 0
+        let remote = FakeSupabaseClubRemoteClient()
+        let service = FallbackClubService(
+            primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"),
+            fallback: InMemoryClubService(),
+            onDidUseFallback: { fallbackUsedCount += 1 }
+        )
+
+        _ = try await service.fetchClubDirectory()
+
+        XCTAssertEqual(fallbackUsedCount, 0)
     }
 
     func testRemoteClubMappingKeepsMotivationLayerFoundation() async throws {
