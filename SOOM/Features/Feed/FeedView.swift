@@ -6,23 +6,34 @@ struct FeedView: View {
     let weeklySnapshot: FeedWeeklySnapshot?
     let recoveryInsight: FeedRecoveryInsight?
     let streak: FeedStreakSnapshot
+    let onToggleCheer: (FeedItem) -> Void
+    let onSubmitComment: (FeedItem, String) -> Void
+    let onDeletePost: (FeedItem) -> Void
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
     @State private var isSignInSheetPresented = false
+    @State private var isSearchPresented = false
+    @State private var isNotificationsComingSoonPresented = false
 
     init(
         items: [FeedItem] = FeedMockData.items,
         weeklySnapshot: FeedWeeklySnapshot? = nil,
         recoveryInsight: FeedRecoveryInsight? = nil,
-        streak: FeedStreakSnapshot = FeedStreakSnapshot(weekCount: 0, activityCount: 0)
+        streak: FeedStreakSnapshot = FeedStreakSnapshot(weekCount: 0, activityCount: 0),
+        onToggleCheer: @escaping (FeedItem) -> Void = { _ in },
+        onSubmitComment: @escaping (FeedItem, String) -> Void = { _, _ in },
+        onDeletePost: @escaping (FeedItem) -> Void = { _ in }
     ) {
         let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
         self.weeklySnapshot = weeklySnapshot
         self.recoveryInsight = recoveryInsight
         self.streak = streak
+        self.onToggleCheer = onToggleCheer
+        self.onSubmitComment = onSubmitComment
+        self.onDeletePost = onDeletePost
         _visibleItems = State(initialValue: sortedItems)
     }
 
@@ -62,7 +73,7 @@ struct FeedView: View {
                         NavigationLink {
                             feedDestination(for: item)
                         } label: {
-                            FeedItemCard(item: item)
+                            feedItemCard(for: item)
                         }
                         .buttonStyle(FeedCardButtonStyle())
                         .simultaneousGesture(TapGesture().onEnded {
@@ -121,6 +132,16 @@ struct FeedView: View {
                 .presentationDetents([.height(320)])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isSearchPresented) {
+            FeedSearchSheet(items: items) { item in
+                feedDestination(for: item)
+            }
+        }
+        .alert("알림 기능 준비 중", isPresented: $isNotificationsComingSoonPresented) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("알림 기능은 아직 준비 중이에요. 곧 만나요!")
+        }
     }
 
     private var signInSheet: some View {
@@ -155,14 +176,18 @@ struct FeedView: View {
 
             Spacer()
 
-            headerIconButton(icon: "magnifyingglass", label: "검색")
-            headerIconButton(icon: "bell", label: "알림")
+            headerIconButton(icon: "magnifyingglass", label: "검색") {
+                isSearchPresented = true
+            }
+            headerIconButton(icon: "bell", label: "알림") {
+                isNotificationsComingSoonPresented = true
+            }
         }
         .padding(.bottom, -4)
     }
 
-    private func headerIconButton(icon: String, label: String) -> some View {
-        Button(action: {}) {
+    private func headerIconButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                 .foregroundStyle(SOOMColor.ink)
@@ -228,6 +253,16 @@ struct FeedView: View {
         FeedItemDetailDestination(item: item)
     }
 
+    private func feedItemCard(for item: FeedItem) -> some View {
+        FeedItemCard(
+            item: item,
+            isOwnPost: item.isLocalDraft || item.authorId == authViewModel.session.currentUser?.id,
+            onToggleCheer: { onToggleCheer(item) },
+            onSubmitComment: { body in onSubmitComment(item, body) },
+            onDeletePost: { onDeletePost(item) }
+        )
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
             SOOMFirstJourneyCard(
@@ -280,6 +315,68 @@ struct FeedView: View {
         }
 
         return 3
+    }
+}
+
+/// Filters the already-loaded feed list client-side — no server-side search
+/// exists yet, so this only searches the ~20 items the feed already has in
+/// memory (see soom-launch-blockers scoping: a real search API over all
+/// posts was explicitly deferred).
+private struct FeedSearchSheet<Destination: View>: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    let items: [FeedItem]
+    @ViewBuilder let destination: (FeedItem) -> Destination
+
+    private var results: [FeedItem] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return []
+        }
+        return items.filter {
+            $0.authorName.localizedCaseInsensitiveContains(trimmed)
+                || $0.activityContext.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("작성자나 제목으로 검색해보세요.")
+                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                } else if results.isEmpty {
+                    Text("불러온 피드 안에서 일치하는 게시물을 찾지 못했어요.")
+                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                } else {
+                    ForEach(results) { item in
+                        NavigationLink {
+                            destination(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.authorName)
+                                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                                    .foregroundStyle(SOOMColor.ink)
+                                Text(item.activityContext)
+                                    .font(SOOMFont.body(12, relativeTo: .caption))
+                                    .foregroundStyle(SOOMColor.secondaryInk)
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .searchable(text: $query, prompt: "작성자 또는 제목")
+            .navigationTitle("검색")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("닫기") { dismiss() }
+                }
+            }
+        }
     }
 }
 

@@ -168,7 +168,7 @@ struct FeedPostBundleDTO: Equatable {
         self.comments = comments
     }
 
-    func makeFeedItem(authorName: String = "SOOM 사용자", authorHandle: String? = nil) -> FeedItem {
+    func makeFeedItem(authorName: String = "SOOM 사용자", authorHandle: String? = nil, currentUserId: UUID? = nil) -> FeedItem {
         let visibility = post.visibility.shareableVisibility
         let routePreview = StaticRoutePreview(
             imageURL: nil,
@@ -194,6 +194,8 @@ struct FeedPostBundleDTO: Equatable {
             id: post.id,
             authorName: authorName,
             authorHandle: authorHandle,
+            authorId: post.userId,
+            isLocalDraft: false,
             createdAt: post.createdAt,
             itemType: .workoutSession,
             visibility: visibility,
@@ -211,6 +213,12 @@ struct FeedPostBundleDTO: Equatable {
             clubContext: nil,
             contextLabels: [FeedContextLabel(title: visibility.title)],
             reactions: reactions.map(\.feedReaction),
+            // "cheer" is the only reaction_type the app's own action bar can
+            // write today — "steady"/"night"/"wind" only ever come from
+            // seeded/mock data (see FeedReactionDTO.feedReaction).
+            viewerHasCheered: currentUserId != nil && reactions.contains {
+                $0.userId == currentUserId && $0.reactionType == "cheer"
+            },
             microComment: comments.first?.body
         )
     }

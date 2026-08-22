@@ -2,6 +2,13 @@ import SwiftUI
 
 struct FeedItemCard: View {
     let item: FeedItem
+    var isOwnPost: Bool = false
+    var onToggleCheer: () -> Void = {}
+    var onSubmitComment: (String) -> Void = { _ in }
+    var onDeletePost: () -> Void = {}
+
+    @State private var isComposingComment = false
+    @State private var isConfirmingDelete = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -38,6 +45,23 @@ struct FeedItemCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.authorName)의 \(item.itemType.title) 피드")
         .accessibilityValue(accessibilitySummary)
+        .confirmationDialog(
+            "이 게시물을 삭제할까요?",
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("삭제", role: .destructive, action: onDeletePost)
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("삭제하면 되돌릴 수 없어요.")
+        }
+        .sheet(isPresented: $isComposingComment) {
+            FeedCommentComposeSheet { body in
+                onSubmitComment(body)
+            }
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var header: some View {
@@ -67,14 +91,18 @@ struct FeedItemCard: View {
 
             Spacer(minLength: 8)
 
-            Button(action: {}) {
-                Image(systemName: SOOMIcon.more)
-                    .font(.system(size: SOOMFont.Size.body, weight: .semibold))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-                    .frame(width: 30, height: 30)
+            if isOwnPost {
+                Button {
+                    isConfirmingDelete = true
+                } label: {
+                    Image(systemName: SOOMIcon.more)
+                        .font(.system(size: SOOMFont.Size.body, weight: .semibold))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("피드 더보기")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("피드 더보기")
         }
     }
 
@@ -131,9 +159,27 @@ struct FeedItemCard: View {
 
     private var actionBar: some View {
         HStack(spacing: 8) {
-            FeedReferenceAction(icon: "hands.clap", title: "응원")
+            Button(action: onToggleCheer) {
+                FeedReferenceAction(
+                    icon: item.viewerHasCheered ? "hands.clap.fill" : "hands.clap",
+                    title: "응원",
+                    isProminent: item.viewerHasCheered
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(item.isLocalDraft)
+            .accessibilityAddTraits(item.viewerHasCheered ? [.isSelected] : [])
+
             Spacer()
-            FeedReferenceAction(icon: SOOMIcon.comment, title: "댓글")
+
+            Button {
+                isComposingComment = true
+            } label: {
+                FeedReferenceAction(icon: SOOMIcon.comment, title: "댓글")
+            }
+            .buttonStyle(.plain)
+            .disabled(item.isLocalDraft)
+
             Spacer()
             FeedReferenceAction(icon: SOOMIcon.bookmark, title: "저장", isProminent: true)
         }

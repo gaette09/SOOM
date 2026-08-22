@@ -18,6 +18,19 @@ protocol FeedRemotePostPosting {
     func postPublicPost(_ draft: FeedShareDraft, visibility: FeedPostVisibility) async throws
 }
 
+protocol FeedRemoteReactionPosting {
+    func addReaction(postId: UUID, reactionType: String) async throws
+    func removeReaction(postId: UUID, reactionType: String) async throws
+}
+
+protocol FeedRemoteCommentPosting {
+    func addComment(postId: UUID, body: String) async throws
+}
+
+protocol FeedRemotePostDeleting {
+    func deletePost(id: UUID) async throws
+}
+
 struct MockFeedRepository: FeedRepositoryProtocol {
     let items: [FeedItem]
 

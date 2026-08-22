@@ -111,6 +111,20 @@ struct FeedReactionDTO: Codable, Equatable, Identifiable {
     }
 }
 
+/// Insert-only payload for `feed_reactions` — mirrors `FeedPostInsertDTO`'s
+/// reasoning: `id`/`created_at` are server-generated.
+struct FeedReactionInsertDTO: Encodable, Equatable {
+    let postId: UUID
+    let userId: UUID
+    let reactionType: String
+
+    enum CodingKeys: String, CodingKey {
+        case postId = "post_id"
+        case userId = "user_id"
+        case reactionType = "reaction_type"
+    }
+}
+
 struct FeedCommentDTO: Codable, Equatable, Identifiable {
     let id: UUID
     let postId: UUID
@@ -124,5 +138,18 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
         case userId = "user_id"
         case body
         case createdAt = "created_at"
+    }
+}
+
+/// Insert-only payload for `feed_comments`.
+struct FeedCommentInsertDTO: Encodable, Equatable {
+    let postId: UUID
+    let userId: UUID
+    let body: String
+
+    enum CodingKeys: String, CodingKey {
+        case postId = "post_id"
+        case userId = "user_id"
+        case body
     }
 }

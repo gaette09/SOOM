@@ -84,6 +84,15 @@ struct FeedItem: Identifiable, Equatable {
     let id: UUID
     let authorName: String
     let authorHandle: String?
+    /// The `auth.users` id of the post's author. Only used to decide "is
+    /// this my post" for the card's more-menu (delete) — never displayed.
+    /// A local-only draft's `authorId` is meaningless (see `isLocalDraft`);
+    /// ownership for a draft is decided by `isLocalDraft` alone.
+    let authorId: UUID
+    /// True for a post that only exists as a local `FeedShareDraft` and was
+    /// never posted to `feed_posts` — it has no server row, so reactions/
+    /// comments/remote delete cannot target it (no `post_id` to reference).
+    let isLocalDraft: Bool
     let createdAt: Date
     let itemType: FeedItemType
     let visibility: ShareableWorkoutVisibility
@@ -107,12 +116,17 @@ struct FeedItem: Identifiable, Equatable {
     let clubContext: String?
     let contextLabels: [FeedContextLabel]
     let reactions: [FeedReaction]
+    /// Whether the viewer has their own "cheer" reaction on this post —
+    /// drives the action bar's toggle state. Always false for a local draft.
+    var viewerHasCheered: Bool
     let microComment: String?
 
     init(
         id: UUID,
         authorName: String,
         authorHandle: String?,
+        authorId: UUID = UUID(),
+        isLocalDraft: Bool = false,
         createdAt: Date,
         itemType: FeedItemType,
         visibility: ShareableWorkoutVisibility,
@@ -130,11 +144,14 @@ struct FeedItem: Identifiable, Equatable {
         clubContext: String? = nil,
         contextLabels: [FeedContextLabel] = [],
         reactions: [FeedReaction] = [],
+        viewerHasCheered: Bool = false,
         microComment: String? = nil
     ) {
         self.id = id
         self.authorName = authorName
         self.authorHandle = authorHandle
+        self.authorId = authorId
+        self.isLocalDraft = isLocalDraft
         self.createdAt = createdAt
         self.itemType = itemType
         self.visibility = visibility
@@ -152,6 +169,7 @@ struct FeedItem: Identifiable, Equatable {
         self.clubContext = clubContext
         self.contextLabels = contextLabels
         self.reactions = reactions
+        self.viewerHasCheered = viewerHasCheered
         self.microComment = microComment
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FeedViewContainer: View {
     @Environment(\.modelContext) private var modelContext
+    @State private var viewModel: FeedViewModel?
     @State private var readModel = FeedReadModel.loading
 
     var body: some View {
@@ -10,12 +11,31 @@ struct FeedViewContainer: View {
             items: readModel.items,
             weeklySnapshot: readModel.weeklySnapshot,
             recoveryInsight: readModel.recoveryInsight,
-            streak: readModel.streak
+            streak: readModel.streak,
+            onToggleCheer: { item in
+                Task {
+                    await viewModel?.toggleCheer(for: item)
+                    readModel = viewModel?.readModel ?? readModel
+                }
+            },
+            onSubmitComment: { item, body in
+                Task {
+                    try? await viewModel?.postComment(body, on: item)
+                    readModel = viewModel?.readModel ?? readModel
+                }
+            },
+            onDeletePost: { item in
+                Task {
+                    await viewModel?.deletePost(item)
+                    readModel = viewModel?.readModel ?? readModel
+                }
+            }
         )
         .task {
-            let viewModel = makeProductionViewModel()
-            await viewModel.load()
-            readModel = viewModel.readModel
+            let vm = makeProductionViewModel()
+            viewModel = vm
+            await vm.load()
+            readModel = vm.readModel
         }
     }
 
@@ -23,6 +43,7 @@ struct FeedViewContainer: View {
         let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
         let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
         let remoteClient = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
+        let draftStore = FileFeedShareDraftStore.live
 
         return FeedViewModel(
             feedLoader: FeedDataSource(
@@ -31,11 +52,15 @@ struct FeedViewContainer: View {
                     remoteFetcher: remoteClient,
                     profileFetcher: remoteClient
                 ),
-                draftStore: FileFeedShareDraftStore.live
+                draftStore: draftStore
             ),
             weeklyProgressProvider: UnifiedWorkoutWeeklyProgressProvider(store: store),
             recoveryPreviewProvider: UnifiedWorkoutRecoveryPreviewProvider(store: store),
-            streakDatesProvider: UnifiedWorkoutStoreStreakDatesProvider(store: store)
+            streakDatesProvider: UnifiedWorkoutStoreStreakDatesProvider(store: store),
+            reactionPoster: remoteClient,
+            commentPoster: remoteClient,
+            postDeleter: remoteClient,
+            draftStore: draftStore
         )
     }
 }

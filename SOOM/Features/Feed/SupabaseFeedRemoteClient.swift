@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetching, FeedRemotePostPosting {
+struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetching, FeedRemotePostPosting, FeedRemoteReactionPosting, FeedRemoteCommentPosting, FeedRemotePostDeleting {
     private let client: SupabaseClient
 
     init(client: SupabaseClient) {
@@ -96,6 +96,46 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
         try await client
             .from("feed_posts")
             .insert(request)
+            .execute()
+    }
+
+    func addReaction(postId: UUID, reactionType: String) async throws {
+        let session = try await client.auth.session
+        let request = FeedReactionInsertDTO(postId: postId, userId: session.user.id, reactionType: reactionType)
+
+        try await client
+            .from("feed_reactions")
+            .insert(request)
+            .execute()
+    }
+
+    func removeReaction(postId: UUID, reactionType: String) async throws {
+        let session = try await client.auth.session
+
+        try await client
+            .from("feed_reactions")
+            .delete()
+            .eq("post_id", value: postId)
+            .eq("user_id", value: session.user.id)
+            .eq("reaction_type", value: reactionType)
+            .execute()
+    }
+
+    func addComment(postId: UUID, body: String) async throws {
+        let session = try await client.auth.session
+        let request = FeedCommentInsertDTO(postId: postId, userId: session.user.id, body: body)
+
+        try await client
+            .from("feed_comments")
+            .insert(request)
+            .execute()
+    }
+
+    func deletePost(id: UUID) async throws {
+        try await client
+            .from("feed_posts")
+            .delete()
+            .eq("id", value: id)
             .execute()
     }
 }

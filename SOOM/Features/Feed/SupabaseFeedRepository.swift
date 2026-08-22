@@ -23,16 +23,26 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             throw FeedRepositoryError.remoteFetchNotImplemented
         }
 
-        let bundles = try await remoteFetcher.fetchFeedPosts(limit: limit)
+        async let bundlesTask = remoteFetcher.fetchFeedPosts(limit: limit)
+        let currentUserId = await currentUserId()
+        let bundles = try await bundlesTask
         let profilesByID = await fetchProfilesByID(for: bundles)
 
         return bundles.map { bundle in
             let profile = profilesByID[bundle.post.userId]
             return bundle.makeFeedItem(
                 authorName: profile?.displayName ?? "SOOM 사용자",
-                authorHandle: profile?.handle
+                authorHandle: profile?.handle,
+                currentUserId: currentUserId
             )
         }
+    }
+
+    private func currentUserId() async -> UUID? {
+        guard let client = clientProvider.makeClient() else {
+            return nil
+        }
+        return try? await client.auth.session.user.id
     }
 
     private func fetchProfilesByID(for bundles: [FeedPostBundleDTO]) async -> [UUID: FeedProfileDTO] {

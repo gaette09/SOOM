@@ -64,6 +64,7 @@ struct FeedShareDraft: Identifiable, Codable, Equatable {
             id: id,
             authorName: authorName,
             authorHandle: authorHandle,
+            isLocalDraft: true,
             createdAt: createdAt,
             itemType: .workoutSession,
             visibility: visibility.shareableVisibility,
