@@ -11,3 +11,8 @@ build/
 **/LocalSecrets.xcconfig
 **/Secrets.xcconfig
 **/*.local.xcconfig
+
+# Real personal FIT/GPX/TCX fixtures used for local ad hoc parser verification
+# (e.g. real GPS routes) — never committed. Synthetic fixtures built in test
+# code (FITTestFileBuilder etc.) are unaffected, they aren't files on disk.
+SOOMTests/Fixtures/
