@@ -24,6 +24,41 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
         XCTAssertEqual(workoutStore.savedWorkouts.last?.routeMissingReason, WorkoutRouteMissingReason.none)
     }
 
+    func testBackfillsDistanceAndSpeedWhenWorkoutHasNeither() async throws {
+        let workout = makeWorkout(
+            distanceMeters: nil,
+            averageSpeedMetersPerSecond: nil,
+            routeMissingReason: .healthKitRouteUnavailable
+        )
+        let workoutStore = FakeFITWorkoutStore(workouts: [workout])
+        let routeStore = FakeFITRouteStore()
+        let service = makeService(workoutStore: workoutStore, routeStore: routeStore)
+
+        let result = await service.attachRoute(to: workout.id, fitData: validFITData())
+
+        let attachment = try unwrapSuccess(result)
+        XCTAssertEqual(attachment.workout.distanceMeters ?? 0, 320, accuracy: 0.01)
+        XCTAssertNotNil(attachment.workout.averageSpeedMetersPerSecond)
+        XCTAssertEqual(workoutStore.savedWorkouts.last?.distanceMeters ?? 0, 320, accuracy: 0.01)
+    }
+
+    func testDoesNotOverwriteExistingDistanceAndSpeed() async throws {
+        let workout = makeWorkout(
+            distanceMeters: 5_000,
+            averageSpeedMetersPerSecond: 3.0,
+            routeMissingReason: .healthKitRouteUnavailable
+        )
+        let workoutStore = FakeFITWorkoutStore(workouts: [workout])
+        let routeStore = FakeFITRouteStore()
+        let service = makeService(workoutStore: workoutStore, routeStore: routeStore)
+
+        let result = await service.attachRoute(to: workout.id, fitData: validFITData())
+
+        let attachment = try unwrapSuccess(result)
+        XCTAssertEqual(attachment.workout.distanceMeters, 5_000)
+        XCTAssertEqual(attachment.workout.averageSpeedMetersPerSecond, 3.0)
+    }
+
     func testRouteIsPersistedWithExistingWorkoutId() async throws {
         let workoutID = UUID(uuidString: "22222222-3333-4444-5555-666666666666")!
         let workout = makeWorkout(id: workoutID, routeMissingReason: .externalSourceRouteNotShared)
@@ -118,8 +153,11 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
         XCTAssertTrue(processed.hasRoute)
         XCTAssertEqual(processed.routeMissingReason, .none)
         XCTAssertEqual(processed.metricAvailability[.route], .measured)
-        XCTAssertEqual(processed.metricAvailability[.distance], .derived)
-        XCTAssertGreaterThan(processed.distanceMeters ?? 0, 0)
+        // .measured, not .derived — attachRoute now backfills distance from the FIT
+        // summary itself (320m, see validFITData()) instead of discarding it, so
+        // ProcessedWorkoutBuilder no longer needs to fall back to route geometry.
+        XCTAssertEqual(processed.metricAvailability[.distance], .measured)
+        XCTAssertEqual(processed.distanceMeters ?? 0, 320, accuracy: 0.01)
     }
 
     func testLocalRecordWorkoutIsNotChanged() async {
@@ -162,6 +200,7 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
         id: UUID = UUID(),
         source: UnifiedDataSource = .appleHealthKit,
         distanceMeters: Double? = 10_000,
+        averageSpeedMetersPerSecond: Double? = nil,
         routeMissingReason: WorkoutRouteMissingReason
     ) -> UnifiedWorkout {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
@@ -177,7 +216,7 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
             activeEnergyKcal: 520,
             averageHeartRate: nil,
             maxHeartRate: nil,
-            averageSpeedMetersPerSecond: nil,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: nil,
             routeMissingReason: routeMissingReason,
             dataQuality: .partial,

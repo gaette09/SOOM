@@ -110,6 +110,38 @@ extension UnifiedWorkout {
         )
     }
 
+    /// Backfills distance/speed from a parsed FIT file's session summary, but only
+    /// when this workout doesn't already have a value — same "measured > derived"
+    /// precedence `ProcessedWorkoutBuilder` already applies elsewhere. A HealthKit-
+    /// sourced workout's own measured distance/speed is not necessarily less
+    /// accurate than what a re-parsed FIT file recomputes, so this never overwrites
+    /// an existing value. Previously `FITRouteAttachmentService` computed this
+    /// summary and then discarded it entirely — found while investigating Power
+    /// Curve feasibility (feed-detail-migration-plan.md).
+    func withFITSummaryMerged(_ summary: FITWorkoutSummary, updatedAt: Date) -> UnifiedWorkout {
+        UnifiedWorkout(
+            id: id,
+            externalId: externalId,
+            source: source,
+            workoutType: workoutType,
+            startDate: startDate,
+            endDate: endDate,
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters ?? summary.distanceMeters,
+            activeEnergyKcal: activeEnergyKcal,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: maxHeartRate,
+            averageSpeedMetersPerSecond: averageSpeedMetersPerSecond ?? summary.averageSpeedMetersPerSecond,
+            elevationGainMeters: elevationGainMeters,
+            routeMissingReason: routeMissingReason,
+            dataQuality: dataQuality,
+            isExcludedFromAnalysis: isExcludedFromAnalysis,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            companionNames: companionNames
+        )
+    }
+
     func withCompanionNames(_ names: [String], updatedAt: Date) -> UnifiedWorkout {
         UnifiedWorkout(
             id: id,

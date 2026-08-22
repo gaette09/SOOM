@@ -90,7 +90,9 @@ struct FITRouteAttachmentService {
             return .failure(.persistenceFailed)
         }
 
-        let updatedWorkout = workout.withRouteMissingReason(.none, updatedAt: dateProvider())
+        let updatedWorkout = workout
+            .withRouteMissingReason(.none, updatedAt: dateProvider())
+            .withFITSummaryMerged(parsedRoute.summary, updatedAt: dateProvider())
         do {
             try await workoutStore.saveWorkout(updatedWorkout)
         } catch {
