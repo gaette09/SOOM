@@ -98,6 +98,19 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertEqual(FeedPostVisibility.publicPost.shareableVisibility, .publicFeed)
     }
 
+    func testShareableVisibilityMapsToFeedPostVisibility() {
+        XCTAssertEqual(ShareableWorkoutVisibility.privateOnly.feedPostVisibility, .privatePost)
+        XCTAssertEqual(ShareableWorkoutVisibility.publicFeed.feedPostVisibility, .publicPost)
+    }
+
+    func testFollowersVisibilityMapsToPrivatePostUntilFollowGraphExists() {
+        // No `follows` table exists yet, so `feed_posts_select_owner_or_public`
+        // would make a `followers`-visibility row visible to nobody but the
+        // owner. Posting it as `.privatePost` keeps the DB row honest about
+        // what the RLS actually enforces.
+        XCTAssertEqual(ShareableWorkoutVisibility.followers.feedPostVisibility, .privatePost)
+    }
+
     private func makePost(
         id: UUID = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!,
         sport: UnifiedWorkoutType = .cycling,

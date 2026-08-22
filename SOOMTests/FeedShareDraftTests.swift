@@ -63,6 +63,7 @@ final class FeedShareDraftTests: XCTestCase {
 
         XCTAssertEqual(outcome?.draft.id, draftID)
         XCTAssertEqual(outcome?.postedRemotely, false)
+        XCTAssertEqual(outcome?.visibility, .privateOnly)
         XCTAssertEqual(savedDrafts.map(\.id), [draftID])
     }
 
@@ -91,6 +92,42 @@ final class FeedShareDraftTests: XCTestCase {
         XCTAssertTrue(savedDrafts.isEmpty, "a successful remote post must not also write a local draft")
     }
 
+    func testSuccessfulRemotePostUsesInjectedVisibilityProvider() async throws {
+        let store = InMemoryFeedShareDraftStore()
+        var receivedVisibilities: [FeedPostVisibility] = []
+        let coordinator = RecordShareDraftCoordinator(
+            store: store,
+            remotePoster: StubFeedRemotePostPosting(
+                result: .success(()),
+                receivedVisibility: { receivedVisibilities.append($0) }
+            ),
+            visibilityProvider: { .publicFeed }
+        )
+
+        let outcome = try await coordinator.handle(.shareToFeed, workout: workout())
+
+        XCTAssertEqual(receivedVisibilities, [.publicPost])
+        XCTAssertEqual(outcome?.visibility, .publicFeed)
+    }
+
+    func testSuccessfulRemotePostDefaultsToPrivateVisibilityProvider() async throws {
+        let store = InMemoryFeedShareDraftStore()
+        var receivedVisibilities: [FeedPostVisibility] = []
+        let coordinator = RecordShareDraftCoordinator(
+            store: store,
+            remotePoster: StubFeedRemotePostPosting(
+                result: .success(()),
+                receivedVisibility: { receivedVisibilities.append($0) }
+            ),
+            visibilityProvider: { .privateOnly }
+        )
+
+        let outcome = try await coordinator.handle(.shareToFeed, workout: workout())
+
+        XCTAssertEqual(receivedVisibilities, [.privatePost])
+        XCTAssertEqual(outcome?.visibility, .privateOnly)
+    }
+
     func testFailedRemotePostFallsBackToLocalDraft() async throws {
         let store = InMemoryFeedShareDraftStore()
         let coordinator = RecordShareDraftCoordinator(
@@ -102,6 +139,7 @@ final class FeedShareDraftTests: XCTestCase {
         let savedDrafts = try await store.fetchDrafts()
 
         XCTAssertEqual(outcome?.postedRemotely, false)
+        XCTAssertEqual(outcome?.visibility, .privateOnly)
         XCTAssertEqual(savedDrafts.count, 1)
     }
 
@@ -178,8 +216,15 @@ final class InMemoryFeedShareDraftStore: FeedShareDraftStoreProtocol {
 
 private struct StubFeedRemotePostPosting: FeedRemotePostPosting {
     let result: Result<Void, Error>
+    let receivedVisibility: (FeedPostVisibility) -> Void
 
-    func postPublicPost(_ draft: FeedShareDraft) async throws {
+    init(result: Result<Void, Error>, receivedVisibility: @escaping (FeedPostVisibility) -> Void = { _ in }) {
+        self.result = result
+        self.receivedVisibility = receivedVisibility
+    }
+
+    func postPublicPost(_ draft: FeedShareDraft, visibility: FeedPostVisibility) async throws {
+        receivedVisibility(visibility)
         try result.get()
     }
 }
