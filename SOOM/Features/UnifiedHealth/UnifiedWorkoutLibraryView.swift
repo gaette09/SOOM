@@ -6,6 +6,7 @@ struct UnifiedWorkoutLibraryView: View {
     private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     private let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     private let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
+    private let fitnessTrendHistoryProvider: FitnessTrendHistoryProviding?
     private let gpxRouteAttachmentService: GPXRouteAttachmentService?
     private let fitRouteAttachmentService: FITRouteAttachmentService?
     private let tcxRouteAttachmentService: TCXRouteAttachmentService?
@@ -17,6 +18,7 @@ struct UnifiedWorkoutLibraryView: View {
         detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
         relativeEffortHistoryProvider: RelativeEffortHistoryProviding? = nil,
         achievementHistoryProvider: WorkoutAchievementHistoryProviding? = nil,
+        fitnessTrendHistoryProvider: FitnessTrendHistoryProviding? = nil,
         gpxRouteAttachmentService: GPXRouteAttachmentService? = nil,
         fitRouteAttachmentService: FITRouteAttachmentService? = nil,
         tcxRouteAttachmentService: TCXRouteAttachmentService? = nil,
@@ -27,6 +29,7 @@ struct UnifiedWorkoutLibraryView: View {
         self.detailRouteContextProvider = detailRouteContextProvider
         self.relativeEffortHistoryProvider = relativeEffortHistoryProvider
         self.achievementHistoryProvider = achievementHistoryProvider
+        self.fitnessTrendHistoryProvider = fitnessTrendHistoryProvider
         self.gpxRouteAttachmentService = gpxRouteAttachmentService
         self.fitRouteAttachmentService = fitRouteAttachmentService
         self.tcxRouteAttachmentService = tcxRouteAttachmentService
@@ -180,6 +183,7 @@ struct UnifiedWorkoutLibraryView: View {
                     detailRouteContextProvider: detailRouteContextProvider,
                     relativeEffortHistoryProvider: relativeEffortHistoryProvider,
                     achievementHistoryProvider: achievementHistoryProvider,
+                    fitnessTrendHistoryProvider: fitnessTrendHistoryProvider,
                     gpxRouteAttachmentService: gpxRouteAttachmentService,
                     fitRouteAttachmentService: fitRouteAttachmentService,
                     tcxRouteAttachmentService: tcxRouteAttachmentService,
@@ -206,6 +210,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
+    let fitnessTrendHistoryProvider: FitnessTrendHistoryProviding?
     let gpxRouteAttachmentService: GPXRouteAttachmentService?
     let fitRouteAttachmentService: FITRouteAttachmentService?
     let tcxRouteAttachmentService: TCXRouteAttachmentService?
@@ -223,6 +228,7 @@ private struct UnifiedWorkoutLibraryRow: View {
                         detailRouteContextProvider: detailRouteContextProvider,
                         relativeEffortHistoryProvider: relativeEffortHistoryProvider,
                         achievementHistoryProvider: achievementHistoryProvider,
+                        fitnessTrendHistoryProvider: fitnessTrendHistoryProvider,
                         gpxRouteAttachmentService: gpxRouteAttachmentService,
                         fitRouteAttachmentService: fitRouteAttachmentService,
                         tcxRouteAttachmentService: tcxRouteAttachmentService,
@@ -389,6 +395,7 @@ struct UnifiedWorkoutDetailDestination: View {
     var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     var relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     var achievementHistoryProvider: WorkoutAchievementHistoryProviding?
+    var fitnessTrendHistoryProvider: FitnessTrendHistoryProviding?
     var gpxRouteAttachmentService: GPXRouteAttachmentService?
     var fitRouteAttachmentService: FITRouteAttachmentService?
     var tcxRouteAttachmentService: TCXRouteAttachmentService?
@@ -405,6 +412,7 @@ struct UnifiedWorkoutDetailDestination: View {
     @State private var heartRateChartSamples: [WorkoutDistanceChartSample]?
     @State private var relativeEffortComparison: RelativeEffortComparison?
     @State private var achievements: [WorkoutAchievement] = []
+    @State private var fitnessTrend: FitnessTrend?
 
     var body: some View {
         WorkoutDeepDetailView(
@@ -422,6 +430,7 @@ struct UnifiedWorkoutDetailDestination: View {
             heartRateChartSamplesOverride: heartRateChartSamples,
             relativeEffortComparisonOverride: relativeEffortComparison,
             achievementsOverride: achievements,
+            fitnessTrendOverride: fitnessTrend,
             sourceUnifiedWorkout: unifiedWorkout,
             routeAttachmentAction: routeAttachmentAction,
             companionUpdateAction: companionUpdateAction
@@ -437,7 +446,18 @@ struct UnifiedWorkoutDetailDestination: View {
             await loadChartData()
             await loadRelativeEffortComparison()
             await loadAchievements()
+            await loadFitnessTrend()
         }
+    }
+
+    private func loadFitnessTrend() async {
+        guard let fitnessTrendHistoryProvider else { return }
+
+        let dailyLoads = await fitnessTrendHistoryProvider.dailyTrainingLoads(
+            upTo: unifiedWorkout.startDate,
+            windowDays: FitnessTrendCalculator.recommendedHistoryWindowDays
+        )
+        fitnessTrend = FitnessTrendBuilder.build(dailyLoadsAscending: dailyLoads)
     }
 
     private func loadAchievements() async {

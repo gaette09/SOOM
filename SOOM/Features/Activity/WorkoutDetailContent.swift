@@ -39,6 +39,7 @@ struct WorkoutDetailContent: View {
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
+    var fitnessTrendOverride: FitnessTrend?
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
@@ -224,6 +225,10 @@ struct WorkoutDetailContent: View {
             }
 
             detailSection(.recovery) {
+                if let fitnessTrendOverride {
+                    FitnessTrendCard(trend: fitnessTrendOverride, tint: workout.sport.tint)
+                }
+
                 if let relativeEffortComparisonOverride {
                     RelativeEffortCard(comparison: relativeEffortComparisonOverride)
                 }

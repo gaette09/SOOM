@@ -321,6 +321,11 @@
 		0105FA /* WorkoutInsightCueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FA /* WorkoutInsightCueCard.swift */; };
 		0105FB /* WorkoutDistanceChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FB /* WorkoutDistanceChartCard.swift */; };
 		0105FC /* RelativeEffortComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FC /* RelativeEffortComparison.swift */; };
+		01060C /* FitnessTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060C /* FitnessTrend.swift */; };
+		01060D /* FitnessTrendHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060D /* FitnessTrendHistoryProvider.swift */; };
+		01060E /* FitnessTrendCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060E /* FitnessTrendCard.swift */; };
+		01060F /* FitnessTrendCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060F /* FitnessTrendCalculatorTests.swift */; };
+		010610 /* FitnessTrendHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020610 /* FitnessTrendHistoryProviderTests.swift */; };
 		0105FD /* RelativeEffortHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FD /* RelativeEffortHistoryProvider.swift */; };
 		0105FE /* RelativeEffortCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FE /* RelativeEffortCard.swift */; };
 		0105F5 /* WorkoutChartDataBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205F5 /* WorkoutChartDataBuilderTests.swift */; };
@@ -835,6 +840,11 @@
 		0205FA /* WorkoutInsightCueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutInsightCueCard.swift; sourceTree = "<group>"; };
 		0205FB /* WorkoutDistanceChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDistanceChartCard.swift; sourceTree = "<group>"; };
 		0205FC /* RelativeEffortComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortComparison.swift; sourceTree = "<group>"; };
+		02060C /* FitnessTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrend.swift; sourceTree = "<group>"; };
+		02060D /* FitnessTrendHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProvider.swift; sourceTree = "<group>"; };
+		02060E /* FitnessTrendCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCard.swift; sourceTree = "<group>"; };
+		02060F /* FitnessTrendCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCalculatorTests.swift; sourceTree = "<group>"; };
+		020610 /* FitnessTrendHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProviderTests.swift; sourceTree = "<group>"; };
 		0205FD /* RelativeEffortHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortHistoryProvider.swift; sourceTree = "<group>"; };
 		0205FE /* RelativeEffortCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortCard.swift; sourceTree = "<group>"; };
 		0205F5 /* WorkoutChartDataBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutChartDataBuilderTests.swift; sourceTree = "<group>"; };
@@ -1152,6 +1162,7 @@
 				020034 /* SoomSectionHeader.swift */,
 				020044 /* FlowTags.swift */,
 				02060A /* WorkoutCompanionCard.swift */,
+				02060E /* FitnessTrendCard.swift */,
 				020045 /* RecoveryScoreCard.swift */,
 				020251 /* RecoveryComparisonCard.swift */,
 				020046 /* InsightCard.swift */,
@@ -1316,6 +1327,8 @@
 				020052 /* RecoveryModels.swift */,
 				0205FC /* RelativeEffortComparison.swift */,
 				0205FD /* RelativeEffortHistoryProvider.swift */,
+				02060C /* FitnessTrend.swift */,
+				02060D /* FitnessTrendHistoryProvider.swift */,
 				020055 /* RecoveryActivityModels.swift */,
 				020804 /* ProcessedWorkoutToRecoveryActivityMapper.swift */,
 				020054 /* RecoveryDataProvider.swift */,
@@ -1664,6 +1677,8 @@
 				02060B /* WorkoutCompanionNameEditingTests.swift */,
 				0205FF /* RelativeEffortComparisonBuilderTests.swift */,
 				020600 /* RelativeEffortHistoryProviderTests.swift */,
+				02060F /* FitnessTrendCalculatorTests.swift */,
+				020610 /* FitnessTrendHistoryProviderTests.swift */,
 				020153 /* DailyReadinessBuilderTests.swift */,
 				020157 /* MorningCheckInStateBuilderTests.swift */,
 				020159 /* MorningCheckInSkipStoreTests.swift */,
@@ -1890,6 +1905,7 @@
 				010032 /* SoomSectionHeader.swift in Sources */,
 				010042 /* FlowTags.swift in Sources */,
 				01060A /* WorkoutCompanionCard.swift in Sources */,
+				01060E /* FitnessTrendCard.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
@@ -2081,6 +2097,8 @@
 				010A01 /* StravaDetailFrameLockView.swift in Sources */,
 				010050 /* RecoveryModels.swift in Sources */,
 				0105FC /* RelativeEffortComparison.swift in Sources */,
+				01060C /* FitnessTrend.swift in Sources */,
+				01060D /* FitnessTrendHistoryProvider.swift in Sources */,
 				0105FD /* RelativeEffortHistoryProvider.swift in Sources */,
 				010053 /* RecoveryActivityModels.swift in Sources */,
 				010804 /* ProcessedWorkoutToRecoveryActivityMapper.swift in Sources */,
@@ -2278,6 +2296,8 @@
 				010607 /* WorkoutAchievementBuilderTests.swift in Sources */,
 				01060B /* WorkoutCompanionNameEditingTests.swift in Sources */,
 				0105FF /* RelativeEffortComparisonBuilderTests.swift in Sources */,
+				01060F /* FitnessTrendCalculatorTests.swift in Sources */,
+				010610 /* FitnessTrendHistoryProviderTests.swift in Sources */,
 				010600 /* RelativeEffortHistoryProviderTests.swift in Sources */,
 				010152 /* DailyReadinessBuilderTests.swift in Sources */,
 				010156 /* MorningCheckInStateBuilderTests.swift in Sources */,

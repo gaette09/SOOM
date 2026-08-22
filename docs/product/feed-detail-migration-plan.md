@@ -42,6 +42,19 @@
 - 검증 #2(레거시 mock `Workout` 경로, 이전 세션에서 확인): 크래시 없이 동일하게 동작.
 - `WorkoutCompanionNameEditingTests.swift` — 정규화/추가/삭제/중복제거/최대개수 전부 유닛 테스트로 커버.
 
+**배치 9(Fitness Increased) 완료 (2026-08-22)** — 정통 CTL(Chronic Training Load) 모델로 구현(사용자 판단: 단순화 버전 대신 Strava/TrainingPeaks와 동일한 42일 지수가중이동평균 방식 선택):
+
+- `FitnessTrendCalculator.chronicLoadSeries(dailyLoads:)` — 일별 부하 버킷(운동 없는 날=0)에 대해 `CTL[d] = CTL[d-1] + (load[d] - CTL[d-1]) / 42` 재귀식 적용, 콜드스타트는 0에서 시작(과거 앱 사용 이력이 없는 기간의 "체력"을 가정하지 않음 — `estimateTrainingLoad`의 "MVP 추정치" TODO와 같은 정신).
+- **재사용 발견**: 이미 `RecoveryCalculator`가 3일 회복 점수 계산에 쓰던 per-workout `trainingLoad` 추정치(`HealthKitRecoveryActivityMapper`/`ProcessedWorkoutToRecoveryActivityMapper`/`UnifiedWorkoutToRecoveryActivityMapper` 3곳에 동일 공식)가 CTL의 원재료로 그대로 재사용 가능했음 — 새 부하 공식을 발명할 필요 없이 "누적 윈도우만 42일로 확장"하면 됐음. 원 계획 문서의 "새 도메인 모델 필요" 평가는 부분적으로만 맞았던 셈(누적 로직은 새로 필요했지만 부하 자체는 기존 값 재사용).
+- `FitnessTrendHistoryProviding`/`SwiftDataFitnessTrendHistoryProvider` — Relative Effort/Achievements와 동일 독립 DI 패턴. 캘린더 일 단위로 같은 날 여러 운동의 부하를 합산하고 휴식일은 0으로 채워 넣는 버킷팅 담당.
+- `FitnessTrendBuilder` — 수렴 여유를 위해 `recommendedHistoryWindowDays = 126`(42일의 3배, 95%+ 수렴) 만큼 이력을 가져오되, 실제 운동일이 2일 미만이면 카드 자체를 숨김(Relative Effort와 동일한 "hide, don't mislead" 컨벤션, `minimumTrainingDayCount` 재사용 값 아님 — 별도 상수지만 같은 임계값 2 채택).
+- "Points +3" = 오늘 CTL − 어제 CTL(정수 반올림 후 차이) — 이 워크아웃이 기여한 체력 점수 증가분. "Fitness Score 35" = 오늘 CTL 반올림.
+- `FitnessTrendCard` — PDF의 좌측 라벨/값 2쌍("포인트"/"체력 점수")+우측 미니 스파크라인 레이아웃. 스파크라인은 `TrendCard.MiniTrendLine`과 동일한 normalize+Path+stroke 패턴을 재사용하지 않고 별도 `private struct MiniSparkline`으로 새로 작성(기존 것이 `TrendCard.swift` 내부 `private`이라 외부에서 재사용 불가 — 2회 반복 수준이라 별도 공유 컴포넌트로 추출하지는 않음). PDF의 "View your Fitness trend" 링크는 **의도적으로 생략** — 대상 화면(집계 Fitness 트렌드 screen)이 아직 없고 이번 배치 범위 밖("View X" 링크는 원 배치 재평가 문서의 컨벤션대로 대상 화면을 실제로 만드는 배치에 묶어 처리).
+- `.recovery` 섹션에서 `RelativeEffortCard` 바로 위(PDF 순서: Fitness Increased(10번)가 Relative Effort(11번)보다 앞)에 배치.
+- 두 실 진입점(`RootTabView`의 `.directWorkout` 경로, `UnifiedWorkoutLibraryViewContainer`) 모두에 `fitnessTrendHistoryProvider` 명시적 배선.
+- 유닛 테스트 12개(`FitnessTrendCalculatorTests`/`FitnessTrendBuilderTests`/`FitnessTrendHistoryProviderTests`) — CTL 재귀식 수렴/감쇠, 최소 이력 게이트, 부하 버킷팅(동일 날짜 합산/제외 필터/윈도우 밖 제외) 커버. 격리된 `SOOM-Verify` 시뮬레이터(사용자가 다른 세션에서 쓰던 기존 시뮬레이터는 건드리지 않음)에서 전부 통과 확인.
+- 시뮬레이터 UI 검증: 임시 시드 훅으로 서로 다른 6일(10/7/5/3/1/0일 전)에 걸친 SwiftData `UnifiedWorkout` 시드 후 실행 → 운동 상세 화면에서 접근성 트리 텍스트로 "체력 향상 체력 점수 15, 어제보다 3 상승"이 `.recovery` 섹션 최상단(운동 강도 카드 바로 위)에 정확히 렌더링됨을 확인 — PDF 순서, 라벨, 계산값 전부 기대대로. 검증 후 임시 시드 훅 제거, `check-temp-debug-code.sh` 클린 확인, `verify-and-check.sh` 빌드 성공 재확인.
+
 ## 먼저 확인해야 하는, 규모보다 앞서는 질문 하나
 
 **Activity 상세는 항상 "내 워크아웃"만 보여주고, Feed 상세는 "내 것 + 남의 것"을 둘 다 보여줄 수 있다.** `UnifiedWorkoutDetailDestination`/`ActivityView`는 전부 `SwiftDataUnifiedWorkoutStore`(로컬 기기 데이터)만 조회 — 항상 이 기기 소유자의 워크아웃이다. 반면 Feed는 Supabase에서 팔로워/공개 게시물을 가져오므로(`SupabaseFeedRepository`), `FeedItemDetailView`가 받는 `FeedItem`은 **다른 사람이 쓴 것일 수 있다.**
@@ -144,9 +157,9 @@ PDF의 Relative Effort(11번)는 "오늘 운동점수 + 최근 3주 평균 대�
 
 ### 다음 세션 시작점 — 권장 순서
 
-1. **Relative Effort** (다음 배치, 규모 파악부터) — 기존 `estimateRelativeEffort`/`RecoverySummary` 재사용, 신규 도메인 모델 거의 불필요.
-2. 지도 위 성취 마커 (세그먼트 단위 PR 계산 신설 + Mapbox 핀 렌더링)
-3. 동승자 태깅 (신규 데이터 모델 + UI)
-4. Fitness Increased (신규 fitness-score 트렌드 모델)
-5. Results / 경로 영상 리플레이 / Power Curve / Workout Analysis — 전부 최하위 티어, 파워 데이터 소스나 도메인 모델처럼 이 마이그레이션 범위를 넘어서는 선행 작업이 생기기 전까진 보류
+1. ~~Relative Effort~~ — 완료 (2026-08-22, 위 참고).
+2. ~~지도 위 성취 마커~~ — 배치 7 완료 (2026-08-22, 위 참고).
+3. ~~동승자 태깅~~ — 배치 8 완료 (2026-08-22, 위 참고).
+4. ~~Fitness Increased~~ — 배치 9 완료 (2026-08-22, 위 참고).
+5. **다음 후보** — Results / 경로 영상 리플레이 / Power Curve / Workout Analysis, 전부 최하위 티어(파워 데이터 소스나 도메인 모델처럼 이 마이그레이션 범위를 넘어서는 선행 작업이 생기기 전까진 보류). Phase A의 "완전 신규" 목록 중 남은 buildable 항목은 사실상 소진됨 — 다음 세션은 여기서 더 파거나(예: Results의 최소 도메인 모델 범위 재검토), Phase B(본인/남의 글 Feed 어댑터)로 전환하는 것 중 사용자 판단 필요.
 6. Phase B(본인/남의 글 분기, Feed 어댑터, `FeedItemDetailView` 교체) — Phase A 항목들과 독립적으로 아무 때나 시작 가능(정책은 이미 확정됨), 위 순서와 병행 검토 가능

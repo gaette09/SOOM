@@ -864,6 +864,9 @@ private struct ActivityView: View {
                         workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
                         routeStore: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
                     ),
+                    fitnessTrendHistoryProvider: SwiftDataFitnessTrendHistoryProvider(
+                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+                    ),
                     companionUpdateService: WorkoutCompanionUpdateService(
                         workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
                     )

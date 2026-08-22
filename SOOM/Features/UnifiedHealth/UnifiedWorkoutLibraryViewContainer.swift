@@ -17,6 +17,7 @@ struct UnifiedWorkoutLibraryViewContainer: View {
             detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore),
             relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(store: store),
             achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(workoutStore: store, routeStore: routeStore),
+            fitnessTrendHistoryProvider: SwiftDataFitnessTrendHistoryProvider(store: store),
             gpxRouteAttachmentService: GPXRouteAttachmentService(
                 workoutStore: store,
                 routeStore: routeStore
