@@ -81,7 +81,7 @@ final class FeedViewModel: ObservableObject {
 
     private func sportSummary(for progress: WeeklyWorkoutProgress) -> String {
         guard progress.workoutCount > 0 else { return "이번 주 운동을 기다리고 있어요" }
-        return "이번 주 (progress.workoutCount)회 움직였어요"
+        return "이번 주 \(progress.workoutCount)회 움직였어요"
     }
 }
 
