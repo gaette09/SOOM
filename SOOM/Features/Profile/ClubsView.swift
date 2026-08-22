@@ -23,6 +23,10 @@ struct ClubsView: View {
         SOOMScreen {
             ClubHomeHeader(onCreate: { isCreateSheetPresented = true })
 
+            if clubViewModel.isShowingLocalFallbackData {
+                ClubLocalFallbackBanner()
+            }
+
             if directory.joinedClubs.isEmpty {
                 ClubEmptyStateView(
                     recommendedClubs: directory.recommendedClubs,
@@ -69,7 +73,8 @@ struct ClubsView: View {
             clubViewModel.configure(service: ClubServiceResolver.makeDefaultService(
                 currentUserID: authViewModel.session.currentUser?.authProvider == .supabase
                     ? authViewModel.session.currentUser?.id
-                    : nil
+                    : nil,
+                onDidUseFallback: clubViewModel.markUsingLocalFallback
             ))
             await clubViewModel.loadDirectory()
         }
@@ -212,6 +217,26 @@ private struct ClubHomeHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("클럽 만들기")
         }
+    }
+}
+
+/// Shown whenever `ClubServiceResolver`/`FallbackClubService` actually
+/// served local data instead of the real service — covers both a signed-
+/// out viewer and a signed-in one whose Supabase call silently failed, so
+/// nobody looks at mock club data believing it's shared/synced. Not a
+/// Button — purely informational, matching other passive `SOOMActionRow`
+/// usage in this codebase (e.g. SettingsView's "계정 연결됨" row).
+private struct ClubLocalFallbackBanner: View {
+    var body: some View {
+        SOOMCard(depth: .ambient) {
+            SOOMActionRow(
+                icon: "wifi.slash",
+                title: "이 기기에 저장된 클럽 정보를 보고 있어요",
+                subtitle: "서버 연결이 확인되면 자동으로 실제 데이터로 갱신돼요.",
+                tint: SOOMColor.warning
+            )
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

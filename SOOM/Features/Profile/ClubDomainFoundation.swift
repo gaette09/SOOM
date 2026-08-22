@@ -1417,16 +1417,28 @@ final class SupabaseClubService: ClubService {
 final class FallbackClubService: ClubService {
     private let primary: any ClubService
     private let fallback: any ClubService
+    /// Fired whenever a call actually falls through to the local fallback —
+    /// the only record anywhere that this happened, since the fallback
+    /// itself succeeds silently otherwise. Lets a caller (ClubsViewModel)
+    /// surface "you're looking at local data" instead of the previous
+    /// behavior of a signed-in user seeing mock data with no signal at all.
+    private let onDidUseFallback: () -> Void
 
-    init(primary: any ClubService, fallback: any ClubService) {
+    init(
+        primary: any ClubService,
+        fallback: any ClubService,
+        onDidUseFallback: @escaping () -> Void = {}
+    ) {
         self.primary = primary
         self.fallback = fallback
+        self.onDidUseFallback = onDidUseFallback
     }
 
     func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
         do {
             return try await primary.fetchClubDirectory()
         } catch {
+            onDidUseFallback()
             return try await fallback.fetchClubDirectory()
         }
     }
@@ -1435,6 +1447,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchClubDetail(clubId: clubId)
         } catch {
+            onDidUseFallback()
             return try await fallback.fetchClubDetail(clubId: clubId)
         }
     }
@@ -1443,6 +1456,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.createClub(input: input)
         } catch {
+            onDidUseFallback()
             return try await fallback.createClub(input: input)
         }
     }
@@ -1451,6 +1465,7 @@ final class FallbackClubService: ClubService {
         do {
             try await primary.joinClub(clubId: clubId)
         } catch {
+            onDidUseFallback()
             try await fallback.joinClub(clubId: clubId)
         }
     }
@@ -1459,6 +1474,7 @@ final class FallbackClubService: ClubService {
         do {
             try await primary.leaveClub(clubId: clubId)
         } catch {
+            onDidUseFallback()
             try await fallback.leaveClub(clubId: clubId)
         }
     }
@@ -1467,6 +1483,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchRankings(clubId: clubId, metric: metric)
         } catch {
+            onDidUseFallback()
             return try await fallback.fetchRankings(clubId: clubId, metric: metric)
         }
     }
@@ -1475,6 +1492,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchChallenges(clubId: clubId)
         } catch {
+            onDidUseFallback()
             return try await fallback.fetchChallenges(clubId: clubId)
         }
     }
@@ -1484,44 +1502,51 @@ struct ClubServiceResolver {
     static func makeDefaultService(
         authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
         currentUserID: UUID? = nil,
-        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence())
+        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence()),
+        onDidUseFallback: @escaping () -> Void = {}
     ) -> any ClubService {
         makeService(
             clientProvider: SupabaseClientProvider(environment: authEnvironment),
             currentUserID: currentUserID?.uuidString,
-            fallback: fallback
+            fallback: fallback,
+            onDidUseFallback: onDidUseFallback
         )
     }
 
     static func makeService(
         clientProvider: SupabaseClientProvider,
         currentUserID: String?,
-        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence())
+        fallback: any ClubService = InMemoryClubService(persistence: LocalClubPersistence()),
+        onDidUseFallback: @escaping () -> Void = {}
     ) -> any ClubService {
         guard
             clientProvider.state == .ready,
             let currentUserID,
             let client = clientProvider.makeClient()
         else {
+            onDidUseFallback()
             return fallback
         }
 
         let remote = SupabaseClubRemoteClient(client: client)
         let primary = SupabaseClubService(remoteClient: remote, currentUserID: currentUserID)
-        return FallbackClubService(primary: primary, fallback: fallback)
+        return FallbackClubService(primary: primary, fallback: fallback, onDidUseFallback: onDidUseFallback)
     }
 
     static func makeService(
         remoteClient: (any SupabaseClubRemoteClienting)?,
         currentUserID: String?,
-        fallback: any ClubService
+        fallback: any ClubService,
+        onDidUseFallback: @escaping () -> Void = {}
     ) -> any ClubService {
         guard let remoteClient, let currentUserID else {
+            onDidUseFallback()
             return fallback
         }
         return FallbackClubService(
             primary: SupabaseClubService(remoteClient: remoteClient, currentUserID: currentUserID),
-            fallback: fallback
+            fallback: fallback,
+            onDidUseFallback: onDidUseFallback
         )
     }
 }
@@ -1822,6 +1847,12 @@ final class ClubsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var selectedRankingMetric: ClubRankingMetric = .distance
+    /// True once `FallbackClubService` (or the no-session/unconfigured path
+    /// in `ClubServiceResolver`) has actually served local data for the
+    /// current load — the only signal that the club data on screen isn't
+    /// the real, shared service. Reset at the start of each load so a
+    /// successful retry clears it on its own.
+    @Published private(set) var isShowingLocalFallbackData = false
 
     private var service: ClubService
 
@@ -1833,8 +1864,19 @@ final class ClubsViewModel: ObservableObject {
         self.service = service
     }
 
+    /// Callback target for `ClubServiceResolver`'s `onDidUseFallback`
+    /// closure. `nonisolated` + an internal `@MainActor` hop so it's safe
+    /// to call from whatever context `FallbackClubService`'s catch block
+    /// actually runs on, not just from the main actor.
+    nonisolated func markUsingLocalFallback() {
+        Task { @MainActor in
+            self.isShowingLocalFallbackData = true
+        }
+    }
+
     func loadDirectory() async {
         isLoading = true
+        isShowingLocalFallbackData = false
         defer { isLoading = false }
 
         do {
@@ -1847,6 +1889,7 @@ final class ClubsViewModel: ObservableObject {
 
     func openClub(clubId: String) async {
         isLoading = true
+        isShowingLocalFallbackData = false
         defer { isLoading = false }
 
         do {
