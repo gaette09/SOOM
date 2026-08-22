@@ -33,6 +33,15 @@
 - `WorkoutAchievementCard` — 지도 아래 배너, 순위별 카피(1위="꾸준히 쌓아온 리듬이 만든 결과예요", 2/3위="좋은 흐름이 이어지고 있다는 신호예요") 사용자 톤 확인 완료.
 - 시뮬레이터 검증: `detailRouteOverride`+`achievementsOverride` 임시 훅으로 마커 2개(1위/2위) 지도 렌더 + 배너 카피 정확히 일치 확인, 완료 후 제거.
 
+**배치 8(동승자 태깅) 완료 (2026-08-22)** — 팔로우 그래프(blocked_by 걸려있는 그 기능)와 무관하게 독립적으로 진행 가능하다는 재평가가 맞았음, 순수 자유 텍스트로 구현:
+
+- `WorkoutCompanionNameEditing`(순수 함수 모음) — `profiles`/`follows` 조회 없이 로컬 포맷팅만: 트림, 최대 20자, 대소문자 무시 중복 제거, 최대 10명 캡. 사람 식별(누구인지) 자체가 목표가 아니라 "누구와 뛰었는지 기억"만 목표라 신원 매칭 없이도 실효성 있다고 판단.
+- `WorkoutCompanionUpdateService` → `UnifiedWorkoutStore.updateCompanions(id:names:)` 경유해 SwiftData에 영속화. `WorkoutCompanionCard`(표시, 소스 태그+동승자 태그 함께 `FlowTags`로 렌더)와 `WorkoutCompanionEditSheet`(추가/삭제 UI, 칩 형태) 분리.
+- **접근성 주의사항 발견**: `WorkoutCompanionCard`가 `.accessibilityElement(children: .contain)` + 명시적 `.accessibilityLabel("태그")`/`.accessibilityValue(...)`를 컨테이너에 걸어두면, 내부 `Button(action: onTapEdit)`가 상세 화면의 바깥쪽 AX 트리 스캔에서 별도 인덱스 요소로 잡히지 않음(컨테이너 자체의 요약된 Value만 노출됨) — 반면 `WorkoutCompanionEditSheet` 내부의 삭제 칩 버튼은 인덱스로 정상 탐색됨. 이 카드류를 다룰 때는 element-index 클릭보다 좌표 클릭이 필요할 수 있다는 점 기억해둘 것.
+- 검증 #1(SwiftData 백업 실 `UnifiedWorkout`, 새 격리 시뮬레이터 `SOOM-Verify`에서 진행 — 사용자가 다른 세션에서 쓰던 기존 시뮬레이터는 건드리지 않음): 동승자 추가 → 저장 → 태그 카드에 반영 확인 → 편집 시트 재진입 → 삭제 → 저장 → 태그 카드에서 제거 확인 → 앱 완전 종료 후 재실행(cold relaunch, 백그라운드 전환 아님) → 삭제 상태가 영속됨을 재확인. 임시 시드 훅(`// TEMP batch-8 verification, remove after`)은 검증 완료 후 제거, `check-temp-debug-code.sh` 클린 확인, `verify-and-check.sh` 빌드 성공 확인.
+- 검증 #2(레거시 mock `Workout` 경로, 이전 세션에서 확인): 크래시 없이 동일하게 동작.
+- `WorkoutCompanionNameEditingTests.swift` — 정규화/추가/삭제/중복제거/최대개수 전부 유닛 테스트로 커버.
+
 ## 먼저 확인해야 하는, 규모보다 앞서는 질문 하나
 
 **Activity 상세는 항상 "내 워크아웃"만 보여주고, Feed 상세는 "내 것 + 남의 것"을 둘 다 보여줄 수 있다.** `UnifiedWorkoutDetailDestination`/`ActivityView`는 전부 `SwiftDataUnifiedWorkoutStore`(로컬 기기 데이터)만 조회 — 항상 이 기기 소유자의 워크아웃이다. 반면 Feed는 Supabase에서 팔로워/공개 게시물을 가져오므로(`SupabaseFeedRepository`), `FeedItemDetailView`가 받는 `FeedItem`은 **다른 사람이 쓴 것일 수 있다.**
