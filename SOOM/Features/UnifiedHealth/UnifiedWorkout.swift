@@ -14,6 +14,10 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
     let maxHeartRate: Double?
     let averageSpeedMetersPerSecond: Double?
     let elevationGainMeters: Double?
+    /// From FIT session-summary import only today (batch 11) — HealthKit import
+    /// doesn't populate this yet. See feed-detail-migration-plan.md.
+    let averagePowerWatts: Double?
+    let averageCadence: Double?
     let routeMissingReason: WorkoutRouteMissingReason
     let dataQuality: UnifiedDataQuality
     let isExcludedFromAnalysis: Bool
@@ -36,6 +40,8 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         maxHeartRate: Double?,
         averageSpeedMetersPerSecond: Double?,
         elevationGainMeters: Double?,
+        averagePowerWatts: Double? = nil,
+        averageCadence: Double? = nil,
         routeMissingReason: WorkoutRouteMissingReason = .none,
         dataQuality: UnifiedDataQuality,
         isExcludedFromAnalysis: Bool = false,
@@ -56,6 +62,8 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         self.maxHeartRate = maxHeartRate
         self.averageSpeedMetersPerSecond = averageSpeedMetersPerSecond
         self.elevationGainMeters = elevationGainMeters
+        self.averagePowerWatts = averagePowerWatts
+        self.averageCadence = averageCadence
         self.routeMissingReason = routeMissingReason
         self.dataQuality = dataQuality
         self.isExcludedFromAnalysis = isExcludedFromAnalysis
@@ -101,6 +109,8 @@ extension UnifiedWorkout {
             maxHeartRate: maxHeartRate,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: elevationGainMeters,
+            averagePowerWatts: averagePowerWatts,
+            averageCadence: averageCadence,
             routeMissingReason: reason,
             dataQuality: dataQuality,
             isExcludedFromAnalysis: isExcludedFromAnalysis,
@@ -110,14 +120,15 @@ extension UnifiedWorkout {
         )
     }
 
-    /// Backfills distance/speed from a parsed FIT file's session summary, but only
-    /// when this workout doesn't already have a value — same "measured > derived"
-    /// precedence `ProcessedWorkoutBuilder` already applies elsewhere. A HealthKit-
-    /// sourced workout's own measured distance/speed is not necessarily less
-    /// accurate than what a re-parsed FIT file recomputes, so this never overwrites
-    /// an existing value. Previously `FITRouteAttachmentService` computed this
-    /// summary and then discarded it entirely — found while investigating Power
-    /// Curve feasibility (feed-detail-migration-plan.md).
+    /// Merges a parsed FIT file's session summary onto this workout. Distance/speed
+    /// follow "measured > derived" — only backfilled when this workout doesn't
+    /// already have a value, since a HealthKit-sourced workout's own measured
+    /// distance/speed is not necessarily less accurate than what a re-parsed FIT
+    /// file recomputes. Power/cadence have no other producer today (HealthKit
+    /// import doesn't populate them), so they're always taken from the FIT summary
+    /// when present. Previously `FITRouteAttachmentService` computed this summary
+    /// and then discarded it entirely — found while investigating Power Curve
+    /// feasibility (feed-detail-migration-plan.md).
     func withFITSummaryMerged(_ summary: FITWorkoutSummary, updatedAt: Date) -> UnifiedWorkout {
         UnifiedWorkout(
             id: id,
@@ -133,6 +144,8 @@ extension UnifiedWorkout {
             maxHeartRate: maxHeartRate,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond ?? summary.averageSpeedMetersPerSecond,
             elevationGainMeters: elevationGainMeters,
+            averagePowerWatts: summary.averagePower ?? averagePowerWatts,
+            averageCadence: summary.averageCadence ?? averageCadence,
             routeMissingReason: routeMissingReason,
             dataQuality: dataQuality,
             isExcludedFromAnalysis: isExcludedFromAnalysis,
@@ -157,6 +170,8 @@ extension UnifiedWorkout {
             maxHeartRate: maxHeartRate,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: elevationGainMeters,
+            averagePowerWatts: averagePowerWatts,
+            averageCadence: averageCadence,
             routeMissingReason: routeMissingReason,
             dataQuality: dataQuality,
             isExcludedFromAnalysis: isExcludedFromAnalysis,

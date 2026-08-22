@@ -15,10 +15,12 @@ struct WorkoutDistanceChartCard: View {
     let tint: Color
     var showsInfoIcon: Bool = true
     var placeholderMessage: String?
-    /// PDF's stat rows below the chart (e.g. Avg/Max). Only rendered when the
-    /// chart itself has real data — an empty list is normal for sections with
-    /// no comparable per-workout stat (batch 5 skips Power/Cadence entirely,
-    /// since SOOM has no data source for either, not even to compute a max).
+    /// PDF's stat rows below the chart (e.g. Avg/Max). Renders independently of
+    /// whether the chart itself has real data — a session-level average (e.g.
+    /// cadence from a FIT summary, batch 11) can exist without a per-record series
+    /// to chart. An empty list is normal for sections with no comparable stat at
+    /// all yet (batch 5 skipped Power's max — no per-record series to derive a
+    /// peak from, unlike Speed/Elevation's chart-bucket max).
     var stats: [ActivityDetailMetric] = []
 
     var body: some View {
@@ -61,27 +63,31 @@ struct WorkoutDistanceChartCard: View {
                 .frame(height: 140)
                 .chartXAxisLabel("거리 (km)")
                 .chartYAxisLabel(unitLabel)
+            }
 
-                if !stats.isEmpty {
-                    VStack(spacing: 0) {
-                        ForEach(stats) { stat in
-                            if stat.id != stats.first?.id {
-                                Divider()
-                            }
-                            HStack {
-                                Text(stat.label)
-                                    .font(SOOMFont.body(14, relativeTo: .subheadline))
-                                    .foregroundStyle(SOOMColor.secondaryInk)
-                                Spacer()
-                                Text(stat.value)
-                                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
-                                    .foregroundStyle(SOOMColor.ink)
-                            }
-                            .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
+            // Outside the placeholder/chart branch on purpose — a metric can have a
+            // real average (e.g. cadence from a FIT session summary) without having
+            // a per-record series to chart yet, so the chart stays a placeholder
+            // while the stat row below it still shows real data.
+            if !stats.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(stats) { stat in
+                        if stat.id != stats.first?.id {
+                            Divider()
                         }
+                        HStack {
+                            Text(stat.label)
+                                .font(SOOMFont.body(14, relativeTo: .subheadline))
+                                .foregroundStyle(SOOMColor.secondaryInk)
+                            Spacer()
+                            Text(stat.value)
+                                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                                .foregroundStyle(SOOMColor.ink)
+                        }
+                        .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
                     }
-                    .padding(.top, SOOMLayout.Metrics.actionTextSpacing)
                 }
+                .padding(.top, SOOMLayout.Metrics.actionTextSpacing)
             }
         }
         .accessibilityElement(children: .combine)
@@ -90,8 +96,10 @@ struct WorkoutDistanceChartCard: View {
     }
 
     private var accessibilityValueText: String {
-        if let placeholderMessage { return placeholderMessage }
         let statsText = stats.map { "\($0.label) \($0.value)" }.joined(separator: ", ")
+        if let placeholderMessage {
+            return statsText.isEmpty ? placeholderMessage : "\(statsText), \(placeholderMessage)"
+        }
         return statsText.isEmpty ? "\(samples.count)개 구간 데이터" : statsText
     }
 }

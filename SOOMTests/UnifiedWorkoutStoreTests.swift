@@ -29,6 +29,24 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
         XCTAssertEqual(fetched.first?.workoutType, .cycling)
     }
 
+    func testAveragePowerAndCadenceRoundTripThroughPersistence() async throws {
+        let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let fixture = try makeFixture(referenceDate: referenceDate)
+        let workout = makeWorkout(
+            source: .appleHealthKit,
+            type: .cycling,
+            startDate: referenceDate.addingTimeInterval(-3_600),
+            averagePowerWatts: 93,
+            averageCadence: 87
+        )
+
+        try await fixture.store.saveWorkout(workout)
+        let fetched = try await fixture.store.fetchRecentWorkouts(days: 7)
+
+        XCTAssertEqual(fetched.first?.averagePowerWatts, 93)
+        XCTAssertEqual(fetched.first?.averageCadence, 87)
+    }
+
     func testExternalIdAndSourceUpsertsExistingWorkout() async throws {
         let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
         let fixture = try makeFixture(referenceDate: referenceDate)
@@ -206,6 +224,8 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
         startDate: Date,
         durationSeconds: TimeInterval = 3_600,
         distanceMeters: Double? = 10_000,
+        averagePowerWatts: Double? = nil,
+        averageCadence: Double? = nil,
         dataQuality: UnifiedDataQuality = .partial
     ) -> UnifiedWorkout {
         UnifiedWorkout(
@@ -222,6 +242,8 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
             maxHeartRate: 174,
             averageSpeedMetersPerSecond: 2.8,
             elevationGainMeters: 72,
+            averagePowerWatts: averagePowerWatts,
+            averageCadence: averageCadence,
             dataQuality: dataQuality,
             createdAt: startDate,
             updatedAt: startDate.addingTimeInterval(durationSeconds)

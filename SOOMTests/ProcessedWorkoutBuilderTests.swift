@@ -138,6 +138,21 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(processed.display.elevationText, "—")
     }
 
+    func testPresentPowerAndCadenceAreMeasuredAndDisplayed() {
+        let workout = makeWorkout(
+            type: .cycling,
+            averagePowerWatts: 93,
+            averageCadence: 87
+        )
+
+        let processed = builder.make(from: workout)
+
+        assertMetric(processed, .power, is: .measured)
+        assertMetric(processed, .cadence, is: .measured)
+        XCTAssertEqual(processed.display.averagePowerText, "93W")
+        XCTAssertEqual(processed.display.averageCadenceText, "87rpm")
+    }
+
     func testIncompleteDataDoesNotCrashAndKeepsSafePlaceholders() {
         let workout = makeWorkout(
             type: .other,
@@ -369,6 +384,8 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
         maxHeartRate: Double? = 170,
         averageSpeedMetersPerSecond: Double? = nil,
         elevationGainMeters: Double? = 80,
+        averagePowerWatts: Double? = nil,
+        averageCadence: Double? = nil,
         routeMissingReason: WorkoutRouteMissingReason = .none,
         dataQuality: UnifiedDataQuality = .partial
     ) -> UnifiedWorkout {
@@ -386,6 +403,8 @@ final class ProcessedWorkoutBuilderTests: XCTestCase {
             maxHeartRate: maxHeartRate,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: elevationGainMeters,
+            averagePowerWatts: averagePowerWatts,
+            averageCadence: averageCadence,
             routeMissingReason: routeMissingReason,
             dataQuality: dataQuality,
             createdAt: startDate,

@@ -59,6 +59,40 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
         XCTAssertEqual(attachment.workout.averageSpeedMetersPerSecond, 3.0)
     }
 
+    func testFillsPowerAndCadenceFromFITSummary() async throws {
+        let workout = makeWorkout(routeMissingReason: .healthKitRouteUnavailable)
+        let workoutStore = FakeFITWorkoutStore(workouts: [workout])
+        let routeStore = FakeFITRouteStore()
+        let service = makeService(workoutStore: workoutStore, routeStore: routeStore)
+        let fitData = validFITDataWithPowerAndCadence(averageCadence: 87, averagePower: 93)
+
+        let result = await service.attachRoute(to: workout.id, fitData: fitData)
+
+        let attachment = try unwrapSuccess(result)
+        XCTAssertEqual(attachment.workout.averagePowerWatts, 93)
+        XCTAssertEqual(attachment.workout.averageCadence, 87)
+        XCTAssertEqual(workoutStore.savedWorkouts.last?.averagePowerWatts, 93)
+        XCTAssertEqual(workoutStore.savedWorkouts.last?.averageCadence, 87)
+    }
+
+    func testOverwritesExistingPowerAndCadenceFromFITSummary() async throws {
+        let workout = makeWorkout(
+            averagePowerWatts: 40,
+            averageCadence: 60,
+            routeMissingReason: .healthKitRouteUnavailable
+        )
+        let workoutStore = FakeFITWorkoutStore(workouts: [workout])
+        let routeStore = FakeFITRouteStore()
+        let service = makeService(workoutStore: workoutStore, routeStore: routeStore)
+        let fitData = validFITDataWithPowerAndCadence(averageCadence: 87, averagePower: 93)
+
+        let result = await service.attachRoute(to: workout.id, fitData: fitData)
+
+        let attachment = try unwrapSuccess(result)
+        XCTAssertEqual(attachment.workout.averagePowerWatts, 93)
+        XCTAssertEqual(attachment.workout.averageCadence, 87)
+    }
+
     func testRouteIsPersistedWithExistingWorkoutId() async throws {
         let workoutID = UUID(uuidString: "22222222-3333-4444-5555-666666666666")!
         let workout = makeWorkout(id: workoutID, routeMissingReason: .externalSourceRouteNotShared)
@@ -201,6 +235,8 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
         source: UnifiedDataSource = .appleHealthKit,
         distanceMeters: Double? = 10_000,
         averageSpeedMetersPerSecond: Double? = nil,
+        averagePowerWatts: Double? = nil,
+        averageCadence: Double? = nil,
         routeMissingReason: WorkoutRouteMissingReason
     ) -> UnifiedWorkout {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
@@ -218,6 +254,8 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
             maxHeartRate: nil,
             averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
             elevationGainMeters: nil,
+            averagePowerWatts: averagePowerWatts,
+            averageCadence: averageCadence,
             routeMissingReason: routeMissingReason,
             dataQuality: .partial,
             createdAt: start,
@@ -258,6 +296,38 @@ final class FITRouteAttachmentServiceTests: XCTestCase {
                 distanceMeters: 320,
                 calories: 80,
                 totalAscentMeters: 10
+            )
+            .makeData()
+    }
+
+    private func validFITDataWithPowerAndCadence(averageCadence: UInt8, averagePower: UInt16) -> Data {
+        let startedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        return FITAttachmentTestFileBuilder()
+            .addRecordDefinition()
+            .addRecord(
+                timestamp: startedAt,
+                latitude: 37.5000,
+                longitude: 127.0000,
+                altitudeMeters: 10,
+                distanceMeters: 0
+            )
+            .addRecord(
+                timestamp: startedAt.addingTimeInterval(60),
+                latitude: 37.5010,
+                longitude: 127.0010,
+                altitudeMeters: 20,
+                distanceMeters: 160
+            )
+            .addSessionDefinition()
+            .addSession(
+                sport: 2,
+                startTime: startedAt,
+                elapsedSeconds: 60,
+                distanceMeters: 160,
+                calories: 40,
+                totalAscentMeters: 10,
+                averageCadence: averageCadence,
+                averagePower: averagePower
             )
             .makeData()
     }
@@ -419,13 +489,15 @@ private struct FITAttachmentTestFileBuilder {
         copy.records.append(0x00)
         copy.records.append(0x00)
         copy.records.appendUInt16(18)
-        copy.records.append(6)
+        copy.records.append(8)
         copy.appendField(number: 5, size: 1, baseType: 0x02)
         copy.appendField(number: 2, size: 4, baseType: 0x86)
         copy.appendField(number: 7, size: 4, baseType: 0x86)
         copy.appendField(number: 9, size: 4, baseType: 0x86)
         copy.appendField(number: 11, size: 2, baseType: 0x84)
         copy.appendField(number: 21, size: 2, baseType: 0x84)
+        copy.appendField(number: 18, size: 1, baseType: 0x02)
+        copy.appendField(number: 20, size: 2, baseType: 0x84)
         return copy
     }
 
@@ -435,7 +507,9 @@ private struct FITAttachmentTestFileBuilder {
         elapsedSeconds: Double,
         distanceMeters: Double,
         calories: UInt16,
-        totalAscentMeters: UInt16
+        totalAscentMeters: UInt16,
+        averageCadence: UInt8? = nil,
+        averagePower: UInt16? = nil
     ) -> FITAttachmentTestFileBuilder {
         var copy = self
         copy.records.append(0x01)
@@ -445,6 +519,8 @@ private struct FITAttachmentTestFileBuilder {
         copy.records.appendUInt32(UInt32((distanceMeters * 100).rounded()))
         copy.records.appendUInt16(calories)
         copy.records.appendUInt16(totalAscentMeters)
+        copy.records.append(averageCadence ?? UInt8.max)
+        copy.records.appendUInt16(averagePower ?? UInt16.max)
         return copy
     }
 

@@ -16,6 +16,8 @@ final class UnifiedWorkoutRecord {
     var maxHeartRate: Double?
     var averageSpeedMetersPerSecond: Double?
     var elevationGainMeters: Double?
+    var averagePowerWatts: Double?
+    var averageCadence: Double?
     var routeMissingReasonRaw: String?
     var dataQualityRaw: String
     var createdAt: Date
@@ -40,6 +42,8 @@ final class UnifiedWorkoutRecord {
         maxHeartRate: Double? = nil,
         averageSpeedMetersPerSecond: Double? = nil,
         elevationGainMeters: Double? = nil,
+        averagePowerWatts: Double? = nil,
+        averageCadence: Double? = nil,
         routeMissingReasonRaw: String? = nil,
         dataQualityRaw: String,
         createdAt: Date = Date(),
@@ -61,6 +65,8 @@ final class UnifiedWorkoutRecord {
         self.maxHeartRate = maxHeartRate
         self.averageSpeedMetersPerSecond = averageSpeedMetersPerSecond
         self.elevationGainMeters = elevationGainMeters
+        self.averagePowerWatts = averagePowerWatts
+        self.averageCadence = averageCadence
         self.routeMissingReasonRaw = routeMissingReasonRaw
         self.dataQualityRaw = dataQualityRaw
         self.createdAt = createdAt

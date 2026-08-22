@@ -210,7 +210,8 @@ struct WorkoutDetailContent: View {
                         unitLabel: "rpm",
                         samples: [],
                         tint: workout.sport.tint,
-                        placeholderMessage: "케이던스 데이터가 있는 워크아웃에서 제공됩니다."
+                        placeholderMessage: "케이던스 데이터가 있는 워크아웃에서 제공됩니다.",
+                        stats: cadenceStats
                     )
 
                     WorkoutDistanceChartCard(
@@ -493,6 +494,14 @@ struct WorkoutDetailContent: View {
             ActivityDetailMetric(label: "이동 시간", value: processedWorkout.display.durationText),
             ActivityDetailMetric(label: "경과 시간", value: processedWorkout.display.durationText)
         ]
+    }
+
+    /// No max/peak companion stat like speedStats/elevationStats have — those derive
+    /// a max from a bucketed per-record series, but cadence (batch 11) only has a
+    /// single FIT session-summary average, no per-record series to take a max from.
+    private var cadenceStats: [ActivityDetailMetric] {
+        guard let text = processedWorkout.display.averageCadenceText else { return [] }
+        return [ActivityDetailMetric(label: "평균 케이던스", value: text)]
     }
 
     private var elevationStats: [ActivityDetailMetric] {

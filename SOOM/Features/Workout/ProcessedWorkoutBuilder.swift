@@ -69,7 +69,8 @@ struct ProcessedWorkoutBuilder {
             averageHeartRate: positive(workout.averageHeartRate),
             maxHeartRate: positive(workout.maxHeartRate),
             elevationGainMeters: elevationGain,
-            averagePowerWatts: nil,
+            averagePowerWatts: positive(workout.averagePowerWatts),
+            averageCadence: positive(workout.averageCadence),
             route: processedRoute,
             routeMissingReason: processedRoute?.hasRenderableRoute == true ? .none : workout.routeMissingReason,
             metricAvailability: availability,
@@ -96,6 +97,7 @@ struct ProcessedWorkoutBuilder {
             maxHeartRate: processed.maxHeartRate,
             elevationGainMeters: processed.elevationGainMeters,
             averagePowerWatts: processed.averagePowerWatts,
+            averageCadence: processed.averageCadence,
             route: processed.route,
             routeMissingReason: processed.routeMissingReason,
             metricAvailability: availability,
@@ -137,8 +139,8 @@ struct ProcessedWorkoutBuilder {
             .calories: positive(workout.activeEnergyKcal) != nil ? .measured : .missing,
             .averageHeartRate: positive(workout.averageHeartRate) != nil ? .measured : .missing,
             .maxHeartRate: positive(workout.maxHeartRate) != nil ? .measured : .missing,
-            .power: supportsPower(workoutType) ? .missing : .unsupported,
-            .cadence: supportsCadence(workoutType) ? .missing : .unsupported,
+            .power: supportsPower(workoutType) ? (positive(workout.averagePowerWatts) != nil ? .measured : .missing) : .unsupported,
+            .cadence: supportsCadence(workoutType) ? (positive(workout.averageCadence) != nil ? .measured : .missing) : .unsupported,
             .route: route?.hasRenderableRoute == true ? .measured : .missing,
             .splits: .missing,
             .zones: .missing,
@@ -180,6 +182,7 @@ struct ProcessedWorkoutBuilder {
             averageHeartRateText: heartRateText(workout.averageHeartRate),
             maxHeartRateText: heartRateText(workout.maxHeartRate),
             averagePowerText: powerText(workout.averagePowerWatts),
+            averageCadenceText: cadenceText(workout.averageCadence),
             dataQualityLabel: dataQualityTitle(for: workout.dataQuality),
             routeBadgeLabel: availability[.route] == .measured ? "경로 저장" : nil
         )
@@ -297,6 +300,11 @@ struct ProcessedWorkoutBuilder {
         return "\(Int(watts.rounded()))W"
     }
 
+    private func cadenceText(_ rpm: Double?) -> String? {
+        guard let rpm else { return nil }
+        return "\(Int(rpm.rounded()))rpm"
+    }
+
     private func dateText(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -406,6 +414,7 @@ private extension WorkoutDisplaySnapshot {
         averageHeartRateText: "",
         maxHeartRateText: "",
         averagePowerText: nil,
+        averageCadenceText: nil,
         dataQualityLabel: "",
         routeBadgeLabel: nil
     )

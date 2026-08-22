@@ -17,10 +17,10 @@ struct ProcessedWorkout: Identifiable, Equatable {
     let averageHeartRate: Double?
     let maxHeartRate: Double?
     let elevationGainMeters: Double?
-    /// Always nil today — `UnifiedWorkout` has no power source yet (WorkoutDeepDetailView
-    /// batch 1: field added so the model shape is forward-compatible, not wired to any
-    /// data source). See feed-detail-migration-plan.md Phase A batch 3.
+    /// From FIT session-summary import only (batch 11) — HealthKit import doesn't
+    /// populate `UnifiedWorkout.averagePowerWatts` yet. See feed-detail-migration-plan.md.
     let averagePowerWatts: Double?
+    let averageCadence: Double?
     let route: ProcessedWorkoutRoute?
     let routeMissingReason: WorkoutRouteMissingReason
     let metricAvailability: [ProcessedWorkoutMetric: ProcessedWorkoutMetricState]
@@ -111,6 +111,7 @@ struct WorkoutDisplaySnapshot: Equatable {
     let averageHeartRateText: String
     let maxHeartRateText: String
     let averagePowerText: String?
+    let averageCadenceText: String?
     let dataQualityLabel: String
     let routeBadgeLabel: String?
 }
