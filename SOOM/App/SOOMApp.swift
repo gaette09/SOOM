@@ -7,9 +7,11 @@ struct SOOMApp: App {
     @StateObject private var communityViewModel: CommunityViewModel
     @StateObject private var authViewModel: AuthViewModel
     @StateObject private var rootAuthBootstrap: RootAuthBootstrap
+    @State private var hasCompletedOnboarding: Bool
     private let authCallbackHandler: AuthCallbackHandler
 
     init() {
+        _hasCompletedOnboarding = State(initialValue: OnboardingStateStore.shared.hasCompletedOnboarding)
         let harness = MockWorkoutHarness()
         let authEnvironment = AuthEnvironmentLoader().load()
         let remoteAuthProvider = SupabaseAuthProvider(
@@ -33,7 +35,16 @@ struct SOOMApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            Group {
+                if hasCompletedOnboarding {
+                    RootTabView()
+                } else {
+                    OnboardingView {
+                        OnboardingStateStore.shared.markOnboardingCompleted()
+                        hasCompletedOnboarding = true
+                    }
+                }
+            }
                 .environmentObject(dashboardViewModel)
                 .environmentObject(communityViewModel)
                 .environmentObject(authViewModel)

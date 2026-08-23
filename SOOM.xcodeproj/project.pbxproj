@@ -327,6 +327,10 @@
 		01060F /* FitnessTrendCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060F /* FitnessTrendCalculatorTests.swift */; };
 		010614 /* WorkoutResultsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020614 /* WorkoutResultsCard.swift */; };
 		010618 /* FeedCommentComposeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020618 /* FeedCommentComposeSheet.swift */; };
+		010619 /* OnboardingStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020619 /* OnboardingStateStore.swift */; };
+		010620 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020620 /* OnboardingView.swift */; };
+		010621 /* OnboardingStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020621 /* OnboardingStateStoreTests.swift */; };
+		010622 /* OnboardingViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020622 /* OnboardingViewTests.swift */; };
 		010610 /* FitnessTrendHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020610 /* FitnessTrendHistoryProviderTests.swift */; };
 		0105FD /* RelativeEffortHistoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FD /* RelativeEffortHistoryProvider.swift */; };
 		0105FE /* RelativeEffortCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0205FE /* RelativeEffortCard.swift */; };
@@ -851,6 +855,10 @@
 		02060F /* FitnessTrendCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCalculatorTests.swift; sourceTree = "<group>"; };
 		020614 /* WorkoutResultsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutResultsCard.swift; sourceTree = "<group>"; };
 		020618 /* FeedCommentComposeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedCommentComposeSheet.swift; sourceTree = "<group>"; };
+		020619 /* OnboardingStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStore.swift; sourceTree = "<group>"; };
+		020620 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		020621 /* OnboardingStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStoreTests.swift; sourceTree = "<group>"; };
+		020622 /* OnboardingViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewTests.swift; sourceTree = "<group>"; };
 		020610 /* FitnessTrendHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProviderTests.swift; sourceTree = "<group>"; };
 		0205FD /* RelativeEffortHistoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortHistoryProvider.swift; sourceTree = "<group>"; };
 		0205FE /* RelativeEffortCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeEffortCard.swift; sourceTree = "<group>"; };
@@ -1256,8 +1264,18 @@
 				040026 /* Auth */,
 				040025 /* Settings */,
 				040018 /* Profile */,
+				040028 /* Onboarding */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		040028 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				020619 /* OnboardingStateStore.swift */,
+				020620 /* OnboardingView.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		040026 /* Auth */ = {
@@ -1780,6 +1798,8 @@
 				020518 /* RecordWorkoutSaveFlowTests.swift */,
 				020308 /* TrainingSettingsStoreTests.swift */,
 				020309 /* SettingsViewModelTests.swift */,
+				020621 /* OnboardingStateStoreTests.swift */,
+				020622 /* OnboardingViewTests.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -1923,6 +1943,8 @@
 				01060E /* FitnessTrendCard.swift in Sources */,
 				010614 /* WorkoutResultsCard.swift in Sources */,
 				010618 /* FeedCommentComposeSheet.swift in Sources */,
+				010619 /* OnboardingStateStore.swift in Sources */,
+				010620 /* OnboardingView.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
@@ -2404,6 +2426,8 @@
 				010516 /* RecordWorkoutSessionTests.swift in Sources */,
 				010518 /* RecordWorkoutSaveFlowTests.swift in Sources */,
 				010309 /* TrainingSettingsStoreTests.swift in Sources */,
+				010621 /* OnboardingStateStoreTests.swift in Sources */,
+				010622 /* OnboardingViewTests.swift in Sources */,
 				010310 /* SettingsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
