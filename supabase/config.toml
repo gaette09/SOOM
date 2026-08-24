@@ -1,0 +1,14 @@
+
+[functions.notify-feed-interaction]
+enabled = true
+# The DB trigger authenticates with WEBHOOK_SECRET (checked inside the
+# function itself), not a Supabase JWT — the platform's own JWT gate
+# would reject that request before it ever reached our code.
+verify_jwt = false
+import_map = "./functions/notify-feed-interaction/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/notify-feed-interaction/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/notify-feed-interaction/*.html" ]

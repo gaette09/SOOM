@@ -20,3 +20,9 @@ SOOMTests/Fixtures/
 # Supabase CLI scratch state from `supabase link`/`db push` — includes a
 # pooler connection string, never committed.
 supabase/.temp/
+
+# APNs auth keys and env files used to load Supabase Edge Function
+# secrets (notify-feed-interaction) — never committed, always loaded
+# from outside the repo (see SOOM-OS/CLAUDE.md for the path).
+*.p8
+*.env
