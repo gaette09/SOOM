@@ -116,6 +116,19 @@ struct SupabaseClientAccountDeleter: SupabaseAccountDeleting {
 
 final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionHandling {
     private let clientProvider: SupabaseClientProvider
+    /// The single `SupabaseClient` every requester below and `sessionProbe`
+    /// are built from. `SupabaseClientProvider.makeClient()` returns a new
+    /// SDK client (and therefore a new, independent in-memory Auth session
+    /// cache) on every call — Keychain storage is shared across instances
+    /// but the in-memory `currentSession` is not. Building two clients here
+    /// (one for signing in, another inside sessionProbe for checking
+    /// session status) was the root cause of a real bug: login appeared to
+    /// work, but session restore on next launch always saw an empty
+    /// in-memory cache and fell back to a guest session. Exposed via
+    /// `underlyingClient` so callers needing Supabase access outside this
+    /// type (e.g. device token registration) reuse the same session state
+    /// instead of creating yet another disconnected client.
+    let underlyingClient: SupabaseClient?
     private let sessionProbe: SupabaseAuthSessionProbe
     private let sessionBridge: AuthSessionBridge
     private let emailRequester: (any SupabaseEmailMagicLinkRequesting)?
@@ -130,7 +143,11 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         let clientProvider = SupabaseClientProvider(configuration: configuration)
         let client = clientProvider.makeClient()
         self.clientProvider = clientProvider
-        self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
+        self.underlyingClient = client
+        self.sessionProbe = SupabaseAuthSessionProbe(
+            isConfigured: clientProvider.state == .ready,
+            reader: client.map(SupabaseClientSessionReader.init(client:))
+        )
         self.sessionBridge = AuthSessionBridge()
         self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
@@ -144,7 +161,11 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
     init(clientProvider: SupabaseClientProvider, now: @escaping () -> Date = { Date() }) {
         let client = clientProvider.makeClient()
         self.clientProvider = clientProvider
-        self.sessionProbe = SupabaseAuthSessionProbe(clientProvider: clientProvider)
+        self.underlyingClient = client
+        self.sessionProbe = SupabaseAuthSessionProbe(
+            isConfigured: clientProvider.state == .ready,
+            reader: client.map(SupabaseClientSessionReader.init(client:))
+        )
         self.sessionBridge = AuthSessionBridge()
         self.emailRequester = client.map(SupabaseClientEmailMagicLinkRequester.init(client:))
         self.appleCredentialExchanger = client.map { SupabaseClientAppleCredentialExchanger(client: $0, now: now) }
@@ -168,6 +189,7 @@ final class SupabaseAuthProvider: RemoteAuthSessionLoading, AuthCallbackSessionH
         now: @escaping () -> Date = { Date() }
     ) {
         self.clientProvider = clientProvider
+        self.underlyingClient = nil
         self.sessionProbe = sessionProbe
         self.sessionBridge = sessionBridge
         self.emailRequester = emailRequester
