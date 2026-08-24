@@ -54,7 +54,9 @@ struct RootTabView: View {
     @State private var isRecordLaunchPresented = false
     @State private var shouldReturnToActivityAfterRecordSave = false
     @State private var shouldShowInitialCoachPreview = true
+    @State private var feedNavigationPath = NavigationPath()
     @StateObject private var tabBarVisibility = SOOMTabBarVisibility()
+    @EnvironmentObject private var notificationDeepLinkRouter: NotificationDeepLinkRouter
     @Namespace private var tabBarNamespace
 
     init() {
@@ -103,6 +105,12 @@ struct RootTabView: View {
         .preferredColorScheme(.light)
         .environment(\.font, SOOMFont.body(15, relativeTo: .body))
         .sensoryFeedback(.selection, trigger: selectedTab)
+        .onChange(of: notificationDeepLinkRouter.pendingPostId) { _, newValue in
+            guard let postId = newValue else { return }
+            selectedTab = .feed
+            feedNavigationPath.append(FeedPostRouteTarget(postId: postId))
+            notificationDeepLinkRouter.pendingPostId = nil
+        }
         .animation(.easeOut(duration: SOOMMotion.Duration.normal), value: tabBarVisibility.isHidden)
         .fullScreenCover(isPresented: $isRecordLaunchPresented, onDismiss: {
             selectedTab = shouldReturnToActivityAfterRecordSave ? .activity : .feed
@@ -153,7 +161,7 @@ struct RootTabView: View {
     private var selectedContent: some View {
         switch selectedTab {
         case .feed:
-            NavigationStack {
+            NavigationStack(path: $feedNavigationPath) {
                 FeedViewContainer()
             }
         case .record:

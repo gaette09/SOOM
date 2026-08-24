@@ -2,6 +2,7 @@ import Foundation
 
 protocol FeedLoading {
     func loadFeed(limit: Int) async -> [FeedItem]
+    func loadPost(id: UUID) async -> FeedItem?
 }
 
 extension FeedDataSource: FeedLoading {}
@@ -89,6 +90,18 @@ final class FeedViewModel: ObservableObject {
             streak: WeeklyStreakCalculator.calculate(workoutDates: workoutDates, referenceDate: referenceDate),
             isLoading: false
         )
+    }
+
+    /// Notification deep-link target resolution: prefers whatever's
+    /// already loaded in readModel (instant, no network) and only falls
+    /// back to a single-post fetch when the item isn't in the current
+    /// feed window (e.g. cold launch before load() has run, or the post
+    /// is older than the feed's load limit).
+    func resolveFeedItem(postId: UUID) async -> FeedItem? {
+        if let cached = readModel.items.first(where: { $0.id == postId }) {
+            return cached
+        }
+        return await feedLoader.loadPost(id: postId)
     }
 
     /// Toggles the viewer's own "cheer" reaction on `item`. A local draft

@@ -31,6 +31,11 @@ struct FeedViewContainer: View {
                 }
             }
         )
+        .navigationDestination(for: FeedPostRouteTarget.self) { target in
+            FeedNotificationDetailLoader(postId: target.postId) { postId in
+                await viewModel?.resolveFeedItem(postId: postId) ?? nil
+            }
+        }
         .task {
             let vm = makeProductionViewModel()
             viewModel = vm

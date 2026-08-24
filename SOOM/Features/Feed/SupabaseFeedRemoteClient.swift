@@ -60,6 +60,49 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
         }
     }
 
+    /// Same shape as fetchFeedPosts, scoped to a single id via `.eq`
+    /// instead of `.limit` — this is the exact same `client` (same
+    /// authenticated session, same RLS) as every other method here, not a
+    /// separate elevated path. A private post the caller doesn't own
+    /// simply isn't in the returned rows.
+    func fetchFeedPost(id: UUID) async throws -> FeedPostBundleDTO? {
+        let posts: [FeedPostDTO] = try await client
+            .from("feed_posts")
+            .select()
+            .eq("id", value: id)
+            .execute()
+            .value
+
+        guard let post = posts.first else {
+            return nil
+        }
+
+        async let media: [FeedPostMediaDTO] = client
+            .from("feed_post_media")
+            .select()
+            .eq("post_id", value: id)
+            .execute()
+            .value
+
+        async let reactions: [FeedReactionDTO] = client
+            .from("feed_reactions")
+            .select()
+            .eq("post_id", value: id)
+            .execute()
+            .value
+
+        async let comments: [FeedCommentDTO] = client
+            .from("feed_comments")
+            .select()
+            .eq("post_id", value: id)
+            .execute()
+            .value
+
+        let (mediaRows, reactionRows, commentRows) = try await (media, reactions, comments)
+
+        return FeedPostBundleDTO(post: post, media: mediaRows, reactions: reactionRows, comments: commentRows)
+    }
+
     func fetchProfiles(ids: [UUID]) async throws -> [FeedProfileDTO] {
         guard !ids.isEmpty else {
             return []

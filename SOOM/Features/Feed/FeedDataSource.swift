@@ -48,6 +48,18 @@ final class FeedDataSource {
         return await fallbackFeed(limit: limit)
     }
 
+    /// Notification deep links only ever point at a real server post — a
+    /// local-only draft has no post_id for a push to reference — so unlike
+    /// loadFeed this never merges draftStore items.
+    func loadPost(id: UUID) async -> FeedItem? {
+        if strategy.useRemoteWhenAvailable, let remoteRepository,
+           let item = try? await remoteRepository.fetchPost(id: id) {
+            return item
+        }
+
+        return try? await fallbackRepository.fetchPost(id: id)
+    }
+
     private func fallbackFeed(limit: Int) async -> [FeedItem] {
         let fallbackItems = (try? await fallbackRepository.fetchFeed(limit: limit)) ?? Array(FeedMockData.items.prefix(limit))
         return await mergedWithDrafts(fallbackItems, limit: limit)

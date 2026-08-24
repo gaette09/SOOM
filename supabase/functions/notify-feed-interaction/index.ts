@@ -129,7 +129,14 @@ Deno.serve(async (req) => {
         "apns-topic": bundleId,
         "apns-push-type": "alert",
       },
-      body: JSON.stringify({ aps: { alert: { title: "SOOM", body }, sound: "default" } }),
+      // post_id sits alongside `aps` (not inside it) — that's where APNs
+      // puts custom payload data, and where the client reads it back from
+      // UNNotificationResponse.notification.request.content.userInfo for
+      // the tap-to-deep-link route (batch 5).
+      body: JSON.stringify({
+        aps: { alert: { title: "SOOM", body }, sound: "default" },
+        post_id: postId,
+      }),
     })
     console.log(`[notify-feed-interaction] APNs status=${response.status} token=${token.slice(0, 8)}...`)
     results.push({ tokenPrefix: token.slice(0, 8), status: response.status })

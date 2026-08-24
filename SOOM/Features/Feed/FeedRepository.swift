@@ -8,10 +8,20 @@ enum FeedRepositoryError: Error, Equatable {
 
 protocol FeedRepositoryProtocol {
     func fetchFeed(limit: Int) async throws -> [FeedItem]
+    /// Single-post lookup for notification deep links. Returns nil for
+    /// "not found" (deleted, or RLS silently filtered it out because it's
+    /// private and the caller isn't the owner) — callers must not
+    /// distinguish those cases in UI, since doing so would leak which
+    /// posts exist but are private.
+    func fetchPost(id: UUID) async throws -> FeedItem?
 }
 
 protocol FeedRemotePostFetching {
     func fetchFeedPosts(limit: Int) async throws -> [FeedPostBundleDTO]
+    /// Goes through the exact same RLS-scoped client as fetchFeedPosts —
+    /// deliberately not a separate/elevated path, so a private post stays
+    /// invisible to a single-row lookup exactly as it is to the list one.
+    func fetchFeedPost(id: UUID) async throws -> FeedPostBundleDTO?
 }
 
 protocol FeedRemotePostPosting {
@@ -40,5 +50,9 @@ struct MockFeedRepository: FeedRepositoryProtocol {
 
     func fetchFeed(limit: Int) async throws -> [FeedItem] {
         Array(items.sorted { $0.createdAt > $1.createdAt }.prefix(limit))
+    }
+
+    func fetchPost(id: UUID) async throws -> FeedItem? {
+        items.first { $0.id == id }
     }
 }

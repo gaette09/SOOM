@@ -13,6 +13,7 @@ struct SOOMApp: App {
 
     private let deviceTokenReceiptHandler: DeviceTokenReceiptHandler
     private let notificationPermissionRequester: any NotificationPermissionRequesting = NotificationPermissionRequester()
+    @StateObject private var notificationDeepLinkRouter = NotificationDeepLinkRouter()
 
     init() {
         _hasCompletedOnboarding = State(initialValue: OnboardingStateStore.shared.hasCompletedOnboarding)
@@ -68,6 +69,7 @@ struct SOOMApp: App {
                 .environmentObject(dashboardViewModel)
                 .environmentObject(communityViewModel)
                 .environmentObject(authViewModel)
+                .environmentObject(notificationDeepLinkRouter)
                 .task {
                     await rootAuthBootstrap.bootstrap()
                 }
@@ -89,6 +91,26 @@ struct SOOMApp: App {
                         }
                     }
                     await notificationPermissionRequester.reregisterIfAlreadyAuthorized()
+                }
+                .task {
+                    appDelegate.onDidReceiveNotificationTap = { [notificationDeepLinkRouter, rootAuthBootstrap] postId in
+                        Task { @MainActor in
+                            // A tap can race auth session restore (worst case:
+                            // cold launch). fetchPost requires an authenticated
+                            // role per RLS, so routing before the session is
+                            // back would silently resolve to "not found" even
+                            // for a post the user can see. bootstrap() is a
+                            // no-op once already completed.
+                            await rootAuthBootstrap.bootstrap()
+                            notificationDeepLinkRouter.routeToPost(id: postId)
+                        }
+                    }
+                    // Cold launch: iOS may have delivered the tap before this
+                    // .task ran (see AppDelegate.pendingNotificationPostId).
+                    if let pendingPostId = appDelegate.pendingNotificationPostId {
+                        await rootAuthBootstrap.bootstrap()
+                        notificationDeepLinkRouter.routeToPost(id: pendingPostId)
+                    }
                 }
         }
         .modelContainer(for: [

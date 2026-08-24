@@ -336,6 +336,8 @@
 		010627 /* DeviceTokenRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020627 /* DeviceTokenRegistrar.swift */; };
 		010628 /* DeviceTokenReceiptHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020628 /* DeviceTokenReceiptHandler.swift */; };
 		010629 /* SignOutDeviceTokenCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020629 /* SignOutDeviceTokenCleanup.swift */; };
+		010634 /* NotificationDeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020634 /* NotificationDeepLinkRouter.swift */; };
+		010635 /* FeedNotificationDetailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020635 /* FeedNotificationDetailLoader.swift */; };
 		010630 /* DeviceTokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020630 /* DeviceTokenStoreTests.swift */; };
 		010631 /* DeviceTokenReceiptHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020631 /* DeviceTokenReceiptHandlerTests.swift */; };
 		010632 /* SignOutDeviceTokenCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020632 /* SignOutDeviceTokenCleanupTests.swift */; };
@@ -875,6 +877,8 @@
 		020627 /* DeviceTokenRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenRegistrar.swift; sourceTree = "<group>"; };
 		020628 /* DeviceTokenReceiptHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenReceiptHandler.swift; sourceTree = "<group>"; };
 		020629 /* SignOutDeviceTokenCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanup.swift; sourceTree = "<group>"; };
+		020634 /* NotificationDeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDeepLinkRouter.swift; sourceTree = "<group>"; };
+		020635 /* FeedNotificationDetailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedNotificationDetailLoader.swift; sourceTree = "<group>"; };
 		020630 /* DeviceTokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenStoreTests.swift; sourceTree = "<group>"; };
 		020631 /* DeviceTokenReceiptHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenReceiptHandlerTests.swift; sourceTree = "<group>"; };
 		020632 /* SignOutDeviceTokenCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanupTests.swift; sourceTree = "<group>"; };
@@ -1311,6 +1315,7 @@
 				020627 /* DeviceTokenRegistrar.swift */,
 				020628 /* DeviceTokenReceiptHandler.swift */,
 				020629 /* SignOutDeviceTokenCleanup.swift */,
+				020634 /* NotificationDeepLinkRouter.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -1487,6 +1492,7 @@
 				02F004 /* FeedFoundationCards.swift */,
 				020014 /* FeedView.swift */,
 				0205F3 /* FeedItemDetailView.swift */,
+				020635 /* FeedNotificationDetailLoader.swift */,
 			);
 			path = Feed;
 			sourceTree = "<group>";
@@ -1993,6 +1999,8 @@
 				010627 /* DeviceTokenRegistrar.swift in Sources */,
 				010628 /* DeviceTokenReceiptHandler.swift in Sources */,
 				010629 /* SignOutDeviceTokenCleanup.swift in Sources */,
+				010634 /* NotificationDeepLinkRouter.swift in Sources */,
+				010635 /* FeedNotificationDetailLoader.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
