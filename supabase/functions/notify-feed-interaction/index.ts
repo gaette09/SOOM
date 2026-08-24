@@ -120,6 +120,16 @@ Deno.serve(async (req) => {
   const jwt = await makeApnsJwt()
   const bundleId = Deno.env.get("APNS_BUNDLE_ID")!
 
+  // APNs reasons that mean the token itself will never work again — see
+  // https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns.
+  // Anything else (5xx, rate limiting, a malformed payload, etc.) is a
+  // transient or our-own-bug failure and must never mark a token invalid.
+  const PERMANENT_FAILURE_REASONS = new Set([
+    "BadDeviceToken",
+    "Unregistered",
+    "DeviceTokenNotForTopic",
+  ])
+
   const results = []
   for (const { token } of tokens ?? []) {
     const response = await fetch(`https://${APNS_HOST}/3/device/${token}`, {
@@ -138,8 +148,37 @@ Deno.serve(async (req) => {
         post_id: postId,
       }),
     })
-    console.log(`[notify-feed-interaction] APNs status=${response.status} token=${token.slice(0, 8)}...`)
-    results.push({ tokenPrefix: token.slice(0, 8), status: response.status })
+
+    if (response.ok) {
+      console.log(`[notify-feed-interaction] APNs status=${response.status} token=${token.slice(0, 8)}...`)
+      // Self-healing: a token that failed before (e.g. the app was
+      // reinstalled and re-registered the same token value) but now
+      // succeeds shouldn't stay marked for batch 6's cron sweep.
+      await supabase
+        .from("device_tokens")
+        .update({ last_invalid_reason: null, invalidated_at: null })
+        .eq("token", token)
+      results.push({ tokenPrefix: token.slice(0, 8), status: response.status })
+      continue
+    }
+
+    const errorBody = await response.json().catch(() => null) as { reason?: string } | null
+    const reason = errorBody?.reason ?? null
+    console.log(
+      `[notify-feed-interaction] APNs status=${response.status} reason=${reason} token=${token.slice(0, 8)}...`,
+    )
+
+    // Batch 6: mark permanently-invalid tokens for the pg_cron sweep
+    // (cleanup_invalidated_device_tokens) instead of deleting here —
+    // deletion is intentionally deferred/batched, not immediate.
+    if (reason && PERMANENT_FAILURE_REASONS.has(reason)) {
+      await supabase
+        .from("device_tokens")
+        .update({ last_invalid_reason: reason, invalidated_at: new Date().toISOString() })
+        .eq("token", token)
+    }
+
+    results.push({ tokenPrefix: token.slice(0, 8), status: response.status, reason })
   }
 
   return new Response(JSON.stringify({ recipientId, notificationType, results }), {
