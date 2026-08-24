@@ -332,6 +332,14 @@
 		010623 /* OnboardingLocationPermissionRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020623 /* OnboardingLocationPermissionRequester.swift */; };
 		010624 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020624 /* AppDelegate.swift */; };
 		010625 /* NotificationPermissionRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020625 /* NotificationPermissionRequester.swift */; };
+		010626 /* DeviceTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020626 /* DeviceTokenStore.swift */; };
+		010627 /* DeviceTokenRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020627 /* DeviceTokenRegistrar.swift */; };
+		010628 /* DeviceTokenReceiptHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020628 /* DeviceTokenReceiptHandler.swift */; };
+		010629 /* SignOutDeviceTokenCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020629 /* SignOutDeviceTokenCleanup.swift */; };
+		010630 /* DeviceTokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020630 /* DeviceTokenStoreTests.swift */; };
+		010631 /* DeviceTokenReceiptHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020631 /* DeviceTokenReceiptHandlerTests.swift */; };
+		010632 /* SignOutDeviceTokenCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020632 /* SignOutDeviceTokenCleanupTests.swift */; };
+		010633 /* MockDeviceTokenRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020633 /* MockDeviceTokenRegistrar.swift */; };
 		010621 /* OnboardingStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020621 /* OnboardingStateStoreTests.swift */; };
 		010622 /* OnboardingViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020622 /* OnboardingViewTests.swift */; };
 		010610 /* FitnessTrendHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020610 /* FitnessTrendHistoryProviderTests.swift */; };
@@ -863,6 +871,14 @@
 		020623 /* OnboardingLocationPermissionRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationPermissionRequester.swift; sourceTree = "<group>"; };
 		020624 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		020625 /* NotificationPermissionRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionRequester.swift; sourceTree = "<group>"; };
+		020626 /* DeviceTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenStore.swift; sourceTree = "<group>"; };
+		020627 /* DeviceTokenRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenRegistrar.swift; sourceTree = "<group>"; };
+		020628 /* DeviceTokenReceiptHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenReceiptHandler.swift; sourceTree = "<group>"; };
+		020629 /* SignOutDeviceTokenCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanup.swift; sourceTree = "<group>"; };
+		020630 /* DeviceTokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenStoreTests.swift; sourceTree = "<group>"; };
+		020631 /* DeviceTokenReceiptHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenReceiptHandlerTests.swift; sourceTree = "<group>"; };
+		020632 /* SignOutDeviceTokenCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanupTests.swift; sourceTree = "<group>"; };
+		020633 /* MockDeviceTokenRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceTokenRegistrar.swift; sourceTree = "<group>"; };
 		020621 /* OnboardingStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStoreTests.swift; sourceTree = "<group>"; };
 		020622 /* OnboardingViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewTests.swift; sourceTree = "<group>"; };
 		020610 /* FitnessTrendHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProviderTests.swift; sourceTree = "<group>"; };
@@ -1291,6 +1307,10 @@
 			isa = PBXGroup;
 			children = (
 				020625 /* NotificationPermissionRequester.swift */,
+				020626 /* DeviceTokenStore.swift */,
+				020627 /* DeviceTokenRegistrar.swift */,
+				020628 /* DeviceTokenReceiptHandler.swift */,
+				020629 /* SignOutDeviceTokenCleanup.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -1817,6 +1837,10 @@
 				020309 /* SettingsViewModelTests.swift */,
 				020621 /* OnboardingStateStoreTests.swift */,
 				020622 /* OnboardingViewTests.swift */,
+				020630 /* DeviceTokenStoreTests.swift */,
+				020631 /* DeviceTokenReceiptHandlerTests.swift */,
+				020632 /* SignOutDeviceTokenCleanupTests.swift */,
+				020633 /* MockDeviceTokenRegistrar.swift */,
 			);
 			path = SOOMTests;
 			sourceTree = "<group>";
@@ -1965,6 +1989,10 @@
 				010623 /* OnboardingLocationPermissionRequester.swift in Sources */,
 				010624 /* AppDelegate.swift in Sources */,
 				010625 /* NotificationPermissionRequester.swift in Sources */,
+				010626 /* DeviceTokenStore.swift in Sources */,
+				010627 /* DeviceTokenRegistrar.swift in Sources */,
+				010628 /* DeviceTokenReceiptHandler.swift in Sources */,
+				010629 /* SignOutDeviceTokenCleanup.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
@@ -2448,6 +2476,10 @@
 				010309 /* TrainingSettingsStoreTests.swift in Sources */,
 				010621 /* OnboardingStateStoreTests.swift in Sources */,
 				010622 /* OnboardingViewTests.swift in Sources */,
+				010630 /* DeviceTokenStoreTests.swift in Sources */,
+				010631 /* DeviceTokenReceiptHandlerTests.swift in Sources */,
+				010632 /* SignOutDeviceTokenCleanupTests.swift in Sources */,
+				010633 /* MockDeviceTokenRegistrar.swift in Sources */,
 				010310 /* SettingsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
