@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct SOOMApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var dashboardViewModel: DashboardViewModel
     @StateObject private var communityViewModel: CommunityViewModel
     @StateObject private var authViewModel: AuthViewModel

@@ -12,14 +12,18 @@ struct SettingsView: View {
     @State private var isShowingDisconnectConfirmation = false
     @State private var isShowingDeleteAccountConfirmation = false
     @State private var localDataPresence: LocalDataPresence = .empty
+    @State private var isRequestingNotificationPermission = false
     private let authEnvironment: AuthEnvironment
+    private let notificationPermissionRequester: any NotificationPermissionRequesting
 
     init(
         viewModel: SettingsViewModel = SettingsViewModel(),
-        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load()
+        authEnvironment: AuthEnvironment = AuthEnvironmentLoader().load(),
+        notificationPermissionRequester: any NotificationPermissionRequesting = NotificationPermissionRequester()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.authEnvironment = authEnvironment
+        self.notificationPermissionRequester = notificationPermissionRequester
     }
 
     var body: some View {
@@ -267,8 +271,22 @@ struct SettingsView: View {
 
     private var notificationSection: some View {
         SOOMCard {
-            SOOMSectionHeader("알림", caption: "아침 체크인과 주간 리듬 알림을 담을 자리입니다.")
-            SOOMActionRow(icon: "bell", title: "알림 설정 준비 중", subtitle: "강요하지 않는 리마인더 정책으로 설계합니다.", tint: SOOMColor.warning)
+            SOOMSectionHeader("알림", caption: "허용하면 응원·댓글 같은 반응을 알림으로 받아요. 강요하지 않는 리마인더 정책으로 설계합니다.")
+            Button {
+                requestNotificationPermission()
+            } label: {
+                SOOMActionRow(icon: "bell", title: "알림 허용하기", subtitle: "나중에 iPhone 설정에서 언제든 바꿀 수 있어요.", tint: SOOMColor.warning)
+            }
+            .buttonStyle(.plain)
+            .disabled(isRequestingNotificationPermission)
+        }
+    }
+
+    private func requestNotificationPermission() {
+        isRequestingNotificationPermission = true
+        Task {
+            await notificationPermissionRequester.requestAuthorization()
+            isRequestingNotificationPermission = false
         }
     }
 

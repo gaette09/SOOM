@@ -330,6 +330,8 @@
 		010619 /* OnboardingStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020619 /* OnboardingStateStore.swift */; };
 		010620 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020620 /* OnboardingView.swift */; };
 		010623 /* OnboardingLocationPermissionRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020623 /* OnboardingLocationPermissionRequester.swift */; };
+		010624 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020624 /* AppDelegate.swift */; };
+		010625 /* NotificationPermissionRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020625 /* NotificationPermissionRequester.swift */; };
 		010621 /* OnboardingStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020621 /* OnboardingStateStoreTests.swift */; };
 		010622 /* OnboardingViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020622 /* OnboardingViewTests.swift */; };
 		010610 /* FitnessTrendHistoryProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020610 /* FitnessTrendHistoryProviderTests.swift */; };
@@ -859,6 +861,8 @@
 		020619 /* OnboardingStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStore.swift; sourceTree = "<group>"; };
 		020620 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		020623 /* OnboardingLocationPermissionRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationPermissionRequester.swift; sourceTree = "<group>"; };
+		020624 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		020625 /* NotificationPermissionRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionRequester.swift; sourceTree = "<group>"; };
 		020621 /* OnboardingStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStoreTests.swift; sourceTree = "<group>"; };
 		020622 /* OnboardingViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewTests.swift; sourceTree = "<group>"; };
 		020610 /* FitnessTrendHistoryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendHistoryProviderTests.swift; sourceTree = "<group>"; };
@@ -1117,6 +1121,7 @@
 			children = (
 				020001 /* SOOMApp.swift */,
 				020010 /* RootTabView.swift */,
+				020624 /* AppDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -1267,6 +1272,7 @@
 				040025 /* Settings */,
 				040018 /* Profile */,
 				040028 /* Onboarding */,
+				040029 /* Notifications */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -1279,6 +1285,14 @@
 				020623 /* OnboardingLocationPermissionRequester.swift */,
 			);
 			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		040029 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				020625 /* NotificationPermissionRequester.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		040026 /* Auth */ = {
@@ -1949,6 +1963,8 @@
 				010619 /* OnboardingStateStore.swift in Sources */,
 				010620 /* OnboardingView.swift in Sources */,
 				010623 /* OnboardingLocationPermissionRequester.swift in Sources */,
+				010624 /* AppDelegate.swift in Sources */,
+				010625 /* NotificationPermissionRequester.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,
