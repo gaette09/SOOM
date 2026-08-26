@@ -8,10 +8,21 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
         self.client = client
     }
 
+    /// The explicit `.or(...)` below doesn't change what RLS already
+    /// returns — `feed_posts_select_owner_or_public` already scopes every
+    /// query on this table to `user_id = auth.uid() or visibility =
+    /// 'public'` server-side, so an unfiltered query already mixes the
+    /// caller's own private posts in with everyone's public ones, and a
+    /// caller can never see another user's private post no matter what
+    /// filter this method sends (RLS isn't something a client-side query
+    /// can widen). It's here to make that intent visible in the client
+    /// code itself, not to open or close anything RLS doesn't already.
     func fetchFeedPosts(limit: Int) async throws -> [FeedPostBundleDTO] {
+        let session = try await client.auth.session
         let posts: [FeedPostDTO] = try await client
             .from("feed_posts")
             .select()
+            .or("visibility.eq.public,user_id.eq.\(session.user.id)")
             .order("created_at", ascending: false)
             .limit(limit)
             .execute()

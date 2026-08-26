@@ -34,11 +34,16 @@ struct FeedItemCard: View {
                 .padding(.bottom, SOOMLayout.Spacing.lg)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(SOOMColor.surface)
+        .background(isPrivateToViewer ? SOOMColor.surfaceMuted : SOOMColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
                 .stroke(SOOMColor.black.opacity(0.08), lineWidth: SOOMLayout.Card.borderWidth)
+        }
+        .overlay(alignment: .topLeading) {
+            if isPrivateToViewer {
+                privateLockBadge
+            }
         }
         .shadow(color: SOOMColor.black.opacity(0.07), radius: 18, x: 0, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
@@ -200,6 +205,29 @@ struct FeedItemCard: View {
         }
     }
 
+    /// RLS already guarantees a `.privateOnly` item can only ever be the
+    /// viewer's own post (nobody else's private post is fetchable at all —
+    /// see SupabaseFeedRemoteClient.fetchFeedPosts), but `isOwnPost` is
+    /// checked too rather than trusting that alone, matching how this
+    /// screen never leans on RLS as the only line of defense.
+    private var isPrivateToViewer: Bool {
+        isOwnPost && item.visibility == .privateOnly
+    }
+
+    private var privateLockBadge: some View {
+        Image(systemName: "lock.fill")
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(SOOMColor.secondaryInk)
+            .frame(width: 24, height: 24)
+            .background(SOOMColor.surface)
+            .clipShape(Circle())
+            .overlay {
+                Circle().stroke(SOOMColor.black.opacity(0.08), lineWidth: 1)
+            }
+            .padding(8)
+            .accessibilityHidden(true)
+    }
+
     private var feedTypeText: String {
         switch item.cardData {
         case .workoutSession(let card):
@@ -240,11 +268,12 @@ struct FeedItemCard: View {
     }
 
     private var accessibilitySummary: String {
+        let privacyPrefix = isPrivateToViewer ? "나만 보기. " : ""
         switch item.cardData {
         case .workoutSession(let card):
-            return "\(feedTitle). \(card.distanceText), \(card.durationText). \(feedBody)"
+            return "\(privacyPrefix)\(feedTitle). \(card.distanceText), \(card.durationText). \(feedBody)"
         case .weeklyProgress(let card):
-            return "\(feedTitle). \(card.workoutCountText), \(card.totalDistanceText), \(card.totalDurationText). \(feedBody)"
+            return "\(privacyPrefix)\(feedTitle). \(card.workoutCountText), \(card.totalDistanceText), \(card.totalDurationText). \(feedBody)"
         }
     }
 
