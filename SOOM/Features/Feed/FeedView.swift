@@ -6,22 +6,28 @@ struct FeedView: View {
     let weeklySnapshot: FeedWeeklySnapshot?
     let recoveryInsight: FeedRecoveryInsight?
     let streak: FeedStreakSnapshot
+    let notificationFetcher: (any NotificationInboxFetching)?
+    let profileFetcher: (any FeedRemoteProfileFetching)?
     let onToggleCheer: (FeedItem) -> Void
     let onSubmitComment: (FeedItem, String) -> Void
     let onDeletePost: (FeedItem) -> Void
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var notificationDeepLinkRouter: NotificationDeepLinkRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
     @State private var isSignInSheetPresented = false
     @State private var isSearchPresented = false
-    @State private var isNotificationsComingSoonPresented = false
+    @State private var isNotificationsInboxPresented = false
+    @State private var unreadNotificationCount = 0
 
     init(
         items: [FeedItem] = FeedMockData.items,
         weeklySnapshot: FeedWeeklySnapshot? = nil,
         recoveryInsight: FeedRecoveryInsight? = nil,
         streak: FeedStreakSnapshot = FeedStreakSnapshot(weekCount: 0, activityCount: 0),
+        notificationFetcher: (any NotificationInboxFetching)? = nil,
+        profileFetcher: (any FeedRemoteProfileFetching)? = nil,
         onToggleCheer: @escaping (FeedItem) -> Void = { _ in },
         onSubmitComment: @escaping (FeedItem, String) -> Void = { _, _ in },
         onDeletePost: @escaping (FeedItem) -> Void = { _ in }
@@ -31,6 +37,8 @@ struct FeedView: View {
         self.weeklySnapshot = weeklySnapshot
         self.recoveryInsight = recoveryInsight
         self.streak = streak
+        self.notificationFetcher = notificationFetcher
+        self.profileFetcher = profileFetcher
         self.onToggleCheer = onToggleCheer
         self.onSubmitComment = onSubmitComment
         self.onDeletePost = onDeletePost
@@ -119,6 +127,9 @@ struct FeedView: View {
         .onAppear {
             hasAppeared = true
         }
+        .task {
+            await refreshUnreadNotificationCount()
+        }
         .onChange(of: items) { _, newItems in
             visibleItems = Self.prioritizedItems(newItems)
         }
@@ -137,11 +148,26 @@ struct FeedView: View {
                 feedDestination(for: item)
             }
         }
-        .alert("알림 기능 준비 중", isPresented: $isNotificationsComingSoonPresented) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("알림 기능은 아직 준비 중이에요. 곧 만나요!")
+        .sheet(isPresented: $isNotificationsInboxPresented) {
+            NotificationInboxView(
+                fetcher: notificationFetcher,
+                profileFetcher: profileFetcher,
+                onSelectPost: { postId in
+                    isNotificationsInboxPresented = false
+                    notificationDeepLinkRouter.routeToPost(id: postId)
+                },
+                onMarkedAllRead: {
+                    unreadNotificationCount = 0
+                }
+            )
         }
+    }
+
+    private func refreshUnreadNotificationCount() async {
+        guard let notifications = try? await notificationFetcher?.fetchNotifications() else {
+            return
+        }
+        unreadNotificationCount = notifications.filter { $0.readAt == nil }.count
     }
 
     private var signInSheet: some View {
@@ -180,8 +206,10 @@ struct FeedView: View {
                 isSearchPresented = true
             }
             headerIconButton(icon: "bell", label: "알림") {
-                isNotificationsComingSoonPresented = true
+                isNotificationsInboxPresented = true
             }
+            .soomBadge(count: unreadNotificationCount)
+            .accessibilityValue(unreadNotificationCount > 0 ? "안읽음 \(unreadNotificationCount)개" : "")
         }
         .padding(.bottom, -4)
     }

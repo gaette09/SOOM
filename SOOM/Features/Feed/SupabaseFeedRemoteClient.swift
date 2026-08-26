@@ -182,3 +182,43 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .execute()
     }
 }
+
+/// Same `client` instance as the rest of this type — read/mark-read scope
+/// to `recipient_id = auth.uid()` per `notifications_v1.sql`'s RLS
+/// (`notifications_select_recipient`/`notifications_update_read_at_recipient`),
+/// so this can't see or touch another user's notifications regardless of
+/// the explicit `.eq` filter below.
+extension SupabaseFeedRemoteClient: NotificationInboxFetching {
+    func fetchNotifications() async throws -> [NotificationDTO] {
+        let session = try await client.auth.session
+        return try await client
+            .from("notifications")
+            .select()
+            .eq("recipient_id", value: session.user.id)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    /// Batch-updates every currently-unread row for this recipient in one
+    /// call, rather than one row at a time — matches the product decision
+    /// (batch 1 of soom-notification-inbox) to mark everything read on
+    /// inbox open, not per-row-tap.
+    func markAllNotificationsAsRead() async throws {
+        let session = try await client.auth.session
+        try await client
+            .from("notifications")
+            .update(NotificationReadUpdateDTO(readAt: Date()))
+            .eq("recipient_id", value: session.user.id)
+            .is("read_at", value: nil)
+            .execute()
+    }
+}
+
+private struct NotificationReadUpdateDTO: Encodable {
+    let readAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case readAt = "read_at"
+    }
+}

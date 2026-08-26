@@ -338,6 +338,9 @@
 		010629 /* SignOutDeviceTokenCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020629 /* SignOutDeviceTokenCleanup.swift */; };
 		010634 /* NotificationDeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020634 /* NotificationDeepLinkRouter.swift */; };
 		010635 /* FeedNotificationDetailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020635 /* FeedNotificationDetailLoader.swift */; };
+		010636 /* NotificationDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020636 /* NotificationDTO.swift */; };
+		010637 /* NotificationInboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020637 /* NotificationInboxView.swift */; };
+		010638 /* SOOMBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020638 /* SOOMBadge.swift */; };
 		010630 /* DeviceTokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020630 /* DeviceTokenStoreTests.swift */; };
 		010631 /* DeviceTokenReceiptHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020631 /* DeviceTokenReceiptHandlerTests.swift */; };
 		010632 /* SignOutDeviceTokenCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020632 /* SignOutDeviceTokenCleanupTests.swift */; };
@@ -879,6 +882,9 @@
 		020629 /* SignOutDeviceTokenCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanup.swift; sourceTree = "<group>"; };
 		020634 /* NotificationDeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDeepLinkRouter.swift; sourceTree = "<group>"; };
 		020635 /* FeedNotificationDetailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedNotificationDetailLoader.swift; sourceTree = "<group>"; };
+		020636 /* NotificationDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDTO.swift; sourceTree = "<group>"; };
+		020637 /* NotificationInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationInboxView.swift; sourceTree = "<group>"; };
+		020638 /* SOOMBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOOMBadge.swift; sourceTree = "<group>"; };
 		020630 /* DeviceTokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenStoreTests.swift; sourceTree = "<group>"; };
 		020631 /* DeviceTokenReceiptHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenReceiptHandlerTests.swift; sourceTree = "<group>"; };
 		020632 /* SignOutDeviceTokenCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignOutDeviceTokenCleanupTests.swift; sourceTree = "<group>"; };
@@ -1210,6 +1216,7 @@
 				02060E /* FitnessTrendCard.swift */,
 				020614 /* WorkoutResultsCard.swift */,
 				020618 /* FeedCommentComposeSheet.swift */,
+				020638 /* SOOMBadge.swift */,
 				020045 /* RecoveryScoreCard.swift */,
 				020251 /* RecoveryComparisonCard.swift */,
 				020046 /* InsightCard.swift */,
@@ -1316,6 +1323,8 @@
 				020628 /* DeviceTokenReceiptHandler.swift */,
 				020629 /* SignOutDeviceTokenCleanup.swift */,
 				020634 /* NotificationDeepLinkRouter.swift */,
+				020636 /* NotificationDTO.swift */,
+				020637 /* NotificationInboxView.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -2001,6 +2010,9 @@
 				010629 /* SignOutDeviceTokenCleanup.swift in Sources */,
 				010634 /* NotificationDeepLinkRouter.swift in Sources */,
 				010635 /* FeedNotificationDetailLoader.swift in Sources */,
+				010636 /* NotificationDTO.swift in Sources */,
+				010637 /* NotificationInboxView.swift in Sources */,
+				010638 /* SOOMBadge.swift in Sources */,
 				010043 /* RecoveryScoreCard.swift in Sources */,
 				010044 /* InsightCard.swift in Sources */,
 				010045 /* RecommendationCard.swift in Sources */,

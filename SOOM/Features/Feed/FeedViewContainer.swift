@@ -5,6 +5,8 @@ struct FeedViewContainer: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: FeedViewModel?
     @State private var readModel = FeedReadModel.loading
+    @State private var notificationFetcher: (any NotificationInboxFetching)?
+    @State private var profileFetcher: (any FeedRemoteProfileFetching)?
 
     var body: some View {
         FeedView(
@@ -12,6 +14,8 @@ struct FeedViewContainer: View {
             weeklySnapshot: readModel.weeklySnapshot,
             recoveryInsight: readModel.recoveryInsight,
             streak: readModel.streak,
+            notificationFetcher: notificationFetcher,
+            profileFetcher: profileFetcher,
             onToggleCheer: { item in
                 Task {
                     await viewModel?.toggleCheer(for: item)
@@ -37,20 +41,22 @@ struct FeedViewContainer: View {
             }
         }
         .task {
-            let vm = makeProductionViewModel()
+            let (vm, remoteClient) = makeProductionViewModel()
             viewModel = vm
+            notificationFetcher = remoteClient
+            profileFetcher = remoteClient
             await vm.load()
             readModel = vm.readModel
         }
     }
 
-    private func makeProductionViewModel() -> FeedViewModel {
+    private func makeProductionViewModel() -> (FeedViewModel, SupabaseFeedRemoteClient?) {
         let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
         let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
         let remoteClient = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
         let draftStore = FileFeedShareDraftStore.live
 
-        return FeedViewModel(
+        let viewModel = FeedViewModel(
             feedLoader: FeedDataSource(
                 remoteRepository: SupabaseFeedRepository(
                     clientProvider: clientProvider,
@@ -67,5 +73,6 @@ struct FeedViewContainer: View {
             postDeleter: remoteClient,
             draftStore: draftStore
         )
+        return (viewModel, remoteClient)
     }
 }
