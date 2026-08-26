@@ -194,6 +194,10 @@ private struct StubFeedLoader: FeedLoading {
     func loadFeed(limit: Int) async -> [FeedItem] {
         Array(items.prefix(limit))
     }
+
+    func loadPost(id: UUID) async -> FeedItem? {
+        items.first { $0.id == id }
+    }
 }
 
 private struct StubWeeklyProgressProvider: FeedWeeklyProgressProviding {

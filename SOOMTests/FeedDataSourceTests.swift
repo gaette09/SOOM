@@ -133,4 +133,8 @@ private struct StubFeedRepository: FeedRepositoryProtocol {
     func fetchFeed(limit: Int) async throws -> [FeedItem] {
         try result.get()
     }
+
+    func fetchPost(id: UUID) async throws -> FeedItem? {
+        try result.get().first { $0.id == id }
+    }
 }
