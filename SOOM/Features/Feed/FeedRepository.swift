@@ -26,6 +26,15 @@ protocol FeedRemotePostFetching {
 
 protocol FeedRemotePostPosting {
     func postPublicPost(_ draft: FeedShareDraft, visibility: FeedPostVisibility) async throws
+    /// Flips an already-posted row's visibility — the "이 운동은 공유
+    /// 안 함" opt-out path (2026-08-26: workouts post automatically on
+    /// completion now, so opting out means editing the row that already
+    /// exists, not skipping a not-yet-made insert). Scoped by
+    /// `sourceWorkoutId` rather than the server-generated post id, since
+    /// `postPublicPost` deliberately never reads that id back (see its
+    /// doc comment) — `source_workout_id` is the one identifier the
+    /// caller already has client-side.
+    func updatePostVisibility(sourceWorkoutId: UUID, visibility: FeedPostVisibility) async throws
 }
 
 protocol FeedRemoteReactionPosting {

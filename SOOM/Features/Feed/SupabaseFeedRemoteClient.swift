@@ -142,6 +142,16 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .execute()
     }
 
+    func updatePostVisibility(sourceWorkoutId: UUID, visibility: FeedPostVisibility) async throws {
+        let session = try await client.auth.session
+        try await client
+            .from("feed_posts")
+            .update(FeedPostVisibilityUpdateDTO(visibility: visibility))
+            .eq("source_workout_id", value: sourceWorkoutId)
+            .eq("user_id", value: session.user.id)
+            .execute()
+    }
+
     func addReaction(postId: UUID, reactionType: String) async throws {
         let session = try await client.auth.session
         let request = FeedReactionInsertDTO(postId: postId, userId: session.user.id, reactionType: reactionType)

@@ -20,7 +20,8 @@ struct RecordView: View {
     @State private var savedWorkoutForShare: UnifiedWorkout?
     @State private var isCreatingShareDraft = false
     @State private var shareDraftErrorMessage: String?
-    @State private var shareDraftResultMessage: String?
+    @State private var shareOutcome: RecordShareOutcome?
+    @State private var isOptingOutOfSharing = false
     @State private var weatherSnapshot = RecordWeatherSnapshot.fallbackClear
     @State private var weatherDetailSnapshot = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
     @State private var isFetchingWeather = false
@@ -1371,9 +1372,7 @@ struct RecordView: View {
                         )
                     }
 
-                    Text(savedWorkoutForShare == nil
-                         ? "저장하면 이 기기의 로컬 운동 기록으로 남고 Activity에서 확인할 수 있어요."
-                         : "저장됐어요. 원하면 이 기록을 공개 전 피드 초안으로 만들어둘 수 있어요.")
+                    Text(summaryStatusText)
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1393,8 +1392,8 @@ struct RecordView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if let shareDraftResultMessage {
-                    Text(shareDraftResultMessage)
+                if let shareOutcome {
+                    Text(shareOutcome.summaryMessage)
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.accent)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1404,9 +1403,11 @@ struct RecordView: View {
                     HStack(spacing: 10) {
                         Button {
                             SOOMHaptics.selection()
-                            completeSavedWorkoutLater()
+                            Task {
+                                await optOutOfSharing(savedWorkoutForShare)
+                            }
                         } label: {
-                            Text("나중에")
+                            Text(isOptingOutOfSharing ? "처리 중" : "이 운동은 공유 안 함")
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.secondaryInk)
                                 .frame(maxWidth: .infinity)
@@ -1415,15 +1416,13 @@ struct RecordView: View {
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .disabled(isCreatingShareDraft)
+                        .disabled(isCreatingShareDraft || isOptingOutOfSharing || shareOutcome?.postedRemotely != true)
 
                         Button {
                             SOOMHaptics.softImpact()
-                            Task {
-                                await createFeedShareDraft(from: savedWorkoutForShare)
-                            }
+                            finishSavedWorkoutFlow(shareCompleted: shareOutcome?.postedRemotely ?? false)
                         } label: {
-                            Text(isCreatingShareDraft ? "초안 생성 중" : "피드에 공유하기")
+                            Text("완료")
                                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .callout))
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
@@ -1432,7 +1431,7 @@ struct RecordView: View {
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .disabled(isCreatingShareDraft)
+                        .disabled(isCreatingShareDraft || isOptingOutOfSharing)
                     }
                 } else {
                     HStack(spacing: 10) {
@@ -1505,6 +1504,16 @@ struct RecordView: View {
         .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.small, style: .continuous))
     }
 
+    private var summaryStatusText: String {
+        if savedWorkoutForShare == nil {
+            return "저장하면 이 기기의 로컬 운동 기록으로 남고, 피드에도 자동으로 올라가요."
+        }
+        if isCreatingShareDraft {
+            return "피드에 올리는 중이에요."
+        }
+        return "저장됐어요. 원하지 않으면 아래에서 공유를 취소할 수 있어요."
+    }
+
     @MainActor
     private func saveFinishedSession(_ summary: RecordWorkoutSummary) async {
         guard !isSavingWorkout else { return }
@@ -1519,50 +1528,69 @@ struct RecordView: View {
             let workout = try await saver.save(summary)
             isSavingWorkout = false
             savedWorkoutForShare = workout
+            // 2026-08-26: sharing is opt-out now, not opt-in — a saved
+            // workout posts to the feed automatically, no separate tap
+            // required. Guests fall through to the local-draft path inside
+            // autoShareToFeed exactly as an explicit share attempt already
+            // did, so nothing guest-specific is needed here.
+            await autoShareToFeed(workout)
         } catch {
             isSavingWorkout = false
             saveErrorMessage = "저장하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
+    /// Runs immediately after a successful save — unlike its opt-in
+    /// predecessor (createFeedShareDraft), this must not dismiss the
+    /// screen on completion: the user still needs a chance to tap "이 운동은
+    /// 공유 안 함" before moving on. Dismissal now only happens from an
+    /// explicit button (finishSavedWorkoutFlow).
     @MainActor
-    private func createFeedShareDraft(from workout: UnifiedWorkout) async {
+    private func autoShareToFeed(_ workout: UnifiedWorkout) async {
         guard !isCreatingShareDraft else { return }
 
         isCreatingShareDraft = true
         shareDraftErrorMessage = nil
-        shareDraftResultMessage = nil
+        shareOutcome = nil
 
         do {
             let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
             let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
             let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live, remotePoster: remotePoster)
-            let outcome = try await coordinator.handle(.shareToFeed, workout: workout)
-            shareDraftResultMessage = outcome?.summaryMessage
-                ?? "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
-            // Hold the confirmation on screen briefly before the flow dismisses —
-            // otherwise a signed-in vs signed-out share would look identical,
-            // which was exactly the gap this batch closes. isCreatingShareDraft
-            // stays true through the hold so a stray tap can't re-enter.
-            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            shareOutcome = try await coordinator.handle(.shareToFeed, workout: workout)
             isCreatingShareDraft = false
-            finishSavedWorkoutFlow(shareCompleted: true)
         } catch {
             isCreatingShareDraft = false
-            shareDraftErrorMessage = "피드 초안을 만들지 못했어요. 기록은 이 기기에 저장되어 있어요."
+            shareDraftErrorMessage = "피드 공유를 확인하지 못했어요. 기록은 이 기기에 저장되어 있어요."
         }
     }
 
+    /// The "이 운동은 공유 안 함" opt-out — flips the row `autoShareToFeed`
+    /// already created rather than skipping a not-yet-made post. No-ops
+    /// (falls straight to dismissal) if nothing was actually posted
+    /// remotely, since there's nothing to opt out of for a guest's
+    /// local-only draft.
     @MainActor
-    private func completeSavedWorkoutLater() {
-        finishSavedWorkoutFlow(shareCompleted: false)
+    private func optOutOfSharing(_ workout: UnifiedWorkout) async {
+        guard let shareOutcome, shareOutcome.postedRemotely else {
+            finishSavedWorkoutFlow(shareCompleted: shareOutcome?.postedRemotely ?? false)
+            return
+        }
+        guard !isOptingOutOfSharing else { return }
+
+        isOptingOutOfSharing = true
+        let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
+        let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
+        try? await remotePoster?.updatePostVisibility(sourceWorkoutId: workout.id, visibility: .privatePost)
+        isOptingOutOfSharing = false
+        finishSavedWorkoutFlow(shareCompleted: true)
     }
 
     @MainActor
     private func finishSavedWorkoutFlow(shareCompleted: Bool) {
         savedWorkoutForShare = nil
         shareDraftErrorMessage = nil
-        shareDraftResultMessage = nil
+        shareOutcome = nil
         activeHUDMode = .defaultMode
         activeSession = nil
 
@@ -1588,10 +1616,11 @@ struct RecordView: View {
     private func resetFinishedShareState() {
         saveErrorMessage = nil
         shareDraftErrorMessage = nil
-        shareDraftResultMessage = nil
+        shareOutcome = nil
         savedWorkoutForShare = nil
         isSavingWorkout = false
         isCreatingShareDraft = false
+        isOptingOutOfSharing = false
     }
 
     @MainActor

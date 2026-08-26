@@ -26,7 +26,11 @@ struct TrainingSettings: Equatable {
         maxHeartRate: Int? = nil,
         cyclingFTP: Int? = nil,
         preferredUnit: TrainingPreferredUnit = .metric,
-        privacyDefault: ShareableWorkoutVisibility = .privateOnly
+        // 2026-08-26: workouts upload automatically on completion now
+        // (opt-out via "공유 안 함", not opt-in "공유하기") — public is
+        // the correct default for that model. Users who want private-by-
+        // default can still flip this in Settings.
+        privacyDefault: ShareableWorkoutVisibility = .publicFeed
     ) {
         self.maxHeartRate = maxHeartRate
         self.cyclingFTP = cyclingFTP

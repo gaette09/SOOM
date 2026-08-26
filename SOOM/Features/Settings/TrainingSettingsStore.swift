@@ -21,7 +21,7 @@ final class TrainingSettingsStore {
             maxHeartRate: optionalInt(forKey: Key.maxHeartRate),
             cyclingFTP: optionalInt(forKey: Key.cyclingFTP),
             preferredUnit: TrainingPreferredUnit(rawValue: userDefaults.string(forKey: Key.preferredUnit) ?? "") ?? .metric,
-            privacyDefault: ShareableWorkoutVisibility(rawValue: userDefaults.string(forKey: Key.privacyDefault) ?? "") ?? .privateOnly
+            privacyDefault: ShareableWorkoutVisibility(rawValue: userDefaults.string(forKey: Key.privacyDefault) ?? "") ?? .publicFeed
         )
     }
 

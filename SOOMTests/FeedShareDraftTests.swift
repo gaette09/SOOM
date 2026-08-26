@@ -290,4 +290,6 @@ private struct StubFeedRemotePostPosting: FeedRemotePostPosting {
         receivedVisibility(visibility)
         try result.get()
     }
+
+    func updatePostVisibility(sourceWorkoutId: UUID, visibility: FeedPostVisibility) async throws {}
 }

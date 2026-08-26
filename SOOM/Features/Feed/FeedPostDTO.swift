@@ -150,6 +150,10 @@ struct FeedPostInsertDTO: Encodable, Equatable {
     }
 }
 
+struct FeedPostVisibilityUpdateDTO: Encodable, Equatable {
+    let visibility: FeedPostVisibility
+}
+
 struct FeedPostBundleDTO: Equatable {
     let post: FeedPostDTO
     let media: [FeedPostMediaDTO]
