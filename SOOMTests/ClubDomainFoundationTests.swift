@@ -634,6 +634,12 @@ private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
     func leaveClub(clubID: String, userID: String) async throws {
         leftClubIDs.append(clubID)
     }
+
+    var activitySummaries: [ClubMemberActivitySummary] = []
+
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
+        activitySummaries
+    }
 }
 
 private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
@@ -654,6 +660,10 @@ private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting
     }
 
     func leaveClub(clubID: String, userID: String) async throws {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
         throw ClubSupabaseServiceError.unconfigured
     }
 }

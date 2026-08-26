@@ -27,7 +27,7 @@ struct ClubsView: View {
                 ClubLocalFallbackBanner()
             }
 
-            if directory.joinedClubs.isEmpty {
+            if directory.joinedClubs.isEmpty && directory.createdClubs.isEmpty && directory.recommendedClubs.isEmpty {
                 ClubEmptyStateView(
                     recommendedClubs: directory.recommendedClubs,
                     viewModel: clubViewModel,
@@ -171,6 +171,7 @@ enum ClubRankingCategory: String, CaseIterable, Identifiable {
     case distance
     case sessions
     case consistency
+    case duration
 
     var id: String { rawValue }
 
@@ -179,6 +180,7 @@ enum ClubRankingCategory: String, CaseIterable, Identifiable {
         case .distance: return "거리"
         case .sessions: return "운동 횟수"
         case .consistency: return "꾸준함"
+        case .duration: return "운동시간"
         }
     }
 
@@ -187,6 +189,7 @@ enum ClubRankingCategory: String, CaseIterable, Identifiable {
         case .distance: return "km"
         case .sessions: return "회"
         case .consistency: return "일"
+        case .duration: return ""
         }
     }
 }
@@ -710,6 +713,8 @@ private struct ClubNextGoalCard: View {
             return "한 번만 더 기록하면 운동 횟수 랭킹이 가까워져요."
         case .consistency:
             return "하루만 더 이어가면 꾸준함 랭킹이 흔들리지 않아요."
+        case .duration:
+            return "조금만 더 움직이면 운동시간 랭킹이 가까워져요."
         }
     }
 
@@ -777,7 +782,7 @@ private struct ClubRankingGraph: View {
                     }
                     .frame(height: 9)
 
-                    Text(entry.valueText(for: category))
+                    Text(entry.compactValueText(for: category))
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .frame(width: 56, alignment: .trailing)

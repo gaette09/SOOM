@@ -222,6 +222,7 @@ enum ClubRankingMetric: String, CaseIterable, Identifiable {
     case distance
     case workoutCount
     case consistency
+    case duration
 
     var id: String { rawValue }
 
@@ -230,6 +231,7 @@ enum ClubRankingMetric: String, CaseIterable, Identifiable {
         case .distance: return "km"
         case .workoutCount: return "회"
         case .consistency: return "일"
+        case .duration: return "" // formatted as h:mm:ss, not a value+suffix like the others
         }
     }
 }
@@ -248,6 +250,7 @@ struct ClubRankingEntry: Identifiable, Equatable {
     let distanceKm: Double
     let sessions: Int
     let consistencyDays: Int
+    let durationSeconds: Int
 
     init(
         id: String? = nil,
@@ -263,6 +266,7 @@ struct ClubRankingEntry: Identifiable, Equatable {
         distanceKm: Double,
         sessions: Int,
         consistencyDays: Int,
+        durationSeconds: Int = 0,
         isCurrentUser: Bool
     ) {
         self.id = id ?? "\(clubId)-\(rank)-\(name)"
@@ -278,6 +282,7 @@ struct ClubRankingEntry: Identifiable, Equatable {
         self.distanceKm = distanceKm
         self.sessions = sessions
         self.consistencyDays = consistencyDays
+        self.durationSeconds = durationSeconds
     }
 
     var name: String { displayName }
@@ -290,7 +295,21 @@ struct ClubRankingEntry: Identifiable, Equatable {
             return "\(sessions)\(category.unit)"
         case .consistency:
             return "\(consistencyDays)\(category.unit)"
+        case .duration:
+            return Self.durationText(seconds: durationSeconds, compact: false)
         }
+    }
+
+    /// Same values as `valueText`, but duration uses the narrow form
+    /// (mm:ss under an hour, h:mm at or above) — for tight spots like
+    /// `ClubRankingGraph`'s fixed-width bar labels. Every other category
+    /// is identical to `valueText`; only duration's format actually
+    /// depends on available space.
+    func compactValueText(for category: ClubRankingCategory) -> String {
+        guard category == .duration else {
+            return valueText(for: category)
+        }
+        return Self.durationText(seconds: durationSeconds, compact: true)
     }
 
     func numericValue(for category: ClubRankingCategory) -> Double {
@@ -301,6 +320,8 @@ struct ClubRankingEntry: Identifiable, Equatable {
             return Double(sessions)
         case .consistency:
             return Double(consistencyDays)
+        case .duration:
+            return Double(durationSeconds)
         }
     }
 
@@ -312,7 +333,27 @@ struct ClubRankingEntry: Identifiable, Equatable {
             return Double(sessions)
         case .consistency:
             return Double(consistencyDays)
+        case .duration:
+            return Double(durationSeconds)
         }
+    }
+
+    /// 2026-08-26 product decision: h:mm:ss by default (e.g. "1:23:45");
+    /// in tight spaces, mm:ss under an hour ("42:15") or h:mm at/above
+    /// an hour ("1:23") — never both minutes and seconds once hours are
+    /// showing, that's what makes the compact form fit.
+    private static func durationText(seconds: Int, compact: Bool) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let secs = seconds % 60
+
+        if !compact {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        }
+        if hours >= 1 {
+            return String(format: "%d:%02d", hours, minutes)
+        }
+        return String(format: "%d:%02d", minutes, secs)
     }
 }
 
@@ -743,6 +784,8 @@ extension ClubRankingCategory {
             return .workoutCount
         case .consistency:
             return .consistency
+        case .duration:
+            return .duration
         }
     }
 }
@@ -970,6 +1013,25 @@ protocol SupabaseClubRemoteClienting {
     func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow
     func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws
     func leaveClub(clubID: String, userID: String) async throws
+    /// Aggregates each member's *public* feed_posts since `since` — private
+    /// posts are excluded on purpose (2026-08-26 product decision: ranking
+    /// only counts what's actually shared). RLS already permits any
+    /// authenticated member to read another member's public posts, so this
+    /// needs no elevated access — same client, same session as every other
+    /// method here.
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary]
+}
+
+struct ClubMemberActivitySummary: Equatable {
+    let userID: String
+    let totalDistanceMeters: Double
+    let workoutCount: Int
+    let totalDurationSeconds: Int
+    let activeDayCount: Int
+
+    static func empty(userID: String) -> ClubMemberActivitySummary {
+        ClubMemberActivitySummary(userID: userID, totalDistanceMeters: 0, workoutCount: 0, totalDurationSeconds: 0, activeDayCount: 0)
+    }
 }
 
 struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
@@ -1081,29 +1143,80 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
             .eq("user_id", value: userID)
             .execute()
     }
+
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
+        guard !memberIDs.isEmpty else {
+            return []
+        }
+
+        let sinceValue = ISO8601DateFormatter().string(from: since)
+        let posts: [ClubMemberActivityPostRow] = try await client
+            .from("feed_posts")
+            .select()
+            .eq("visibility", value: "public")
+            .in("user_id", values: memberIDs)
+            .gte("created_at", value: sinceValue)
+            .execute()
+            .value
+
+        let calendar = Calendar(identifier: .gregorian)
+        let postsByUserID = Dictionary(grouping: posts, by: \.userID)
+
+        return postsByUserID.map { userID, rows in
+            let activeDays = Set(rows.map { calendar.startOfDay(for: $0.createdAt) })
+            return ClubMemberActivitySummary(
+                userID: userID,
+                totalDistanceMeters: rows.reduce(0) { $0 + ($1.distanceMeters ?? 0) },
+                workoutCount: rows.count,
+                totalDurationSeconds: rows.reduce(0) { $0 + ($1.durationSeconds ?? 0) },
+                activeDayCount: activeDays.count
+            )
+        }
+    }
+}
+
+private struct ClubMemberActivityPostRow: Decodable {
+    let userID: String
+    let distanceMeters: Double?
+    let durationSeconds: Int?
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case distanceMeters = "distance_meters"
+        case durationSeconds = "duration_seconds"
+        case createdAt = "created_at"
+    }
 }
 
 final class SupabaseClubService: ClubService {
     private let remoteClient: any SupabaseClubRemoteClienting
     private let currentUserID: String
     private let now: () -> Date
+    private let profileFetcher: (any FeedRemoteProfileFetching)?
 
     init(
         remoteClient: any SupabaseClubRemoteClienting,
         currentUserID: String,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        profileFetcher: (any FeedRemoteProfileFetching)? = nil
     ) {
         self.remoteClient = remoteClient
         self.currentUserID = currentUserID
         self.now = now
+        self.profileFetcher = profileFetcher
     }
 
     func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
         let payload = try await remoteClient.fetchClubDirectory(currentUserID: currentUserID)
         let membershipByClub = Dictionary(uniqueKeysWithValues: payload.memberships.map { ($0.clubID, $0) })
         let memberCounts = Dictionary(grouping: payload.memberRows, by: \.clubID).mapValues(\.count)
-        let details = payload.clubs.map { row in
-            makeDetail(
+        // Sequential, not parallel — club directories are small at this
+        // stage of the product, and a TaskGroup here would be premature
+        // optimization for a count that doesn't exist yet.
+        var details: [ClubDetail] = []
+        for row in payload.clubs {
+            let detail = await makeDetail(
                 club: row,
                 membership: membershipByClub[row.id],
                 members: payload.memberRows.filter { $0.clubID == row.id },
@@ -1111,6 +1224,7 @@ final class SupabaseClubService: ClubService {
                 badges: [],
                 memberCountOverride: memberCounts[row.id]
             )
+            details.append(detail)
         }
 
         return ClubDirectorySnapshot(
@@ -1122,7 +1236,7 @@ final class SupabaseClubService: ClubService {
 
     func fetchClubDetail(clubId: String) async throws -> ClubDetail {
         let payload = try await remoteClient.fetchClubDetail(clubID: clubId, currentUserID: currentUserID)
-        return makeDetail(
+        return await makeDetail(
             club: payload.club,
             membership: payload.membership,
             members: payload.members,
@@ -1147,7 +1261,7 @@ final class SupabaseClubService: ClubService {
             userID: currentUserID,
             role: ClubMemberRole.owner.rawValue
         ))
-        return makeDetail(
+        let detail = await makeDetail(
             club: club,
             membership: SupabaseClubMemberRow(
                 id: "\(club.id)-owner-\(currentUserID)",
@@ -1160,7 +1274,8 @@ final class SupabaseClubService: ClubService {
             challenges: [],
             badges: [],
             memberCountOverride: 1
-        ).club
+        )
+        return detail.club
     }
 
     func joinClub(clubId: String) async throws {
@@ -1199,6 +1314,7 @@ final class SupabaseClubService: ClubService {
                     distanceKm: entry.distanceKm,
                     sessions: entry.sessions,
                     consistencyDays: entry.consistencyDays,
+                    durationSeconds: entry.durationSeconds,
                     isCurrentUser: entry.isCurrentUser
                 )
             }
@@ -1216,13 +1332,13 @@ final class SupabaseClubService: ClubService {
         challenges: [SupabaseClubChallengeRow],
         badges: [SupabaseClubBadgeRow],
         memberCountOverride: Int?
-    ) -> ClubDetail {
+    ) async -> ClubDetail {
         let membershipState = membershipState(for: club, membership: membership)
         let memberCount = max(memberCountOverride ?? members.count, membershipState.isMember ? 1 : 0)
         let goalProgress = 0.0
         let weeklyRank = membershipState.isMember ? 1 : 0
         let memberPreview = makeMemberPreview(from: members)
-        let ranking = makeRanking(from: members, clubID: club.id, membershipState: membershipState)
+        let ranking = await makeRanking(from: members, clubID: club.id, membershipState: membershipState)
         let mappedChallenges = challenges.map(makeChallenge)
         let mappedBadges = badges.map(makeBadge)
         let sport = club.sportFocus ?? "혼합"
@@ -1269,7 +1385,7 @@ final class SupabaseClubService: ClubService {
             badges: mappedBadges.isEmpty ? defaultBadges(clubID: club.id) : mappedBadges,
             pulses: [
                 ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 \(memberCount)명이 클럽 리듬을 준비 중이에요", tone: .ink),
-                ClubActivityPulse(icon: SOOMIcon.trendUp, message: "랭킹과 챌린지 계산은 곧 더 정교해져요", tone: .bike)
+                ClubActivityPulse(icon: SOOMIcon.trendUp, message: "챌린지 진행률 계산은 곧 더 정교해져요", tone: .bike)
             ],
             motivationSummary: membershipState == .recommended
                 ? ClubDetail.hangangRiders.withMembershipState(.recommended).motivationSummary
@@ -1329,28 +1445,68 @@ final class SupabaseClubService: ClubService {
         from members: [SupabaseClubMemberRow],
         clubID: String,
         membershipState: ClubMembershipState
-    ) -> [ClubRankingEntry] {
+    ) async -> [ClubRankingEntry] {
         let source = members.isEmpty && membershipState.isMember
             ? [SupabaseClubMemberRow(id: "\(clubID)-current-user", clubID: clubID, userID: currentUserID, role: "member", joinedAt: nil)]
             : members
 
-        return source.enumerated().map { index, member in
-            ClubRankingEntry(
-                id: "\(clubID)-remote-ranking-\(member.userID)",
+        guard !source.isEmpty else {
+            return []
+        }
+
+        let memberIDs = source.map(\.userID)
+        let weekStart = Self.currentWeekStart(referenceDate: now())
+        // Failures degrade to zeros/"멤버 N" rather than surfacing an
+        // error — a club screen that can't show real ranking numbers
+        // this instant should still render the roster, same tolerance
+        // this file already applies to challenges/badges.
+        let summaries = (try? await remoteClient.fetchMemberActivitySummaries(memberIDs: memberIDs, since: weekStart)) ?? []
+        let summaryByUserID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.userID, $0) })
+
+        let profileIDs = memberIDs.compactMap { UUID(uuidString: $0) }
+        let profiles = (try? await profileFetcher?.fetchProfiles(ids: profileIDs)) ?? []
+        let nameByUserID = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id.uuidString, $0.displayName) })
+
+        let unranked = source.map { member in
+            (member: member, summary: summaryByUserID[member.userID] ?? .empty(userID: member.userID))
+        }
+        // Base order only — fetchRankings re-sorts by whatever metric the
+        // UI actually asked for. Distance descending is just a sane
+        // starting order before that re-sort happens.
+        let sorted = unranked.sorted { $0.summary.totalDistanceMeters > $1.summary.totalDistanceMeters }
+
+        return sorted.enumerated().map { index, pair in
+            let isCurrentUser = pair.member.userID == currentUserID
+            let displayName = isCurrentUser ? "나" : (nameByUserID[pair.member.userID] ?? "멤버 \(index + 1)")
+            let distanceKm = pair.summary.totalDistanceMeters / 1_000
+
+            return ClubRankingEntry(
+                id: "\(clubID)-remote-ranking-\(pair.member.userID)",
                 clubId: clubID,
-                userId: member.userID,
-                displayName: member.userID == currentUserID ? "나" : "멤버 \(index + 1)",
+                userId: pair.member.userID,
+                displayName: displayName,
                 rank: index + 1,
                 metricType: .distance,
-                value: 0,
+                value: distanceKm,
                 unit: ClubRankingMetric.distance.unit,
-                name: member.userID == currentUserID ? "나" : "멤버 \(index + 1)",
-                distanceKm: 0,
-                sessions: 0,
-                consistencyDays: 0,
-                isCurrentUser: member.userID == currentUserID
+                name: displayName,
+                distanceKm: distanceKm,
+                sessions: pair.summary.workoutCount,
+                consistencyDays: pair.summary.activeDayCount,
+                durationSeconds: pair.summary.totalDurationSeconds,
+                isCurrentUser: isCurrentUser
             )
         }
+    }
+
+    /// Monday-start "this week", matching WeeklyStreakCalculator's
+    /// firstWeekday=2 convention (FeedStreakCalculator.swift) — ranking
+    /// resets on the same week boundary the rest of the app already uses.
+    private static func currentWeekStart(referenceDate: Date) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.firstWeekday = 2
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: referenceDate)
+        return calendar.date(from: components) ?? referenceDate
     }
 
     private func makeChallenge(_ row: SupabaseClubChallengeRow) -> ClubChallenge {
@@ -1529,7 +1685,15 @@ struct ClubServiceResolver {
         }
 
         let remote = SupabaseClubRemoteClient(client: client)
-        let primary = SupabaseClubService(remoteClient: remote, currentUserID: currentUserID)
+        // Same client/session as `remote` — reuses SupabaseFeedRemoteClient
+        // purely for its FeedRemoteProfileFetching conformance to resolve
+        // ranking display names, exactly as the notification inbox batch
+        // already did.
+        let primary = SupabaseClubService(
+            remoteClient: remote,
+            currentUserID: currentUserID,
+            profileFetcher: SupabaseFeedRemoteClient(client: client)
+        )
         return FallbackClubService(primary: primary, fallback: fallback, onDidUseFallback: onDidUseFallback)
     }
 
