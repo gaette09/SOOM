@@ -51,6 +51,18 @@ final class UnifiedWorkoutLibraryViewModelTests: XCTestCase {
         XCTAssertEqual(store.requestedDays, 30)
     }
 
+    func testExcludesDirectRecordWorkoutsFromImportedLibrary() async {
+        let importedWorkout = makeWorkout(type: .running, source: .appleHealthKit)
+        let directWorkout = makeWorkout(type: .cycling, source: .soomLocal)
+        let manualWorkout = makeWorkout(type: .walking, source: .manual)
+        let store = FakeUnifiedWorkoutLibraryStore(workouts: [importedWorkout, directWorkout, manualWorkout])
+        let viewModel = UnifiedWorkoutLibraryViewModel(store: store)
+
+        await viewModel.loadRecentWorkouts()
+
+        XCTAssertEqual(viewModel.workouts, [importedWorkout])
+    }
+
     func testPreservesExcludedFromAnalysisState() async {
         let excludedWorkout = makeWorkout(type: .swimming, isExcludedFromAnalysis: true)
         let store = FakeUnifiedWorkoutLibraryStore(workouts: [excludedWorkout])
@@ -117,6 +129,7 @@ final class UnifiedWorkoutLibraryViewModelTests: XCTestCase {
 
     private func makeWorkout(
         type: UnifiedWorkoutType,
+        source: UnifiedDataSource = .appleHealthKit,
         isExcludedFromAnalysis: Bool = false
     ) -> UnifiedWorkout {
         let startDate = Date()
@@ -125,7 +138,7 @@ final class UnifiedWorkoutLibraryViewModelTests: XCTestCase {
         return UnifiedWorkout(
             id: UUID(),
             externalId: UUID().uuidString,
-            source: .appleHealthKit,
+            source: source,
             workoutType: type,
             startDate: startDate,
             endDate: endDate,

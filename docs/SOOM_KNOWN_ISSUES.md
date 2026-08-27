@@ -2,6 +2,10 @@
 
 Purpose: track known deferred work for internal TestFlight so expected limitations do not look like accidental regressions.
 
+## Local Dev Environment Note
+
+This Mac's internal SSD ran low on space; Xcode, Homebrew, Simulator device data, and various app data were relocated to an external volume (`/Volumes/Platinum1TB`). If Simulator boots misbehave, an app symlink looks broken, or a tool that "just worked" suddenly can't find its data, check `~/Documents/맥미니 제어/STORAGE_RELOCATION_HANDOFF.md` before assuming it's a code regression.
+
 ## Current Deferred Items
 
 ### AQI Provider Upgrade
@@ -40,10 +44,6 @@ Confirm before public launch. `estimateRelativeEffort`/`estimateTrainingLoad` (`
 
 `RecordShareDraftCoordinator.handle(.shareToFeed:)` (feed-write-path, 2026-08-19) tries a real Supabase insert first and silently falls back to the pre-existing local-only draft file on any failure — no session (the common case today, since Supabase sign-in completion isn't implemented yet), RLS rejection, network loss. This was a deliberate design choice so share-to-feed never becomes less reliable than it was before this batch, and it's been verified end-to-end: RLS/FK rejection produce clean catchable errors (not crashes, confirmed against the real project), and a no-session attempt correctly falls through to a local save with zero data loss (confirmed via real execution: `draftReturned=true localDraftsWritten=1`). The gap is UX transparency, not correctness: `RecordView` shows the same "피드에 공유했어요" success completion either way, so a user (or a future silent RLS misconfiguration) has no way to tell from the UI whether a share actually reached the server or only saved to the device. Not a blocker — this exactly matches pre-batch behavior, where every share was local-only and shown as success. Worth reconsidering once there's a real sign-in flow and "posted online" starts being the common case rather than the rare one.
 
-### Imported Workout Library List Not Source-Filtered
-
-Found 2026-08-19 while fixing Activity tap-routing (`ia-fix-q4-workout-source-distinction`). `UnifiedWorkoutLibraryViewModel.loadRecentWorkouts()` fetches every `UnifiedWorkout` regardless of `source`, so the "가져온 운동 기록" (imported workout library) screen lists direct-Record (`.soomLocal`) workouts alongside real HealthKit imports — confirmed live: a seeded `.soomLocal` workout showed up there tagged "SOOM" next to a `.appleHealthKit` one. The Q4 fix only corrected which screen a workout *routes to* when tapped from Activity's "최근 운동" list; it did not touch what this library screen itself lists. Not fixed this round — deferred.
-
 ### Growth/Weakness Insight Not Using Real Pace Samples
 
 Found 2026-08-19 while wiring real chart/split data (`ia-fix-q2-chart-data-wiring`). `WorkoutGrowthSummaryBuilder`/`WorkoutWeaknessInsightBuilder` are called from `DetailViews.swift` with `workout` (the base `Workout(unifiedWorkout:)` value, whose `.samples` is still hardcoded empty) rather than the `effectiveWorkout` that now carries real route-derived pace samples for chart/split rendering. Not a regression — these builders always saw empty samples before this batch too, so their sample-count-gated logic (late-pace-drop, endurance-drop detection, etc.) still takes the same "insufficient data" fallback path as before. Just an opportunity left on the table: now that real pace samples exist, these insights could use them. Not fixed this round — deferred.
@@ -61,6 +61,10 @@ Found 2026-08-22 while scoping the Relative Effort batch (feed-detail-migration-
 Found 2026-08-20 during a full-app sweep (Club/Settings/onboarding) using the same criteria as the IA fix batches. `ClubDomainFoundation.swift`'s `SupabaseClubService`/`FallbackClubService`/`InMemoryClubService` reimplement the same "try remote, fall back to local persistence on failure" shape that `FeedDataSource`/`FeedShareDraftStore` already established for Feed — built independently rather than sharing a common abstraction. Both work correctly today (confirmed live during the sweep), so this is not a bug — just duplicated design that's likely to repeat again the next time a feature needs the same remote-with-local-fallback shape. Not refactored this round — deferred, revisit if a third feature needs the same pattern.
 
 ## Resolved
+
+### Imported Workout Library List Not Source-Filtered (resolved 2026-08-27)
+
+Found 2026-08-19 while fixing Activity tap-routing (`ia-fix-q4-workout-source-distinction`). `UnifiedWorkoutLibraryViewModel.loadRecentWorkouts()` fetched every `UnifiedWorkout` regardless of `source`, so the "가져온 운동 기록" (imported workout library) screen listed direct-Record (`.soomLocal`) workouts alongside real HealthKit imports — confirmed live: a seeded `.soomLocal` workout showed up there tagged "SOOM" next to a `.appleHealthKit` one. The Q4 fix only corrected which screen a workout *routes to* when tapped from Activity's "최근 운동" list; it did not touch what this library screen itself lists. Fixed by adding `UnifiedDataSource.isImported`, matching the exact `.soomLocal, .manual` vs. everything-else split `RootTabView.destination(for:)` already used to route direct-Record workouts away from the library — that call site was refactored to use the same property instead of a second, independently-maintained switch. `store.fetchRecentWorkouts(days:)` itself was left untouched, since it's shared by ~15 other consumers (recovery, growth trend, personal records, etc.) that correctly want every source. Covered by a new `UnifiedWorkoutLibraryViewModelTests` case (`testExcludesDirectRecordWorkoutsFromImportedLibrary`) mixing imported/soomLocal/manual workouts and asserting only the imported one survives.
 
 ### Supabase Misconfiguration Crashes Instead of Degrading (resolved 2026-08-27)
 

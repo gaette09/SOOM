@@ -1039,12 +1039,7 @@ private struct ActivityLibraryEntry: Identifiable {
     }
 
     private static func destination(for workout: UnifiedWorkout) -> ActivityLibraryDestination {
-        switch workout.source {
-        case .soomLocal, .manual:
-            return .directWorkout(workout)
-        case .appleHealthKit, .garmin, .samsungHealth, .healthConnect, .unknown:
-            return .library
-        }
+        workout.source.isImported ? .library : .directWorkout(workout)
     }
 
     private static func displayName(for workoutType: UnifiedWorkoutType) -> String {

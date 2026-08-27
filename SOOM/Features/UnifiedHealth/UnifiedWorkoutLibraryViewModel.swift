@@ -25,7 +25,7 @@ final class UnifiedWorkoutLibraryViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            workouts = try await store.fetchRecentWorkouts(days: recentDays)
+            workouts = try await store.fetchRecentWorkouts(days: recentDays).filter(\.source.isImported)
         } catch {
             workouts = []
             errorMessage = "가져온 운동 기록을 불러오지 못했어요. 잠시 후 다시 확인해 주세요."
