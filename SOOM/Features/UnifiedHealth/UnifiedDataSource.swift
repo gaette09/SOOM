@@ -3,6 +3,7 @@ import Foundation
 enum UnifiedDataSource: String, Equatable, Codable {
     case appleHealthKit
     case garmin
+    case strava
     case samsungHealth
     case healthConnect
     case soomLocal
@@ -15,7 +16,7 @@ enum UnifiedDataSource: String, Equatable, Codable {
     /// route direct-Record workouts away from the imported-workout library.
     var isImported: Bool {
         switch self {
-        case .appleHealthKit, .garmin, .samsungHealth, .healthConnect, .unknown:
+        case .appleHealthKit, .garmin, .strava, .samsungHealth, .healthConnect, .unknown:
             return true
         case .soomLocal, .manual:
             return false

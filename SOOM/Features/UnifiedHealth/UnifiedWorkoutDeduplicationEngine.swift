@@ -137,6 +137,8 @@ struct UnifiedWorkoutDeduplicationEngine {
             return 50
         case .garmin:
             return 40
+        case .strava:
+            return 35
         case .appleHealthKit:
             return 30
         case .samsungHealth:

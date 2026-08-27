@@ -367,6 +367,8 @@ struct ProcessedWorkoutBuilder {
             return "Apple Health"
         case .garmin:
             return "Garmin"
+        case .strava:
+            return "Strava"
         case .samsungHealth:
             return "Samsung Health"
         case .healthConnect:
