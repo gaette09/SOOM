@@ -1338,8 +1338,12 @@ final class SupabaseClubService: ClubService {
         let goalProgress = 0.0
         let weeklyRank = membershipState.isMember ? 1 : 0
         let memberPreview = makeMemberPreview(from: members)
-        let ranking = await makeRanking(from: members, clubID: club.id, membershipState: membershipState)
-        let mappedChallenges = challenges.map(makeChallenge)
+        let rankingSource = effectiveMembers(from: members, clubID: club.id, membershipState: membershipState)
+        let ranking = await makeRanking(from: rankingSource, clubID: club.id)
+        var mappedChallenges: [ClubChallenge] = []
+        for row in challenges {
+            mappedChallenges.append(await makeChallenge(row, members: rankingSource))
+        }
         let mappedBadges = badges.map(makeBadge)
         let sport = club.sportFocus ?? "혼합"
         let purpose = club.purpose ?? club.intro ?? "클럽의 리듬을 함께 만드는 중이에요."
@@ -1441,15 +1445,20 @@ final class SupabaseClubService: ClubService {
         )
     }
 
-    private func makeRanking(
+    private func effectiveMembers(
         from members: [SupabaseClubMemberRow],
         clubID: String,
         membershipState: ClubMembershipState
-    ) async -> [ClubRankingEntry] {
-        let source = members.isEmpty && membershipState.isMember
+    ) -> [SupabaseClubMemberRow] {
+        members.isEmpty && membershipState.isMember
             ? [SupabaseClubMemberRow(id: "\(clubID)-current-user", clubID: clubID, userID: currentUserID, role: "member", joinedAt: nil)]
             : members
+    }
 
+    private func makeRanking(
+        from source: [SupabaseClubMemberRow],
+        clubID: String
+    ) async -> [ClubRankingEntry] {
         guard !source.isEmpty else {
             return []
         }
@@ -1509,20 +1518,56 @@ final class SupabaseClubService: ClubService {
         return calendar.date(from: components) ?? referenceDate
     }
 
-    private func makeChallenge(_ row: SupabaseClubChallengeRow) -> ClubChallenge {
-        ClubChallenge(
+    private func makeChallenge(_ row: SupabaseClubChallengeRow, members: [SupabaseClubMemberRow]) async -> ClubChallenge {
+        let metricType = ClubChallengeMetricType(rawValue: row.metricType ?? "") ?? .distance
+        let startsAt = SupabaseClubDateParser.date(from: row.startsAt) ?? ClubSeedDate.weekStart
+        let currentValue = await computeChallengeProgress(metricType: metricType, members: members, since: startsAt)
+
+        return ClubChallenge(
             id: row.id,
             clubId: row.clubID,
             title: row.title,
             description: row.description,
-            metricType: ClubChallengeMetricType(rawValue: row.metricType ?? "") ?? .distance,
+            metricType: metricType,
             targetValue: row.targetValue ?? 0,
-            currentValue: 0,
-            unit: ClubChallengeMetricType(rawValue: row.metricType ?? "") == .workoutCount ? "회" : "km",
-            startsAt: SupabaseClubDateParser.date(from: row.startsAt) ?? ClubSeedDate.weekStart,
+            currentValue: currentValue,
+            unit: metricType == .workoutCount ? "회" : "km",
+            startsAt: startsAt,
             endsAt: SupabaseClubDateParser.date(from: row.endsAt) ?? ClubSeedDate.weekEnd,
             subtitle: row.description ?? "이번 주 클럽 목표를 준비 중이에요"
         )
+    }
+
+    /// Club-wide progress toward a challenge: sums every member's activity
+    /// since the challenge started, reusing the same per-member summaries
+    /// batch B built for ranking (feed_posts, public-only, no new RLS).
+    /// Only distance/workoutCount have a real club-wide definition today —
+    /// consistency has no clean aggregate without per-day granularity (a
+    /// member-level "active days" count doesn't sum or max into a
+    /// club-level one), and recovery has no data source at all. Both stay
+    /// at 0 until a later batch designs that aggregation.
+    private func computeChallengeProgress(
+        metricType: ClubChallengeMetricType,
+        members: [SupabaseClubMemberRow],
+        since: Date
+    ) async -> Double {
+        guard !members.isEmpty, metricType == .distance || metricType == .workoutCount else {
+            return 0
+        }
+
+        let summaries = (try? await remoteClient.fetchMemberActivitySummaries(
+            memberIDs: members.map(\.userID),
+            since: since
+        )) ?? []
+
+        switch metricType {
+        case .distance:
+            return summaries.reduce(0) { $0 + $1.totalDistanceMeters } / 1_000
+        case .workoutCount:
+            return Double(summaries.reduce(0) { $0 + $1.workoutCount })
+        case .consistency, .recovery:
+            return 0
+        }
     }
 
     private func makeBadge(_ row: SupabaseClubBadgeRow) -> ClubBadge {

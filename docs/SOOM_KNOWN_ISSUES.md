@@ -8,13 +8,9 @@ Purpose: track known deferred work for internal TestFlight so expected limitatio
 
 Weather has fallback-first behavior and OpenWeather foundation. AQI/provider sophistication remains deferred.
 
-### Club Ranking Engine
+### Club Challenge Engine — Consistency/Recovery Progress
 
-Club rankings have domain/service/UI foundation. Real ranking calculation from workout data is deferred.
-
-### Club Challenge Engine
-
-Challenge catalog and remaining-action copy exist. Real progress calculation engine is deferred.
+Distance and workout-count challenge progress now compute for real (2026-08-27), reusing the per-member activity summaries batch B built for rankings: `currentValue` sums each club member's `feed_posts`-derived distance/workout count since the challenge's `starts_at`. Consistency and recovery challenge types still report `currentValue = 0` — consistency has no clean club-wide definition yet (a member's weekly "active day count" doesn't sum or max into a club-level number without per-day granularity the current summaries don't carry), and recovery has no data source at all (same gap as the standalone Recovery Load Estimate item below). Deferred until a later batch designs that aggregation.
 
 ### HealthKit Write
 

@@ -512,6 +512,76 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(detail.badges.first?.title, "첫 기여")
     }
 
+    func testChallengeProgressAggregatesRealMemberActivity() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "remote-riders",
+                name: "Remote Riders",
+                intro: nil,
+                purpose: nil,
+                sportFocus: "자전거",
+                visibility: "open",
+                ownerUserID: "owner-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+            members: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+                SupabaseClubMemberRow(id: "member-other", clubID: "remote-riders", userID: "other-user", role: "member", joinedAt: nil)
+            ],
+            challenges: [
+                SupabaseClubChallengeRow(
+                    id: "challenge-distance",
+                    clubID: "remote-riders",
+                    title: "클럽 전체 100km",
+                    description: nil,
+                    metricType: "distance",
+                    targetValue: 100,
+                    startsAt: nil,
+                    endsAt: nil
+                ),
+                SupabaseClubChallengeRow(
+                    id: "challenge-count",
+                    clubID: "remote-riders",
+                    title: "클럽 전체 10회",
+                    description: nil,
+                    metricType: "workoutCount",
+                    targetValue: 10,
+                    startsAt: nil,
+                    endsAt: nil
+                ),
+                SupabaseClubChallengeRow(
+                    id: "challenge-consistency",
+                    clubID: "remote-riders",
+                    title: "매일 이어가기",
+                    description: nil,
+                    metricType: "consistency",
+                    targetValue: 7,
+                    startsAt: nil,
+                    endsAt: nil
+                )
+            ],
+            badges: []
+        )
+        remote.activitySummaries = [
+            ClubMemberActivitySummary(userID: "current-user", totalDistanceMeters: 12_000, workoutCount: 3, totalDurationSeconds: 3_600, activeDayCount: 3),
+            ClubMemberActivitySummary(userID: "other-user", totalDistanceMeters: 8_000, workoutCount: 2, totalDurationSeconds: 1_800, activeDayCount: 2)
+        ]
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let detail = try await service.fetchClubDetail(clubId: "remote-riders")
+
+        let distanceChallenge = try XCTUnwrap(detail.challenges.first { $0.id == "challenge-distance" })
+        let countChallenge = try XCTUnwrap(detail.challenges.first { $0.id == "challenge-count" })
+        let consistencyChallenge = try XCTUnwrap(detail.challenges.first { $0.id == "challenge-consistency" })
+
+        XCTAssertEqual(distanceChallenge.currentValue, 20, accuracy: 0.001)
+        XCTAssertEqual(countChallenge.currentValue, 5, accuracy: 0.001)
+        XCTAssertEqual(consistencyChallenge.currentValue, 0, accuracy: 0.001)
+    }
+
     func testClubMigrationContainsSecurityDefinerHelpers() throws {
         let sql = try clubMigrationSQL()
 
