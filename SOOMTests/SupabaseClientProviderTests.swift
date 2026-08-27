@@ -38,4 +38,15 @@ final class SupabaseClientProviderTests: XCTestCase {
 
         XCTAssertNil(provider.makeClient())
     }
+
+    func testHostlessProjectURLDegradesInsteadOfCrashing() {
+        // Regression for the fatal error SupabaseClient(supabaseURL:) throws
+        // on a hostless URL — this must resolve to .unconfigured/nil well
+        // before that constructor is ever reached.
+        let configuration = SupabaseAuthConfiguration(projectURL: URL(string: "https:"), anonKey: "anon-test-key")
+        let provider = SupabaseClientProvider(configuration: configuration)
+
+        XCTAssertEqual(provider.state, .unconfigured)
+        XCTAssertNil(provider.makeClient())
+    }
 }

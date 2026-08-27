@@ -63,4 +63,18 @@ final class AuthEnvironmentTests: XCTestCase {
 
         XCTAssertFalse(environment.isSupabaseConfigured)
     }
+
+    func testHostlessSupabaseURLStaysUnconfigured() {
+        // "https:" is exactly what xcconfig produces when it treats an
+        // un-escaped "//" as a comment start and truncates the value —
+        // URL(string:) parses it without error, but it has no host.
+        let environment = AuthEnvironment(
+            environment: .production,
+            supabaseURL: URL(string: "https:"),
+            supabaseAnonKey: "anon-test-key",
+            redirectScheme: "soom-prod"
+        )
+
+        XCTAssertFalse(environment.isSupabaseConfigured)
+    }
 }

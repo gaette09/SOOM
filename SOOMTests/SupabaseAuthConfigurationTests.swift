@@ -46,6 +46,16 @@ final class SupabaseAuthConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.anonKey, "anon-test-key")
     }
 
+    func testHostlessProjectURLIsNotConfigured() {
+        // "https:" parses successfully via URL(string:) but has no host —
+        // the exact shape a truncated xcconfig value produces. Must be
+        // caught here, before SupabaseClient(supabaseURL:) ever sees it
+        // (it fatal-errors on a hostless URL instead of throwing).
+        let configuration = SupabaseAuthConfiguration(projectURL: URL(string: "https:"), anonKey: "anon-test-key")
+
+        XCTAssertFalse(configuration.isConfigured)
+    }
+
     func testPlaceholderEnvironmentBuildsEmptyConfiguration() {
         let environment = AuthEnvironment(
             environment: .development,

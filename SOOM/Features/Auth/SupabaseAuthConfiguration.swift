@@ -5,7 +5,7 @@ struct SupabaseAuthConfiguration: Equatable {
     var anonKey: String?
 
     var isConfigured: Bool {
-        projectURL != nil && AuthEnvironment.isConcreteValue(anonKey)
+        AuthEnvironment.hasValidHost(projectURL) && AuthEnvironment.isConcreteValue(anonKey)
     }
 
     static let empty = SupabaseAuthConfiguration()

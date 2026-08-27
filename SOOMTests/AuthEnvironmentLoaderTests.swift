@@ -47,6 +47,24 @@ final class AuthEnvironmentLoaderTests: XCTestCase {
         XCTAssertTrue(environment.isRedirectConfigured)
     }
 
+    func testTruncatedXcconfigURLStaysUnconfigured() {
+        // Reproduces the SOOM_LOCAL_SECRETS_SETUP.md incident: an
+        // un-escaped "//" in an xcconfig value gets treated as a comment
+        // start, truncating "https://real-project.supabase.co" down to
+        // just "https:". URL(string:) parses that without error, so this
+        // must be caught by isSupabaseConfigured, not left to crash later
+        // in SupabaseClient(supabaseURL:).
+        let loader = AuthEnvironmentLoader(infoDictionary: [
+            "SOOMSupabaseURL": "https:",
+            "SOOMSupabaseAnonKey": "anon-test-key"
+        ])
+
+        let environment = loader.load()
+
+        XCTAssertNotNil(environment.supabaseURL)
+        XCTAssertFalse(environment.isSupabaseConfigured)
+    }
+
     func testLoaderDoesNotUseRecoveryCalculator() {
         let environment = AuthEnvironmentLoader(infoDictionary: [:]).load()
 

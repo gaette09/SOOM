@@ -26,7 +26,7 @@ struct AuthEnvironment: Equatable {
     var redirectScheme: String?
 
     var isSupabaseConfigured: Bool {
-        supabaseURL != nil && Self.isConcreteValue(supabaseAnonKey)
+        Self.hasValidHost(supabaseURL) && Self.isConcreteValue(supabaseAnonKey)
     }
 
     var isRedirectConfigured: Bool {
@@ -49,6 +49,16 @@ struct AuthEnvironment: Equatable {
 
     static func isConcreteValue(_ value: String?) -> Bool {
         normalizedOptional(value) != nil
+    }
+
+    /// `URL(string:)` happily parses a hostless string like `"https:"` —
+    /// the exact shape xcconfig produces when it treats an un-escaped
+    /// `//` as a comment start and truncates the value (see
+    /// SOOM_LOCAL_SECRETS_SETUP.md). `SupabaseClient(supabaseURL:...)`
+    /// fatal-errors on that instead of throwing, so this must be caught
+    /// here, before a URL like that is ever treated as "configured".
+    static func hasValidHost(_ url: URL?) -> Bool {
+        url?.host?.isEmpty == false
     }
 
     static func normalizedOptional(_ value: String?) -> String? {
