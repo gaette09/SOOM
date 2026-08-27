@@ -3,10 +3,21 @@ import Foundation
 struct GPXParsedRoute: Equatable {
     let coordinates: [WorkoutRouteCoordinate]
     let totalDistanceMeters: Double
+    let summary: GPXWorkoutSummary
 
     var coordinateCount: Int {
         coordinates.count
     }
+}
+
+struct GPXWorkoutSummary: Equatable {
+    let startDate: Date?
+    let durationSeconds: TimeInterval?
+    let distanceMeters: Double?
+    let elevationGainMeters: Double?
+    let averageHeartRate: Double?
+    let maxHeartRate: Double?
+    let averageCadence: Double?
 }
 
 enum GPXRouteParserError: Error, Equatable {
@@ -61,9 +72,11 @@ struct GPXRouteParser {
             throw GPXRouteParserError.insufficientValidCoordinates(validCount: coordinates.count)
         }
 
+        let totalDistanceMeters = Self.totalDistanceMeters(for: coordinates)
         return GPXParsedRoute(
             coordinates: coordinates,
-            totalDistanceMeters: Self.totalDistanceMeters(for: coordinates)
+            totalDistanceMeters: totalDistanceMeters,
+            summary: delegate.makeSummary(totalDistanceMeters: totalDistanceMeters)
         )
     }
 
@@ -101,6 +114,8 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
     private let isoFormatter = ISO8601DateFormatter()
     private var activePoint: PendingTrackPoint?
     private var activeText = ""
+    private var pointHeartRates: [Double] = []
+    private var pointCadences: [Double] = []
 
     private(set) var coordinates: [WorkoutRouteCoordinate] = []
     private(set) var sawTrackPoint = false
@@ -133,7 +148,7 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
                 longitude: Double(attributeDict["lon"] ?? "")
             )
             activeText = ""
-        case "ele", "time":
+        case "ele", "time", "hr", "cad":
             activeText = ""
         default:
             break
@@ -164,6 +179,12 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
         case "time":
             activePoint?.timestamp = parseDate(activeText.trimmingCharacters(in: .whitespacesAndNewlines))
             activeText = ""
+        case "hr":
+            activePoint?.heartRate = validHeartRate(activeText.trimmingCharacters(in: .whitespacesAndNewlines))
+            activeText = ""
+        case "cad":
+            activePoint?.cadence = validPositive(activeText.trimmingCharacters(in: .whitespacesAndNewlines))
+            activeText = ""
         case "trkpt":
             appendActivePointIfValid()
             activePoint = nil
@@ -181,6 +202,23 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
         if error == nil {
             error = .malformedXML
         }
+    }
+
+    func makeSummary(totalDistanceMeters: Double) -> GPXWorkoutSummary {
+        let elevationGain = zip(coordinates, coordinates.dropFirst()).reduce(0.0) { total, pair in
+            guard let from = pair.0.altitude, let to = pair.1.altitude else { return total }
+            return total + max(0, to - from)
+        }
+
+        return GPXWorkoutSummary(
+            startDate: coordinates.first?.timestamp,
+            durationSeconds: inferredDuration(),
+            distanceMeters: totalDistanceMeters,
+            elevationGainMeters: elevationGain.nonZero,
+            averageHeartRate: pointHeartRates.average,
+            maxHeartRate: pointHeartRates.max(),
+            averageCadence: pointCadences.average
+        )
     }
 
     private func appendActivePointIfValid() {
@@ -202,6 +240,23 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
                 timestamp: activePoint.timestamp
             )
         )
+        if let heartRate = activePoint.heartRate {
+            pointHeartRates.append(heartRate)
+        }
+        if let cadence = activePoint.cadence {
+            pointCadences.append(cadence)
+        }
+    }
+
+    private func inferredDuration() -> TimeInterval? {
+        guard
+            let firstTimestamp = coordinates.first?.timestamp,
+            let lastTimestamp = coordinates.last?.timestamp
+        else {
+            return nil
+        }
+
+        return lastTimestamp.timeIntervalSince(firstTimestamp).nonZero
     }
 
     private func parseDate(_ string: String) -> Date? {
@@ -216,6 +271,14 @@ private final class GPXRouteParserDelegate: NSObject, XMLParserDelegate {
         return date
     }
 
+    private func validPositive(_ string: String) -> Double? {
+        Double(string).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+    }
+
+    private func validHeartRate(_ string: String) -> Double? {
+        Double(string).flatMap { $0.isFinite && (1...300).contains($0) ? $0 : nil }
+    }
+
     private func normalizedName(_ name: String) -> String {
         name.split(separator: ":").last.map(String.init) ?? name
     }
@@ -226,10 +289,22 @@ private struct PendingTrackPoint {
     let longitude: Double?
     var altitude: Double?
     var timestamp: Date?
+    var heartRate: Double?
+    var cadence: Double?
 }
 
 private extension Double {
     var radians: Double {
         self * .pi / 180
+    }
+
+    var nonZero: Double? {
+        self > 0 ? self : nil
+    }
+}
+
+private extension Array where Element == Double {
+    var average: Double? {
+        isEmpty ? nil : reduce(0, +) / Double(count)
     }
 }
