@@ -1013,13 +1013,22 @@ protocol SupabaseClubRemoteClienting {
     func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow
     func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws
     func leaveClub(clubID: String, userID: String) async throws
-    /// Aggregates each member's *public* feed_posts since `since` — private
-    /// posts are excluded on purpose (2026-08-26 product decision: ranking
-    /// only counts what's actually shared). RLS already permits any
+    /// Aggregates each member's *public* feed_posts within [since, until] —
+    /// private posts are excluded on purpose (2026-08-26 product decision:
+    /// ranking only counts what's actually shared). RLS already permits any
     /// authenticated member to read another member's public posts, so this
     /// needs no elevated access — same client, same session as every other
-    /// method here.
-    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary]
+    /// method here. `until` is nil for ranking (open-ended, "up to now");
+    /// challenge progress passes the challenge's `endsAt` so activity after
+    /// a challenge expires stops counting toward it.
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary]
+}
+
+extension SupabaseClubRemoteClienting {
+    /// Convenience for callers that only need an open-ended window (ranking).
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
+        try await fetchMemberActivitySummaries(memberIDs: memberIDs, since: since, until: nil)
+    }
 }
 
 struct ClubMemberActivitySummary: Equatable {
@@ -1144,18 +1153,25 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
             .execute()
     }
 
-    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary] {
         guard !memberIDs.isEmpty else {
             return []
         }
 
         let sinceValue = ISO8601DateFormatter().string(from: since)
-        let posts: [ClubMemberActivityPostRow] = try await client
+        var query = client
             .from("feed_posts")
             .select()
             .eq("visibility", value: "public")
             .in("user_id", values: memberIDs)
             .gte("created_at", value: sinceValue)
+
+        if let until {
+            let untilValue = ISO8601DateFormatter().string(from: until)
+            query = query.lte("created_at", value: untilValue)
+        }
+
+        let posts: [ClubMemberActivityPostRow] = try await query
             .execute()
             .value
 
@@ -1521,7 +1537,8 @@ final class SupabaseClubService: ClubService {
     private func makeChallenge(_ row: SupabaseClubChallengeRow, members: [SupabaseClubMemberRow]) async -> ClubChallenge {
         let metricType = ClubChallengeMetricType(rawValue: row.metricType ?? "") ?? .distance
         let startsAt = SupabaseClubDateParser.date(from: row.startsAt) ?? ClubSeedDate.weekStart
-        let currentValue = await computeChallengeProgress(metricType: metricType, members: members, since: startsAt)
+        let endsAt = SupabaseClubDateParser.date(from: row.endsAt) ?? ClubSeedDate.weekEnd
+        let currentValue = await computeChallengeProgress(metricType: metricType, members: members, since: startsAt, until: endsAt)
 
         return ClubChallenge(
             id: row.id,
@@ -1533,15 +1550,17 @@ final class SupabaseClubService: ClubService {
             currentValue: currentValue,
             unit: metricType == .workoutCount ? "회" : "km",
             startsAt: startsAt,
-            endsAt: SupabaseClubDateParser.date(from: row.endsAt) ?? ClubSeedDate.weekEnd,
+            endsAt: endsAt,
             subtitle: row.description ?? "이번 주 클럽 목표를 준비 중이에요"
         )
     }
 
     /// Club-wide progress toward a challenge: sums every member's activity
-    /// since the challenge started, reusing the same per-member summaries
-    /// batch B built for ranking (feed_posts, public-only, no new RLS).
-    /// Only distance/workoutCount have a real club-wide definition today —
+    /// within [since, until] — since the challenge started, capped at the
+    /// challenge's endsAt so activity after it expires doesn't keep
+    /// inflating currentValue. Reuses the same per-member summaries batch B
+    /// built for ranking (feed_posts, public-only, no new RLS). Only
+    /// distance/workoutCount have a real club-wide definition today —
     /// consistency has no clean aggregate without per-day granularity (a
     /// member-level "active days" count doesn't sum or max into a
     /// club-level one), and recovery has no data source at all. Both stay
@@ -1549,7 +1568,8 @@ final class SupabaseClubService: ClubService {
     private func computeChallengeProgress(
         metricType: ClubChallengeMetricType,
         members: [SupabaseClubMemberRow],
-        since: Date
+        since: Date,
+        until: Date
     ) async -> Double {
         guard !members.isEmpty, metricType == .distance || metricType == .workoutCount else {
             return 0
@@ -1557,7 +1577,8 @@ final class SupabaseClubService: ClubService {
 
         let summaries = (try? await remoteClient.fetchMemberActivitySummaries(
             memberIDs: members.map(\.userID),
-            since: since
+            since: since,
+            until: until
         )) ?? []
 
         switch metricType {

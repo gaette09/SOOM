@@ -597,6 +597,82 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(consistencyChallenge.currentValue, 0, accuracy: 0.001)
     }
 
+    func testChallengeProgressPassesChallengeEndsAtAsUntilBound() async throws {
+        let formatter = ISO8601DateFormatter()
+        let startsAt = Date(timeIntervalSince1970: 1_767_000_000)
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "remote-riders",
+                name: "Remote Riders",
+                intro: nil,
+                purpose: nil,
+                sportFocus: "자전거",
+                visibility: "open",
+                ownerUserID: "owner-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+            members: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil)
+            ],
+            challenges: [
+                SupabaseClubChallengeRow(
+                    id: "challenge-distance",
+                    clubID: "remote-riders",
+                    title: "클럽 전체 100km",
+                    description: nil,
+                    metricType: "distance",
+                    targetValue: 100,
+                    startsAt: formatter.string(from: startsAt),
+                    endsAt: formatter.string(from: endsAt)
+                )
+            ],
+            badges: []
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        _ = try await service.fetchClubDetail(clubId: "remote-riders")
+
+        // Bounding the query at the challenge's own endsAt (not "now") is
+        // what stops an expired challenge from still accumulating activity
+        // that happened after it ended.
+        XCTAssertEqual(remote.lastFetchMemberActivitySummariesSince, startsAt)
+        XCTAssertEqual(remote.lastFetchMemberActivitySummariesUntil, endsAt)
+    }
+
+    func testRankingFetchesActivitySummariesWithNoUpperBound() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "remote-riders",
+                name: "Remote Riders",
+                intro: nil,
+                purpose: nil,
+                sportFocus: "자전거",
+                visibility: "open",
+                ownerUserID: "owner-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+            members: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil)
+            ],
+            challenges: [],
+            badges: []
+        )
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        _ = try await service.fetchRankings(clubId: "remote-riders", metric: .distance)
+
+        // Ranking is always "this week up to now" — it must keep going
+        // through the 2-arg convenience (until: nil), never a fixed cutoff.
+        XCTAssertNil(remote.lastFetchMemberActivitySummariesUntil)
+    }
+
     func testClubMigrationContainsSecurityDefinerHelpers() throws {
         let sql = try clubMigrationSQL()
 
@@ -762,9 +838,13 @@ private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
     }
 
     var activitySummaries: [ClubMemberActivitySummary] = []
+    private(set) var lastFetchMemberActivitySummariesSince: Date?
+    private(set) var lastFetchMemberActivitySummariesUntil: Date?
 
-    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
-        activitySummaries
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary] {
+        lastFetchMemberActivitySummariesSince = since
+        lastFetchMemberActivitySummariesUntil = until
+        return activitySummaries
     }
 }
 
@@ -789,7 +869,7 @@ private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting
         throw ClubSupabaseServiceError.unconfigured
     }
 
-    func fetchMemberActivitySummaries(memberIDs: [String], since: Date) async throws -> [ClubMemberActivitySummary] {
+    func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary] {
         throw ClubSupabaseServiceError.unconfigured
     }
 }
