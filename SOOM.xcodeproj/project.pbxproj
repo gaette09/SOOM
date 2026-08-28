@@ -218,6 +218,9 @@
 		010820 /* TCXRouteAttachmentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020820 /* TCXRouteAttachmentServiceTests.swift */; };
 		010821 /* GzipDecompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020821 /* GzipDecompressor.swift */; };
 		010822 /* GzipDecompressorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020822 /* GzipDecompressorTests.swift */; };
+		010823 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0008 /* ZIPFoundation */; };
+		010824 /* StravaExportReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020823 /* StravaExportReader.swift */; };
+		010825 /* StravaExportReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020824 /* StravaExportReaderTests.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -764,6 +767,8 @@
 		020820 /* TCXRouteAttachmentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCXRouteAttachmentServiceTests.swift; sourceTree = "<group>"; };
 		020821 /* GzipDecompressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GzipDecompressor.swift; sourceTree = "<group>"; };
 		020822 /* GzipDecompressorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GzipDecompressorTests.swift; sourceTree = "<group>"; };
+		020823 /* StravaExportReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaExportReader.swift; sourceTree = "<group>"; };
+		020824 /* StravaExportReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaExportReaderTests.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1096,6 +1101,7 @@
 				010286 /* MapboxMaps in Frameworks */,
 				010290 /* Turf in Frameworks */,
 				010394 /* Supabase in Frameworks */,
+				010823 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1589,6 +1595,7 @@
 				020817 /* TCXRouteParser.swift */,
 				020819 /* TCXRouteAttachmentService.swift */,
 				020821 /* GzipDecompressor.swift */,
+				020823 /* StravaExportReader.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
 				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
@@ -1746,6 +1753,7 @@
 				020818 /* TCXRouteParserTests.swift */,
 				020820 /* TCXRouteAttachmentServiceTests.swift */,
 				020822 /* GzipDecompressorTests.swift */,
+				020824 /* StravaExportReaderTests.swift */,
 				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
 				020189 /* UnifiedWorkoutStoreTests.swift */,
 				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
@@ -1886,6 +1894,7 @@
 				0D0002 /* MapboxMaps */,
 				0D0004 /* Turf */,
 				0D0006 /* Supabase */,
+				0D0008 /* ZIPFoundation */,
 			);
 			productName = SOOM;
 			productReference = 020017 /* SOOM.app */;
@@ -1948,6 +1957,7 @@
 				0D0001 /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
 				0D0003 /* XCRemoteSwiftPackageReference "turf-swift" */,
 				0D0005 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				0D0007 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			productRefGroup = 040002 /* Products */;
 			projectDirPath = "";
@@ -2167,6 +2177,7 @@
 				010817 /* TCXRouteParser.swift in Sources */,
 				010819 /* TCXRouteAttachmentService.swift in Sources */,
 				010821 /* GzipDecompressor.swift in Sources */,
+				010824 /* StravaExportReader.swift in Sources */,
 				010811 /* ActivityDetailGPXRouteImport.swift in Sources */,
 				010608 /* ActivityDetailCompanionTagging.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
@@ -2393,6 +2404,7 @@
 				010818 /* TCXRouteParserTests.swift in Sources */,
 				010820 /* TCXRouteAttachmentServiceTests.swift in Sources */,
 				010822 /* GzipDecompressorTests.swift in Sources */,
+				010825 /* StravaExportReaderTests.swift in Sources */,
 				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
 				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
 				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,
@@ -2818,6 +2830,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		0D0007 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2835,6 +2855,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0D0005 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		0D0008 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D0007 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
