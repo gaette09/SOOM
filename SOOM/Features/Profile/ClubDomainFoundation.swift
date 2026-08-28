@@ -95,6 +95,19 @@ enum ClubChallengeState: Equatable {
     case active
     case completed
     case expired
+
+    /// Completed takes priority over expired: a challenge finished before
+    /// its own endsAt should keep reading as an achievement, not flip to
+    /// "expired" the moment the clock runs out.
+    static func compute(currentValue: Double, targetValue: Double, endsAt: Date, now: Date) -> ClubChallengeState {
+        if targetValue > 0, currentValue >= targetValue {
+            return .completed
+        }
+        if now > endsAt {
+            return .expired
+        }
+        return .active
+    }
 }
 
 struct ClubChallenge: Identifiable, Equatable {
@@ -1539,6 +1552,8 @@ final class SupabaseClubService: ClubService {
         let startsAt = SupabaseClubDateParser.date(from: row.startsAt) ?? ClubSeedDate.weekStart
         let endsAt = SupabaseClubDateParser.date(from: row.endsAt) ?? ClubSeedDate.weekEnd
         let currentValue = await computeChallengeProgress(metricType: metricType, members: members, since: startsAt, until: endsAt)
+        let targetValue = row.targetValue ?? 0
+        let state = ClubChallengeState.compute(currentValue: currentValue, targetValue: targetValue, endsAt: endsAt, now: now())
 
         return ClubChallenge(
             id: row.id,
@@ -1546,11 +1561,12 @@ final class SupabaseClubService: ClubService {
             title: row.title,
             description: row.description,
             metricType: metricType,
-            targetValue: row.targetValue ?? 0,
+            targetValue: targetValue,
             currentValue: currentValue,
             unit: metricType == .workoutCount ? "회" : "km",
             startsAt: startsAt,
             endsAt: endsAt,
+            state: state,
             subtitle: row.description ?? "이번 주 클럽 목표를 준비 중이에요"
         )
     }

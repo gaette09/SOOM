@@ -175,6 +175,40 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertTrue(challenge.nextActionLine.contains("한 번"))
     }
 
+    func testChallengeStateComputeReturnsActiveWhileOngoingAndUnderTarget() {
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+
+        let state = ClubChallengeState.compute(currentValue: 2, targetValue: 10, endsAt: endsAt, now: endsAt.addingTimeInterval(-3_600))
+
+        XCTAssertEqual(state, .active)
+    }
+
+    func testChallengeStateComputeReturnsExpiredOnceEndsAtHasPassed() {
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+
+        let state = ClubChallengeState.compute(currentValue: 2, targetValue: 10, endsAt: endsAt, now: endsAt.addingTimeInterval(3_600))
+
+        XCTAssertEqual(state, .expired)
+    }
+
+    func testChallengeStateComputeReturnsCompletedWhenTargetIsReached() {
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+
+        let state = ClubChallengeState.compute(currentValue: 10, targetValue: 10, endsAt: endsAt, now: endsAt.addingTimeInterval(-3_600))
+
+        XCTAssertEqual(state, .completed)
+    }
+
+    func testChallengeStateComputePrioritizesCompletedOverExpired() {
+        // Reached the target before endsAt, but "now" happens to be past
+        // endsAt too — completed should win, not flip to expired.
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+
+        let state = ClubChallengeState.compute(currentValue: 10, targetValue: 10, endsAt: endsAt, now: endsAt.addingTimeInterval(3_600))
+
+        XCTAssertEqual(state, .completed)
+    }
+
     func testRankOneNextGoalUsesMaintenanceCopy() {
         let summary = ClubMotivationSummary.defaultSummary(
             currentRank: 1,
@@ -671,6 +705,96 @@ final class ClubDomainFoundationTests: XCTestCase {
         // Ranking is always "this week up to now" — it must keep going
         // through the 2-arg convenience (until: nil), never a fixed cutoff.
         XCTAssertNil(remote.lastFetchMemberActivitySummariesUntil)
+    }
+
+    func testMakeChallengeMarksExpiredWhenEndsAtHasPassedAndTargetUnmet() async throws {
+        let formatter = ISO8601DateFormatter()
+        let startsAt = Date(timeIntervalSince1970: 1_767_000_000)
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = makeSingleChallengeDetailPayload(
+            metricType: "workoutCount",
+            targetValue: 10,
+            startsAt: formatter.string(from: startsAt),
+            endsAt: formatter.string(from: endsAt)
+        )
+        remote.activitySummaries = [
+            ClubMemberActivitySummary(userID: "current-user", totalDistanceMeters: 0, workoutCount: 2, totalDurationSeconds: 0, activeDayCount: 1)
+        ]
+        let service = SupabaseClubService(
+            remoteClient: remote,
+            currentUserID: "current-user",
+            now: { endsAt.addingTimeInterval(3_600) }
+        )
+
+        let detail = try await service.fetchClubDetail(clubId: "remote-riders")
+
+        XCTAssertEqual(detail.challenges.first?.state, .expired)
+    }
+
+    func testMakeChallengeMarksCompletedEvenAfterEndsAtHasPassed() async throws {
+        let formatter = ISO8601DateFormatter()
+        let startsAt = Date(timeIntervalSince1970: 1_767_000_000)
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = makeSingleChallengeDetailPayload(
+            metricType: "workoutCount",
+            targetValue: 2,
+            startsAt: formatter.string(from: startsAt),
+            endsAt: formatter.string(from: endsAt)
+        )
+        remote.activitySummaries = [
+            ClubMemberActivitySummary(userID: "current-user", totalDistanceMeters: 0, workoutCount: 2, totalDurationSeconds: 0, activeDayCount: 1)
+        ]
+        let service = SupabaseClubService(
+            remoteClient: remote,
+            currentUserID: "current-user",
+            now: { endsAt.addingTimeInterval(3_600) }
+        )
+
+        let detail = try await service.fetchClubDetail(clubId: "remote-riders")
+
+        // Target was reached before endsAt — completed must win even though
+        // "now" is also past endsAt (see testChallengeStateComputePrioritizesCompletedOverExpired).
+        XCTAssertEqual(detail.challenges.first?.state, .completed)
+    }
+
+    private func makeSingleChallengeDetailPayload(
+        metricType: String,
+        targetValue: Double,
+        startsAt: String,
+        endsAt: String
+    ) -> SupabaseClubDetailPayload {
+        SupabaseClubDetailPayload(
+            club: SupabaseClubRow(
+                id: "remote-riders",
+                name: "Remote Riders",
+                intro: nil,
+                purpose: nil,
+                sportFocus: "자전거",
+                visibility: "open",
+                ownerUserID: "owner-user",
+                createdAt: nil,
+                updatedAt: nil
+            ),
+            membership: SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil),
+            members: [
+                SupabaseClubMemberRow(id: "member-current", clubID: "remote-riders", userID: "current-user", role: "member", joinedAt: nil)
+            ],
+            challenges: [
+                SupabaseClubChallengeRow(
+                    id: "challenge-1",
+                    clubID: "remote-riders",
+                    title: "테스트 챌린지",
+                    description: nil,
+                    metricType: metricType,
+                    targetValue: targetValue,
+                    startsAt: startsAt,
+                    endsAt: endsAt
+                )
+            ],
+            badges: []
+        )
     }
 
     func testClubMigrationContainsSecurityDefinerHelpers() throws {

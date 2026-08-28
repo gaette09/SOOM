@@ -847,9 +847,20 @@ private struct ClubChallengesSection: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(challenge.title)
-                                .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                                .foregroundStyle(SOOMColor.ink)
+                            HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
+                                Text(challenge.title)
+                                    .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
+                                    .foregroundStyle(SOOMColor.ink)
+                                if let badge = ClubChallengeStateBadge(state: challenge.state) {
+                                    Text(badge.label)
+                                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
+                                        .foregroundStyle(badge.foreground)
+                                        .padding(.horizontal, SOOMLayout.Spacing.sm)
+                                        .padding(.vertical, SOOMLayout.Spacing.xs)
+                                        .background(badge.background)
+                                        .clipShape(Capsule())
+                                }
+                            }
                             Text(challenge.subtitle)
                                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                                 .foregroundStyle(SOOMColor.secondaryInk)
@@ -880,12 +891,39 @@ private struct ClubChallengesSection: View {
                     }
                     .frame(height: 10)
                     .accessibilityLabel(challenge.title)
-                    .accessibilityValue(challenge.progressText)
+                    .accessibilityValue(
+                        [challenge.progressText, ClubChallengeStateBadge(state: challenge.state)?.label]
+                            .compactMap { $0 }
+                            .joined(separator: ", ")
+                    )
                 }
                 .padding(SOOMLayout.Spacing.md)
                 .background(SOOMColor.surfaceAmbient)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
+        }
+    }
+}
+
+/// nil for .active — the badge only needs to appear once a challenge stops
+/// being "in progress" (completed or expired).
+private struct ClubChallengeStateBadge {
+    let label: String
+    let foreground: Color
+    let background: Color
+
+    init?(state: ClubChallengeState) {
+        switch state {
+        case .active:
+            return nil
+        case .completed:
+            label = "완료"
+            foreground = SOOMColor.green
+            background = SOOMColor.green.opacity(0.14)
+        case .expired:
+            label = "만료됨"
+            foreground = SOOMColor.tertiaryInk
+            background = SOOMColor.surfaceMuted
         }
     }
 }
