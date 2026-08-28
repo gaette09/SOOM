@@ -2105,7 +2105,10 @@ final class ClubsViewModel: ObservableObject {
             let detail = try await service.fetchClubDetail(clubId: clubId)
             selectedClub = detail
             rankings = try await service.fetchRankings(clubId: clubId, metric: selectedRankingMetric)
-            challenges = try await service.fetchChallenges(clubId: clubId)
+            // detail.challenges already computed this — fetchChallenges(clubId:)
+            // would just re-fetch the same club detail and recompute every
+            // challenge's currentValue a second time.
+            challenges = detail.challenges
             badges = detail.badges
             errorMessage = nil
         } catch {

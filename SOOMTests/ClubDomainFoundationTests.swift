@@ -232,6 +232,21 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertFalse(viewModel.challenges.isEmpty)
     }
 
+    func testOpenClubReusesDetailChallengesInsteadOfRefetching() async {
+        let spy = ChallengeFetchCountingClubService(wrapping: InMemoryClubService())
+        let viewModel = ClubsViewModel(service: spy)
+
+        await viewModel.openClub(clubId: "soom-riders")
+
+        // openClub should reuse detail.challenges from the fetchClubDetail
+        // call it already made, not call fetchChallenges(clubId:) again —
+        // that would re-fetch the whole club detail and recompute every
+        // challenge's currentValue a second time.
+        XCTAssertEqual(spy.fetchChallengesCallCount, 0)
+        XCTAssertFalse(viewModel.challenges.isEmpty)
+        XCTAssertEqual(viewModel.challenges.map(\.id), viewModel.selectedClub?.challenges.map(\.id))
+    }
+
     func testClubsViewModelMarksLocalFallbackWhenServiceFallsBack() async {
         let viewModel = ClubsViewModel(service: InMemoryClubService())
         viewModel.configure(service: FallbackClubService(
@@ -660,6 +675,47 @@ final class ClubDomainFoundationTests: XCTestCase {
             throw NSError(domain: "ClubDomainFoundationTests", code: 1)
         }
         return String(sql[startRange.lowerBound..<endRange.lowerBound])
+    }
+}
+
+/// Wraps a real ClubService and counts fetchChallenges(clubId:) calls, so
+/// tests can prove openClub(clubId:) stopped re-fetching challenges it
+/// already got back from fetchClubDetail(clubId:).
+private final class ChallengeFetchCountingClubService: ClubService {
+    private let wrapped: ClubService
+    private(set) var fetchChallengesCallCount = 0
+
+    init(wrapping wrapped: ClubService) {
+        self.wrapped = wrapped
+    }
+
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        try await wrapped.fetchClubDirectory()
+    }
+
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail {
+        try await wrapped.fetchClubDetail(clubId: clubId)
+    }
+
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        try await wrapped.createClub(input: input)
+    }
+
+    func joinClub(clubId: String) async throws {
+        try await wrapped.joinClub(clubId: clubId)
+    }
+
+    func leaveClub(clubId: String) async throws {
+        try await wrapped.leaveClub(clubId: clubId)
+    }
+
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] {
+        try await wrapped.fetchRankings(clubId: clubId, metric: metric)
+    }
+
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] {
+        fetchChallengesCallCount += 1
+        return try await wrapped.fetchChallenges(clubId: clubId)
     }
 }
 
