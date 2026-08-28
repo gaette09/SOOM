@@ -81,13 +81,14 @@ enum WorkoutRouteMissingReason: String, Codable, Equatable {
     case routePersistenceFailed
     case externalSourceRouteNotShared
     case userSkippedRouteAttachment
+    case indoorNoLocationData
     case unknown
 
     var isActionableForRouteAttachment: Bool {
         switch self {
         case .healthKitRouteUnavailable, .externalSourceRouteNotShared, .routeFetchFailed, .routePersistenceFailed:
             return true
-        case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
+        case .none, .notApplicable, .userSkippedRouteAttachment, .indoorNoLocationData, .unknown:
             return false
         }
     }

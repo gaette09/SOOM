@@ -20,8 +20,44 @@ final class StravaExportReaderTests: XCTestCase {
     // activities.csv at all — used to prove missing-manifest detection.
     private static let noManifestFixture = "UEsDBAoAAAAAANtMHF0pTfwQFgAAABYAAAAKAAAAcmVhZG1lLnR4dHVucmVsYXRlZCBmaWxlIGNvbnRlbnRQSwECHgMKAAAAAADbTBxdKU38EBYAAAAWAAAACgAAAAAAAAABAAAApIEAAAAAcmVhZG1lLnR4dFBLBQYAAAAAAQABADgAAAA+AAAAAAA="
 
+    // A third real zip (same tooling) whose activities.csv adds "Elapsed
+    // Time" and "Distance" columns on top of the base column set:
+    //   Activity ID,Activity Date,Activity Name,Activity Type,Elapsed Time,Distance,Filename
+    //   70001,Aug 5 2026,Morning Run,Run,1800,5000,activities/999888.gpx
+    //   70002,Aug 6 2026,Home Trainer Ride,Ride,3600,0,
+    //   70003,Aug 7 2026,Broken File Test,Run,1200,3000,activities/broken.gpx
+    // Row 70002 has an empty Filename (no attached file). Used here only to
+    // prove Elapsed Time / Distance parsing; batch 5's pipeline tests reuse
+    // this same fixture for the file-present/no-file/corrupted-file split.
+    private static let elapsedAndDistanceFixture = "UEsDBBQAAAAIAGFSHF3DRC9hrgAAAAwBAAAOAAAAYWN0aXZpdGllcy5jc3Zdjk0OgkAMRveeogdodITwt8Sg0YUuCBcYoSGNMJBhMHJ7h5kYjYs2bfryvua14SebBS4F5p+5kIa+2032P1u1jITHTo4TNVCxPRU8GalqwhN3pCy8SYQQe8znFiIIRBDjddCKVQvlrHCtfSoERpZC6b1M0y7LsjRNt+34coLACWIvOA89QaUlK9JQckPoWhhbhUDHh45PPH/Qw4MUrB9BRZPxqYGlw7/UuyNd6htQSwMECgAAAAAAYVIcXQAAAAAAAAAAAAAAAAsAAABhY3Rpdml0aWVzL1BLAwQKAAAAAABhUhxddjHpwicAAAAnAAAAFQAAAGFjdGl2aXRpZXMvYnJva2VuLmdweHRoaXMgaXMgbm90IHhtbCBhdCBhbGwsIGp1c3QgcGxhaW4gdGV4dFBLAwQUAAAACABhUhxd2UtbYY0AAAAJAQAAFQAAAGFjdGl2aXRpZXMvOTk5ODg4LmdweLOxr8jNUShLLSrOzM+zVTLUM1BSSM1Lzk/JzEu3VQoNcdO1ULK347JJL6hAVmWopJBclJpYkl9kqxTs7+8bklpcUqxkx6WgYFNSlA2iIazi1HQIB8ItKFHISSyxVTI21zM1MABalQM2zshczwDM1cep2BBVsSFexUaoio0Qim30EY4Cs4Fe0wf6zY4LAFBLAQIeAxQAAAAIAGFSHF3DRC9hrgAAAAwBAAAOAAAAAAAAAAEAAACkgQAAAABhY3Rpdml0aWVzLmNzdlBLAQIeAwoAAAAAAGFSHF0AAAAAAAAAAAAAAAALAAAAAAAAAAAAEADtQdoAAABhY3Rpdml0aWVzL1BLAQIeAwoAAAAAAGFSHF12MenCJwAAACcAAAAVAAAAAAAAAAEAAACkgQMBAABhY3Rpdml0aWVzL2Jyb2tlbi5ncHhQSwECHgMUAAAACABhUhxd2UtbYY0AAAAJAQAAFQAAAAAAAAABAAAApIFdAQAAYWN0aXZpdGllcy85OTk4ODguZ3B4UEsFBgAAAAAEAAQA+wAAAB0CAAAAAA=="
+
     private func data(fromBase64 base64: String) throws -> Data {
         try XCTUnwrap(Data(base64Encoded: base64))
+    }
+
+    func testParsesElapsedTimeAndDistanceColumns() throws {
+        let zip = try data(fromBase64: Self.elapsedAndDistanceFixture)
+        let entries = try StravaExportReader().readEntries(from: zip)
+
+        XCTAssertEqual(entries[0].elapsedTimeSeconds, 1_800)
+        XCTAssertEqual(entries[0].distanceMeters, 5_000)
+    }
+
+    func testElapsedTimeAndDistanceAreNilWhenRowHasNoFile() throws {
+        let zip = try data(fromBase64: Self.elapsedAndDistanceFixture)
+        let entries = try StravaExportReader().readEntries(from: zip)
+
+        XCTAssertNil(entries[1].filename)
+        XCTAssertEqual(entries[1].elapsedTimeSeconds, 3_600)
+        XCTAssertEqual(entries[1].distanceMeters, 0)
+    }
+
+    func testElapsedTimeAndDistanceAreNilOnOlderFixtureWithoutThoseColumns() throws {
+        let zip = try data(fromBase64: Self.fixture)
+        let entries = try StravaExportReader().readEntries(from: zip)
+
+        XCTAssertNil(entries[0].elapsedTimeSeconds)
+        XCTAssertNil(entries[0].distanceMeters)
     }
 
     func testReadsAllThreeEntriesInOrder() throws {

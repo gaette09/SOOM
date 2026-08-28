@@ -340,6 +340,7 @@ private struct WorkoutDetailMapFallback: View {
         case .swimming: return SOOMIcon.swim
         case .walking: return "figure.walk"
         case .generic: return SOOMIcon.chartLine
+        case .indoor: return "house.fill"
         }
     }
 
@@ -350,6 +351,7 @@ private struct WorkoutDetailMapFallback: View {
         case .swimming: return "수영 기록은 경로 없이 표시해요"
         case .walking: return "걷기 경로를 불러올 수 없어요"
         case .generic: return "운동 경로가 아직 없어요"
+        case .indoor: return "실내 운동은 경로 없이 표시해요"
         }
     }
 }

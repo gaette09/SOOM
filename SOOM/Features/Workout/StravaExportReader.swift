@@ -8,6 +8,8 @@ struct StravaExportEntry: Equatable {
     let activityName: String?
     let filename: String?
     let data: Data?
+    let elapsedTimeSeconds: TimeInterval?
+    let distanceMeters: Double?
 }
 
 enum StravaExportReaderError: Error, Equatable {
@@ -56,6 +58,8 @@ struct StravaExportReader {
         let activityTypeIndex = header.firstIndex(of: "Activity Type")
         let activityDateIndex = header.firstIndex(of: "Activity Date")
         let activityNameIndex = header.firstIndex(of: "Activity Name")
+        let elapsedTimeIndex = header.firstIndex(of: "Elapsed Time")
+        let distanceIndex = header.firstIndex(of: "Distance")
 
         let dataRows = rows.dropFirst()
         guard dataRows.count <= maximumEntryCount else {
@@ -87,7 +91,9 @@ struct StravaExportReader {
                 activityDate: Self.field(row, at: activityDateIndex),
                 activityName: Self.field(row, at: activityNameIndex),
                 filename: filename,
-                data: fileData
+                data: fileData,
+                elapsedTimeSeconds: Self.field(row, at: elapsedTimeIndex).flatMap(TimeInterval.init),
+                distanceMeters: Self.field(row, at: distanceIndex).flatMap(Double.init)
             )
         }
     }

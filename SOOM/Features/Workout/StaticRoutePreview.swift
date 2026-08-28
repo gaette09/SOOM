@@ -6,6 +6,7 @@ enum StaticRouteFallbackStyle: String, Equatable {
     case swimming
     case walking
     case generic
+    case indoor
 
     init(workoutType: UnifiedWorkoutType) {
         switch workoutType {

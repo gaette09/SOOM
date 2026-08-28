@@ -221,6 +221,8 @@
 		010823 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 0D0008 /* ZIPFoundation */; };
 		010824 /* StravaExportReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020823 /* StravaExportReader.swift */; };
 		010825 /* StravaExportReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020824 /* StravaExportReaderTests.swift */; };
+		010826 /* StravaImportPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020825 /* StravaImportPipeline.swift */; };
+		010827 /* StravaImportPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020826 /* StravaImportPipelineTests.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -769,6 +771,8 @@
 		020822 /* GzipDecompressorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GzipDecompressorTests.swift; sourceTree = "<group>"; };
 		020823 /* StravaExportReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaExportReader.swift; sourceTree = "<group>"; };
 		020824 /* StravaExportReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaExportReaderTests.swift; sourceTree = "<group>"; };
+		020825 /* StravaImportPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportPipeline.swift; sourceTree = "<group>"; };
+		020826 /* StravaImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportPipelineTests.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1596,6 +1600,7 @@
 				020819 /* TCXRouteAttachmentService.swift */,
 				020821 /* GzipDecompressor.swift */,
 				020823 /* StravaExportReader.swift */,
+				020825 /* StravaImportPipeline.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
 				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
@@ -1754,6 +1759,7 @@
 				020820 /* TCXRouteAttachmentServiceTests.swift */,
 				020822 /* GzipDecompressorTests.swift */,
 				020824 /* StravaExportReaderTests.swift */,
+				020826 /* StravaImportPipelineTests.swift */,
 				020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */,
 				020189 /* UnifiedWorkoutStoreTests.swift */,
 				020192 /* HealthKitWorkoutImportPipelineTests.swift */,
@@ -2178,6 +2184,7 @@
 				010819 /* TCXRouteAttachmentService.swift in Sources */,
 				010821 /* GzipDecompressor.swift in Sources */,
 				010824 /* StravaExportReader.swift in Sources */,
+				010826 /* StravaImportPipeline.swift in Sources */,
 				010811 /* ActivityDetailGPXRouteImport.swift in Sources */,
 				010608 /* ActivityDetailCompanionTagging.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
@@ -2405,6 +2412,7 @@
 				010820 /* TCXRouteAttachmentServiceTests.swift in Sources */,
 				010822 /* GzipDecompressorTests.swift in Sources */,
 				010825 /* StravaExportReaderTests.swift in Sources */,
+				010827 /* StravaImportPipelineTests.swift in Sources */,
 				010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */,
 				010188 /* UnifiedWorkoutStoreTests.swift in Sources */,
 				010191 /* HealthKitWorkoutImportPipelineTests.swift in Sources */,

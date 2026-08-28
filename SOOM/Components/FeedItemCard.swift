@@ -399,7 +399,7 @@ private enum FeedPreviewRouteFactory {
                 (37.5728, 126.9802),
                 (37.5746, 126.9758)
             ]
-        case .generic:
+        case .generic, .indoor:
             return [
                 (37.5446, 127.0373),
                 (37.5484, 127.0430),
@@ -657,7 +657,7 @@ private struct FeedReferenceRouteLine: Shape {
                 CGPoint(x: 0.72, y: 0.36),
                 CGPoint(x: 0.98, y: 0.42)
             ]
-        case .generic:
+        case .generic, .indoor:
             return [
                 CGPoint(x: 0.02, y: 0.60),
                 CGPoint(x: 0.22, y: 0.44),

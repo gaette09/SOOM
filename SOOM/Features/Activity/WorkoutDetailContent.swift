@@ -77,7 +77,7 @@ struct WorkoutDetailContent: View {
             }
 
             if presentationStyle == .standalone {
-                ActivityDetailHeroMap(workout: workout, route: mapRoute, achievements: achievements)
+                ActivityDetailHeroMap(workout: workout, route: mapRoute, achievements: achievements, routeMissingReason: processedWorkout.routeMissingReason)
             }
             ForEach(achievements) { achievement in
                 WorkoutAchievementCard(achievement: achievement, tint: workout.sport.tint)
@@ -621,6 +621,7 @@ private struct ActivityDetailHeroMap: View {
     let workout: Workout
     let route: WorkoutRoute?
     var achievements: [WorkoutAchievement] = []
+    var routeMissingReason: WorkoutRouteMissingReason = .none
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -657,6 +658,9 @@ private struct ActivityDetailHeroMap: View {
     }
 
     private var fallbackStyle: StaticRouteFallbackStyle {
+        if routeMissingReason == .indoorNoLocationData {
+            return .indoor
+        }
         switch workout.sport {
         case .run: return .running
         case .bike, .brick: return .cycling
@@ -740,7 +744,7 @@ private struct ActivityDetailRouteMissingCard: View {
             return "Apple Health에서 운동은 가져왔지만 원본 앱의 경로 데이터는 포함되지 않았습니다. 원본 앱에서 경로 파일을 가져오면 경로를 추가할 수 있습니다."
         case .healthKitRouteUnavailable:
             return "Apple Health에서 운동은 가져왔지만 경로 데이터는 포함되지 않았습니다. 원본 앱에서 경로 파일을 가져오면 경로를 추가할 수 있습니다."
-        case .none, .notApplicable, .userSkippedRouteAttachment, .unknown:
+        case .none, .notApplicable, .userSkippedRouteAttachment, .indoorNoLocationData, .unknown:
             return "경로 데이터가 없어도 운동 요약은 확인할 수 있습니다."
         }
     }

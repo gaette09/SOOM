@@ -928,6 +928,8 @@ private extension StaticRouteFallbackStyle {
             return "걷기 경로 미리보기"
         case .generic:
             return "운동 경로 미리보기"
+        case .indoor:
+            return "실내 운동 미리보기"
         }
     }
 }
