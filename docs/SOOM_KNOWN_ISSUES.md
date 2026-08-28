@@ -12,9 +12,9 @@ This Mac's internal SSD ran low on space; Xcode, Homebrew, Simulator device data
 
 Weather has fallback-first behavior and OpenWeather foundation. AQI/provider sophistication remains deferred.
 
-### Club Challenge Engine — Consistency/Recovery Progress
+### Club Challenge Engine — Recovery Progress
 
-Distance and workout-count challenge progress now compute for real (2026-08-27), reusing the per-member activity summaries batch B built for rankings: `currentValue` sums each club member's `feed_posts`-derived distance/workout count since the challenge's `starts_at`. Consistency and recovery challenge types still report `currentValue = 0` — consistency has no clean club-wide definition yet (a member's weekly "active day count" doesn't sum or max into a club-level number without per-day granularity the current summaries don't carry), and recovery has no data source at all (same gap as the standalone Recovery Load Estimate item below). Deferred until a later batch designs that aggregation.
+Distance, workout-count, and consistency challenge progress now all compute for real (2026-08-27/28): distance/workoutCount reuse the per-member activity summaries batch B built for rankings; consistency uses a dedicated club-wide union-of-active-days query (`fetchClubActiveDayCount`, batch C) rather than summing each member's own active-day count, which would double-count days multiple members were active together. Recovery challenges still report `currentValue = 0` — there is no data source for it at all (same gap as the standalone Recovery Load Estimate item below), and this is out of scope for the club-challenge-progress-engine work (deliberately excluded, not deferred by oversight). Revisit only alongside whatever eventually resolves the Recovery Load Estimate gap.
 
 ### HealthKit Write
 
