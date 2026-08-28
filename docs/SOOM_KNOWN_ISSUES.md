@@ -64,6 +64,10 @@ Found 2026-08-20 during a full-app sweep (Club/Settings/onboarding) using the sa
 
 Found 2026-08-27 while scoping the Strava import feature. The three route parsers (`GPXRouteParser`, `TCXRouteParser`, `FITRouteParser`) happen to share the `parse(_ data: Data) throws -> XxxParsedRoute` signature shape, but there is no shared protocol and the return types are unrelated — `GPXParsedRoute` has no summary struct at all, while `TCXParsedRoute`/`FITParsedRoute` both carry a full `Xxx WorkoutSummary` (heart rate, cadence, power, etc). The Strava import batch (planned, not yet built) patches a summary field onto `GPXParsedRoute` individually to unblock that feature rather than fixing the underlying mismatch, which stacks one more layer of drift on top of it. Next version should unify the three parsers behind a common protocol (e.g. `RouteParsing`), and in the same pass reconsider the route-attach-only shape of `GPXRouteAttachmentService`/`TCXRouteAttachmentService`/`FITRouteAttachmentService` — all three currently assume they are attaching a route to an existing `.appleHealthKit` workout, not constructing a new workout from scratch, which is exactly what Strava import needs. Trigger to act: a fourth file format gets added, or a real bug surfaces from the inconsistency between the three parsers.
 
+### Large PDF Exceeds GitHub's Recommended File Size (deferred, low priority)
+
+Found 2026-08-28 during a push to `feature/soom-ios-feed-foundation-01`: `docs/product/reference/AI FITNESS.pdf` (53.79 MB) exceeds GitHub's 50 MB recommended maximum file size. Push is not blocked yet, but the repo will need a Git LFS migration for this file if it keeps growing. Not urgent. Trigger to act: a push actually starts getting rejected, or clone speed becomes noticeably slow.
+
 ## Resolved
 
 ### Imported Workout Library List Not Source-Filtered (resolved 2026-08-27)
