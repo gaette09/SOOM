@@ -1035,6 +1035,15 @@ protocol SupabaseClubRemoteClienting {
     /// challenge progress passes the challenge's `endsAt` so activity after
     /// a challenge expires stops counting toward it.
     func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary]
+    /// Club-wide distinct calendar days on which *any* member posted within
+    /// [since, until] — a union across members, not a per-member count.
+    /// This is deliberately a separate method from
+    /// fetchMemberActivitySummaries/ClubMemberActivitySummary.activeDayCount,
+    /// which is a *per-member* count used by ranking's .consistency metric:
+    /// two members active on the same day count once here, twice there.
+    /// `until` is always required — unlike ranking, nothing calling this
+    /// needs an open-ended window.
+    func fetchClubActiveDayCount(memberIDs: [String], since: Date, until: Date) async throws -> Int
 }
 
 extension SupabaseClubRemoteClienting {
@@ -1049,6 +1058,10 @@ struct ClubMemberActivitySummary: Equatable {
     let totalDistanceMeters: Double
     let workoutCount: Int
     let totalDurationSeconds: Int
+    /// This member's own distinct active-day count — used by ranking's
+    /// .consistency metric. NOT the club-wide union of active days (that's
+    /// fetchClubActiveDayCount); two members active on the same day count
+    /// separately here but only once there.
     let activeDayCount: Int
 
     static func empty(userID: String) -> ClubMemberActivitySummary {
@@ -1201,6 +1214,41 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
                 activeDayCount: activeDays.count
             )
         }
+    }
+
+    func fetchClubActiveDayCount(memberIDs: [String], since: Date, until: Date) async throws -> Int {
+        guard !memberIDs.isEmpty else {
+            return 0
+        }
+
+        let sinceValue = ISO8601DateFormatter().string(from: since)
+        let untilValue = ISO8601DateFormatter().string(from: until)
+        let rows: [ClubActiveDayPostRow] = try await client
+            .from("feed_posts")
+            .select("created_at")
+            .eq("visibility", value: "public")
+            .in("user_id", values: memberIDs)
+            .gte("created_at", value: sinceValue)
+            .lte("created_at", value: untilValue)
+            .execute()
+            .value
+
+        return Self.activeDayCount(from: rows.map(\.createdAt), calendar: Calendar(identifier: .gregorian))
+    }
+
+    /// Extracted so the union-not-sum semantics (two members active on the
+    /// same day count once, not twice) can be unit-tested without a
+    /// Supabase client — see testClubActiveDayCountUnionsDatesAcrossMembers.
+    static func activeDayCount(from dates: [Date], calendar: Calendar) -> Int {
+        Set(dates.map { calendar.startOfDay(for: $0) }).count
+    }
+}
+
+private struct ClubActiveDayPostRow: Decodable {
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case createdAt = "created_at"
     }
 }
 
@@ -1571,38 +1619,52 @@ final class SupabaseClubService: ClubService {
         )
     }
 
-    /// Club-wide progress toward a challenge: sums every member's activity
-    /// within [since, until] — since the challenge started, capped at the
-    /// challenge's endsAt so activity after it expires doesn't keep
-    /// inflating currentValue. Reuses the same per-member summaries batch B
-    /// built for ranking (feed_posts, public-only, no new RLS). Only
-    /// distance/workoutCount have a real club-wide definition today —
-    /// consistency has no clean aggregate without per-day granularity (a
-    /// member-level "active days" count doesn't sum or max into a
-    /// club-level one), and recovery has no data source at all. Both stay
-    /// at 0 until a later batch designs that aggregation.
+    /// Club-wide progress toward a challenge, within [since, until] — since
+    /// the challenge started, capped at its endsAt so activity after it
+    /// expires doesn't keep inflating currentValue. distance/workoutCount
+    /// reuse the same per-member summaries batch B built for ranking
+    /// (feed_posts, public-only, no new RLS); consistency uses a dedicated
+    /// club-wide union-of-active-days query (fetchClubActiveDayCount) —
+    /// deliberately not the per-member activeDayCount ranking uses, since a
+    /// club-wide count has to dedupe days members were active together.
+    /// recovery has no data source at all and stays at 0 until a later
+    /// batch designs that aggregation.
     private func computeChallengeProgress(
         metricType: ClubChallengeMetricType,
         members: [SupabaseClubMemberRow],
         since: Date,
         until: Date
     ) async -> Double {
-        guard !members.isEmpty, metricType == .distance || metricType == .workoutCount else {
+        guard !members.isEmpty, metricType != .recovery else {
             return 0
         }
 
-        let summaries = (try? await remoteClient.fetchMemberActivitySummaries(
-            memberIDs: members.map(\.userID),
-            since: since,
-            until: until
-        )) ?? []
+        let memberIDs = members.map(\.userID)
 
         switch metricType {
-        case .distance:
-            return summaries.reduce(0) { $0 + $1.totalDistanceMeters } / 1_000
-        case .workoutCount:
-            return Double(summaries.reduce(0) { $0 + $1.workoutCount })
-        case .consistency, .recovery:
+        case .distance, .workoutCount:
+            let summaries = (try? await remoteClient.fetchMemberActivitySummaries(
+                memberIDs: memberIDs,
+                since: since,
+                until: until
+            )) ?? []
+
+            switch metricType {
+            case .distance:
+                return summaries.reduce(0) { $0 + $1.totalDistanceMeters } / 1_000
+            case .workoutCount:
+                return Double(summaries.reduce(0) { $0 + $1.workoutCount })
+            case .consistency, .recovery:
+                return 0
+            }
+        case .consistency:
+            let days = (try? await remoteClient.fetchClubActiveDayCount(
+                memberIDs: memberIDs,
+                since: since,
+                until: until
+            )) ?? 0
+            return Double(days)
+        case .recovery:
             return 0
         }
     }

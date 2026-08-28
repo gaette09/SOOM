@@ -797,6 +797,44 @@ final class ClubDomainFoundationTests: XCTestCase {
         )
     }
 
+    func testClubActiveDayCountUnionsDatesAcrossMembersInsteadOfSumming() {
+        let day1 = Date(timeIntervalSince1970: 1_767_000_000)
+        let day2 = day1.addingTimeInterval(86_400)
+        let day3 = day1.addingTimeInterval(172_800)
+        // memberA active on day1, day2; memberB active on day2, day3.
+        let dates = [day1, day2, day2, day3]
+
+        let count = SupabaseClubRemoteClient.activeDayCount(from: dates, calendar: Calendar(identifier: .gregorian))
+
+        // The club was active on 3 distinct days (day1, day2, day3) — not 4,
+        // which is what a naive sum of each member's own count would give.
+        XCTAssertEqual(count, 3)
+    }
+
+    func testConsistencyChallengeProgressUsesClubWideActiveDayCount() async throws {
+        let formatter = ISO8601DateFormatter()
+        let startsAt = Date(timeIntervalSince1970: 1_767_000_000)
+        let endsAt = Date(timeIntervalSince1970: 1_767_600_000)
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.detailPayload = makeSingleChallengeDetailPayload(
+            metricType: "consistency",
+            targetValue: 7,
+            startsAt: formatter.string(from: startsAt),
+            endsAt: formatter.string(from: endsAt)
+        )
+        remote.clubActiveDayCount = 5
+        let service = SupabaseClubService(remoteClient: remote, currentUserID: "current-user")
+
+        let detail = try await service.fetchClubDetail(clubId: "remote-riders")
+        let challenge = try XCTUnwrap(detail.challenges.first)
+
+        XCTAssertEqual(challenge.currentValue, 5, accuracy: 0.001)
+        // Bounded the same way distance/workoutCount are — the club-wide
+        // query shouldn't count activity past the challenge's own endsAt.
+        XCTAssertEqual(remote.lastFetchClubActiveDayCountSince, startsAt)
+        XCTAssertEqual(remote.lastFetchClubActiveDayCountUntil, endsAt)
+    }
+
     func testClubMigrationContainsSecurityDefinerHelpers() throws {
         let sql = try clubMigrationSQL()
 
@@ -970,6 +1008,16 @@ private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
         lastFetchMemberActivitySummariesUntil = until
         return activitySummaries
     }
+
+    var clubActiveDayCount = 0
+    private(set) var lastFetchClubActiveDayCountSince: Date?
+    private(set) var lastFetchClubActiveDayCountUntil: Date?
+
+    func fetchClubActiveDayCount(memberIDs: [String], since: Date, until: Date) async throws -> Int {
+        lastFetchClubActiveDayCountSince = since
+        lastFetchClubActiveDayCountUntil = until
+        return clubActiveDayCount
+    }
 }
 
 private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
@@ -994,6 +1042,10 @@ private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting
     }
 
     func fetchMemberActivitySummaries(memberIDs: [String], since: Date, until: Date?) async throws -> [ClubMemberActivitySummary] {
+        throw ClubSupabaseServiceError.unconfigured
+    }
+
+    func fetchClubActiveDayCount(memberIDs: [String], since: Date, until: Date) async throws -> Int {
         throw ClubSupabaseServiceError.unconfigured
     }
 }
