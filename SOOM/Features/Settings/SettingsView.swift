@@ -199,6 +199,13 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
 
+            NavigationLink {
+                StravaImportViewContainer()
+            } label: {
+                SOOMActionRow(icon: SOOMIcon.package, title: "Strava 가져오기", subtitle: "Strava 계정 데이터 내보내기 zip을 한 번에 가져옵니다.", tint: SOOMColor.accent)
+            }
+            .buttonStyle(.plain)
+
             ForEach(ProfileIdentitySystem.foundation.connections.dropFirst()) { connection in
                 ProfileConnectionRow(connection: connection)
             }

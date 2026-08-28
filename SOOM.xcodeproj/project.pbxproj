@@ -223,6 +223,9 @@
 		010825 /* StravaExportReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020824 /* StravaExportReaderTests.swift */; };
 		010826 /* StravaImportPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020825 /* StravaImportPipeline.swift */; };
 		010827 /* StravaImportPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020826 /* StravaImportPipelineTests.swift */; };
+		010828 /* StravaImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020827 /* StravaImportViewModel.swift */; };
+		010829 /* StravaImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020828 /* StravaImportView.swift */; };
+		010830 /* StravaImportViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020829 /* StravaImportViewContainer.swift */; };
 		010182 /* UnifiedWorkoutDuplicateCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020183 /* UnifiedWorkoutDuplicateCandidate.swift */; };
 		010183 /* UnifiedWorkoutDeduplicationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020184 /* UnifiedWorkoutDeduplicationEngine.swift */; };
 		010184 /* UnifiedWorkoutDeduplicationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */; };
@@ -773,6 +776,9 @@
 		020824 /* StravaExportReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaExportReaderTests.swift; sourceTree = "<group>"; };
 		020825 /* StravaImportPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportPipeline.swift; sourceTree = "<group>"; };
 		020826 /* StravaImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportPipelineTests.swift; sourceTree = "<group>"; };
+		020827 /* StravaImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportViewModel.swift; sourceTree = "<group>"; };
+		020828 /* StravaImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportView.swift; sourceTree = "<group>"; };
+		020829 /* StravaImportViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaImportViewContainer.swift; sourceTree = "<group>"; };
 		020183 /* UnifiedWorkoutDuplicateCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDuplicateCandidate.swift; sourceTree = "<group>"; };
 		020184 /* UnifiedWorkoutDeduplicationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngine.swift; sourceTree = "<group>"; };
 		020185 /* UnifiedWorkoutDeduplicationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkoutDeduplicationEngineTests.swift; sourceTree = "<group>"; };
@@ -1601,6 +1607,9 @@
 				020821 /* GzipDecompressor.swift */,
 				020823 /* StravaExportReader.swift */,
 				020825 /* StravaImportPipeline.swift */,
+				020827 /* StravaImportViewModel.swift */,
+				020828 /* StravaImportView.swift */,
+				020829 /* StravaImportViewContainer.swift */,
 				020260 /* WorkoutGrowthMetric.swift */,
 				020264 /* WorkoutTypeMetricProfile.swift */,
 				020261 /* WorkoutGrowthMetricsBuilder.swift */,
@@ -2185,6 +2194,9 @@
 				010821 /* GzipDecompressor.swift in Sources */,
 				010824 /* StravaExportReader.swift in Sources */,
 				010826 /* StravaImportPipeline.swift in Sources */,
+				010828 /* StravaImportViewModel.swift in Sources */,
+				010829 /* StravaImportView.swift in Sources */,
+				010830 /* StravaImportViewContainer.swift in Sources */,
 				010811 /* ActivityDetailGPXRouteImport.swift in Sources */,
 				010608 /* ActivityDetailCompanionTagging.swift in Sources */,
 				010341 /* PersistedWorkoutRoute.swift in Sources */,
