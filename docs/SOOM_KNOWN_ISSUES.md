@@ -68,6 +68,18 @@ Found 2026-08-27 while scoping the Strava import feature. The three route parser
 
 Found 2026-08-28 during a push to `feature/soom-ios-feed-foundation-01`: `docs/product/reference/AI FITNESS.pdf` (53.79 MB) exceeds GitHub's 50 MB recommended maximum file size. Push is not blocked yet, but the repo will need a Git LFS migration for this file if it keeps growing. Not urgent. Trigger to act: a push actually starts getting rejected, or clone speed becomes noticeably slow.
 
+### Feed Comments Only Ever Show One, With No Defined Ordering
+
+Found 2026-08-29 auditing notification/comment/club completeness. Writing a comment works end-to-end — `FeedCommentComposeSheet` → `FeedViewModel.postComment` → `SupabaseFeedRemoteClient.addComment` really inserts into `feed_comments`. But there is no comment list screen at all: `SupabaseFeedRemoteClient`'s post-fetch query pulls every comment for a post with no `.order()` and no `.limit()`, and `FeedPostDTO` collapses that entire array down to `microComment: comments.first?.body` — whichever row Postgrest happens to return first, with no guaranteed ordering. `FeedItemDetailView` then renders that single string under a "댓글" label as if it were the whole conversation. A post with 10 comments only ever surfaces 1, and there's no way to know which one or why. No UI, no data-layer support, for reading more than that single comment. Trigger to act: real users start leaving multiple comments on a post and can't see each other's.
+
+### Club Has No Invite Path — Private Clubs Are a Dead End
+
+Found 2026-08-29, following up on `club_foundation_v1.sql`'s header ("Deferred: ... invite graph, moderation tools"). Confirmed zero matches for `invite`/`Invite` anywhere in `SOOM/` — no invite link, invite code, or invite API exists. The only way into a club today is the public directory's "추천 클럽" list, and `club_members_insert_join_open`'s RLS `with check` only permits a `role = 'member'` insert when the target club's `visibility = 'open'` — a `visibility = 'private'` club cannot be joined this way even if someone knows its ID, and `clubs_select_open_or_member`'s RLS means non-members can't even see a private club in a query. This isn't theoretical: `ClubsView.swift`'s club-creation screen has a working "공개 범위" picker with "비공개" as a real, selectable option (`ClubVisibility.private`). Choosing it today creates a club permanently limited to its owner — there is no mechanism, invite or otherwise, for anyone else to ever join. Trigger to act: before launch, either ship an invite mechanism or hide/disable the "비공개" option so the UI stops offering something it can't deliver.
+
+### Club Has No Moderation Tools
+
+Found 2026-08-29, same audit as above — the other half of `club_foundation_v1.sql`'s "Deferred: ... moderation tools." Confirmed zero matches for `moderat` anywhere in club-related Swift code (the only `moderate` hits in the app are unrelated recovery/weather/terrain difficulty levels). The only membership-changing action a user has is `leaveClub` (leaving voluntarily). There is no way for an owner/admin to remove a member, no report/block flow, and no role-management UI — `role = .admin` in `ClubDomainFoundation.swift` is a display-only label parsed from mock member text ("리더"/"1위"), not a real permission grant or a way to change anyone's role. Any bad actor in a club today can only be dealt with by every other member leaving. Trigger to act: before launch, if clubs are expected to hold more than a handful of trusted members, or a real report/abuse case surfaces.
+
 ## Resolved
 
 ### Imported Workout Library List Not Source-Filtered (resolved 2026-08-27)
