@@ -1120,11 +1120,12 @@ private struct ClubCreateSheet: View {
                 }
                 .pickerStyle(.segmented)
 
-                Picker("공개 범위", selection: $visibility) {
-                    Text("공개").tag(ClubVisibility.open)
-                    Text("비공개").tag(ClubVisibility.private)
-                }
-                .pickerStyle(.segmented)
+                // "비공개" is hidden until an invite mechanism exists —
+                // RLS only allows joining a club whose visibility is
+                // 'open' (see club_members_insert_join_open in
+                // club_foundation_v1.sql), so a private club created today
+                // would be permanently limited to its owner. visibility
+                // stays hardcoded to .open below.
             }
 
             Button {
