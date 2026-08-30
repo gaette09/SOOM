@@ -223,7 +223,7 @@ struct FeedPostBundleDTO: Equatable {
             viewerHasCheered: currentUserId != nil && reactions.contains {
                 $0.userId == currentUserId && $0.reactionType == "cheer"
             },
-            comments: comments.map(\.feedComment),
+            comments: comments.map { $0.feedComment(currentUserId: currentUserId) },
             microComment: comments.first?.body
         )
     }

@@ -337,6 +337,7 @@
 		01060F /* FitnessTrendCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02060F /* FitnessTrendCalculatorTests.swift */; };
 		010614 /* WorkoutResultsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020614 /* WorkoutResultsCard.swift */; };
 		010618 /* FeedCommentComposeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020618 /* FeedCommentComposeSheet.swift */; };
+		010835 /* FeedCommentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020835 /* FeedCommentListView.swift */; };
 		010619 /* OnboardingStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020619 /* OnboardingStateStore.swift */; };
 		010620 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020620 /* OnboardingView.swift */; };
 		010623 /* OnboardingLocationPermissionRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020623 /* OnboardingLocationPermissionRequester.swift */; };
@@ -890,6 +891,7 @@
 		02060F /* FitnessTrendCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessTrendCalculatorTests.swift; sourceTree = "<group>"; };
 		020614 /* WorkoutResultsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutResultsCard.swift; sourceTree = "<group>"; };
 		020618 /* FeedCommentComposeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedCommentComposeSheet.swift; sourceTree = "<group>"; };
+		020835 /* FeedCommentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedCommentListView.swift; sourceTree = "<group>"; };
 		020619 /* OnboardingStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateStore.swift; sourceTree = "<group>"; };
 		020620 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		020623 /* OnboardingLocationPermissionRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationPermissionRequester.swift; sourceTree = "<group>"; };
@@ -1236,6 +1238,7 @@
 				02060E /* FitnessTrendCard.swift */,
 				020614 /* WorkoutResultsCard.swift */,
 				020618 /* FeedCommentComposeSheet.swift */,
+				020835 /* FeedCommentListView.swift */,
 				020638 /* SOOMBadge.swift */,
 				020045 /* RecoveryScoreCard.swift */,
 				020251 /* RecoveryComparisonCard.swift */,
@@ -2030,6 +2033,7 @@
 				01060E /* FitnessTrendCard.swift in Sources */,
 				010614 /* WorkoutResultsCard.swift in Sources */,
 				010618 /* FeedCommentComposeSheet.swift in Sources */,
+				010835 /* FeedCommentListView.swift in Sources */,
 				010619 /* OnboardingStateStore.swift in Sources */,
 				010620 /* OnboardingView.swift in Sources */,
 				010623 /* OnboardingLocationPermissionRequester.swift in Sources */,

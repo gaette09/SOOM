@@ -44,6 +44,7 @@ struct FeedComment: Identifiable, Equatable {
     let authorId: UUID
     let body: String
     let createdAt: Date
+    let isViewerAuthor: Bool
 }
 
 struct FeedContextLabel: Identifiable, Equatable {

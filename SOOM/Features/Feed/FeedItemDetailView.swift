@@ -95,6 +95,7 @@ struct FeedItemDetailDestination: View {
 /// source (SwiftData workout record, HealthKit, etc.).
 struct FeedItemDetailView: View {
     let item: FeedItem
+    @State private var isShowingComments = false
 
     var body: some View {
         SOOMScreen {
@@ -124,13 +125,38 @@ struct FeedItemDetailView: View {
                 reactionsRow
             }
 
-            if let microComment = item.microComment {
-                textBlock(title: "댓글", body: microComment)
+            if item.comments.isEmpty == false {
+                commentsButton
             }
         }
         .navigationTitle("피드 상세")
         .navigationBarTitleDisplayMode(.inline)
         .hidesSOOMTabBar()
+        .sheet(isPresented: $isShowingComments) {
+            FeedCommentListView(comments: item.comments)
+        }
+    }
+
+    private var commentsButton: some View {
+        Button {
+            isShowingComments = true
+        } label: {
+            HStack(spacing: SOOMLayout.Spacing.sm) {
+                Text("댓글 \(item.comments.count)개 보기")
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+
+                Spacer(minLength: SOOMLayout.Spacing.sm)
+
+                Image(systemName: SOOMIcon.chevronRight)
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(SOOMColor.accent)
+            .padding(SOOMLayout.Spacing.lg)
+            .background(SOOMColor.surfaceAmbient)
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("댓글 \(item.comments.count)개 보기")
     }
 
     private var header: some View {

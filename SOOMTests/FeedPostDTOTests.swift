@@ -156,9 +156,41 @@ final class FeedPostDTOTests: XCTestCase {
 
         let item = bundle.makeFeedItem()
 
-        XCTAssertEqual(item.comments, comments.map(\.feedComment))
+        XCTAssertEqual(item.comments, comments.map { $0.feedComment(currentUserId: nil) })
         XCTAssertEqual(item.comments.map(\.body), ["첫 댓글", "두 번째 댓글", "세 번째 댓글"])
         XCTAssertEqual(item.microComment, comments.first?.body)
+    }
+
+    func testFeedPostBundleMarksOnlyViewerAuthoredComments() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let someoneElse = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            comments: [
+                makeComment(postId: postId, userId: currentUserId, body: "내 댓글", timestamp: 1_800_420_100),
+                makeComment(postId: postId, userId: someoneElse, body: "다른 댓글", timestamp: 1_800_420_200)
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: currentUserId)
+
+        XCTAssertEqual(item.comments.map(\.isViewerAuthor), [true, false])
+    }
+
+    func testFeedPostBundleMarksNoCommentsAsViewerAuthoredWithoutCurrentUser() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            comments: [
+                makeComment(postId: postId, body: "첫 댓글", timestamp: 1_800_420_100),
+                makeComment(postId: postId, body: "두 번째 댓글", timestamp: 1_800_420_200)
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: nil)
+
+        XCTAssertEqual(item.comments.map(\.isViewerAuthor), [false, false])
     }
 
     func testFeedPostBundlePreservesCommentCount() {
@@ -192,12 +224,13 @@ final class FeedPostDTOTests: XCTestCase {
             createdAt: createdAt
         )
 
-        let comment = dto.feedComment
+        let comment = dto.feedComment(currentUserId: nil)
 
         XCTAssertEqual(comment.id, id)
         XCTAssertEqual(comment.authorId, authorId)
         XCTAssertEqual(comment.body, "좋은 흐름이에요.")
         XCTAssertEqual(comment.createdAt, createdAt)
+        XCTAssertFalse(comment.isViewerAuthor)
     }
 
     func testVisibilityMapsToShareableVisibility() {
@@ -242,11 +275,16 @@ final class FeedPostDTOTests: XCTestCase {
         )
     }
 
-    private func makeComment(postId: UUID, body: String, timestamp: TimeInterval) -> FeedCommentDTO {
+    private func makeComment(
+        postId: UUID,
+        userId: UUID = UUID(),
+        body: String,
+        timestamp: TimeInterval
+    ) -> FeedCommentDTO {
         FeedCommentDTO(
             id: UUID(),
             postId: postId,
-            userId: UUID(),
+            userId: userId,
             body: body,
             createdAt: Date(timeIntervalSince1970: timestamp)
         )

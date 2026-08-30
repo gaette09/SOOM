@@ -140,8 +140,14 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
         case createdAt = "created_at"
     }
 
-    var feedComment: FeedComment {
-        FeedComment(id: id, authorId: userId, body: body, createdAt: createdAt)
+    func feedComment(currentUserId: UUID?) -> FeedComment {
+        FeedComment(
+            id: id,
+            authorId: userId,
+            body: body,
+            createdAt: createdAt,
+            isViewerAuthor: userId == currentUserId
+        )
     }
 }
 
