@@ -139,6 +139,10 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
         case body
         case createdAt = "created_at"
     }
+
+    var feedComment: FeedComment {
+        FeedComment(id: id, authorId: userId, body: body, createdAt: createdAt)
+    }
 }
 
 /// Insert-only payload for `feed_comments`.

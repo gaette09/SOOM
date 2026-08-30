@@ -39,6 +39,13 @@ struct FeedReaction: Identifiable, Equatable {
     }
 }
 
+struct FeedComment: Identifiable, Equatable {
+    let id: UUID
+    let authorId: UUID
+    let body: String
+    let createdAt: Date
+}
+
 struct FeedContextLabel: Identifiable, Equatable {
     let id: UUID
     let title: String
@@ -119,6 +126,7 @@ struct FeedItem: Identifiable, Equatable {
     /// Whether the viewer has their own "cheer" reaction on this post —
     /// drives the action bar's toggle state. Always false for a local draft.
     var viewerHasCheered: Bool
+    let comments: [FeedComment]
     let microComment: String?
 
     init(
@@ -145,6 +153,7 @@ struct FeedItem: Identifiable, Equatable {
         contextLabels: [FeedContextLabel] = [],
         reactions: [FeedReaction] = [],
         viewerHasCheered: Bool = false,
+        comments: [FeedComment] = [],
         microComment: String? = nil
     ) {
         self.id = id
@@ -170,6 +179,7 @@ struct FeedItem: Identifiable, Equatable {
         self.contextLabels = contextLabels
         self.reactions = reactions
         self.viewerHasCheered = viewerHasCheered
+        self.comments = comments
         self.microComment = microComment
     }
 }

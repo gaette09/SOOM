@@ -145,6 +145,61 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertEqual(item.sourceWorkoutId, sourceWorkoutId)
     }
 
+    func testFeedPostBundleMapsAllCommentsInInputOrder() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let comments = [
+            makeComment(postId: postId, body: "첫 댓글", timestamp: 1_800_420_100),
+            makeComment(postId: postId, body: "두 번째 댓글", timestamp: 1_800_420_200),
+            makeComment(postId: postId, body: "세 번째 댓글", timestamp: 1_800_420_300)
+        ]
+        let bundle = FeedPostBundleDTO(post: makePost(id: postId), comments: comments)
+
+        let item = bundle.makeFeedItem()
+
+        XCTAssertEqual(item.comments, comments.map(\.feedComment))
+        XCTAssertEqual(item.comments.map(\.body), ["첫 댓글", "두 번째 댓글", "세 번째 댓글"])
+        XCTAssertEqual(item.microComment, comments.first?.body)
+    }
+
+    func testFeedPostBundlePreservesCommentCount() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let comments = [
+            makeComment(postId: postId, body: "첫 댓글", timestamp: 1_800_420_100),
+            makeComment(postId: postId, body: "두 번째 댓글", timestamp: 1_800_420_200),
+            makeComment(postId: postId, body: "세 번째 댓글", timestamp: 1_800_420_300)
+        ]
+
+        for expectedCount in [0, 1, 3] {
+            let bundle = FeedPostBundleDTO(
+                post: makePost(id: postId),
+                comments: Array(comments.prefix(expectedCount))
+            )
+
+            XCTAssertEqual(bundle.makeFeedItem().comments.count, expectedCount)
+        }
+    }
+
+    func testFeedCommentDTOMapsToFeedComment() {
+        let id = UUID(uuidString: "993CE858-83C4-470B-88E2-6EB43453E890")!
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let authorId = UUID(uuidString: "67959CF2-A5A9-4117-81BF-CBFB78629814")!
+        let createdAt = Date(timeIntervalSince1970: 1_800_420_200)
+        let dto = FeedCommentDTO(
+            id: id,
+            postId: postId,
+            userId: authorId,
+            body: "좋은 흐름이에요.",
+            createdAt: createdAt
+        )
+
+        let comment = dto.feedComment
+
+        XCTAssertEqual(comment.id, id)
+        XCTAssertEqual(comment.authorId, authorId)
+        XCTAssertEqual(comment.body, "좋은 흐름이에요.")
+        XCTAssertEqual(comment.createdAt, createdAt)
+    }
+
     func testVisibilityMapsToShareableVisibility() {
         XCTAssertEqual(FeedPostVisibility.privatePost.shareableVisibility, .privateOnly)
         XCTAssertEqual(FeedPostVisibility.followers.shareableVisibility, .followers)
@@ -184,6 +239,16 @@ final class FeedPostDTOTests: XCTestCase {
             routeSummary: FeedRouteSummaryDTO(title: "강변 route", distanceText: "12.30 km", fallbackStyle: .cycling, routeExists: true),
             visibility: visibility,
             createdAt: Date(timeIntervalSince1970: 1_800_420_000)
+        )
+    }
+
+    private func makeComment(postId: UUID, body: String, timestamp: TimeInterval) -> FeedCommentDTO {
+        FeedCommentDTO(
+            id: UUID(),
+            postId: postId,
+            userId: UUID(),
+            body: body,
+            createdAt: Date(timeIntervalSince1970: timestamp)
         )
     }
 }

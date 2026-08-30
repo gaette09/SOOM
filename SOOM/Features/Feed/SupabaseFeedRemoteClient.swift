@@ -52,6 +52,7 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .from("feed_comments")
             .select()
             .in("post_id", values: postIDs)
+            .order("created_at", ascending: true)
             .execute()
             .value
 
@@ -106,6 +107,8 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .from("feed_comments")
             .select()
             .eq("post_id", value: id)
+            .order("created_at", ascending: true)
+            .limit(200)
             .execute()
             .value
 
