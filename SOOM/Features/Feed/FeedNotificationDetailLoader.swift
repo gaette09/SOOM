@@ -14,6 +14,7 @@ import SwiftUI
 struct FeedNotificationDetailLoader: View {
     let postId: UUID
     let resolve: (UUID) async -> FeedItem?
+    let onSubmitComment: ((FeedItem, String) -> Void)?
 
     private enum LoadState {
         case loading
@@ -23,9 +24,14 @@ struct FeedNotificationDetailLoader: View {
 
     @State private var state: LoadState = .loading
 
-    init(postId: UUID, resolve: @escaping (UUID) async -> FeedItem?) {
+    init(
+        postId: UUID,
+        resolve: @escaping (UUID) async -> FeedItem?,
+        onSubmitComment: ((FeedItem, String) -> Void)? = nil
+    ) {
         self.postId = postId
         self.resolve = resolve
+        self.onSubmitComment = onSubmitComment
     }
 
     var body: some View {
@@ -35,7 +41,12 @@ struct FeedNotificationDetailLoader: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .loaded(let item):
-                FeedItemDetailDestination(item: item)
+                FeedItemDetailDestination(
+                    item: item,
+                    onSubmitComment: onSubmitComment.map { callback in
+                        { (body: String) in callback(item, body) }
+                    }
+                )
             case .failed:
                 failedState
             }

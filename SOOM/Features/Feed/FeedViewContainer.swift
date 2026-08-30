@@ -36,9 +36,18 @@ struct FeedViewContainer: View {
             }
         )
         .navigationDestination(for: FeedPostRouteTarget.self) { target in
-            FeedNotificationDetailLoader(postId: target.postId) { postId in
-                await viewModel?.resolveFeedItem(postId: postId) ?? nil
-            }
+            FeedNotificationDetailLoader(
+                postId: target.postId,
+                resolve: { postId in
+                    await viewModel?.resolveFeedItem(postId: postId) ?? nil
+                },
+                onSubmitComment: { item, body in
+                    Task {
+                        try? await viewModel?.postComment(body, on: item)
+                        readModel = viewModel?.readModel ?? readModel
+                    }
+                }
+            )
         }
         .task {
             let (vm, remoteClient) = makeProductionViewModel()

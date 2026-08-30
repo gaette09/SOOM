@@ -14,6 +14,7 @@ import SwiftUI
 /// falls back to the existing sanitized `FeedItemDetailView`, unchanged.
 struct FeedItemDetailDestination: View {
     let item: FeedItem
+    let onSubmitComment: ((String) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
 
@@ -25,6 +26,11 @@ struct FeedItemDetailDestination: View {
 
     @State private var state: ResolutionState = .loading
 
+    init(item: FeedItem, onSubmitComment: ((String) -> Void)? = nil) {
+        self.item = item
+        self.onSubmitComment = onSubmitComment
+    }
+
     var body: some View {
         Group {
             switch state {
@@ -34,7 +40,7 @@ struct FeedItemDetailDestination: View {
             case .ownWorkout(let workout):
                 ownWorkoutDestination(for: workout)
             case .sanitized:
-                FeedItemDetailView(item: item)
+                FeedItemDetailView(item: item, onSubmitComment: onSubmitComment)
             }
         }
         .task(id: item.id) {
@@ -95,7 +101,15 @@ struct FeedItemDetailDestination: View {
 /// source (SwiftData workout record, HealthKit, etc.).
 struct FeedItemDetailView: View {
     let item: FeedItem
+    let onSubmitComment: ((String) -> Void)?
+
     @State private var isShowingComments = false
+    @State private var isComposingComment = false
+
+    init(item: FeedItem, onSubmitComment: ((String) -> Void)? = nil) {
+        self.item = item
+        self.onSubmitComment = onSubmitComment
+    }
 
     var body: some View {
         SOOMScreen {
@@ -128,12 +142,23 @@ struct FeedItemDetailView: View {
             if item.comments.isEmpty == false {
                 commentsButton
             }
+
+            if onSubmitComment != nil {
+                composeCommentButton
+            }
         }
         .navigationTitle("피드 상세")
         .navigationBarTitleDisplayMode(.inline)
         .hidesSOOMTabBar()
         .sheet(isPresented: $isShowingComments) {
             FeedCommentListView(comments: item.comments)
+        }
+        .sheet(isPresented: $isComposingComment) {
+            FeedCommentComposeSheet { body in
+                onSubmitComment?(body)
+            }
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -157,6 +182,28 @@ struct FeedItemDetailView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("댓글 \(item.comments.count)개 보기")
+    }
+
+    private var composeCommentButton: some View {
+        Button {
+            isComposingComment = true
+        } label: {
+            HStack(spacing: SOOMLayout.Spacing.sm) {
+                Text("댓글 쓰기")
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+
+                Spacer(minLength: SOOMLayout.Spacing.sm)
+
+                Image(systemName: SOOMIcon.edit)
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(SOOMColor.accent)
+            .padding(SOOMLayout.Spacing.lg)
+            .background(SOOMColor.surfaceAmbient)
+            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("댓글 쓰기")
     }
 
     private var header: some View {

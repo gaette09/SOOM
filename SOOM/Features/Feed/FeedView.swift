@@ -278,7 +278,10 @@ struct FeedView: View {
 
     @ViewBuilder
     private func feedDestination(for item: FeedItem) -> some View {
-        FeedItemDetailDestination(item: item)
+        FeedItemDetailDestination(
+            item: item,
+            onSubmitComment: { body in onSubmitComment(item, body) }
+        )
     }
 
     private func feedItemCard(for item: FeedItem) -> some View {
