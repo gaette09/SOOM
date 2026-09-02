@@ -233,6 +233,48 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertFalse(comment.isViewerAuthor)
     }
 
+    func testFeedBookmarkInsertDTOEncodesDatabaseColumnNames() throws {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let userId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let dto = FeedBookmarkInsertDTO(postId: postId, userId: userId)
+
+        let data = try JSONEncoder().encode(dto)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+
+        XCTAssertEqual(object, [
+            "post_id": postId.uuidString,
+            "user_id": userId.uuidString
+        ])
+    }
+
+    func testFeedBookmarkDTODecodesDatabaseColumnNames() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let data = Data(
+            #"{"id":"993CE858-83C4-470B-88E2-6EB43453E890","post_id":"A66A2E2D-2803-4A04-86F2-D68A838AB101","user_id":"11111111-1111-1111-1111-111111111111","created_at":"2026-09-02T12:28:26Z"}"#.utf8
+        )
+
+        let dto = try decoder.decode(FeedBookmarkDTO.self, from: data)
+
+        XCTAssertEqual(dto.id, UUID(uuidString: "993CE858-83C4-470B-88E2-6EB43453E890"))
+        XCTAssertEqual(dto.postId, UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101"))
+        XCTAssertEqual(dto.userId, UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
+        XCTAssertEqual(dto.createdAt, Date(timeIntervalSince1970: 1_788_352_106))
+    }
+
+    func testFeedPostBundleDefaultsBookmarksToEmptyAndPreservesProvidedBookmarks() {
+        let post = makePost()
+        let bookmark = FeedBookmarkDTO(
+            id: UUID(uuidString: "993CE858-83C4-470B-88E2-6EB43453E890")!,
+            postId: post.id,
+            userId: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+            createdAt: Date(timeIntervalSince1970: 1_788_352_106)
+        )
+
+        XCTAssertEqual(FeedPostBundleDTO(post: post).bookmarks, [])
+        XCTAssertEqual(FeedPostBundleDTO(post: post, bookmarks: [bookmark]).bookmarks, [bookmark])
+    }
+
     func testVisibilityMapsToShareableVisibility() {
         XCTAssertEqual(FeedPostVisibility.privatePost.shareableVisibility, .privateOnly)
         XCTAssertEqual(FeedPostVisibility.followers.shareableVisibility, .followers)

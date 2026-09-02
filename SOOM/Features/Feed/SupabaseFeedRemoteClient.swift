@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetching, FeedRemotePostPosting, FeedRemoteReactionPosting, FeedRemoteCommentPosting, FeedRemotePostDeleting {
+struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetching, FeedRemotePostPosting, FeedRemoteReactionPosting, FeedRemoteCommentPosting, FeedRemoteBookmarkPosting, FeedRemotePostDeleting {
     private let client: SupabaseClient
 
     init(client: SupabaseClient) {
@@ -56,18 +56,28 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .execute()
             .value
 
-        let (mediaRows, reactionRows, commentRows) = try await (media, reactions, comments)
+        async let bookmarks: [FeedBookmarkDTO] = client
+            .from("feed_bookmarks")
+            .select()
+            .eq("user_id", value: session.user.id)
+            .in("post_id", values: postIDs)
+            .execute()
+            .value
+
+        let (mediaRows, reactionRows, commentRows, bookmarkRows) = try await (media, reactions, comments, bookmarks)
 
         let mediaByPost = Dictionary(grouping: mediaRows, by: \.postId)
         let reactionsByPost = Dictionary(grouping: reactionRows, by: \.postId)
         let commentsByPost = Dictionary(grouping: commentRows, by: \.postId)
+        let bookmarksByPost = Dictionary(grouping: bookmarkRows, by: \.postId)
 
         return posts.map { post in
             FeedPostBundleDTO(
                 post: post,
                 media: mediaByPost[post.id] ?? [],
                 reactions: reactionsByPost[post.id] ?? [],
-                comments: commentsByPost[post.id] ?? []
+                comments: commentsByPost[post.id] ?? [],
+                bookmarks: bookmarksByPost[post.id] ?? []
             )
         }
     }
@@ -78,6 +88,7 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
     /// separate elevated path. A private post the caller doesn't own
     /// simply isn't in the returned rows.
     func fetchFeedPost(id: UUID) async throws -> FeedPostBundleDTO? {
+        let session = try await client.auth.session
         let posts: [FeedPostDTO] = try await client
             .from("feed_posts")
             .select()
@@ -112,9 +123,23 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
             .execute()
             .value
 
-        let (mediaRows, reactionRows, commentRows) = try await (media, reactions, comments)
+        async let bookmarks: [FeedBookmarkDTO] = client
+            .from("feed_bookmarks")
+            .select()
+            .eq("user_id", value: session.user.id)
+            .eq("post_id", value: id)
+            .execute()
+            .value
 
-        return FeedPostBundleDTO(post: post, media: mediaRows, reactions: reactionRows, comments: commentRows)
+        let (mediaRows, reactionRows, commentRows, bookmarkRows) = try await (media, reactions, comments, bookmarks)
+
+        return FeedPostBundleDTO(
+            post: post,
+            media: mediaRows,
+            reactions: reactionRows,
+            comments: commentRows,
+            bookmarks: bookmarkRows
+        )
     }
 
     func fetchProfiles(ids: [UUID]) async throws -> [FeedProfileDTO] {
@@ -195,6 +220,26 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
         try await client
             .from("feed_comments")
             .insert(request)
+            .execute()
+    }
+
+    func addBookmark(postId: UUID) async throws {
+        let session = try await client.auth.session
+        let request = FeedBookmarkInsertDTO(postId: postId, userId: session.user.id)
+
+        try await client
+            .from("feed_bookmarks")
+            .insert(request)
+            .execute()
+    }
+
+    func removeBookmark(postId: UUID) async throws {
+        let session = try await client.auth.session
+        try await client
+            .from("feed_bookmarks")
+            .delete()
+            .eq("post_id", value: postId)
+            .eq("user_id", value: session.user.id)
             .execute()
     }
 

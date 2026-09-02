@@ -125,6 +125,31 @@ struct FeedReactionInsertDTO: Encodable, Equatable {
     }
 }
 
+struct FeedBookmarkDTO: Codable, Equatable, Identifiable {
+    let id: UUID
+    let postId: UUID
+    let userId: UUID
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case postId = "post_id"
+        case userId = "user_id"
+        case createdAt = "created_at"
+    }
+}
+
+/// Insert-only payload for `feed_bookmarks`.
+struct FeedBookmarkInsertDTO: Encodable, Equatable {
+    let postId: UUID
+    let userId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case postId = "post_id"
+        case userId = "user_id"
+    }
+}
+
 struct FeedCommentDTO: Codable, Equatable, Identifiable {
     let id: UUID
     let postId: UUID

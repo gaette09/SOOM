@@ -46,6 +46,11 @@ protocol FeedRemoteCommentPosting {
     func addComment(postId: UUID, body: String) async throws
 }
 
+protocol FeedRemoteBookmarkPosting {
+    func addBookmark(postId: UUID) async throws
+    func removeBookmark(postId: UUID) async throws
+}
+
 protocol FeedRemotePostDeleting {
     func deletePost(id: UUID) async throws
 }

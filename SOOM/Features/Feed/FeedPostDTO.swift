@@ -159,17 +159,20 @@ struct FeedPostBundleDTO: Equatable {
     let media: [FeedPostMediaDTO]
     let reactions: [FeedReactionDTO]
     let comments: [FeedCommentDTO]
+    let bookmarks: [FeedBookmarkDTO]
 
     init(
         post: FeedPostDTO,
         media: [FeedPostMediaDTO] = [],
         reactions: [FeedReactionDTO] = [],
-        comments: [FeedCommentDTO] = []
+        comments: [FeedCommentDTO] = [],
+        bookmarks: [FeedBookmarkDTO] = []
     ) {
         self.post = post
         self.media = media.sorted { $0.sortOrder < $1.sortOrder }
         self.reactions = reactions
         self.comments = comments
+        self.bookmarks = bookmarks
     }
 
     func makeFeedItem(authorName: String = "SOOM 사용자", authorHandle: String? = nil, currentUserId: UUID? = nil) -> FeedItem {
