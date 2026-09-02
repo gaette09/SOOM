@@ -9,6 +9,7 @@ struct FeedView: View {
     let notificationFetcher: (any NotificationInboxFetching)?
     let profileFetcher: (any FeedRemoteProfileFetching)?
     let onToggleCheer: (FeedItem) -> Void
+    let onToggleSave: (FeedItem) -> Void
     let onSubmitComment: (FeedItem, String) -> Void
     let onDeletePost: (FeedItem) -> Void
     @EnvironmentObject private var authViewModel: AuthViewModel
@@ -29,6 +30,7 @@ struct FeedView: View {
         notificationFetcher: (any NotificationInboxFetching)? = nil,
         profileFetcher: (any FeedRemoteProfileFetching)? = nil,
         onToggleCheer: @escaping (FeedItem) -> Void = { _ in },
+        onToggleSave: @escaping (FeedItem) -> Void = { _ in },
         onSubmitComment: @escaping (FeedItem, String) -> Void = { _, _ in },
         onDeletePost: @escaping (FeedItem) -> Void = { _ in }
     ) {
@@ -40,6 +42,7 @@ struct FeedView: View {
         self.notificationFetcher = notificationFetcher
         self.profileFetcher = profileFetcher
         self.onToggleCheer = onToggleCheer
+        self.onToggleSave = onToggleSave
         self.onSubmitComment = onSubmitComment
         self.onDeletePost = onDeletePost
         _visibleItems = State(initialValue: sortedItems)
@@ -289,6 +292,7 @@ struct FeedView: View {
             item: item,
             isOwnPost: item.isLocalDraft || item.authorId == authViewModel.session.currentUser?.id,
             onToggleCheer: { onToggleCheer(item) },
+            onToggleSave: { onToggleSave(item) },
             onSubmitComment: { body in onSubmitComment(item, body) },
             onDeletePost: { onDeletePost(item) }
         )

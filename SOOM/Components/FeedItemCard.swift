@@ -4,6 +4,7 @@ struct FeedItemCard: View {
     let item: FeedItem
     var isOwnPost: Bool = false
     var onToggleCheer: () -> Void = {}
+    var onToggleSave: () -> Void = {}
     var onSubmitComment: (String) -> Void = { _ in }
     var onDeletePost: () -> Void = {}
 
@@ -186,7 +187,16 @@ struct FeedItemCard: View {
             .disabled(item.isLocalDraft)
 
             Spacer()
-            FeedReferenceAction(icon: SOOMIcon.bookmark, title: "저장", isProminent: true)
+            Button(action: onToggleSave) {
+                FeedReferenceAction(
+                    icon: item.viewerHasSaved ? "bookmark.fill" : "bookmark",
+                    title: "저장",
+                    isProminent: item.viewerHasSaved
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(item.isLocalDraft)
+            .accessibilityAddTraits(item.viewerHasSaved ? [.isSelected] : [])
         }
         .padding(.top, SOOMLayout.Spacing.md)
         .overlay(alignment: .top) {

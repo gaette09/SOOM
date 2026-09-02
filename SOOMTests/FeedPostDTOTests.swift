@@ -128,6 +128,47 @@ final class FeedPostDTOTests: XCTestCase {
         XCTAssertFalse(item.viewerHasCheered)
     }
 
+    func testFeedPostBundleMarksViewerHasSavedWhenCurrentUserHasABookmark() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            bookmarks: [
+                FeedBookmarkDTO(
+                    id: UUID(),
+                    postId: postId,
+                    userId: currentUserId,
+                    createdAt: Date(timeIntervalSince1970: 1_800_420_100)
+                )
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: currentUserId)
+
+        XCTAssertTrue(item.viewerHasSaved)
+    }
+
+    func testFeedPostBundleDoesNotMarkViewerHasSavedForAnotherUsersBookmark() {
+        let postId = UUID(uuidString: "A66A2E2D-2803-4A04-86F2-D68A838AB101")!
+        let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let someoneElse = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        let bundle = FeedPostBundleDTO(
+            post: makePost(id: postId),
+            bookmarks: [
+                FeedBookmarkDTO(
+                    id: UUID(),
+                    postId: postId,
+                    userId: someoneElse,
+                    createdAt: Date(timeIntervalSince1970: 1_800_420_100)
+                )
+            ]
+        )
+
+        let item = bundle.makeFeedItem(currentUserId: currentUserId)
+
+        XCTAssertFalse(item.viewerHasSaved)
+    }
+
     func testFeedPostBundlePassesThroughSourceWorkoutId() {
         let sourceWorkoutId = UUID(uuidString: "1F5B6D2D-3F1E-4A5A-9C31-8B2D6C5C1234")!
         let post = FeedPostDTO(

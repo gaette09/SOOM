@@ -84,6 +84,44 @@ final class FeedViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.readModel.items.first?.viewerHasCheered, false)
     }
 
+    func testToggleSaveAddsBookmarkAndUpdatesReadModelOptimistically() async {
+        let item = FeedMockData.items[0]
+        XCTAssertFalse(item.viewerHasSaved)
+        let bookmarkPoster = StubBookmarkPoster()
+        let viewModel = makeViewModel(items: [item], bookmarkPoster: bookmarkPoster)
+        await viewModel.load()
+
+        await viewModel.toggleSave(for: item)
+
+        XCTAssertEqual(bookmarkPoster.addedPostIds, [item.id])
+        XCTAssertTrue(bookmarkPoster.removedPostIds.isEmpty)
+        XCTAssertEqual(viewModel.readModel.items.first?.viewerHasSaved, true)
+    }
+
+    func testToggleSaveRemovesBookmarkWhenAlreadySaved() async {
+        var item = FeedMockData.items[0]
+        item.viewerHasSaved = true
+        let bookmarkPoster = StubBookmarkPoster()
+        let viewModel = makeViewModel(items: [item], bookmarkPoster: bookmarkPoster)
+        await viewModel.load()
+
+        await viewModel.toggleSave(for: item)
+
+        XCTAssertEqual(bookmarkPoster.removedPostIds, [item.id])
+        XCTAssertEqual(viewModel.readModel.items.first?.viewerHasSaved, false)
+    }
+
+    func testToggleSaveRevertsOptimisticUpdateOnFailure() async {
+        let item = FeedMockData.items[0]
+        let bookmarkPoster = StubBookmarkPoster(error: StubError.failed)
+        let viewModel = makeViewModel(items: [item], bookmarkPoster: bookmarkPoster)
+        await viewModel.load()
+
+        await viewModel.toggleSave(for: item)
+
+        XCTAssertEqual(viewModel.readModel.items.first?.viewerHasSaved, false)
+    }
+
     func testToggleCheerIsNoOpForLocalDraft() async {
         var item = FeedMockData.items[0]
         item = FeedItem(
@@ -158,6 +196,7 @@ final class FeedViewModelTests: XCTestCase {
     private func makeViewModel(
         items: [FeedItem],
         reactionPoster: (any FeedRemoteReactionPosting)? = nil,
+        bookmarkPoster: (any FeedRemoteBookmarkPosting)? = nil,
         commentPoster: (any FeedRemoteCommentPosting)? = nil,
         postDeleter: (any FeedRemotePostDeleting)? = nil,
         draftStore: (any FeedShareDraftStoreProtocol)? = nil
@@ -168,6 +207,7 @@ final class FeedViewModelTests: XCTestCase {
             recoveryPreviewProvider: StubRecoveryPreviewProvider(result: .failure(StubError.failed)),
             streakDatesProvider: StubStreakDatesProvider(result: .failure(StubError.failed)),
             reactionPoster: reactionPoster,
+            bookmarkPoster: bookmarkPoster,
             commentPoster: commentPoster,
             postDeleter: postDeleter,
             draftStore: draftStore
@@ -250,6 +290,26 @@ private final class StubReactionPoster: FeedRemoteReactionPosting {
     func removeReaction(postId: UUID, reactionType: String) async throws {
         if let error { throw error }
         removed.append(FeedReactionCall(postId: postId, reactionType: reactionType))
+    }
+}
+
+private final class StubBookmarkPoster: FeedRemoteBookmarkPosting {
+    private(set) var addedPostIds: [UUID] = []
+    private(set) var removedPostIds: [UUID] = []
+    let error: Error?
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
+
+    func addBookmark(postId: UUID) async throws {
+        if let error { throw error }
+        addedPostIds.append(postId)
+    }
+
+    func removeBookmark(postId: UUID) async throws {
+        if let error { throw error }
+        removedPostIds.append(postId)
     }
 }
 

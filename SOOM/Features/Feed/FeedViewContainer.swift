@@ -22,6 +22,12 @@ struct FeedViewContainer: View {
                     readModel = viewModel?.readModel ?? readModel
                 }
             },
+            onToggleSave: { item in
+                Task {
+                    await viewModel?.toggleSave(for: item)
+                    readModel = viewModel?.readModel ?? readModel
+                }
+            },
             onSubmitComment: { item, body in
                 Task {
                     try? await viewModel?.postComment(body, on: item)
@@ -78,6 +84,7 @@ struct FeedViewContainer: View {
             recoveryPreviewProvider: UnifiedWorkoutRecoveryPreviewProvider(store: store),
             streakDatesProvider: UnifiedWorkoutStoreStreakDatesProvider(store: store),
             reactionPoster: remoteClient,
+            bookmarkPoster: remoteClient,
             commentPoster: remoteClient,
             postDeleter: remoteClient,
             draftStore: draftStore

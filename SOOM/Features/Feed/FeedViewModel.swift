@@ -40,6 +40,7 @@ final class FeedViewModel: ObservableObject {
     private let recoveryPreviewProvider: any FeedRecoveryPreviewProviding
     private let streakDatesProvider: any FeedStreakWorkoutDatesProviding
     private let reactionPoster: (any FeedRemoteReactionPosting)?
+    private let bookmarkPoster: (any FeedRemoteBookmarkPosting)?
     private let commentPoster: (any FeedRemoteCommentPosting)?
     private let postDeleter: (any FeedRemotePostDeleting)?
     private let draftStore: (any FeedShareDraftStoreProtocol)?
@@ -51,6 +52,7 @@ final class FeedViewModel: ObservableObject {
         recoveryPreviewProvider: any FeedRecoveryPreviewProviding,
         streakDatesProvider: any FeedStreakWorkoutDatesProviding,
         reactionPoster: (any FeedRemoteReactionPosting)? = nil,
+        bookmarkPoster: (any FeedRemoteBookmarkPosting)? = nil,
         commentPoster: (any FeedRemoteCommentPosting)? = nil,
         postDeleter: (any FeedRemotePostDeleting)? = nil,
         draftStore: (any FeedShareDraftStoreProtocol)? = nil,
@@ -61,6 +63,7 @@ final class FeedViewModel: ObservableObject {
         self.recoveryPreviewProvider = recoveryPreviewProvider
         self.streakDatesProvider = streakDatesProvider
         self.reactionPoster = reactionPoster
+        self.bookmarkPoster = bookmarkPoster
         self.commentPoster = commentPoster
         self.postDeleter = postDeleter
         self.draftStore = draftStore
@@ -129,6 +132,25 @@ final class FeedViewModel: ObservableObject {
         }
     }
 
+    func toggleSave(for item: FeedItem) async {
+        guard !item.isLocalDraft, let bookmarkPoster else {
+            return
+        }
+
+        let wasSaved = item.viewerHasSaved
+        setViewerHasSaved(!wasSaved, forItemId: item.id)
+
+        do {
+            if wasSaved {
+                try await bookmarkPoster.removeBookmark(postId: item.id)
+            } else {
+                try await bookmarkPoster.addBookmark(postId: item.id)
+            }
+        } catch {
+            setViewerHasSaved(wasSaved, forItemId: item.id)
+        }
+    }
+
     /// Posts a comment on `item`. Local drafts can't be commented on (no
     /// `feed_posts` row) — the UI already disables the control for one.
     /// Reloads the feed afterward rather than splicing the new comment in
@@ -165,6 +187,13 @@ final class FeedViewModel: ObservableObject {
             return
         }
         readModel.items[index].viewerHasCheered = value
+    }
+
+    private func setViewerHasSaved(_ value: Bool, forItemId id: UUID) {
+        guard let index = readModel.items.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        readModel.items[index].viewerHasSaved = value
     }
 
     private func sportSummary(for progress: WeeklyWorkoutProgress) -> String {

@@ -127,6 +127,7 @@ struct FeedItem: Identifiable, Equatable {
     /// Whether the viewer has their own "cheer" reaction on this post —
     /// drives the action bar's toggle state. Always false for a local draft.
     var viewerHasCheered: Bool
+    var viewerHasSaved: Bool
     let comments: [FeedComment]
     let microComment: String?
 
@@ -154,6 +155,7 @@ struct FeedItem: Identifiable, Equatable {
         contextLabels: [FeedContextLabel] = [],
         reactions: [FeedReaction] = [],
         viewerHasCheered: Bool = false,
+        viewerHasSaved: Bool = false,
         comments: [FeedComment] = [],
         microComment: String? = nil
     ) {
@@ -180,6 +182,7 @@ struct FeedItem: Identifiable, Equatable {
         self.contextLabels = contextLabels
         self.reactions = reactions
         self.viewerHasCheered = viewerHasCheered
+        self.viewerHasSaved = viewerHasSaved
         self.comments = comments
         self.microComment = microComment
     }
