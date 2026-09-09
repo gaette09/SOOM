@@ -103,6 +103,20 @@ final class FeedDataSourceTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
+    func testMockRepositoryFetchSavedPostsFiltersSavedItemsAndPreservesInputOrder() async throws {
+        var firstSaved = FeedMockData.items[1]
+        firstSaved.viewerHasSaved = true
+        let unsaved = FeedMockData.items[0]
+        var secondSaved = FeedMockData.items[2]
+        secondSaved.viewerHasSaved = true
+        let repository = MockFeedRepository(items: [firstSaved, unsaved, secondSaved])
+
+        let items = try await repository.fetchSavedPosts()
+
+        XCTAssertEqual(items.map(\.id), [firstSaved.id, secondSaved.id])
+        XCTAssertTrue(items.allSatisfy(\.viewerHasSaved))
+    }
 }
 
 private func makeDraft(createdAt: Date) -> FeedShareDraft {
@@ -132,6 +146,10 @@ private struct StubFeedRepository: FeedRepositoryProtocol {
 
     func fetchFeed(limit: Int) async throws -> [FeedItem] {
         try result.get()
+    }
+
+    func fetchSavedPosts() async throws -> [FeedItem] {
+        try result.get().filter(\.viewerHasSaved)
     }
 
     func fetchPost(id: UUID) async throws -> FeedItem? {

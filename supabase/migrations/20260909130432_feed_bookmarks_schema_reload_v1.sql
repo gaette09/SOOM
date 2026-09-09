@@ -1,0 +1,11 @@
+-- Forces PostgREST to re-introspect the schema after feed_bookmarks_v1.sql
+-- (batch A of the Feed save/bookmark feature) was applied directly via
+-- `supabase db push` rather than through the dashboard. PostgREST's schema
+-- cache didn't pick up the new table on its own, so every feed fetch that
+-- joins against feed_bookmarks (SupabaseFeedRemoteClient.fetchFeedPosts)
+-- was throwing PGRST205 ("Could not find the table 'public.feed_bookmarks'
+-- in the schema cache") and silently falling back to mock feed data.
+-- Confirmed via a temporary debug print + real device console capture,
+-- 2026-09-09. This statement changes no data or schema — it only tells
+-- PostgREST to reload its cached view of the schema.
+notify pgrst, 'reload schema';

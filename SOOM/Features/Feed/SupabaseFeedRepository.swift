@@ -38,6 +38,29 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
         }
     }
 
+    func fetchSavedPosts() async throws -> [FeedItem] {
+        guard clientProvider.state == .ready else {
+            throw FeedRepositoryError.unconfigured
+        }
+        guard let remoteFetcher else {
+            throw FeedRepositoryError.remoteFetchNotImplemented
+        }
+
+        async let bundlesTask = remoteFetcher.fetchSavedFeedPosts()
+        let currentUserId = await currentUserId()
+        let bundles = try await bundlesTask
+        let profilesByID = await fetchProfilesByID(for: bundles)
+
+        return bundles.map { bundle in
+            let profile = profilesByID[bundle.post.userId]
+            return bundle.makeFeedItem(
+                authorName: profile?.displayName ?? "SOOM 사용자",
+                authorHandle: profile?.handle,
+                currentUserId: currentUserId
+            )
+        }
+    }
+
     func fetchPost(id: UUID) async throws -> FeedItem? {
         guard clientProvider.state == .ready else {
             throw FeedRepositoryError.unconfigured

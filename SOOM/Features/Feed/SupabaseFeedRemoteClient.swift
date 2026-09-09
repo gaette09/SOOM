@@ -82,6 +82,84 @@ struct SupabaseFeedRemoteClient: FeedRemotePostFetching, FeedRemoteProfileFetchi
         }
     }
 
+    func fetchSavedFeedPosts() async throws -> [FeedPostBundleDTO] {
+        let session = try await client.auth.session
+        let savedBookmarkRows: [FeedBookmarkDTO] = try await client
+            .from("feed_bookmarks")
+            .select()
+            .eq("user_id", value: session.user.id)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+
+        guard !savedBookmarkRows.isEmpty else {
+            return []
+        }
+
+        let savedPostIDs = savedBookmarkRows.map(\.postId)
+        let posts: [FeedPostDTO] = try await client
+            .from("feed_posts")
+            .select()
+            .in("id", values: savedPostIDs)
+            .execute()
+            .value
+
+        guard !posts.isEmpty else {
+            return []
+        }
+
+        let postIDs = posts.map(\.id)
+
+        async let media: [FeedPostMediaDTO] = client
+            .from("feed_post_media")
+            .select()
+            .in("post_id", values: postIDs)
+            .execute()
+            .value
+
+        async let reactions: [FeedReactionDTO] = client
+            .from("feed_reactions")
+            .select()
+            .in("post_id", values: postIDs)
+            .execute()
+            .value
+
+        async let comments: [FeedCommentDTO] = client
+            .from("feed_comments")
+            .select()
+            .in("post_id", values: postIDs)
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+
+        async let bookmarks: [FeedBookmarkDTO] = client
+            .from("feed_bookmarks")
+            .select()
+            .eq("user_id", value: session.user.id)
+            .in("post_id", values: postIDs)
+            .execute()
+            .value
+
+        let (mediaRows, reactionRows, commentRows, bookmarkRows) = try await (media, reactions, comments, bookmarks)
+
+        let mediaByPost = Dictionary(grouping: mediaRows, by: \.postId)
+        let reactionsByPost = Dictionary(grouping: reactionRows, by: \.postId)
+        let commentsByPost = Dictionary(grouping: commentRows, by: \.postId)
+        let bookmarksByPost = Dictionary(grouping: bookmarkRows, by: \.postId)
+        let postsByID = Dictionary(uniqueKeysWithValues: posts.map { ($0.id, $0) })
+        let orderedPosts = savedBookmarkRows.compactMap { postsByID[$0.postId] }
+
+        return orderedPosts.map { post in
+            FeedPostBundleDTO(
+                post: post,
+                media: mediaByPost[post.id] ?? [],
+                reactions: reactionsByPost[post.id] ?? [],
+                comments: commentsByPost[post.id] ?? [],
+                bookmarks: bookmarksByPost[post.id] ?? []
+            )
+        }
+    }
+
     /// Same shape as fetchFeedPosts, scoped to a single id via `.eq`
     /// instead of `.limit` — this is the exact same `client` (same
     /// authenticated session, same RLS) as every other method here, not a

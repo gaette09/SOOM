@@ -19,6 +19,7 @@ struct FeedView: View {
     @State private var visibleItems: [FeedItem]
     @State private var isSignInSheetPresented = false
     @State private var isSearchPresented = false
+    @State private var isSavedPostsPresented = false
     @State private var isNotificationsInboxPresented = false
     @State private var unreadNotificationCount = 0
 
@@ -151,6 +152,9 @@ struct FeedView: View {
                 feedDestination(for: item)
             }
         }
+        .sheet(isPresented: $isSavedPostsPresented) {
+            FeedSavedPostsViewContainer()
+        }
         .sheet(isPresented: $isNotificationsInboxPresented) {
             NotificationInboxView(
                 fetcher: notificationFetcher,
@@ -207,6 +211,9 @@ struct FeedView: View {
 
             headerIconButton(icon: "magnifyingglass", label: "검색") {
                 isSearchPresented = true
+            }
+            headerIconButton(icon: "bookmark", label: "저장한 글") {
+                isSavedPostsPresented = true
             }
             headerIconButton(icon: "bell", label: "알림") {
                 isNotificationsInboxPresented = true

@@ -30,6 +30,7 @@
 		01F001 /* FeedReadModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F001 /* FeedReadModel.swift */; };
 		01F002 /* FeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F002 /* FeedViewModel.swift */; };
 		01F003 /* FeedViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F003 /* FeedViewContainer.swift */; };
+		0108A0 /* FeedSavedPostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0208A0 /* FeedSavedPostsView.swift */; };
 		01F004 /* FeedFoundationCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F004 /* FeedFoundationCards.swift */; };
 		010015 /* ClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020015 /* ClubsView.swift */; };
 		010524 /* ClubDomainFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020524 /* ClubDomainFoundation.swift */; };
@@ -583,6 +584,7 @@
 		02F001 /* FeedReadModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedReadModel.swift; sourceTree = "<group>"; };
 		02F002 /* FeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewModel.swift; sourceTree = "<group>"; };
 		02F003 /* FeedViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewContainer.swift; sourceTree = "<group>"; };
+		0208A0 /* FeedSavedPostsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedSavedPostsView.swift; sourceTree = "<group>"; };
 		02F004 /* FeedFoundationCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFoundationCards.swift; sourceTree = "<group>"; };
 		020015 /* ClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubsView.swift; sourceTree = "<group>"; };
 		020524 /* ClubDomainFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDomainFoundation.swift; sourceTree = "<group>"; };
@@ -1521,6 +1523,7 @@
 				02F001 /* FeedReadModel.swift */,
 				02F002 /* FeedViewModel.swift */,
 				02F003 /* FeedViewContainer.swift */,
+				0208A0 /* FeedSavedPostsView.swift */,
 				02F004 /* FeedFoundationCards.swift */,
 				020014 /* FeedView.swift */,
 				0205F3 /* FeedItemDetailView.swift */,
@@ -2108,6 +2111,7 @@
 				01F001 /* FeedReadModel.swift in Sources */,
 				01F002 /* FeedViewModel.swift in Sources */,
 				01F003 /* FeedViewContainer.swift in Sources */,
+				0108A0 /* FeedSavedPostsView.swift in Sources */,
 				01F004 /* FeedFoundationCards.swift in Sources */,
 				010014 /* FeedView.swift in Sources */,
 				010015 /* ClubsView.swift in Sources */,
