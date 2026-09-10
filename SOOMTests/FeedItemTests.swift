@@ -41,7 +41,6 @@ final class FeedItemTests: XCTestCase {
             .feed,
             .activity,
             .club,
-            .coach,
             .profile
         ]
 

@@ -22,6 +22,7 @@ struct FeedView: View {
     @State private var isSavedPostsPresented = false
     @State private var isNotificationsInboxPresented = false
     @State private var unreadNotificationCount = 0
+    @State private var isPresentingFeedWorkoutImport = false
 
     init(
         items: [FeedItem] = FeedMockData.items,
@@ -128,6 +129,9 @@ struct FeedView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $isPresentingFeedWorkoutImport) {
+            HealthKitWorkoutImportViewContainer()
+        }
         .onAppear {
             hasAppeared = true
         }
@@ -313,7 +317,10 @@ struct FeedView: View {
                     SOOMFirstJourneyAction(
                         title: "첫 운동 가져오기",
                         subtitle: "Health 앱의 최근 움직임을 SOOM의 이야기로 이어봅니다.",
-                        iconName: SOOMIcon.sync
+                        iconName: SOOMIcon.sync,
+                        action: {
+                            isPresentingFeedWorkoutImport = true
+                        }
                     ),
                     SOOMFirstJourneyAction(
                         title: "추천 코스 보기",

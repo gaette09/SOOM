@@ -736,6 +736,7 @@ private struct ActivityView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
     @Environment(\.modelContext) private var modelContext
     @State private var savedWorkouts: [UnifiedWorkout] = []
+    @State private var isPresentingActivityWorkoutImport = false
 
     var body: some View {
         SOOMScreen {
@@ -747,6 +748,9 @@ private struct ActivityView: View {
             libraryManagementSection
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $isPresentingActivityWorkoutImport) {
+            HealthKitWorkoutImportViewContainer()
+        }
         .task {
             await loadSavedWorkouts()
         }
@@ -775,7 +779,10 @@ private struct ActivityView: View {
                         SOOMFirstJourneyAction(
                             title: "첫 운동 가져오기",
                             subtitle: "HealthKit에서 불러온 기록은 상세 흐름의 시작점이 됩니다.",
-                            iconName: SOOMIcon.sync
+                            iconName: SOOMIcon.sync,
+                            action: {
+                                isPresentingActivityWorkoutImport = true
+                            }
                         ),
                         SOOMFirstJourneyAction(
                             title: "route preview 보기",

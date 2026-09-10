@@ -120,7 +120,6 @@ enum SOOMFirstJourneyContext: String, Equatable {
     case feed
     case activity
     case club
-    case coach
     case profile
 }
 
@@ -155,14 +154,6 @@ struct SOOMFirstJourneyPrompt: Equatable {
         accent: .club
     )
 
-    static let coach = SOOMFirstJourneyPrompt(
-        context: .coach,
-        title: "조금 더 움직임이 쌓이면 회복 흐름을 읽을 수 있어요",
-        message: "지금은 무리한 판단보다 오늘의 컨디션을 부드럽게 확인하는 companion으로 머물게요.",
-        iconName: SOOMIcon.recovery,
-        accent: .recovery
-    )
-
     static let profile = SOOMFirstJourneyPrompt(
         context: .profile,
         title: "Health 앱과 연결하면 움직임을 더 자연스럽게 이어볼 수 있어요",
@@ -172,16 +163,19 @@ struct SOOMFirstJourneyPrompt: Equatable {
     )
 }
 
-struct SOOMFirstJourneyAction: Identifiable, Equatable {
+struct SOOMFirstJourneyAction: Identifiable {
     let id = UUID()
     let title: String
     let subtitle: String
     let iconName: String
 
-    init(title: String, subtitle: String, iconName: String) {
+    let action: () -> Void
+
+    init(title: String, subtitle: String, iconName: String, action: @escaping () -> Void = {}) {
         self.title = title
         self.subtitle = subtitle
         self.iconName = iconName
+        self.action = action
     }
 }
 
@@ -228,27 +222,30 @@ struct SOOMFirstJourneyCard: View {
             if !actions.isEmpty {
                 VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                     ForEach(actions) { action in
-                        HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                            Image(systemName: action.iconName)
-                                .font(.system(size: SOOMFont.Size.caption, weight: .semibold))
-                                .foregroundStyle(prompt.accent.color.opacity(0.78))
-                                .frame(width: 24, height: 24)
-                                .background(prompt.accent.color.opacity(0.08))
-                                .clipShape(Circle())
-                                .accessibilityHidden(true)
+                        Button(action: action.action) {
+                            HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
+                                Image(systemName: action.iconName)
+                                    .font(.system(size: SOOMFont.Size.caption, weight: .semibold))
+                                    .foregroundStyle(prompt.accent.color.opacity(0.78))
+                                    .frame(width: 24, height: 24)
+                                    .background(prompt.accent.color.opacity(0.08))
+                                    .clipShape(Circle())
+                                    .accessibilityHidden(true)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(action.title)
-                                    .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                                    .foregroundStyle(SOOMColor.ink)
-                                Text(action.subtitle)
-                                    .font(SOOMFont.body(12, relativeTo: .caption))
-                                    .foregroundStyle(SOOMColor.secondaryInk)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(action.title)
+                                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                                        .foregroundStyle(SOOMColor.ink)
+                                    Text(action.subtitle)
+                                        .font(SOOMFont.body(12, relativeTo: .caption))
+                                        .foregroundStyle(SOOMColor.secondaryInk)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer(minLength: 0)
                             }
-
-                            Spacer(minLength: 0)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, SOOMLayout.Spacing.xs)

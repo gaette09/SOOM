@@ -8,6 +8,7 @@ struct ProfileIdentityView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var localDataPresence: LocalDataPresence = .empty
     @State private var profileIdentity: ProfileIdentitySystem = .foundation
+    @State private var isPresentingProfileHealthSettings = false
 
     var body: some View {
         SOOMScreen {
@@ -32,6 +33,9 @@ struct ProfileIdentityView: View {
             signatureRoutesSection
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $isPresentingProfileHealthSettings) {
+            HealthKitSettingsViewContainer()
+        }
         .task {
             await refreshLocalDataPresence()
             await refreshProfileIdentity()
@@ -80,7 +84,10 @@ struct ProfileIdentityView: View {
                 SOOMFirstJourneyAction(
                     title: "Health 앱 연결",
                     subtitle: "권한을 허용하면 첫 운동 기록을 SOOM으로 이어볼 수 있어요.",
-                    iconName: SOOMIcon.health
+                    iconName: SOOMIcon.health,
+                    action: {
+                        isPresentingProfileHealthSettings = true
+                    }
                 ),
                 SOOMFirstJourneyAction(
                     title: "로컬로 먼저 시작",
