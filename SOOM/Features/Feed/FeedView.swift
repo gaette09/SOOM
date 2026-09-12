@@ -13,6 +13,7 @@ struct FeedView: View {
     let onSubmitComment: (FeedItem, String) -> Void
     let onDeletePost: (FeedItem) -> Void
     let onNavigateToClubs: () -> Void
+    let onNavigateToRouteRecommendation: () -> Void
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var notificationDeepLinkRouter: NotificationDeepLinkRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,7 +37,8 @@ struct FeedView: View {
         onToggleSave: @escaping (FeedItem) -> Void = { _ in },
         onSubmitComment: @escaping (FeedItem, String) -> Void = { _, _ in },
         onDeletePost: @escaping (FeedItem) -> Void = { _ in },
-        onNavigateToClubs: @escaping () -> Void = {}
+        onNavigateToClubs: @escaping () -> Void = {},
+        onNavigateToRouteRecommendation: @escaping () -> Void = {}
     ) {
         let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
@@ -50,6 +52,7 @@ struct FeedView: View {
         self.onSubmitComment = onSubmitComment
         self.onDeletePost = onDeletePost
         self.onNavigateToClubs = onNavigateToClubs
+        self.onNavigateToRouteRecommendation = onNavigateToRouteRecommendation
         _visibleItems = State(initialValue: sortedItems)
     }
 
@@ -328,7 +331,8 @@ struct FeedView: View {
                     SOOMFirstJourneyAction(
                         title: "추천 코스 보기",
                         subtitle: "오늘은 짧고 편하게 시작할 수 있는 route를 먼저 둡니다.",
-                        iconName: SOOMIcon.map
+                        iconName: SOOMIcon.map,
+                        action: onNavigateToRouteRecommendation
                     ),
                     SOOMFirstJourneyAction(
                         title: "천천히 맞는 클럽 찾기",

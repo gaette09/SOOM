@@ -46,12 +46,14 @@ struct RecordView: View {
         weatherService: any RecordWeatherService = RecordWeatherServiceFactory.make(),
         onDismiss: (() -> Void)? = nil,
         onSaveComplete: (() -> Void)? = nil,
-        onShareDraftComplete: (() -> Void)? = nil
+        onShareDraftComplete: (() -> Void)? = nil,
+        shouldAutoPresentRouteRecommendation: Bool = false
     ) {
         self.weatherService = weatherService
         self.onDismiss = onDismiss
         self.onSaveComplete = onSaveComplete
         self.onShareDraftComplete = onShareDraftComplete
+        _isRouteRecommendationPresented = State(initialValue: shouldAutoPresentRouteRecommendation)
     }
 
     var body: some View {
@@ -103,6 +105,9 @@ struct RecordView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isWeatherDetailPresented) {
             weatherDetailSheet
+        }
+        .sheet(isPresented: $isRouteRecommendationPresented) {
+            routeRecommendationSheet
         }
         .onChange(of: locationManager.state) { _, newState in
             recordLocationIfNeeded(from: newState)

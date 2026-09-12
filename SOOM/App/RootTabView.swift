@@ -53,6 +53,7 @@ struct RootTabView: View {
     @State private var selectedTab: SOOMTab = .feed
     @State private var isRecordLaunchPresented = false
     @State private var shouldReturnToActivityAfterRecordSave = false
+    @State private var shouldAutoPresentRouteRecommendationOnRecordLaunch = false
     @State private var shouldShowInitialCoachPreview = true
     @State private var feedNavigationPath = NavigationPath()
     @StateObject private var tabBarVisibility = SOOMTabBarVisibility()
@@ -115,6 +116,7 @@ struct RootTabView: View {
         .fullScreenCover(isPresented: $isRecordLaunchPresented, onDismiss: {
             selectedTab = shouldReturnToActivityAfterRecordSave ? .activity : .feed
             shouldReturnToActivityAfterRecordSave = false
+            shouldAutoPresentRouteRecommendationOnRecordLaunch = false
         }) {
             NavigationStack {
                 RecordView(
@@ -131,7 +133,8 @@ struct RootTabView: View {
                         shouldReturnToActivityAfterRecordSave = false
                         selectedTab = .feed
                         isRecordLaunchPresented = false
-                    }
+                    },
+                    shouldAutoPresentRouteRecommendation: shouldAutoPresentRouteRecommendationOnRecordLaunch
                 )
             }
             .preferredColorScheme(.light)
@@ -162,7 +165,14 @@ struct RootTabView: View {
         switch selectedTab {
         case .feed:
             NavigationStack(path: $feedNavigationPath) {
-                FeedViewContainer(onNavigateToClubs: { selectedTab = .clubs })
+                FeedViewContainer(
+                    onNavigateToClubs: { selectedTab = .clubs },
+                    onNavigateToRouteRecommendation: {
+                        SOOMHaptics.softImpact()
+                        shouldAutoPresentRouteRecommendationOnRecordLaunch = true
+                        isRecordLaunchPresented = true
+                    }
+                )
             }
         case .record:
             NavigationStack {

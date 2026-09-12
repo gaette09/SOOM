@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FeedViewContainer: View {
     let onNavigateToClubs: () -> Void
+    let onNavigateToRouteRecommendation: () -> Void
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: FeedViewModel?
@@ -10,8 +11,12 @@ struct FeedViewContainer: View {
     @State private var notificationFetcher: (any NotificationInboxFetching)?
     @State private var profileFetcher: (any FeedRemoteProfileFetching)?
 
-    init(onNavigateToClubs: @escaping () -> Void = {}) {
+    init(
+        onNavigateToClubs: @escaping () -> Void = {},
+        onNavigateToRouteRecommendation: @escaping () -> Void = {}
+    ) {
         self.onNavigateToClubs = onNavigateToClubs
+        self.onNavigateToRouteRecommendation = onNavigateToRouteRecommendation
     }
 
     var body: some View {
@@ -46,7 +51,8 @@ struct FeedViewContainer: View {
                     readModel = viewModel?.readModel ?? readModel
                 }
             },
-            onNavigateToClubs: onNavigateToClubs
+            onNavigateToClubs: onNavigateToClubs,
+            onNavigateToRouteRecommendation: onNavigateToRouteRecommendation
         )
         .navigationDestination(for: FeedPostRouteTarget.self) { target in
             FeedNotificationDetailLoader(
