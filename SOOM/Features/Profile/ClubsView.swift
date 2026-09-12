@@ -1014,14 +1014,10 @@ private struct ClubEmptyStateView: View {
                 prompt: .club,
                 actions: [
                     SOOMFirstJourneyAction(
-                        title: "비슷한 리듬의 클럽 찾기",
-                        subtitle: "거리보다 꾸준함과 종목이 맞는 온라인 클럽부터 둘러봅니다.",
-                        iconName: SOOMIcon.clubs
-                    ),
-                    SOOMFirstJourneyAction(
                         title: "클럽 만들기",
                         subtitle: "직접 만든 클럽 안에서 주간 랭킹과 챌린지를 열 수 있게 준비 중이에요.",
-                        iconName: SOOMIcon.record
+                        iconName: SOOMIcon.record,
+                        action: onCreate
                     )
                 ],
                 footer: "클럽은 선택한 그룹 안에서만 랭킹과 뱃지가 쌓입니다."

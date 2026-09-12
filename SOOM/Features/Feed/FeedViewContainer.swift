@@ -2,11 +2,17 @@ import SwiftData
 import SwiftUI
 
 struct FeedViewContainer: View {
+    let onNavigateToClubs: () -> Void
+
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: FeedViewModel?
     @State private var readModel = FeedReadModel.loading
     @State private var notificationFetcher: (any NotificationInboxFetching)?
     @State private var profileFetcher: (any FeedRemoteProfileFetching)?
+
+    init(onNavigateToClubs: @escaping () -> Void = {}) {
+        self.onNavigateToClubs = onNavigateToClubs
+    }
 
     var body: some View {
         FeedView(
@@ -39,7 +45,8 @@ struct FeedViewContainer: View {
                     await viewModel?.deletePost(item)
                     readModel = viewModel?.readModel ?? readModel
                 }
-            }
+            },
+            onNavigateToClubs: onNavigateToClubs
         )
         .navigationDestination(for: FeedPostRouteTarget.self) { target in
             FeedNotificationDetailLoader(

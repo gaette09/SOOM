@@ -12,6 +12,7 @@ struct FeedView: View {
     let onToggleSave: (FeedItem) -> Void
     let onSubmitComment: (FeedItem, String) -> Void
     let onDeletePost: (FeedItem) -> Void
+    let onNavigateToClubs: () -> Void
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var notificationDeepLinkRouter: NotificationDeepLinkRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -34,7 +35,8 @@ struct FeedView: View {
         onToggleCheer: @escaping (FeedItem) -> Void = { _ in },
         onToggleSave: @escaping (FeedItem) -> Void = { _ in },
         onSubmitComment: @escaping (FeedItem, String) -> Void = { _, _ in },
-        onDeletePost: @escaping (FeedItem) -> Void = { _ in }
+        onDeletePost: @escaping (FeedItem) -> Void = { _ in },
+        onNavigateToClubs: @escaping () -> Void = {}
     ) {
         let sortedItems = FeedView.prioritizedItems(items)
         self.items = sortedItems
@@ -47,6 +49,7 @@ struct FeedView: View {
         self.onToggleSave = onToggleSave
         self.onSubmitComment = onSubmitComment
         self.onDeletePost = onDeletePost
+        self.onNavigateToClubs = onNavigateToClubs
         _visibleItems = State(initialValue: sortedItems)
     }
 
@@ -330,7 +333,8 @@ struct FeedView: View {
                     SOOMFirstJourneyAction(
                         title: "천천히 맞는 클럽 찾기",
                         subtitle: "속도보다 분위기가 맞는 사람들을 만나는 입구입니다.",
-                        iconName: SOOMIcon.clubs
+                        iconName: SOOMIcon.clubs,
+                        action: onNavigateToClubs
                     )
                 ],
                 footer: "피드는 기록이 쌓일수록 점수판보다 하루의 흐름처럼 읽히게 됩니다."

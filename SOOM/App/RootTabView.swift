@@ -162,7 +162,7 @@ struct RootTabView: View {
         switch selectedTab {
         case .feed:
             NavigationStack(path: $feedNavigationPath) {
-                FeedViewContainer()
+                FeedViewContainer(onNavigateToClubs: { selectedTab = .clubs })
             }
         case .record:
             NavigationStack {
