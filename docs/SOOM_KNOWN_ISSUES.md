@@ -53,10 +53,6 @@ Record route capture stores active-session coordinates. Background GPS, smoothin
 
 Share uses image export and iOS share sheet guidance. Direct Instagram Story API integration is deferred.
 
-### Club Staging Migration
-
-Club Supabase migration is prepared and hardened but not yet applied to production. Staging smoke test is required first.
-
 ### Recovery Load Estimate Heart-Rate Default
 
 Confirm before public launch. `estimateRelativeEffort`/`estimateTrainingLoad` (`ProcessedWorkoutToRecoveryActivityMapper.swift`, `UnifiedWorkoutToRecoveryActivityMapper.swift`, and the other two mapper copies carrying the same TODO) fall back to `averageHeartRate ?? 120` when a workout has no heart rate data, instead of treating missing heart rate as zero contribution. Every workout recorded without a paired Watch/HR sensor — which is every workout recorded in the Simulator, and any device-only Record session — always hits this default, so a zero-effort workout still reports a small nonzero effort/load (e.g. relativeEffort 16, trainingLoad 15 for a 0-duration, no-data activity) instead of near-zero. Output stays inside the existing clamp bounds ([1,100] / [5,180]), so it is not a launch blocker, but it is a real logic gap, not just an estimation-accuracy nit — worth fixing alongside the existing TRIMP/HR-zone TODOs (`RecoveryCalculator.swift:225`, `RecoveryActivityMapper.swift:131`, `HealthKitRecoveryActivityMapper.swift:55`, `UnifiedWorkoutToRecoveryActivityMapper.swift:56`).
@@ -110,6 +106,10 @@ Found 2026-09-03 while landing the Feed bookmark feature's saved-posts list scre
 Found 2026-08-29, same audit as above — the other half of `club_foundation_v1.sql`'s "Deferred: ... moderation tools." Confirmed zero matches for `moderat` anywhere in club-related Swift code (the only `moderate` hits in the app are unrelated recovery/weather/terrain difficulty levels). The only membership-changing action a user has is `leaveClub` (leaving voluntarily). There is no way for an owner/admin to remove a member, no report/block flow, and no role-management UI — `role = .admin` in `ClubDomainFoundation.swift` is a display-only label parsed from mock member text ("리더"/"1위"), not a real permission grant or a way to change anyone's role. Any bad actor in a club today can only be dealt with by every other member leaving. Trigger to act: before launch, if clubs are expected to hold more than a handful of trusted members, or a real report/abuse case surfaces.
 
 ## Resolved
+
+### Club Staging Migration Was Already Applied — Entry Was Stale (resolved 2026-09-13)
+
+This entry previously read "Club Supabase migration is prepared and hardened but not yet applied to production. Staging smoke test is required first." That was stale, not current: `supabase migration list` confirms `20260826174205_club_foundation_v1.sql` is applied identically on both Local and Remote (the linked `wpxllqelmqoysqmzneop` / "SOOM : Recovery" project) — verified 2026-09-13 and previously spot-checked earlier in the same feature work. No action needed; the doc just hadn't been updated after the migration actually shipped.
 
 ### Feed Comments Only Ever Showed One, With No Defined Ordering (resolved 2026-08-30)
 
