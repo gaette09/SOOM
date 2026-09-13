@@ -9,6 +9,7 @@ struct ProfileIdentityView: View {
     @State private var localDataPresence: LocalDataPresence = .empty
     @State private var profileIdentity: ProfileIdentitySystem = .foundation
     @State private var isPresentingProfileHealthSettings = false
+    @State private var isProfileFirstJourneyDismissed = false
 
     var body: some View {
         SOOMScreen {
@@ -74,7 +75,9 @@ struct ProfileIdentityView: View {
     }
 
     private var shouldShowProfileFirstJourney: Bool {
-        authViewModel.session.currentUser?.authProvider != .supabase && !localDataPresence.hasAnyData
+        !isProfileFirstJourneyDismissed
+            && authViewModel.session.currentUser?.authProvider != .supabase
+            && !localDataPresence.hasAnyData
     }
 
     private var profileFirstJourneyCard: some View {
@@ -92,7 +95,10 @@ struct ProfileIdentityView: View {
                 SOOMFirstJourneyAction(
                     title: "로컬로 먼저 시작",
                     subtitle: "계정 연결 전에도 이 기기에서 조용히 기록을 쌓을 수 있어요.",
-                    iconName: SOOMIcon.profile
+                    iconName: SOOMIcon.profile,
+                    action: {
+                        isProfileFirstJourneyDismissed = true
+                    }
                 )
             ],
             footer: "설정은 체크리스트보다 신뢰를 쌓는 공간으로 유지합니다."
