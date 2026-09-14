@@ -3,6 +3,7 @@ import SwiftUI
 struct UnifiedWorkoutLibraryView: View {
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
     private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    private let comparisonHistoryProvider: WorkoutComparisonHistoryProviding?
     private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     private let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     private let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
@@ -15,6 +16,7 @@ struct UnifiedWorkoutLibraryView: View {
     init(
         viewModel: UnifiedWorkoutLibraryViewModel,
         similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
+        comparisonHistoryProvider: WorkoutComparisonHistoryProviding? = nil,
         detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
         relativeEffortHistoryProvider: RelativeEffortHistoryProviding? = nil,
         achievementHistoryProvider: WorkoutAchievementHistoryProviding? = nil,
@@ -26,6 +28,7 @@ struct UnifiedWorkoutLibraryView: View {
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.similarCandidateProvider = similarCandidateProvider
+        self.comparisonHistoryProvider = comparisonHistoryProvider
         self.detailRouteContextProvider = detailRouteContextProvider
         self.relativeEffortHistoryProvider = relativeEffortHistoryProvider
         self.achievementHistoryProvider = achievementHistoryProvider
@@ -180,6 +183,7 @@ struct UnifiedWorkoutLibraryView: View {
                     workout: workout,
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
                     similarCandidateProvider: similarCandidateProvider,
+                    comparisonHistoryProvider: comparisonHistoryProvider,
                     detailRouteContextProvider: detailRouteContextProvider,
                     relativeEffortHistoryProvider: relativeEffortHistoryProvider,
                     achievementHistoryProvider: achievementHistoryProvider,
@@ -207,6 +211,7 @@ private struct UnifiedWorkoutLibraryRow: View {
     let workout: UnifiedWorkout
     let isUpdating: Bool
     let similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    let comparisonHistoryProvider: WorkoutComparisonHistoryProviding?
     let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
@@ -225,6 +230,7 @@ private struct UnifiedWorkoutLibraryRow: View {
                     UnifiedWorkoutDetailDestination(
                         unifiedWorkout: workout,
                         similarCandidateProvider: similarCandidateProvider,
+                        comparisonHistoryProvider: comparisonHistoryProvider,
                         detailRouteContextProvider: detailRouteContextProvider,
                         relativeEffortHistoryProvider: relativeEffortHistoryProvider,
                         achievementHistoryProvider: achievementHistoryProvider,
@@ -392,6 +398,7 @@ struct UnifiedWorkoutDetailDestination: View {
     let unifiedWorkout: UnifiedWorkout
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
     var similarCandidateProvider: SimilarWorkoutCandidateProviding?
+    var comparisonHistoryProvider: WorkoutComparisonHistoryProviding?
     var detailRouteContextProvider: WorkoutDetailRouteContextProviding?
     var relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
     var achievementHistoryProvider: WorkoutAchievementHistoryProviding?
@@ -403,6 +410,7 @@ struct UnifiedWorkoutDetailDestination: View {
 
     @State private var zoneContext = WorkoutDetailZoneContext.fallback
     @State private var persistedRoute: WorkoutRoute?
+    @State private var comparisonWorkouts: [Workout] = []
     @State private var comparisonInsight: WorkoutComparisonInsight?
     @State private var courseRecord: CourseRecord?
     @State private var courseProgression: CourseProgressionTimeline?
@@ -418,6 +426,7 @@ struct UnifiedWorkoutDetailDestination: View {
     var body: some View {
         WorkoutDeepDetailView(
             workout: Workout(unifiedWorkout: unifiedWorkout),
+            comparisonWorkouts: comparisonWorkouts,
             healthKitWorkout: zoneContext.healthKitWorkout,
             zoneDataProvider: zoneContext.zoneDataProvider,
             splitDataProvider: zoneContext.splitDataProvider,
@@ -444,6 +453,7 @@ struct UnifiedWorkoutDetailDestination: View {
             comparisonInsight = buildComparisonInsight(from: candidateResult)
             courseRecord = buildCourseRecord(from: candidateResult)
             courseProgression = buildCourseProgression(from: candidateResult)
+            comparisonWorkouts = await comparisonHistoryProvider?.comparisonWorkouts(excluding: unifiedWorkout.id) ?? []
             climbInsight = buildClimbInsight()
             await loadChartData()
             await loadRelativeEffortComparison()
@@ -701,7 +711,7 @@ struct UnifiedWorkoutDetailDestination: View {
     }
 }
 
-private extension Workout {
+extension Workout {
     init(unifiedWorkout workout: UnifiedWorkout) {
         let sport = WorkoutSport(unifiedWorkoutType: workout.workoutType)
         let distanceMeters = workout.distanceMeters ?? 0

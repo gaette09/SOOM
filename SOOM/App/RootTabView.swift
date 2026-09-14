@@ -885,6 +885,9 @@ private struct ActivityView: View {
                             store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
                         )
                     ),
+                    comparisonHistoryProvider: SwiftDataWorkoutComparisonHistoryProvider(
+                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
+                    ),
                     detailRouteContextProvider: WorkoutDetailRouteContextProvider(
                         store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
                     ),

@@ -72,6 +72,7 @@ struct FeedItemDetailDestination: View {
                 store: store,
                 persistedRouteProvider: routeCandidateProvider
             ),
+            comparisonHistoryProvider: SwiftDataWorkoutComparisonHistoryProvider(store: store),
             detailRouteContextProvider: WorkoutDetailRouteContextProvider(store: routeStore),
             relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(store: store),
             achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(workoutStore: store, routeStore: routeStore),
