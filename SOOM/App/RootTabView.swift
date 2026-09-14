@@ -879,6 +879,12 @@ private struct ActivityView: View {
             NavigationLink {
                 UnifiedWorkoutDetailDestination(
                     unifiedWorkout: unifiedWorkout,
+                    similarCandidateProvider: SimilarWorkoutCandidateProvider(
+                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
+                        persistedRouteProvider: PersistedRouteCandidateProvider(
+                            store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
+                        )
+                    ),
                     detailRouteContextProvider: WorkoutDetailRouteContextProvider(
                         store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
                     ),
