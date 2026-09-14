@@ -17,6 +17,22 @@ Operating rules:
 - Do not deploy.
 - Do not commit unless explicitly requested.
 
+## In-Flight Handoff — Growth-Comparison 배선 (2026-09-14)
+
+브랜치 `feature/soom-ios-feed-foundation-01`. 대상 이슈: `SOOM_KNOWN_ISSUES.md`의 "Growth-Comparison Sections Silently Empty on '활동 탭 최근 운동' Path".
+
+- **배치A — 커밋 완료** `223369a`. `RootTabView` `.directWorkout`에 `similarCandidateProvider` 배선.
+- **배치B — 커밋 완료** `f214a37`. `WorkoutComparisonHistoryProviding`/`SwiftDataWorkoutComparisonHistoryProvider`(새 파일) + `UnifiedWorkoutDetailDestination`에 `comparisonWorkouts` 전달 + 호출부 3곳(RootTabView, FeedItemDetailView, 라이브러리 4단계) 배선 + 테스트 4개 + pbxproj 8곳.
+- **검증**: 최종 코드 기준(아래 줄 이동 포함) 빌드 성공, 전체 테스트 **1222/1222 통과**(기존 1218 + 신규 4, 실패·스킵 0, `WorkoutChartDataBuilderTests`는 관례대로 skip).
+- **확정된 결정 (사용자 답변)**
+  - 조회 기간 **180일**(오늘 기준). "최근 운동" 목록(`loadSavedWorkouts`, 180일)과 맞춤. 180일 밖으로 넓히는 폴백은 없음 — 해당 기록이 없으면 `[]` → 기존 "비교할 최근 기록이 아직 부족해요" 문구.
+  - `isExcludedFromAnalysis` 기록은 제외(형제 provider 4개와 동일).
+  - fetch 실패 시 `[]` 폴백은 유지하되 `print("[WorkoutComparisonHistoryProvider] fetchRecentWorkouts failed: ...")` 로그 한 줄.
+  - `.task` 안에서 `comparisonWorkouts` 할당을 `courseProgression = ...` 직후로 이동 — override 3개가 채워지기 전엔 `[]`로 남아, 자체계산 경로가 180일 데이터로 잠깐 다른 baseline을 보여주는 틈을 없앰.
+  - `Workout(unifiedWorkout:)`의 `private extension` → `extension`(새 파일에서 호출하기 위한 접근 수준 확대).
+- **미결 질문**: 없음.
+- **남은 일 — 배치C뿐**: 시뮬레이터에서 활동 탭 "최근 운동" → 운동 상세를 열어, comparisonInsight/courseRecord/courseProgression이 override 결과로 실제 화면에 반영되는지(그리고 growth 섹션이 자기 자신이 아닌 실제 이전 기록과 비교되는지) 최종 확인. 주의: 활동 탭 진입에 탭바 탭이 필요한데, `SOOM_KNOWN_ISSUES.md` "Simulator Tab Bar Rejects Automated Taps" 이슈로 자동 탭이 막힐 수 있음. 배치C 확인 후 위 known-issue 항목을 Resolved로 옮길 것.
+
 ## Active Parallel Queue
 
 | Priority | Project | Task | Task file | Status |
