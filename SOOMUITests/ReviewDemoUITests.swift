@@ -1481,6 +1481,74 @@ final class ReviewDemoUITests: XCTestCase {
         XCTAssertLessThanOrEqual(count("cost"), 32 * 1024 * 1024)
     }
 
+    func test72MapAndPhotoDetailKeepsMediaToggleAndSameMovableLayer() {
+        continueAfterFailure = false
+        let app = uxLaunch(environment: ["SOOM_PROJECTION_SUMMARY_QA":"1", "SOOM_PROJECTION_OWN_PARITY_QA":"1"])
+        defer { app.terminate() }
+        tap(app.buttons["soom.tab.activity"], in: app)
+        tap(app.buttons["activity.section.workouts"], in: app)
+        let running = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "DEMO ·", "공원 러닝")).firstMatch
+        uxReveal(running, in: app); tap(running, in: app)
+        let toggle = app.buttons["운동 사진 보기"].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        tap(toggle, in: app)
+        let mapToggle = app.buttons["지도로 전환"].firstMatch
+        XCTAssertTrue(mapToggle.waitForExistence(timeout: 5))
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "workout.detail.heroPhoto.")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 5))
+        let handle = app.buttons["상세 정보 시트"]
+        XCTAssertTrue(handle.exists)
+        capture(app, name: "72 existing photo-plus-map detail retains map inset and shared layer")
+        tap(handle, in: app)
+        let collapse = app.buttons["상세 정보 접기"].firstMatch
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5)); tap(collapse, in: app)
+        XCTAssertTrue(mapToggle.waitForExistence(timeout: 5)); tap(mapToggle, in: app)
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["workout.detail.routePlayback"].exists)
+        tap(app.buttons["뒤로가기"].firstMatch, in: app)
+        XCTAssertTrue(app.buttons["soom.tab.feed"].waitForExistence(timeout: 5))
+    }
+
+    func test72PhotoOnlyDetailHasMovableLayerWithoutMapAndRetainsGallery() {
+        continueAfterFailure = false
+        let app = uxLaunch(environment: ["SOOM_PROJECTION_SUMMARY_QA":"1", "SOOM_PROFILE_PHOTO_QA":"1", "SOOM_PROFILE_NAVIGATION_QA":"1"])
+        defer { app.terminate() }
+        let title = app.buttons["러닝 기록"].firstMatch
+        uxReveal(title, in: app); tap(title, in: app)
+        let hero = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "workout.detail.heroPhoto.")).firstMatch
+        XCTAssertTrue(hero.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["workout.detail.heroMediaToggle"].exists)
+        XCTAssertFalse(app.buttons["workout.detail.routePlayback"].exists)
+        let handle = app.buttons["상세 정보 시트"]
+        XCTAssertTrue(handle.waitForExistence(timeout: 5))
+        capture(app, name: "72 photo-only detail uses same media sheet without map")
+        let initialY = handle.frame.minY
+        let dragStart = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        dragStart.press(forDuration: 0.1, thenDragTo: dragStart.withOffset(CGVector(dx: 0, dy: 190)))
+        let lowered = NSPredicate { _, _ in handle.exists && handle.frame.minY > initialY + 40 }
+        expectation(for: lowered, evaluatedWith: nil); waitForExpectations(timeout: 5)
+        capture(app, name: "72 photo-only downward drag enlarges photo viewport")
+        let lowerStart = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        lowerStart.press(forDuration: 0.1, thenDragTo: lowerStart.withOffset(CGVector(dx: 0, dy: -190)))
+        let raised = NSPredicate { _, _ in handle.exists && handle.frame.minY <= initialY + 20 }
+        expectation(for: raised, evaluatedWith: nil); waitForExpectations(timeout: 5)
+        tap(handle, in: app)
+        let collapse = app.buttons["상세 정보 접기"].firstMatch
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5))
+        tap(collapse, in: app)
+        XCTAssertTrue(handle.waitForExistence(timeout: 5))
+        let image = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "workout.detail.heroPhoto.")).firstMatch
+        XCTAssertTrue(image.waitForExistence(timeout: 5))
+        tap(image, in: app)
+        XCTAssertTrue(app.buttons["workout.photo.close"].waitForExistence(timeout: 5))
+        tap(app.buttons["workout.photo.close"], in: app)
+        XCUIDevice.shared.press(.home); app.activate()
+        XCTAssertTrue(handle.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["게시물 삭제"].exists)
+        tap(app.buttons["뒤로가기"].firstMatch, in: app)
+        XCTAssertTrue(app.buttons["댓글 보기"].waitForExistence(timeout: 5))
+    }
+
     func testProfilePolicyLegacyPhotosWithoutSnapshotSurviveDetailAndForeground() {
         let app = uxLaunch(environment: ["SOOM_PROJECTION_SUMMARY_QA":"1", "SOOM_PROFILE_PHOTO_QA":"1", "SOOM_PROFILE_NAVIGATION_QA":"1"])
         defer { app.terminate() }
@@ -1538,27 +1606,23 @@ final class ReviewDemoUITests: XCTestCase {
         for attempt in 0..<2 {
             uxReveal(app.buttons["러닝 기록"].firstMatch, in: app)
             tap(app.buttons["러닝 기록"].firstMatch, in: app)
-            XCTAssertTrue(app.navigationBars["운동 상세"].waitForExistence(timeout: 8))
-            uxReveal(photo, in: app)
-            XCTAssertTrue(photo.exists)
-            XCTAssertTrue(indicator.waitForExistence(timeout: 5))
-            XCTAssertTrue((indicator.value as? String ?? "").contains("4페이지"))
-            assertPhotoPixels(photo)
+            let detailPhoto = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "workout.detail.heroPhoto.")).firstMatch
+            XCTAssertTrue(detailPhoto.waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["사진 4"].waitForExistence(timeout: 5))
+            assertPhotoPixels(detailPhoto)
             capture(app, name: "Profile policy actual detail photo pixels \(attempt)")
             XCTAssertFalse(app.buttons["게시물 삭제"].exists)
             if attempt == 0 {
                 XCUIDevice.shared.press(.home); app.activate()
-                XCTAssertTrue(app.navigationBars["운동 상세"].waitForExistence(timeout: 8))
-                uxReveal(photo, in: app)
-                XCTAssertTrue(photo.exists)
+                XCTAssertTrue(detailPhoto.waitForExistence(timeout: 8))
                 XCTAssertFalse(app.staticTexts["사진을 불러올 수 없어요"].exists)
-                assertPhotoPixels(photo)
+                assertPhotoPixels(detailPhoto)
             }
-            tap(photo, in: app)
+            tap(detailPhoto, in: app)
             XCTAssertTrue(app.buttons["workout.photo.close"].waitForExistence(timeout: 5))
             capture(app, name: "Profile policy readonly detail gallery and foreground \(attempt)")
             tap(app.buttons["workout.photo.close"], in: app)
-            tap(app.navigationBars["운동 상세"].buttons.element(boundBy: 0), in: app)
+            tap(app.buttons["뒤로가기"].firstMatch, in: app)
             XCTAssertTrue(app.buttons["댓글 보기"].waitForExistence(timeout: 5))
         }
         let author = app.buttons["데모 운동 기록 프로필 보기"].firstMatch
@@ -1575,16 +1639,16 @@ final class ReviewDemoUITests: XCTestCase {
         let galleryY = galleryItem.frame.minY
         for visit in 0..<2 {
             tap(galleryItem, in: app)
-            XCTAssertTrue(app.navigationBars["운동 상세"].waitForExistence(timeout: 8))
-            let profileDetailPhoto = app.scrollViews["feed.projection.readonlyDetail"].buttons["workout.card.open.photo"].firstMatch
-            uxReveal(profileDetailPhoto, in: app); assertPhotoPixels(profileDetailPhoto)
+            let profileDetailPhoto = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "workout.detail.heroPhoto.")).firstMatch
+            XCTAssertTrue(profileDetailPhoto.waitForExistence(timeout: 8))
+            assertPhotoPixels(profileDetailPhoto)
             if visit == 0 {
                 XCUIDevice.shared.press(.home); app.activate()
-                XCTAssertTrue(app.navigationBars["운동 상세"].waitForExistence(timeout: 8))
-                uxReveal(profileDetailPhoto, in: app); assertPhotoPixels(profileDetailPhoto)
+                XCTAssertTrue(profileDetailPhoto.waitForExistence(timeout: 8))
+                assertPhotoPixels(profileDetailPhoto)
                 capture(app, name: "Gallery-owned detail stays open after fresh foreground photo checks")
             }
-            tap(app.navigationBars["운동 상세"].buttons.element(boundBy: 0), in: app)
+            tap(app.buttons["뒤로가기"].firstMatch, in: app)
             XCTAssertTrue(app.navigationBars["프로필"].waitForExistence(timeout: 5))
             XCTAssertTrue(galleryItem.waitForExistence(timeout: 8))
             XCTAssertTrue(app.buttons["profile.tab.gallery"].isSelected)

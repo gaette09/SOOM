@@ -14,6 +14,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.workoutDetailPresentationStore) private var presentationStore
+    @State private var renderCache = WorkoutRouteRenderCache()
     @State private var playbackProgress: Double?
     @State private var playbackTask: Task<Void, Never>?
     @State private var sheetPosition: WorkoutSheetPosition = .standard
@@ -33,7 +34,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
     }
 
     private var coordinates: [CLLocationCoordinate2D] {
-        WorkoutMapSheetRouteContext.coordinates(for: workout, override: routeOverride)
+        renderCache.resolve(route).coordinates
     }
 
     init(
@@ -53,6 +54,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
         self.sharedPostManagement = sharedPostManagement
         self.sheetContent = sheetContent()
         let coordinates = WorkoutMapSheetRouteContext.coordinates(for: workout, override: routeOverride)
+        self._showsPhotoHero = State(initialValue: coordinates.count < 2 && !photos.isEmpty)
         self._mapPosition = State(initialValue: .region(routeRegion(
             for: coordinates,
             scale: WorkoutSheetPosition.standard.mapScale,
@@ -71,6 +73,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                 SOOMColor.background
                     .ignoresSafeArea()
 
+                if coordinates.count > 1 {
                 WorkoutMapBackground(
                     workout: workout,
                     routeOverride: route,
@@ -86,6 +89,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                     playbackProgress: playbackProgress
                 )
                     .ignoresSafeArea()
+                }
 
                 if showsPhotoHero && !photos.isEmpty {
                     TabView(selection: $selectedPhotoID) {
@@ -98,6 +102,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                                     .onTapGesture { galleryPhoto = photo }
                                     .accessibilityAddTraits(.isButton)
                                     .accessibilityHint("두 번 탭하여 사진 확대 화면을 엽니다")
+                                    .accessibilityIdentifier("workout.detail.heroPhoto." + photo.id.uuidString)
                             }
                             .tag(photo.id)
                         }
@@ -113,6 +118,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                     .allowsHitTesting(!metrics.isExpanded)
                     .zIndex(0.5)
                     .accessibilityLabel("운동 사진. 좌우로 넘겨 다른 사진을 보세요")
+                    .accessibilityIdentifier("workout.detail.photoHero")
                 }
 
                 SOOMColor.background
@@ -124,7 +130,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                     }
                     .zIndex(1)
 
-                if !metrics.isExpanded, let firstPhoto = photos.first {
+                if !metrics.isExpanded, coordinates.count > 1, let firstPhoto = photos.first {
                     VStack {
                         Spacer(minLength: 0)
                         HStack {
@@ -259,6 +265,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             #endif
             .onAppear {
                 if let state = presentationStore?.value(workout.id) { sheetPosition = state.sheet }
+                if coordinates.count < 2, !photos.isEmpty { showsPhotoHero = true }
                 if let first = photos.first, !photos.contains(where: { $0.id == selectedPhotoID }) {
                     selectedPhotoID = first.id
                 }
@@ -278,6 +285,7 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
             }
             .onChange(of: photos) { _, newPhotos in
                 if let first = newPhotos.first {
+                    if coordinates.count < 2 { showsPhotoHero = true }
                     if !newPhotos.contains(where: { $0.id == selectedPhotoID }) {
                         selectedPhotoID = first.id
                     }

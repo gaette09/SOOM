@@ -98,12 +98,12 @@ enum HealthCloudJournal {
         try self.record(.recoverySnapshot, key: snapshotKey(record.date),
             payload: HealthCloudPayload(snapshot: .init(record)), context: context)
     }
-    static func snapshotKey(_ date: Date) -> String {
+    nonisolated static func snapshotKey(_ date: Date) -> String {
         // Store-local calendar day is already normalized by the snapshot store.
         String(Int64(date.timeIntervalSince1970))
     }
 
-    static func validate(kind: String, key: String, data: Data?, deleted: Bool) throws {
+    nonisolated static func validate(kind: String, key: String, data: Data?, deleted: Bool) throws {
         guard let kind = HealthCloudKind(rawValue: kind) else { throw HealthCloudError.invalidPayload }
         if kind == .recoverySnapshot {
             guard Int64(key) != nil else { throw HealthCloudError.invalidPayload }
@@ -130,6 +130,29 @@ enum HealthCloudJournal {
         case .recoverySnapshot:
             guard let snapshot = payload.snapshot, snapshotKey(snapshot.date) == key else { throw HealthCloudError.invalidPayload }
         }
+    }
+
+    /// Validate immutable transport bytes off the UI executor. SwiftData reads,
+    /// conflict handling, commits and account checks remain on the main actor.
+    nonisolated static func validateBatch(_ rows: [HealthCloudRemoteRecord]) async throws -> [Bool] {
+        let task = Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            assert(!Thread.isMainThread, "Transport validation must stay off the UI thread")
+            #endif
+            return try rows.map { row in
+                try Task.checkCancellation()
+                do {
+                    try validate(kind: row.kind, key: row.recordKey, data: row.payloadData, deleted: row.isDeleted)
+                    return true
+                } catch {
+                    switch error {
+                    case HealthCloudError.invalidPayload, is DecodingError: return false
+                    default: throw error
+                    }
+                }
+            }
+        }
+        return try await withTaskCancellationHandler(operation: { try await task.value }, onCancel: { task.cancel() })
     }
 
     /// Applies a server version to the account cache. The outbox is handled by

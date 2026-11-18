@@ -46,7 +46,7 @@ struct WorkoutDetailView: View {
                 if let sharedPostManagement { FeedPostManagementButtons(model: sharedPostManagement, onDelete: { dismiss() }) }
             } else if let management { WorkoutManagementButtons(model: management, onDelete: { dismiss() }) }
         }, content: {
-            detailContent(showsHeader: true, presentationStyle: (presentationRoute?.coordinates.count ?? 0) > 1 ? .mapSheet : .standalone)
+            detailContent(showsHeader: true, presentationStyle: WorkoutDetailSurfacePolicy.usesMediaSheet(route: presentationRoute, photos: sharedRecord?.item.photos ?? heroPhotos) ? .mapSheet : .standalone)
         })
         .environment(\.workoutDetailVisitStore, inheritedVisit ?? visitReveals)
         .task(id: sourceUnifiedWorkout?.id) { await loadHeroPhotos() }

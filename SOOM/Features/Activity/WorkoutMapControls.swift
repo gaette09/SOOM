@@ -54,16 +54,15 @@ struct WorkoutMapBackground: View {
         WorkoutMapSheetRouteContext.route(for: workout, override: routeOverride)
     }
 
-    private var coordinates: [CLLocationCoordinate2D] {
-        route?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
-    }
+    @State private var renderCache = WorkoutRouteRenderCache()
 
     var body: some View {
+        let geometry = renderCache.resolve(route)
         ZStack {
-            if let route, MapboxAccessTokenAvailability.hasUsableToken {
+            if let route = geometry.route, MapboxAccessTokenAvailability.hasUsableToken {
                 SOOMMapboxRouteMap(
-                    coordinates: coordinates,
-                    coordinateSegments: route.coordinateSegments.map { $0.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } },
+                    coordinates: geometry.coordinates,
+                    coordinateSegments: geometry.segments,
                     bounds: route.bounds,
                     tint: SOOMRouteRenderingStyle.accentUIColor,
                     lineWidth: SOOMRouteRenderingStyle.detailLineWidth,

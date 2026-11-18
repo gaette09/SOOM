@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-struct HealthCloudRemoteRecord: Codable, Equatable {
+struct HealthCloudRemoteRecord: Codable, Equatable, Sendable {
     let kind: String
     let recordKey: String
     let payloadJSON: String?

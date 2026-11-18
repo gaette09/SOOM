@@ -4,6 +4,54 @@ import XCTest
 
 @MainActor
 final class HealthCloudSyncTests: XCTestCase {
+    func test72LargeRouteBatchValidationMainThreadCost() throws {
+        let id = UUID()
+        let points = (0..<5000).map { i in WorkoutRouteCoordinate(latitude: 37 + Double(i) * 0.00001,
+            longitude: 127 + Double(i) * 0.000001) }
+        let record = PersistedWorkoutRoute(workoutId: id, sourceRaw: UnifiedDataSource.soomLocal.rawValue,
+            encodedCoordinates: WorkoutRouteMapper().encodeCoordinates(points), coordinateCount: points.count,
+            totalDistanceMeters: 5600)
+        let data = try HealthCloudPayload(route: .init(record)).encoded()
+        let start = CFAbsoluteTimeGetCurrent()
+        for _ in 0..<16 { try HealthCloudJournal.validate(kind: "route", key: id.uuidString, data: data, deleted: false) }
+        print("SOOM72_CLOUD_VALIDATION rows=16 points_each=5000 main_ms=\((CFAbsoluteTimeGetCurrent()-start)*1000)")
+    }
+
+    func test72BackgroundValidationAllowsMainActorProgressAndPreservesInvalidClassification() async throws {
+        let id = UUID()
+        let points = (0..<5000).map { i in WorkoutRouteCoordinate(latitude: 37 + Double(i) * 0.00001,
+            longitude: 127 + Double(i) * 0.000001) }
+        let record = PersistedWorkoutRoute(workoutId: id, sourceRaw: UnifiedDataSource.soomLocal.rawValue,
+            encodedCoordinates: WorkoutRouteMapper().encodeCoordinates(points), coordinateCount: points.count,
+            totalDistanceMeters: 5600)
+        let data = try HealthCloudPayload(route: .init(record)).encoded()
+        let good = HealthCloudRemoteRecord(kind: "route", recordKey: id.uuidString,
+            payloadJSON: String(data: data, encoding: .utf8), isDeleted: false, version: 1, revision: 1)
+        let invalid = HealthCloudRemoteRecord(kind: "route", recordKey: id.uuidString,
+            payloadJSON: "{}", isDeleted: false, version: 1, revision: 2)
+        let tombstone = HealthCloudRemoteRecord(kind: "route", recordKey: id.uuidString,
+            payloadJSON: nil, isDeleted: true, version: 2, revision: 3)
+        // Exclude host launch work from this phase measurement.
+        try await Task.sleep(for: .milliseconds(500))
+        var ticks = 0, maxGap = 0.0, last = CFAbsoluteTimeGetCurrent()
+        let pulse = Task { @MainActor in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .milliseconds(2)) } catch { break }
+                let now = CFAbsoluteTimeGetCurrent(); maxGap = max(maxGap, now - last); last = now; ticks += 1
+            }
+        }
+        let start = CFAbsoluteTimeGetCurrent()
+        let result = try await HealthCloudJournal.validateBatch(Array(repeating: good, count: 16) + [invalid, tombstone])
+        pulse.cancel()
+        XCTAssertEqual(result, Array(repeating: true, count: 16) + [false, true])
+        XCTAssertGreaterThan(ticks, 3, "Validation must not monopolize the UI executor")
+        print("SOOM72_BACKGROUND_VALIDATION rows=18 elapsed_ms=\((CFAbsoluteTimeGetCurrent()-start)*1000) main_ticks=\(ticks) maximum_main_gap_ms=\(maxGap*1000)")
+        let canceled = Task { try await HealthCloudJournal.validateBatch(Array(repeating: good, count: 100)) }
+        canceled.cancel()
+        do { _ = try await canceled.value; XCTFail("Cancelled validation must not return a usable grant") }
+        catch is CancellationError { }
+    }
+
     private func controller(_ remote: FakeHealthRemote? = nil) throws -> HealthAccountStorageController {
         try HealthAccountStorageController(remote: remote, inMemory: true,
             monitorNetwork: false, automaticallySync: false)

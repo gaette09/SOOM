@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// One presentation path: interactive map + movable sheet only for real routes;
-/// otherwise a normal safe-area scroll view with the same content order.
+/// Routes and photos share one movable detail layer. Text-only records retain
+/// a normal safe-area scroll view; missing routes never create a placeholder map.
 struct WorkoutDetailSurface<Actions: View, Content: View>: View {
     @StateObject private var sharing = WorkoutDetailShareActions()
     let workout: Workout?
@@ -14,8 +14,8 @@ struct WorkoutDetailSurface<Actions: View, Content: View>: View {
     private var displayRoute: WorkoutRoute? { route.map { RoutePrivacyMasker().mask(route: $0) } }
     var body: some View {
         Group {
-            if let workout, let route = displayRoute, route.coordinates.count > 1 {
-                WorkoutMapSheetScaffold(workout: workout, routeOverride: route,
+            if let workout, WorkoutDetailSurfacePolicy.usesMediaSheet(route: displayRoute, photos: photos) {
+                WorkoutMapSheetScaffold(workout: workout, routeOverride: displayRoute,
                     navigationTitle: "운동 상세", achievements: achievements, photos: photos, sharedPostManagement: sharedPostManagement) { content() }
             } else {
                 SOOMScreen { content() }
@@ -49,5 +49,11 @@ struct WorkoutRecordMetricsCard: View {
         .padding(compact ? 12 : 18).frame(maxWidth: .infinity, alignment: .leading)
         .background(SOOMColor.surface, in: RoundedRectangle(cornerRadius: 16))
         .overlay { RoundedRectangle(cornerRadius: 16).stroke(SOOMColor.line.opacity(0.25), lineWidth: 1) }
+    }
+}
+
+enum WorkoutDetailSurfacePolicy {
+    static func usesMediaSheet(route: WorkoutRoute?, photos: [WorkoutPhotoReference]) -> Bool {
+        (route?.coordinates.count ?? 0) > 1 || !photos.isEmpty
     }
 }

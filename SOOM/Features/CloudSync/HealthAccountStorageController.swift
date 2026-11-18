@@ -225,9 +225,12 @@ final class HealthAccountStorageController: ObservableObject {
             while true {
                 let rows = try await remote.pull(after: cursor.serverVersion, expectedUserID: owner)
                 try assertCurrent(owner, generation: expectedGeneration)
+                let validation = try await HealthCloudJournal.validateBatch(rows)
+                try assertCurrent(owner, generation: expectedGeneration)
+                try Task.checkCancellation()
                 var appliedPullPayload = false
-                for row in rows {
-                    if try receiveOrQuarantine(row, context: context) { appliedPullPayload = true }
+                for (row, valid) in zip(rows, validation) {
+                    if try receiveOrQuarantine(row, context: context, prevalidated: valid) { appliedPullPayload = true }
                     cursor.serverVersion = max(cursor.serverVersion, row.revision)
                 }
                 try context.save()
@@ -337,10 +340,14 @@ final class HealthAccountStorageController: ObservableObject {
         } catch { errorMessage = HealthCloudError.unavailable.localizedDescription }
     }
 
-    private func receiveOrQuarantine(_ row: HealthCloudRemoteRecord, context: ModelContext) throws -> Bool {
+    private func receiveOrQuarantine(_ row: HealthCloudRemoteRecord, context: ModelContext, prevalidated: Bool? = nil) throws -> Bool {
         let quarantineKey = row.kind + ":" + row.recordKey
         do {
-            try HealthCloudJournal.validate(kind: row.kind, key: row.recordKey, data: row.payloadData, deleted: row.isDeleted)
+            if let prevalidated {
+                guard prevalidated else { throw HealthCloudError.invalidPayload }
+            } else {
+                try HealthCloudJournal.validate(kind: row.kind, key: row.recordKey, data: row.payloadData, deleted: row.isDeleted)
+            }
         } catch {
             switch error {
             case HealthCloudError.invalidPayload, is DecodingError:

@@ -26,6 +26,29 @@ struct WorkoutRouteGeometryRevision {
     }
 }
 
+/// Per-mounted-map cache. Exact source equality includes privacy flags and segment
+/// boundaries; nil/revoked input clears immediately. No cross-account or disk state.
+@MainActor final class WorkoutRouteRenderCache {
+    struct Snapshot {
+        let route: WorkoutRoute?
+        let coordinates: [CLLocationCoordinate2D]
+        let segments: [[CLLocationCoordinate2D]]
+    }
+    private var source: WorkoutRoute?
+    private var value: Snapshot?
+    private(set) var preparations = 0
+    func resolve(_ next: WorkoutRoute?) -> Snapshot {
+        if let value, source == next { return value }
+        source = next
+        let route = next.map { RoutePrivacyMasker().mask(route: $0) }
+        let result = Snapshot(route: route,
+            coordinates: route?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? [],
+            segments: route?.coordinateSegments.map { $0.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } } ?? [])
+        preparations += 1; value = result
+        return result
+    }
+}
+
 struct WorkoutDetailMapView: View {
     let route: WorkoutRoute?
     let fallbackStyle: StaticRouteFallbackStyle
@@ -36,13 +59,13 @@ struct WorkoutDetailMapView: View {
     var achievements: [WorkoutAchievement] = []
     var playbackProgress: Double? = nil
 
-    private var displayRoute: WorkoutRoute? { route.map { RoutePrivacyMasker().mask(route: $0) } }
-
-    private var coordinates: [CLLocationCoordinate2D] {
-        displayRoute?.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
-    }
+    @State private var renderCache = WorkoutRouteRenderCache()
 
     var body: some View {
+        let geometry = renderCache.resolve(route)
+        let displayRoute = geometry.route
+        let coordinates = geometry.coordinates
+        let hasRenderableMap = coordinates.count >= 2 && MapboxAccessTokenAvailability.hasUsableToken
         ZStack {
             if hasRenderableMap, compactRouteOnly, let route = displayRoute {
                 WorkoutRecordRoutePreview(route: route)
@@ -51,7 +74,7 @@ struct WorkoutDetailMapView: View {
             } else if hasRenderableMap {
                 SOOMMapboxRouteMap(
                     coordinates: coordinates,
-                    coordinateSegments: displayRoute?.coordinateSegments.map { $0.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } },
+                    coordinateSegments: geometry.segments,
                     bounds: displayRoute?.bounds,
                     tint: SOOMRouteRenderingStyle.accentUIColor,
                     lineWidth: routeLineWidth,
@@ -73,9 +96,6 @@ struct WorkoutDetailMapView: View {
         .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.cardRadius, style: .continuous))
     }
 
-    private var hasRenderableMap: Bool {
-        coordinates.count >= 2 && MapboxAccessTokenAvailability.hasUsableToken
-    }
 }
 
 /// The small photo inset has no room for map ornaments. Attribution is shown

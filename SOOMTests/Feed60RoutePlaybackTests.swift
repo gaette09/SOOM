@@ -1,8 +1,112 @@
 import XCTest
 import CoreLocation
+import SwiftUI
+import UIKit
 @testable import SOOM
 
 @MainActor final class Feed60RoutePlaybackTests: XCTestCase {
+    func test72HostedMapMotionDuringIncomingValidation() async throws {
+        let id = UUID()
+        let points = (0..<5000).map { i in WorkoutRouteCoordinate(latitude: 37 + Double(i) * 0.00001,
+            longitude: 127 + sin(Double(i) / 100) * 0.001, segmentIndex: i < 2500 ? 0 : 1) }
+        let raw = WorkoutRoute(workoutId: id, source: .soomLocal, coordinates: points, totalDistanceMeters: 5600)
+        let route = RoutePrivacyMasker().mask(route: raw)
+        let record = PersistedWorkoutRoute(workoutId: id, sourceRaw: UnifiedDataSource.soomLocal.rawValue,
+            encodedCoordinates: WorkoutRouteMapper().encodeCoordinates(points), coordinateCount: points.count,
+            totalDistanceMeters: 5600)
+        let data = try HealthCloudPayload(route: .init(record)).encoded()
+        let row = HealthCloudRemoteRecord(kind: "route", recordKey: id.uuidString,
+            payloadJSON: String(data: data, encoding: .utf8), isDeleted: false, version: 1, revision: 1)
+        let rows = Array(repeating: row, count: 16)
+        let model = Feed72HostedMotionModel()
+        let host = UIHostingController(rootView: Feed72HostedMotionView(route: route, model: model))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 600))
+        let previous = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first { $0.isKeyWindow }
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKeyAndVisible() }
+        try await Task.sleep(for: .seconds(1))
+        for background in [false, true] {
+            let probe = Feed72HostedDisplayProbe(); probe.start()
+            let motion = Task { @MainActor in
+                for step in 0..<60 {
+                    guard !Task.isCancelled else { return }
+                    model.progress = Double(step) / 60
+                    try? await Task.sleep(for: .milliseconds(25))
+                }
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            let start = CFAbsoluteTimeGetCurrent()
+            if background { let result = try await HealthCloudJournal.validateBatch(rows); XCTAssertEqual(result, Array(repeating: true, count: 16)) }
+            else { for value in rows { try HealthCloudJournal.validate(kind: value.kind, key: value.recordKey, data: value.payloadData, deleted: value.isDeleted) } }
+            let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000
+            try await Task.sleep(for: .milliseconds(500))
+            motion.cancel(); probe.stop()
+            XCTAssertGreaterThan(probe.frames, 5)
+            print("SOOM72_HOSTED_MAP_ARRIVAL background=\(background) validation_ms=\(elapsed) frames=\(probe.frames) hitches=\(probe.hitches) worst_ms=\(probe.worst * 1000) renderer=\(MapboxAccessTokenAvailability.hasUsableToken)")
+            try await Task.sleep(for: .milliseconds(200))
+        }
+    }
+
+    func test72PhotoOnlyAndMapDetailsUseSameLayerButTextOnlyDoesNot() {
+        let photo = WorkoutPhotoReference(id: UUID(), storagePath: "synthetic/photo.jpg")
+        XCTAssertTrue(WorkoutDetailSurfacePolicy.usesMediaSheet(route: nil, photos: [photo]))
+        XCTAssertTrue(WorkoutDetailSurfacePolicy.usesMediaSheet(route: route(), photos: []))
+        XCTAssertTrue(WorkoutDetailSurfacePolicy.usesMediaSheet(route: route(), photos: [photo]))
+        XCTAssertFalse(WorkoutDetailSurfacePolicy.usesMediaSheet(route: nil, photos: []))
+    }
+
+    func test72RenderCacheReusesFramesAndImmediatelyInvalidatesRevocationOrChangedGeometry() {
+        let cache = WorkoutRouteRenderCache(), original = route()
+        let first = cache.resolve(original)
+        for _ in 0..<160 { XCTAssertEqual(cache.resolve(original).route, first.route) }
+        XCTAssertEqual(cache.preparations, 1)
+        let changed = route(offset: 0.001)
+        XCTAssertEqual(cache.resolve(changed).route, changed)
+        XCTAssertEqual(cache.preparations, 2)
+        XCTAssertNil(cache.resolve(nil).route)
+        XCTAssertTrue(cache.resolve(nil).coordinates.isEmpty)
+        XCTAssertEqual(cache.preparations, 3)
+        XCTAssertEqual(cache.resolve(original).route, original)
+        XCTAssertEqual(cache.preparations, 4)
+    }
+
+    func test72RenderPreparationBenchmark() {
+        let points = (0..<5000).map { i in
+            WorkoutRouteCoordinate(latitude: 37 + Double(i) * 0.00001,
+                longitude: 127 + sin(Double(i) / 100) * 0.001, segmentIndex: i < 2500 ? 0 : 1)
+        }
+        let source = WorkoutRoute(workoutId: UUID(), source: .soomLocal,
+            coordinates: points, totalDistanceMeters: 5600)
+        let frames = 120
+        let before = CFAbsoluteTimeGetCurrent()
+        var oldCount = 0
+        for _ in 0..<frames {
+            let masked = RoutePrivacyMasker().mask(route: source)
+            oldCount += masked.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }.count
+            oldCount += masked.coordinateSegments.map { $0.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } }.count
+        }
+        let uncached = (CFAbsoluteTimeGetCurrent() - before) * 1000
+        let cache = WorkoutRouteRenderCache(), start = CFAbsoluteTimeGetCurrent()
+        var newCount = 0
+        for _ in 0..<frames { let value = cache.resolve(source); newCount += value.coordinates.count + value.segments.count }
+        let cached = (CFAbsoluteTimeGetCurrent() - start) * 1000
+        XCTAssertEqual(newCount, oldCount); XCTAssertEqual(cache.preparations, 1)
+        XCTAssertEqual(cache.resolve(source).route, RoutePrivacyMasker().mask(route: source))
+        print("SOOM72_RENDER_PREPARATION frames=\(frames) points=5000 uncached_ms=\(uncached) cached_ms=\(cached)")
+        let alreadyMasked = RoutePrivacyMasker().mask(route: source)
+        let maskedStart = CFAbsoluteTimeGetCurrent()
+        for _ in 0..<frames {
+            let value = RoutePrivacyMasker().mask(route: alreadyMasked)
+            oldCount += value.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }.count
+            oldCount += value.coordinateSegments.map { $0.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } }.count
+        }
+        let maskedBefore = (CFAbsoluteTimeGetCurrent() - maskedStart) * 1000
+        let maskedCache = WorkoutRouteRenderCache(), maskedAfterStart = CFAbsoluteTimeGetCurrent()
+        for _ in 0..<frames { let value = maskedCache.resolve(alreadyMasked); newCount += value.coordinates.count + value.segments.count }
+        XCTAssertEqual(newCount, oldCount)
+        print("SOOM72_ALREADY_MASKED_PREPARATION frames=\(frames) uncached_ms=\(maskedBefore) cached_ms=\((CFAbsoluteTimeGetCurrent()-maskedAfterStart)*1000)")
+    }
+
     func testOrnamentOptionsAreNotReappliedForPlaybackFrames() {
         var revision = WorkoutRouteOrnamentRevision()
         XCTAssertTrue(revision.needsUpdate(topMargin: 24, compact: false, scale: false))
@@ -163,5 +267,32 @@ private enum Build67PlaybackReference {
                 }
             }
         }
+    }
+}
+
+@MainActor private final class Feed72HostedMotionModel: ObservableObject { @Published var progress = 0.0 }
+private struct Feed72HostedMotionView: View {
+    let route: WorkoutRoute
+    @ObservedObject var model: Feed72HostedMotionModel
+    var body: some View {
+        WorkoutDetailMapView(route: route, fallbackStyle: StaticRouteFallbackStyle(workoutType: .running),
+            tint: SOOMColor.accent, playbackProgress: model.progress).frame(width: 390, height: 600)
+    }
+}
+@MainActor private final class Feed72HostedDisplayProbe: NSObject {
+    private var display: CADisplayLink?
+    private var last: Double?
+    var frames = 0, hitches = 0
+    var worst = 0.0
+    func start() {
+        let link = CADisplayLink(target: self, selector: #selector(tick(_:)))
+        link.add(to: .main, forMode: .common); display = link
+    }
+    func stop() { display?.invalidate(); display = nil }
+    @objc private func tick(_ link: CADisplayLink) {
+        defer { last = link.timestamp }
+        guard let last else { return }
+        let gap = link.timestamp - last; frames += 1; worst = max(worst, gap)
+        if gap > max(1.0 / 120, link.targetTimestamp - link.timestamp) * 1.5 { hitches += 1 }
     }
 }

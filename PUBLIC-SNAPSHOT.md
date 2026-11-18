@@ -1,4 +1,4 @@
-# Public source snapshot: build 71
+# Public source snapshot: build 72
 
 This is a sanitized source snapshot, not a byte-for-byte reproduction of the deployed release.
 
@@ -18,3 +18,6 @@ Public snapshot checks cover excluded paths, known private source identifiers an
 credential patterns; synthetic test data and public fallback map coordinates are retained.
 The private integration fixture test is intentionally not runnable from this repository.
 Build validation status is recorded in the snapshot commit message.
+
+Build 72 adds the verified 11-file cloud-validation, route playback and photo-only
+detail changes on top of the sanitized build 71 snapshot.
