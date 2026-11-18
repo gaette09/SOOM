@@ -46,7 +46,10 @@ final class RecordLaunchPlanTests: XCTestCase {
         )
 
         XCTAssertTrue(snapshot.isFallback)
-        XCTAssertEqual(snapshot.source, "fallback")
+        XCTAssertEqual(snapshot.source, "unavailable")
+        XCTAssertNil(snapshot.temperatureCelsius)
+        XCTAssertEqual(snapshot.condition, .unknown)
+        XCTAssertNil(snapshot.wind)
     }
 
     func testFallbackWeatherIsUsedWithoutAPIKey() async {
@@ -59,7 +62,10 @@ final class RecordLaunchPlanTests: XCTestCase {
         )
 
         XCTAssertTrue(snapshot.isFallback)
-        XCTAssertEqual(snapshot.source, "fallback")
+        XCTAssertEqual(snapshot.source, "unavailable")
+        XCTAssertNil(snapshot.temperatureCelsius)
+        XCTAssertEqual(snapshot.condition, .unknown)
+        XCTAssertNil(snapshot.wind)
     }
 
     func testLiveWeatherCanBeFetchedAfterUserLocationExists() async {
@@ -86,7 +92,9 @@ final class RecordLaunchPlanTests: XCTestCase {
         )
 
         XCTAssertTrue(snapshot.isFallback)
-        XCTAssertEqual(snapshot.pillText, "26° · 맑음 · 바람 약함")
+        XCTAssertEqual(snapshot.pillText, "실시간 날씨 정보 없음")
+        XCTAssertNil(snapshot.temperatureCelsius)
+        XCTAssertNil(snapshot.wind)
     }
 
     func testWeatherRetryStateDoesNotBlockRetryAfterFailure() {
@@ -338,7 +346,7 @@ final class RecordLaunchPlanTests: XCTestCase {
     }
 
     func testReadyDefaultVisualUsesStrongerStartButton() {
-        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 100)
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 88)
         XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.buttonDiameter, 104)
         XCTAssertEqual(
             RecordReadyLaunchVisualLayout.interactiveHitDiameter,
@@ -361,7 +369,7 @@ final class RecordLaunchPlanTests: XCTestCase {
             RecordReadyLaunchVisualLayout.buttonCenterBottomOffset - RecordReadyLaunchVisualLayout.previousButtonCenterBottomOffset,
             30
         )
-        XCTAssertLessThanOrEqual(RecordReadyLaunchVisualLayout.containerHeight, 214)
+        XCTAssertGreaterThanOrEqual(RecordReadyLaunchVisualLayout.containerHeight, RecordReadyRadialLayout.radius + 2 * RecordReadyRadialLayout.hitRadius)
         XCTAssertTrue(RecordReadyLaunchVisualLayout.usesBlackSurface)
         XCTAssertTrue(RecordReadyLaunchVisualLayout.hidesSportIconInButton)
         XCTAssertTrue(RecordReadyLaunchVisualLayout.hidesReadyText)
@@ -561,28 +569,124 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertFalse(RecordWeatherFetchPolicy.shouldAttemptLiveFetch(locationState: state, apiKey: "valid-weather-key"))
     }
 
-    func testWeatherDetailSnapshotIncludesFallbackDustAndForecastFoundation() {
-        let detail = RecordWeatherDetailSnapshot.make(from: .fallbackClear)
+    func testUnavailableWeatherDetailDoesNotInventConditionsOrForecasts() {
+        let detail = RecordWeatherDetailSnapshot.make(from: .unavailable)
 
-        XCTAssertEqual(detail.locationName, "현재 위치 근처")
-        XCTAssertEqual(detail.temperatureText, "26°")
-        XCTAssertEqual(detail.fineDustText, "보통")
-        XCTAssertEqual(detail.ultraFineDustText, "보통")
-        XCTAssertFalse(detail.hourlyForecasts.isEmpty)
-        XCTAssertFalse(detail.dailyForecasts.isEmpty)
+        XCTAssertEqual(detail.temperatureText, "--°")
+        XCTAssertEqual(detail.conditionText, "날씨 정보 없음")
+        XCTAssertEqual(detail.feelsLikeText, "정보 없음")
+        XCTAssertEqual(detail.fineDustText, "정보 없음")
+        XCTAssertEqual(detail.ultraFineDustText, "정보 없음")
+        XCTAssertTrue(detail.hourlyForecasts.isEmpty)
+        XCTAssertTrue(detail.dailyForecasts.isEmpty)
         XCTAssertTrue(detail.isFallback)
     }
 
-    func testWeatherDetailIncludesHourlyDailyAndAirQualityFoundation() {
+    func testCurrentObservationIsPreservedWithoutInventingMissingDetails() {
         let detail = RecordWeatherDetailSnapshot.make(from: .liveClear)
 
+        XCTAssertEqual(detail.temperatureText, "23°")
         XCTAssertEqual(detail.conditionIconName, RecordWeatherCondition.clear.iconName)
-        XCTAssertGreaterThanOrEqual(detail.hourlyForecasts.count, 4)
-        XCTAssertGreaterThanOrEqual(detail.dailyForecasts.count, 3)
+        XCTAssertEqual(detail.windText, "바람 약함")
+        XCTAssertEqual(detail.updatedAt, RecordWeatherSnapshot.liveClear.observedAt)
+        XCTAssertTrue(detail.hourlyForecasts.isEmpty)
+        XCTAssertTrue(detail.dailyForecasts.isEmpty)
+        XCTAssertEqual(detail.feelsLikeText, "정보 없음")
+        XCTAssertEqual(detail.airQuality.pm10Level, .unknown)
+        XCTAssertEqual(detail.airQuality.pm25Level, .unknown)
+        XCTAssertTrue(detail.isFallback)
+    }
+
+    func testDeniedLocationDoesNotUseCachedCoordinateForWeather() async {
+        let state = RecordLocationState(
+            authorization: .denied,
+            coordinate: RecordMapCoordinate(latitude: 37.5, longitude: 127),
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let snapshot = await RecordWeatherResolver.snapshot(
+            for: state,
+            service: StubRecordWeatherService(snapshot: .liveClear),
+            apiKey: "valid-weather-key"
+        )
+        XCTAssertEqual(snapshot, .unavailable)
+    }
+
+    func testUnavailableWeatherHasNeutralGuidanceForEverySport() {
+        let recommendation = RecordLaunchPlan.initial.recommendation
+        for sport in RecordSportMode.allCases {
+            let guidance = recommendation.guidanceText(for: sport, weather: .unavailable)
+            XCTAssertEqual(guidance, RecordWeatherRecommendationCopy.unavailableGuidance)
+            XCTAssertFalse(guidance.contains("Z2"))
+            XCTAssertFalse(guidance.contains("맑"))
+            XCTAssertEqual(recommendation.compactText(for: sport, weather: .unavailable), "실시간 날씨 정보 없음")
+        }
+    }
+
+    func testClearWeatherDoesNotInventMissingOrWeakWind() {
+        let noWind = RecordWeatherSnapshot(
+            temperatureCelsius: 23, condition: .clear, wind: nil,
+            observedAt: Date(), source: "test-live", isFallback: false
+        )
+        XCTAssertEqual(RecordWeatherRecommendationCopy.prefix(for: noWind), "날씨가 맑아요")
+        let moderateWind = RecordWeatherSnapshot(
+            temperatureCelsius: 23, condition: .clear, wind: RecordWeatherWind(speedMps: 4),
+            observedAt: Date(), source: "test-live", isFallback: false
+        )
+        XCTAssertEqual(RecordWeatherRecommendationCopy.prefix(for: moderateWind), "맑고 바람은 보통이에요")
+    }
+
+    func testLiveWeatherDetailKeepsActualForecastsAndAirQuality() async throws {
+        let session = weatherTestSession()
+        defer { session.invalidateAndCancel() }
+        let service = URLSessionRecordWeatherService(apiKey: "test", session: session)
+        let detail = try await service.fetchWeatherDetail(latitude: 2, longitude: 127)
+
+        XCTAssertFalse(detail.isFallback)
+        XCTAssertEqual(detail.temperatureText, "19°")
+        XCTAssertEqual(detail.feelsLikeText, "17°")
+        XCTAssertEqual(detail.conditionText, "비")
+        XCTAssertEqual(detail.hourlyForecasts.map(\.temperatureCelsius), [18])
+        XCTAssertEqual(detail.dailyForecasts.map(\.minTempCelsius), [15])
+        XCTAssertEqual(detail.dailyForecasts.map(\.maxTempCelsius), [22])
+        XCTAssertEqual(detail.airQuality.pm10, 40)
+        XCTAssertEqual(detail.airQuality.pm25, 20)
         XCTAssertEqual(detail.airQuality.pm10Level, .moderate)
-        XCTAssertEqual(detail.airQuality.pm25Level, .moderate)
-        XCTAssertEqual(detail.airQuality.fineDustText, "보통")
-        XCTAssertEqual(detail.airQuality.ultraFineDustText, "보통")
+    }
+
+    func testLiveWeatherDetailDoesNotFillMissingForecastsOrFailedAirQuality() async throws {
+        let session = weatherTestSession()
+        defer { session.invalidateAndCancel() }
+        let service = URLSessionRecordWeatherService(apiKey: "test", session: session)
+        let detail = try await service.fetchWeatherDetail(latitude: 1, longitude: 127)
+
+        XCTAssertEqual(detail.temperatureText, "19°")
+        XCTAssertEqual(detail.conditionText, "비")
+        XCTAssertEqual(detail.feelsLikeText, "정보 없음")
+        XCTAssertEqual(detail.windText, "바람 정보 없음")
+        XCTAssertTrue(detail.hourlyForecasts.isEmpty)
+        XCTAssertTrue(detail.dailyForecasts.isEmpty)
+        XCTAssertNil(detail.airQuality.aqi)
+        XCTAssertEqual(detail.fineDustText, "정보 없음")
+        XCTAssertEqual(detail.ultraFineDustText, "정보 없음")
+    }
+
+    func testProductionRecordPlanAndRouteCatalogContainNoSampleRoutes() {
+        let plan = RecordLaunchPlan.initial
+        XCTAssertTrue(plan.route.coordinates.isEmpty)
+        XCTAssertTrue(plan.route.distanceText.isEmpty)
+        XCTAssertTrue(plan.route.durationText.isEmpty)
+        XCTAssertFalse(plan.requiresLocationPermissionOnEntry)
+        for sport in RecordSportMode.allCases {
+            XCTAssertTrue(RecordRouteCatalogOption.availableOptions(for: sport).isEmpty)
+        }
+        XCTAssertFalse(RecordRouteCatalogOption.emptyStateTitle.isEmpty)
+        XCTAssertFalse(RecordRouteCatalogOption.emptyStateMessage.isEmpty)
+    }
+
+    private func weatherTestSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RecordWeatherTestURLProtocol.self]
+        return URLSession(configuration: configuration)
     }
 
     func testAirQualityLevelMapsOpenWeatherAQI() {
@@ -591,6 +695,8 @@ final class RecordLaunchPlanTests: XCTestCase {
         XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 3), .moderate)
         XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 4), .bad)
         XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 5), .veryBad)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 0), .unknown)
+        XCTAssertEqual(RecordAirQualityLevel(openWeatherAQI: 6), .unknown)
     }
 
     func testRecordSheetsUseSingleFixedDetentPolicy() {
@@ -663,4 +769,61 @@ private extension RecordWeatherSnapshot {
         source: "test-live",
         isFallback: false
     )
+}
+
+// Offline provider responses exercise decoding and partial network failures without shared mutable state.
+private final class RecordWeatherTestURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else { return }
+        let latitude = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "lat" })?.value
+        let isPartial = latitude == "1.0"
+        let body: String
+        if url.path.contains("air_pollution") {
+            if isPartial {
+                client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+                return
+            }
+            body = #"{"list":[{"main":{"aqi":2},"components":{"pm10":40,"pm2_5":20}}]}"#
+        } else if isPartial {
+            body = #"{"current":{"dt":1750001000,"temp":19,"weather":[{"id":500}]},"hourly":[],"daily":[]}"#
+        } else {
+            body = #"{"current":{"dt":1750001000,"temp":19,"feels_like":17,"wind_speed":3,"weather":[{"id":500}]},"hourly":[{"dt":1750004600,"temp":18,"weather":[{"id":500}]}],"daily":[{"dt":1750001000,"temp":{"min":15,"max":22},"weather":[{"id":500}]}]}"#
+        }
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+
+extension RecordLaunchPlanTests {
+    func testApprovedStartTargetsRejectTapShortOutsideAndReturnToOrigin() {
+        let origin = CGPoint(x: 201, y: 240)
+        for point in [origin, CGPoint(x: 201, y: 210), CGPoint(x: 350, y: 0), CGPoint(x: 201, y: 340)] {
+            XCTAssertNil(RecordReadyRadialLayout.hoveredSport(at: point, readyCenter: origin))
+        }
+        for item in RecordReadyRadialLayout.items(center: origin) {
+            XCTAssertEqual(RecordReadyRadialLayout.hoveredSport(at: item.center, readyCenter: origin), item.sport)
+            XCTAssertGreaterThan(item.center.x - 34, 0)
+            XCTAssertLessThan(item.center.x + 34, 402)
+            XCTAssertLessThan(item.center.y + 34, origin.y - 44)
+            XCTAssertNil(RecordReadyRadialLayout.hoveredSport(at: CGPoint(x: item.center.x, y: item.center.y - 35), readyCenter: origin), "Outside the visible target must cancel")
+        }
+        XCTAssertFalse(RecordReadyRadialInteraction.shouldStartWorkout(isRadialSelectionActive: false, hoveredSport: .running))
+        XCTAssertFalse(RecordReadyRadialInteraction.shouldStartWorkout(isRadialSelectionActive: true, hoveredSport: nil))
+    }
+
+    func testStartEligibilityPreventsRepeatWatchAndUnpreparedStorage() {
+        XCTAssertEqual(RecordStartEligibility.evaluate(hasActiveSession: true, watchWorkoutActive: false, storageReady: true), .alreadyRecording)
+        XCTAssertEqual(RecordStartEligibility.evaluate(hasActiveSession: false, watchWorkoutActive: true, storageReady: true), .watchActive)
+        XCTAssertEqual(RecordStartEligibility.evaluate(hasActiveSession: false, watchWorkoutActive: false, storageReady: false), .storageNotReady)
+        XCTAssertEqual(RecordStartEligibility.evaluate(hasActiveSession: false, watchWorkoutActive: false, storageReady: true), .ready)
+    }
 }

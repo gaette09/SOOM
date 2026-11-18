@@ -10,7 +10,11 @@ final class CourseProgressionBuilderTests: XCTestCase {
         let middle = input(type: .running, distance: 10, duration: 51, daysAgo: 14)
         let recent = input(type: .running, distance: 10, duration: 50, daysAgo: 7)
 
-        let timeline = builder.build(current: current, candidateWorkouts: [older, middle, recent])
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [older, middle, recent],
+            routeCandidates: routeCandidates(current: current, workouts: [older, middle, recent])
+        )
 
         XCTAssertEqual(timeline.direction, .improving)
         XCTAssertEqual(timeline.points.count, 4)
@@ -24,7 +28,11 @@ final class CourseProgressionBuilderTests: XCTestCase {
         let middle = input(type: .cycling, distance: 30, duration: 70, speed: 25.2, daysAgo: 14)
         let recent = input(type: .cycling, distance: 30, duration: 70, speed: 25.1, daysAgo: 7)
 
-        let timeline = builder.build(current: current, candidateWorkouts: [older, middle, recent])
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [older, middle, recent],
+            routeCandidates: routeCandidates(current: current, workouts: [older, middle, recent])
+        )
 
         XCTAssertEqual(timeline.direction, .stable)
         XCTAssertEqual(timeline.points.last?.comparisonMetric, .averageSpeed)
@@ -37,7 +45,11 @@ final class CourseProgressionBuilderTests: XCTestCase {
         let improved = input(type: .running, distance: 10, duration: 49, daysAgo: 14)
         let steady = input(type: .running, distance: 10, duration: 51, daysAgo: 7)
 
-        let timeline = builder.build(current: current, candidateWorkouts: [older, lighter, improved, steady])
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [older, lighter, improved, steady],
+            routeCandidates: routeCandidates(current: current, workouts: [older, lighter, improved, steady])
+        )
 
         XCTAssertEqual(timeline.direction, .fluctuating)
         XCTAssertTrue(timeline.summary.contains("흐름"))
@@ -47,7 +59,40 @@ final class CourseProgressionBuilderTests: XCTestCase {
         let current = input(type: .cycling, distance: 30, duration: 70, speed: 26)
         let running = input(type: .running, distance: 10, duration: 50, daysAgo: 7)
 
-        let timeline = builder.build(current: current, candidateWorkouts: [running])
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [running],
+            routeCandidates: routeCandidates(current: current, workouts: [running])
+        )
+
+        XCTAssertEqual(timeline.direction, .insufficientData)
+        XCTAssertTrue(timeline.points.isEmpty)
+    }
+
+    func testInsufficientDataWhenRouteCandidatesAreEmpty() {
+        let current = input(type: .running, distance: 10, duration: 48)
+        let previous = input(type: .running, distance: 10, duration: 52, daysAgo: 7)
+
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [previous],
+            routeCandidates: []
+        )
+
+        XCTAssertEqual(timeline.direction, .insufficientData)
+        XCTAssertTrue(timeline.points.isEmpty)
+    }
+
+    func testInsufficientDataWhenRouteCandidateIdsDoNotMatchRecords() {
+        let current = input(type: .running, distance: 10, duration: 48)
+        let previous = input(type: .running, distance: 10, duration: 52, daysAgo: 7)
+        let unmatchedRoute = input(type: .running, distance: 10, duration: 50, daysAgo: 14)
+
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [previous],
+            routeCandidates: routeCandidates(current: current, workouts: [unmatchedRoute])
+        )
 
         XCTAssertEqual(timeline.direction, .insufficientData)
         XCTAssertTrue(timeline.points.isEmpty)
@@ -88,13 +133,31 @@ final class CourseProgressionBuilderTests: XCTestCase {
         let current = input(type: .swimming, distance: 1.5, duration: 34)
         let previous = input(type: .swimming, distance: 1.5, duration: 36, daysAgo: 7)
 
-        let timeline = builder.build(current: current, candidateWorkouts: [previous])
+        let timeline = builder.build(
+            current: current,
+            candidateWorkouts: [previous],
+            routeCandidates: routeCandidates(current: current, workouts: [previous])
+        )
         let copy = timeline.summary
 
         XCTAssertFalse(copy.contains("못"))
         XCTAssertFalse(copy.contains("실패"))
         XCTAssertFalse(copy.contains("나쁨"))
         XCTAssertEqual(timeline.points.last?.comparisonMetric, .pace)
+    }
+
+    private func routeCandidates(
+        current: WorkoutGrowthInput,
+        workouts: [WorkoutGrowthInput]
+    ) -> [RouteComparisonCandidate] {
+        workouts.map {
+            RouteComparisonCandidate(
+                currentWorkoutId: current.id,
+                candidateWorkoutId: $0.id,
+                similarityScore: 0.91,
+                reason: .similarRoute
+            )
+        }
     }
 
     private func input(

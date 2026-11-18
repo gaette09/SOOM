@@ -56,21 +56,12 @@ struct CourseProgressionBuilder {
         candidateWorkouts: [WorkoutGrowthInput],
         routeCandidates: [RouteComparisonCandidate]
     ) -> [WorkoutGrowthInput] {
-        let baseCandidates = candidateWorkouts
+        let routeWorkoutIds = Set(routeCandidates.map(\.candidateWorkoutId))
+        return candidateWorkouts
             .filter { $0.id != current.id }
             .filter { $0.workoutType == current.workoutType }
             .filter { $0.startDate <= current.startDate }
-
-        guard !routeCandidates.isEmpty else {
-            return baseCandidates
-        }
-
-        let routeOrder = Dictionary(uniqueKeysWithValues: routeCandidates.enumerated().map { index, candidate in
-            (candidate.candidateWorkoutId, index)
-        })
-
-        let routeMatched = baseCandidates.filter { routeOrder[$0.id] != nil }
-        return routeMatched.isEmpty ? baseCandidates : routeMatched
+            .filter { routeWorkoutIds.contains($0.id) }
     }
 
     private func comparisonMetric(for type: UnifiedWorkoutType) -> CourseProgressionComparisonMetric {

@@ -5,13 +5,14 @@ struct AppleAuthCard: View {
     @ObservedObject var authViewModel: AuthViewModel
     private let provider = AppleSignInProvider()
     @State private var currentNonce: String?
+    @ObservedObject private var grantState = AppleGrantRegistrationState.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
             SOOMActionRow(
                 icon: "apple.logo",
-                title: authViewModel.session.currentUser?.authProvider == .supabase ? "Apple 계정 연결됨" : "Apple로 로그인",
-                subtitle: "계정 연결 후에도 현재 기록은 로컬에 유지돼요. 데이터 동기화는 다음 단계입니다.",
+                title: authViewModel.isCurrentAccountLinkedToApple ? "Apple 계정 연결됨" : "Apple로 로그인",
+                subtitle: "로그인 후 내 기록 동기화에 동의하면 이 계정의 운동과 건강 기록을 서버에 보관해요.",
                 tint: SOOMColor.secondaryInk
             )
 
@@ -47,6 +48,14 @@ struct AppleAuthCard: View {
             .disabled(authViewModel.isAppleSignInInProgress)
             .opacity(authViewModel.isAppleSignInInProgress ? 0.68 : 1)
 
+            if authViewModel.isCurrentAccountLinkedToApple, let owner = authViewModel.session.currentUser?.id,
+               grantState.status(for: owner) != .registered {
+                Text("계정 삭제 시 Apple 연결을 자동으로 해제하기 위한 확인이 필요해요. 위 Apple 로그인으로 다시 확인할 수 있어요. 확인에 실패해도 현재 로그인은 유지됩니다.")
+                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .foregroundStyle(SOOMColor.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Text(statusText)
                 .font(SOOMFont.body(11, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.tertiaryInk)
@@ -60,10 +69,10 @@ struct AppleAuthCard: View {
         }
 
         if authViewModel.session.currentUser?.authProvider == .supabase {
-            return "계정은 연결됐지만 로컬 운동 기록의 소유권 이전과 동기화는 아직 진행하지 않아요."
+            return "로그인 전 기록은 자동으로 옮기지 않아요. 내 기록 동기화에서 직접 가져올 수 있어요."
         }
 
-        return "Apple 로그인은 계정 연결 상태만 확인하고, 로컬 운동 기록은 그대로 유지합니다."
+        return "Apple로 계정을 연결해요. 로그인 전 기록은 별도로 보관하고, 동기화 여부를 직접 선택합니다."
     }
 }
 

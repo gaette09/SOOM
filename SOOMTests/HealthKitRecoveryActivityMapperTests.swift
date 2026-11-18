@@ -72,6 +72,21 @@ final class HealthKitRecoveryActivityMapperTests: XCTestCase {
         XCTAssertLessThanOrEqual(activity.relativeEffort, 100)
     }
 
+    func testMissingHeartRateDoesNotInventHeartRateContribution() {
+        let activity = mapper.map(makeWorkout(type: .running, duration: 1_800, averageHeartRate: nil, calories: nil))
+        XCTAssertEqual(activity.relativeEffort, 20)
+        XCTAssertEqual(activity.trainingLoad, 27, accuracy: 0.001)
+        XCTAssertEqual(activity.averageHeartRate, 0)
+    }
+
+    func testEmptyWorkoutHasNoEstimatedLoadOrEffort() {
+        let workout = makeWorkout(type: .running, duration: 0, averageHeartRate: nil, calories: nil)
+        let activity = mapper.map(workout)
+        XCTAssertEqual(activity.durationMinutes, 0)
+        XCTAssertEqual(activity.relativeEffort, 0)
+        XCTAssertEqual(activity.trainingLoad, 0)
+    }
+
     private func makeWorkout(
         type: HealthKitWorkoutType,
         endDate: Date = Date(timeIntervalSince1970: 1_800_000_000),

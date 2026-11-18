@@ -6,19 +6,22 @@ struct WorkoutRouteCoordinate: Identifiable, Equatable {
     let longitude: Double
     let altitude: Double?
     let timestamp: Date?
+    let segmentIndex: Int
 
     init(
         id: UUID = UUID(),
         latitude: Double,
         longitude: Double,
         altitude: Double? = nil,
-        timestamp: Date? = nil
+        timestamp: Date? = nil,
+        segmentIndex: Int = 0
     ) {
         self.id = id
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
         self.timestamp = timestamp
+        self.segmentIndex = segmentIndex
     }
 }
 
@@ -38,6 +41,10 @@ struct WorkoutRoute: Identifiable, Equatable {
     let totalElevationGain: Double?
     let bounds: WorkoutRouteBounds?
     let createdAt: Date
+    /// Derived display geometry only; persistent source coordinates stay unchanged.
+    let privacyMaskApplied: Bool
+    /// Display-only metadata. Legacy/shared v1 masked routes used a 200m fence.
+    let privacyMaskRadiusMeters: Double?
 
     init(
         id: UUID = UUID(),
@@ -47,7 +54,9 @@ struct WorkoutRoute: Identifiable, Equatable {
         totalDistanceMeters: Double,
         totalElevationGain: Double? = nil,
         bounds: WorkoutRouteBounds? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        privacyMaskApplied: Bool = false,
+        privacyMaskRadiusMeters: Double? = nil
     ) {
         self.id = id
         self.workoutId = workoutId
@@ -57,9 +66,21 @@ struct WorkoutRoute: Identifiable, Equatable {
         self.totalElevationGain = totalElevationGain.map { max(0, $0) }
         self.bounds = bounds ?? Self.makeBounds(from: coordinates)
         self.createdAt = createdAt
+        self.privacyMaskApplied = privacyMaskApplied
+        self.privacyMaskRadiusMeters = privacyMaskApplied ? (privacyMaskRadiusMeters ?? 200) : nil
     }
 
-    // Future: add privacy masking for start/end coordinates before feed or share export.
+    /// Contiguous segments preserve pauses and GPS interruptions without inventing connecting lines.
+    var coordinateSegments: [[WorkoutRouteCoordinate]] {
+        coordinates.reduce(into: []) { segments, coordinate in
+            if segments.last?.last?.segmentIndex == coordinate.segmentIndex {
+                segments[segments.count - 1].append(coordinate)
+            } else {
+                segments.append([coordinate])
+            }
+        }
+    }
+
     // Future: add encoded polyline helpers when Mapbox/route rendering is connected.
     private static func makeBounds(from coordinates: [WorkoutRouteCoordinate]) -> WorkoutRouteBounds? {
         guard let first = coordinates.first else { return nil }

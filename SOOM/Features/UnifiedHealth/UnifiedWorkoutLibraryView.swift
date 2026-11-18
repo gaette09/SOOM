@@ -1,42 +1,15 @@
 import SwiftUI
+import SwiftData
+import HealthKit
 
 struct UnifiedWorkoutLibraryView: View {
+    var dataRevision: Int = 0
     @StateObject private var viewModel: UnifiedWorkoutLibraryViewModel
-    private let similarCandidateProvider: SimilarWorkoutCandidateProviding?
-    private let comparisonHistoryProvider: WorkoutComparisonHistoryProviding?
-    private let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
-    private let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
-    private let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
-    private let fitnessTrendHistoryProvider: FitnessTrendHistoryProviding?
-    private let gpxRouteAttachmentService: GPXRouteAttachmentService?
-    private let fitRouteAttachmentService: FITRouteAttachmentService?
-    private let tcxRouteAttachmentService: TCXRouteAttachmentService?
-    private let companionUpdateService: WorkoutCompanionUpdateService?
+    @State private var selectedWorkout: UnifiedWorkout?
 
-    init(
-        viewModel: UnifiedWorkoutLibraryViewModel,
-        similarCandidateProvider: SimilarWorkoutCandidateProviding? = nil,
-        comparisonHistoryProvider: WorkoutComparisonHistoryProviding? = nil,
-        detailRouteContextProvider: WorkoutDetailRouteContextProviding? = nil,
-        relativeEffortHistoryProvider: RelativeEffortHistoryProviding? = nil,
-        achievementHistoryProvider: WorkoutAchievementHistoryProviding? = nil,
-        fitnessTrendHistoryProvider: FitnessTrendHistoryProviding? = nil,
-        gpxRouteAttachmentService: GPXRouteAttachmentService? = nil,
-        fitRouteAttachmentService: FITRouteAttachmentService? = nil,
-        tcxRouteAttachmentService: TCXRouteAttachmentService? = nil,
-        companionUpdateService: WorkoutCompanionUpdateService? = nil
-    ) {
+    init(viewModel: UnifiedWorkoutLibraryViewModel, dataRevision: Int = 0) {
+        self.dataRevision = dataRevision
         _viewModel = StateObject(wrappedValue: viewModel)
-        self.similarCandidateProvider = similarCandidateProvider
-        self.comparisonHistoryProvider = comparisonHistoryProvider
-        self.detailRouteContextProvider = detailRouteContextProvider
-        self.relativeEffortHistoryProvider = relativeEffortHistoryProvider
-        self.achievementHistoryProvider = achievementHistoryProvider
-        self.fitnessTrendHistoryProvider = fitnessTrendHistoryProvider
-        self.gpxRouteAttachmentService = gpxRouteAttachmentService
-        self.fitRouteAttachmentService = fitRouteAttachmentService
-        self.tcxRouteAttachmentService = tcxRouteAttachmentService
-        self.companionUpdateService = companionUpdateService
     }
 
     var body: some View {
@@ -45,24 +18,32 @@ struct UnifiedWorkoutLibraryView: View {
 
             if viewModel.isLoading && viewModel.workouts.isEmpty {
                 loadingCard
-            } else if let errorMessage = viewModel.errorMessage {
-                errorCard(errorMessage)
-            } else if viewModel.workouts.isEmpty {
+            } else if viewModel.workouts.isEmpty && viewModel.errorMessage == nil {
                 emptyCard
             } else {
+                if let errorMessage = viewModel.errorMessage { errorCard(errorMessage) }
+                if !viewModel.workouts.isEmpty {
                 librarySummaryCard
                 duplicateReviewEntryCard
                 analysisExclusionInfoCard
                 workoutList
+                }
             }
         }
+        .workoutCardDestination(selection: $selectedWorkout)
         .navigationTitle("가져온 운동 기록")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadRecentWorkouts()
+            await viewModel.loadIfNeeded(revision: dataRevision)
+        }
+        .onChange(of: dataRevision) { _, revision in
+            Task { await viewModel.loadIfNeeded(revision: revision) }
         }
         .refreshable {
             await viewModel.loadRecentWorkouts()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WorkoutRecordManagement.didChange)) { _ in
+            Task { await viewModel.loadRecentWorkouts(requiresFollowUp: true) }
         }
     }
 
@@ -81,19 +62,11 @@ struct UnifiedWorkoutLibraryView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.SectionHeader.spacing) {
-                ProgressView()
-                    .tint(SOOMColor.accent)
-                    .accessibilityHidden(true)
-
-                Text("저장된 운동 기록을 불러오는 중이에요.")
-                    .font(SOOMFont.body(15, relativeTo: .subheadline))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("저장된 운동 기록 불러오는 중")
+        VStack(alignment: .leading, spacing: SOOMLayout.Spacing.md) {
+            Text("저장된 운동 기록 불러오는 중").font(SOOMFont.body(16, relativeTo: .body))
+            SOOMSkeleton(layout: .workout, label: "저장된 운동 기록 불러오는 중")
+        }.accessibilityElement(children: .combine)
+        .accessibilityIdentifier("library.state.loading")
     }
 
     private var emptyCard: some View {
@@ -103,7 +76,7 @@ struct UnifiedWorkoutLibraryView: View {
                 caption: "HealthKit 운동 가져오기를 실행하면 여기에 표시돼요."
             )
 
-            Label("가져온 기록은 아직 회복 점수나 성장 분석에 자동 반영되지 않습니다.", systemImage: SOOMIcon.checkCircle)
+            Label("분석에 포함한 운동은 활동·회복·성장 흐름을 살펴보는 데 사용해요.", soomIcon: SOOMIcon.checkCircle)
                 .font(SOOMFont.body(13, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
         }
@@ -112,21 +85,18 @@ struct UnifiedWorkoutLibraryView: View {
 
     private func errorCard(_ message: String) -> some View {
         SOOMCard {
-            SOOMActionRow(
-                icon: SOOMIcon.health,
-                title: "운동 기록을 불러오지 못했어요",
-                subtitle: message,
-                tint: SOOMColor.warning
-            )
-        }
-        .accessibilityElement(children: .combine)
+            SOOMActionFeedback(title: "운동 기록을 불러오지 못했어요", message: message, isError: true)
+            Button("다시 불러오기") { Task { await viewModel.loadRecentWorkouts() } }
+                .frame(minHeight: 44).disabled(viewModel.isLoading)
+                .accessibilityIdentifier("library.state.retry")
+        }.accessibilityIdentifier("library.state.error")
     }
 
     private var librarySummaryCard: some View {
         SOOMCard {
             SOOMSectionHeader(
                 "최근 30일",
-                caption: "저장된 UnifiedWorkout을 검토하는 관리 영역입니다."
+                caption: "가져온 운동과 분석에 포함할 기록을 관리해요."
             )
 
             HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
@@ -175,23 +145,14 @@ struct UnifiedWorkoutLibraryView: View {
         VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
             SOOMSectionHeader(
                 "운동 목록",
-                caption: "Recovery와 Growth 계산 연결 전 저장 상태를 확인합니다."
+                caption: "카드를 누르면 지도와 자세한 운동 기록을 볼 수 있어요."
             )
 
             ForEach(viewModel.workouts) { workout in
                 UnifiedWorkoutLibraryRow(
                     workout: workout,
                     isUpdating: viewModel.updatingWorkoutIDs.contains(workout.id),
-                    similarCandidateProvider: similarCandidateProvider,
-                    comparisonHistoryProvider: comparisonHistoryProvider,
-                    detailRouteContextProvider: detailRouteContextProvider,
-                    relativeEffortHistoryProvider: relativeEffortHistoryProvider,
-                    achievementHistoryProvider: achievementHistoryProvider,
-                    fitnessTrendHistoryProvider: fitnessTrendHistoryProvider,
-                    gpxRouteAttachmentService: gpxRouteAttachmentService,
-                    fitRouteAttachmentService: fitRouteAttachmentService,
-                    tcxRouteAttachmentService: tcxRouteAttachmentService,
-                    companionUpdateService: companionUpdateService,
+                    onOpen: { selectedWorkout = $0 },
                     onToggleExcluded: {
                         Task {
                             await viewModel.toggleExcluded(id: workout.id)
@@ -210,191 +171,31 @@ struct UnifiedWorkoutLibraryView: View {
 private struct UnifiedWorkoutLibraryRow: View {
     let workout: UnifiedWorkout
     let isUpdating: Bool
-    let similarCandidateProvider: SimilarWorkoutCandidateProviding?
-    let comparisonHistoryProvider: WorkoutComparisonHistoryProviding?
-    let detailRouteContextProvider: WorkoutDetailRouteContextProviding?
-    let relativeEffortHistoryProvider: RelativeEffortHistoryProviding?
-    let achievementHistoryProvider: WorkoutAchievementHistoryProviding?
-    let fitnessTrendHistoryProvider: FitnessTrendHistoryProviding?
-    let gpxRouteAttachmentService: GPXRouteAttachmentService?
-    let fitRouteAttachmentService: FITRouteAttachmentService?
-    let tcxRouteAttachmentService: TCXRouteAttachmentService?
-    let companionUpdateService: WorkoutCompanionUpdateService?
+    let onOpen: (UnifiedWorkout) -> Void
     let onToggleExcluded: () -> Void
-    @State private var hasPersistedRoute = false
 
     var body: some View {
-        SOOMCard {
-            VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
-                NavigationLink {
-                    UnifiedWorkoutDetailDestination(
-                        unifiedWorkout: workout,
-                        similarCandidateProvider: similarCandidateProvider,
-                        comparisonHistoryProvider: comparisonHistoryProvider,
-                        detailRouteContextProvider: detailRouteContextProvider,
-                        relativeEffortHistoryProvider: relativeEffortHistoryProvider,
-                        achievementHistoryProvider: achievementHistoryProvider,
-                        fitnessTrendHistoryProvider: fitnessTrendHistoryProvider,
-                        gpxRouteAttachmentService: gpxRouteAttachmentService,
-                        fitRouteAttachmentService: fitRouteAttachmentService,
-                        tcxRouteAttachmentService: tcxRouteAttachmentService,
-                        companionUpdateService: companionUpdateService
-                    )
-                } label: {
-                    rowSummary
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(workout.workoutType.displayName) 상세 보기")
-                .accessibilityHint("가져온 운동 기록의 상세 화면으로 이동합니다.")
-
+        VStack(alignment: .leading, spacing: 10) {
+            ActivityWorkoutRow(workout: workout, onOpen: onOpen)
+            HStack {
+                Text(workout.dataQuality.displayName).font(.caption).foregroundStyle(SOOMColor.secondaryInk)
+                Spacer()
                 Button(action: onToggleExcluded) {
-                    HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                        if isUpdating {
-                            ProgressView()
-                                .tint(SOOMColor.secondaryInk)
-                                .accessibilityHidden(true)
-                        }
-
+                    HStack(spacing: 6) {
+                        if isUpdating { ProgressView() }
                         Text(workout.isExcludedFromAnalysis ? "분석 포함" : "분석 제외")
-                            .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, SOOMLayout.Metrics.pillPadding)
-                    .foregroundStyle(workout.isExcludedFromAnalysis ? SOOMColor.ink : SOOMColor.secondaryInk)
-                    .background(SOOMColor.surfaceMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(isUpdating)
-                .accessibilityLabel(workout.isExcludedFromAnalysis ? "분석 포함" : "분석 제외")
-                .accessibilityHint(workout.isExcludedFromAnalysis ? "이 운동을 Recovery와 성장 분석 후보에 다시 포함합니다." : "이 운동 기록은 유지하고 Recovery와 성장 분석 입력에서 제외합니다.")
+                    }.font(.subheadline).frame(minHeight: 44)
+                }.disabled(isUpdating)
+                .accessibilityHint("기록은 보관하고 회복·성장 분석에 사용할지 변경합니다.")
             }
-        }
-        .accessibilityElement(children: .contain)
-        .task(id: workout.id) {
-            hasPersistedRoute = await detailRouteContextProvider?.route(for: workout) != nil
-        }
+        }.accessibilityElement(children: .contain)
     }
-
-    private var rowSummary: some View {
-        HStack(alignment: .top, spacing: SOOMLayout.Card.contentSpacing) {
-            Image(systemName: workout.workoutType.iconName)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(workout.workoutType.tint)
-                .frame(width: 44, height: 44)
-                .background(workout.workoutType.tint.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                HStack(alignment: .firstTextBaseline, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    Text(workout.workoutType.displayName)
-                        .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
-                        .foregroundStyle(SOOMColor.ink)
-
-                    Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
-
-                    Text(workout.source.displayName)
-                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                        .padding(.horizontal, SOOMLayout.Metrics.actionTextSpacing + 2)
-                        .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
-                        .background(SOOMColor.surfaceMuted)
-                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                }
-
-                Text("\(dateText) · \(timeText)")
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-
-                if hasPersistedRoute {
-                    Text("경로 저장")
-                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.accentInk)
-                        .padding(.horizontal, SOOMLayout.Spacing.sm)
-                        .padding(.vertical, SOOMLayout.Spacing.xs)
-                        .background(SOOMColor.accentSurface)
-                        .clipShape(Capsule())
-                }
-
-                HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
-                    LibraryMetricPill(title: "거리", value: distanceText)
-                    LibraryMetricPill(title: "시간", value: durationText)
-                }
-
-                HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    statusPill(title: workout.dataQuality.displayName, tint: SOOMColor.recovery)
-
-                    if workout.isExcludedFromAnalysis {
-                        statusPill(title: "분석 제외", tint: SOOMColor.warning)
-                    } else {
-                        statusPill(title: "분석 후보", tint: SOOMColor.secondaryInk)
-                    }
-                }
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(SOOMColor.secondaryInk.opacity(0.7))
-                .accessibilityHidden(true)
-        }
-    }
-
-    private var dateText: String {
-        Self.dateFormatter.string(from: workout.startDate)
-    }
-
-    private var timeText: String {
-        Self.timeFormatter.string(from: workout.startDate)
-    }
-
-    private var distanceText: String {
-        guard let distanceMeters = workout.distanceMeters else {
-            return "-"
-        }
-
-        let distanceKm = distanceMeters / 1_000
-        return String(format: "%.1f km", distanceKm)
-    }
-
-    private var durationText: String {
-        let totalMinutes = max(Int((workout.durationSeconds / 60).rounded()), 0)
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-
-        if hours > 0 {
-            return "\(hours)시간 \(minutes)분"
-        }
-
-        return "\(minutes)분"
-    }
-
-    private func statusPill(title: String, tint: Color) -> some View {
-        Text(title)
-            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(tint)
-            .padding(.horizontal, SOOMLayout.Metrics.actionTextSpacing + 3)
-            .padding(.vertical, SOOMLayout.Metrics.actionTextSpacing)
-            .background(tint.opacity(0.10))
-            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M월 d일"
-        return formatter
-    }()
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "a h:mm"
-        return formatter
-    }()
 }
 
 struct UnifiedWorkoutDetailDestination: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var accountStorage: HealthAccountStorageController
+    @State private var routeRequestGate = ShareRouteRequestGate()
     let unifiedWorkout: UnifiedWorkout
     var contextProvider: WorkoutDetailZoneContextProviding = WorkoutDetailZoneContextProvider()
     var similarCandidateProvider: SimilarWorkoutCandidateProviding?
@@ -422,10 +223,18 @@ struct UnifiedWorkoutDetailDestination: View {
     @State private var achievements: [WorkoutAchievement] = []
     @State private var achievementCount = 0
     @State private var fitnessTrend: FitnessTrend?
+    @State private var telemetry: WorkoutTelemetry?
+    @State private var hydratedWorkout: HKWorkout?
+    @State private var detailReadMessage: String?
+    @State private var isReadingDetails = false
+    @State private var detailReadID = UUID()
+    @State private var detailReadIdentity: String?
 
     var body: some View {
+        WorkoutManagementHost(workout: unifiedWorkout) { stored, management in
+        let current = hydratedWorkout.map { stored.withHealthKitDetails($0, telemetry: telemetry, updatedAt: stored.updatedAt) } ?? stored
         WorkoutDeepDetailView(
-            workout: Workout(unifiedWorkout: unifiedWorkout),
+            workout: Workout(unifiedWorkout: current),
             comparisonWorkouts: comparisonWorkouts,
             healthKitWorkout: zoneContext.healthKitWorkout,
             zoneDataProvider: zoneContext.zoneDataProvider,
@@ -438,17 +247,50 @@ struct UnifiedWorkoutDetailDestination: View {
             samplesOverride: chartSamples,
             splitsOverride: chartSplits,
             heartRateChartSamplesOverride: heartRateChartSamples,
+            telemetryOverride: telemetry,
+            healthKitReadPresentation: detailReadMessage.map { message in
+                HealthKitDetailReadPresentation(message: message, isLoading: isReadingDetails,
+                    retry: { await readMissingDetails(force: true) })
+            },
             relativeEffortComparisonOverride: relativeEffortComparison,
             achievementsOverride: achievements,
             achievementCountOverride: achievementCount,
             fitnessTrendOverride: fitnessTrend,
-            sourceUnifiedWorkout: unifiedWorkout,
+            sourceUnifiedWorkout: current,
             routeAttachmentAction: routeAttachmentAction,
             companionUpdateAction: companionUpdateAction
         )
-        .task(id: unifiedWorkout.id) {
-            zoneContext = await contextProvider.context(for: unifiedWorkout)
-            persistedRoute = await loadPersistedRoute()
+        }
+        .task(id: "\(unifiedWorkout.id)-\(unifiedWorkout.updatedAt.timeIntervalSince1970)-\(accountStorage.scopeID)") {
+            let scope = accountStorage.scopeID
+            let token = routeRequestGate.begin(workoutID: unifiedWorkout.id, scopeID: scope)
+            let container = modelContext.container
+            let identity = scope + unifiedWorkout.id.uuidString
+            if detailReadIdentity != identity {
+                persistedRoute = nil
+                telemetry = nil
+                hydratedWorkout = nil
+                detailReadIdentity = identity
+            }
+            detailReadMessage = nil
+            do {
+                if let stored = try WorkoutTelemetryStore(modelContext: modelContext).resolved(for: unifiedWorkout) {
+                    telemetry = telemetry.map { stored.merging($0) } ?? stored
+                }
+            } catch { detailReadMessage = "저장된 측정값을 읽지 못했어요. 건강 앱에서 다시 확인합니다." }
+            // A revision refresh keeps visible data and scroll state; it does not
+            // write newly read private measurements to cloud/shared records.
+            detailReadID = UUID()
+            isReadingDetails = false
+            zoneContext = .fallback
+            let loadedRoute = await loadPersistedRoute()
+            guard routeRequestGate.accepts(token, workoutID: unifiedWorkout.id,
+                    scopeID: accountStorage.scopeID, isCancelled: Task.isCancelled),
+                  modelContext.container === container else { return }
+            if let loadedRoute { persistedRoute = loadedRoute }
+            await readMissingDetails()
+            guard routeRequestGate.accepts(token, workoutID: unifiedWorkout.id,
+                scopeID: accountStorage.scopeID, isCancelled: Task.isCancelled) else { return }
             let candidateResult = await loadSimilarCandidateResult()
             comparisonInsight = buildComparisonInsight(from: candidateResult)
             courseRecord = buildCourseRecord(from: candidateResult)
@@ -459,6 +301,49 @@ struct UnifiedWorkoutDetailDestination: View {
             await loadRelativeEffortComparison()
             await loadAchievements()
             await loadFitnessTrend()
+        }
+    }
+
+    @MainActor
+    private func readMissingDetails(force: Bool = false) async {
+        guard !ReviewDemoMode.isActive, unifiedWorkout.source == .appleHealthKit,
+              let external = unifiedWorkout.externalId, UUID(uuidString: external) != nil,
+              !isReadingDetails else { return }
+        let needsRoute = persistedRoute == nil && unifiedWorkout.routeMissingReason != .indoorNoLocationData && [.running, .cycling, .walking, .hiking].contains(unifiedWorkout.workoutType)
+        guard force || needsRoute || HealthKitDetailReadCache.needsMeasurements(unifiedWorkout, telemetry: telemetry) else { return }
+        let scope = accountStorage.scopeID
+        let container = modelContext.container
+        let readID = UUID()
+        detailReadID = readID
+        isReadingDetails = true
+        detailReadMessage = "건강 앱의 측정값을 확인하고 있어요. 기존 기록은 유지됩니다."
+        defer { if detailReadID == readID { isReadingDetails = false } }
+        do {
+            let key = HealthKitDetailReadCache.Key(scope: scope, workoutID: unifiedWorkout.id,
+                externalID: external, revision: unifiedWorkout.updatedAt, needsRoute: needsRoute)
+            let original = unifiedWorkout
+            let result = try await HealthKitDetailReadCache.shared.read(key: key, force: force) {
+                try await HealthKitDetailReadCache.fetch(workout: original, needsRoute: needsRoute)
+            }
+            guard !Task.isCancelled, scope == accountStorage.scopeID,
+                  container === modelContext.container, detailReadID == readID else { return }
+            hydratedWorkout = result.workout
+            if let incoming = result.telemetry {
+                telemetry = (telemetry?.merging(incoming) ?? incoming).validated(for: unifiedWorkout)
+            }
+            if persistedRoute == nil { persistedRoute = result.route }
+            if result.workout == nil {
+                detailReadMessage = "이 기기에서 연결된 건강 운동을 읽지 못했어요. 데이터 존재 여부와 읽기 허용 여부는 이 결과만으로 구분할 수 없어요."
+            } else if !result.failedChannels.isEmpty {
+                detailReadMessage = "일부 측정값을 읽지 못했어요. 이미 표시된 기록은 유지됩니다."
+            } else if HealthKitDetailReadCache.needsMeasurements(result.workout.map { unifiedWorkout.withHealthKitDetails($0, telemetry: telemetry, updatedAt: unifiedWorkout.updatedAt) } ?? unifiedWorkout, telemetry: telemetry) || (needsRoute && persistedRoute == nil) {
+                detailReadMessage = "읽을 수 있는 측정값만 표시했어요. 빈 항목은 건강 앱의 SOOM 읽기 허용과 기록 연결을 확인해 주세요. 경로와 심박·구간은 각각 별도로 제공될 수 있어요."
+            } else { detailReadMessage = nil }
+        } catch is CancellationError {
+            if detailReadID == readID { detailReadMessage = nil }
+        } catch {
+            guard scope == accountStorage.scopeID, detailReadID == readID else { return }
+            detailReadMessage = "측정값 확인을 완료하지 못했어요. 기존 기록을 유지했어요."
         }
     }
 
@@ -542,8 +427,17 @@ struct UnifiedWorkoutDetailDestination: View {
     private var companionUpdateAction: WorkoutCompanionUpdateAction? {
         guard let companionUpdateService else { return nil }
 
+        let scope = accountStorage.scopeID
         return WorkoutCompanionUpdateAction { names in
-            await companionUpdateService.updateCompanions(workoutId: unifiedWorkout.id, names: names)
+            guard accountStorage.scopeID == scope, !Task.isCancelled else { return .failure(.persistenceFailed) }
+            #if DEBUG && targetEnvironment(simulator)
+            if ReviewDemoMode.isActive, ProcessInfo.processInfo.environment["SOOM_COMPANION_FORM_QA"] == "1" {
+                try? await Task.sleep(for: .milliseconds(500))
+                if CompanionSyntheticFailure.takeFirst(unifiedWorkout.id) { return .failure(.persistenceFailed) }
+            }
+            #endif
+            guard accountStorage.scopeID == scope, !Task.isCancelled else { return .failure(.persistenceFailed) }
+            return await companionUpdateService.updateCompanions(workoutId: unifiedWorkout.id, names: names)
         }
     }
 
@@ -636,7 +530,14 @@ struct UnifiedWorkoutDetailDestination: View {
 
     @MainActor
     private func reloadRouteDerivedState() async {
-        persistedRoute = await loadPersistedRoute() ?? persistedRoute
+        let scope = accountStorage.scopeID, container = modelContext.container
+        let token = routeRequestGate.begin(workoutID: unifiedWorkout.id, scopeID: scope)
+        persistedRoute = nil
+        let route = await loadPersistedRoute()
+        guard routeRequestGate.accepts(token, workoutID: unifiedWorkout.id,
+                scopeID: accountStorage.scopeID, isCancelled: Task.isCancelled),
+              modelContext.container === container else { return }
+        persistedRoute = route
         let candidateResult = await loadSimilarCandidateResult()
         comparisonInsight = buildComparisonInsight(from: candidateResult)
         courseRecord = buildCourseRecord(from: candidateResult)
@@ -645,7 +546,18 @@ struct UnifiedWorkoutDetailDestination: View {
     }
 
     private func loadPersistedRoute() async -> WorkoutRoute? {
-        await detailRouteContextProvider?.route(for: unifiedWorkout)
+        do {
+            if let route = try await WorkoutTelemetryStore(modelContext: modelContext).resolvedRoute(for: unifiedWorkout) {
+                return route.workoutId == unifiedWorkout.id ? route : nil
+            }
+        } catch { return nil }
+        guard let route = await detailRouteContextProvider?.route(for: unifiedWorkout) else { return nil }
+        // Legacy HealthKit routes can be keyed by the verified external UUID.
+        let external = unifiedWorkout.source == .appleHealthKit ? unifiedWorkout.externalId.flatMap(UUID.init(uuidString:)) : nil
+        guard route.workoutId == unifiedWorkout.id || route.workoutId == external else { return nil }
+        return WorkoutRoute(id: route.id, workoutId: unifiedWorkout.id, source: route.source,
+            coordinates: route.coordinates, totalDistanceMeters: route.totalDistanceMeters,
+            totalElevationGain: route.totalElevationGain, createdAt: route.createdAt)
     }
 
     private func loadSimilarCandidateResult() async -> SimilarWorkoutCandidateResult? {
@@ -716,12 +628,12 @@ extension Workout {
         let sport = WorkoutSport(unifiedWorkoutType: workout.workoutType)
         let distanceMeters = workout.distanceMeters ?? 0
         let averageHeartRate = Int((workout.averageHeartRate ?? 0).rounded())
-        let maxHeartRate = Int((workout.maxHeartRate ?? workout.averageHeartRate ?? 0).rounded())
+        let maxHeartRate = Int((workout.maxHeartRate ?? 0).rounded())
 
         self.init(
             id: workout.id,
             sport: sport,
-            title: "\(workout.source.displayName) \(sport.title)",
+            title: workout.displayTitle,
             date: workout.startDate,
             distanceMeters: distanceMeters,
             duration: workout.durationSeconds,
@@ -738,7 +650,8 @@ extension Workout {
             samples: [],
             zones: [],
             achievements: [],
-            aiSummary: "가져온 운동 기록을 기준으로 상세 흐름을 확인합니다. HealthKit stream이 있으면 존과 운동 흐름 분석에 우선 반영돼요."
+            aiSummary: "가져온 운동 기록과 실제 측정값을 기준으로 운동 흐름을 확인합니다. 연동 서비스가 제공하는 데이터에 따라 분석 항목이 달라져요.",
+            originalWorkoutType: workout.workoutType
         )
     }
 
@@ -829,8 +742,10 @@ private extension UnifiedWorkoutType {
             return "dumbbell"
         case .yoga:
             return "figure.mind.and.body"
-        case .running, .other:
+        case .running:
             return SOOMIcon.run
+        case .other:
+            return SOOMIcon.activity
         }
     }
 
@@ -855,6 +770,8 @@ private extension UnifiedDataSource {
             return "Apple Health"
         case .garmin:
             return "Garmin"
+        case .googleHealth:
+            return "Google Health"
         case .strava:
             return "Strava"
         case .samsungHealth:
@@ -892,9 +809,6 @@ private extension UnifiedDataQuality {
     NavigationStack {
         UnifiedWorkoutLibraryView(
             viewModel: UnifiedWorkoutLibraryViewModel(
-                store: PreviewUnifiedWorkoutLibraryStore()
-            ),
-            similarCandidateProvider: SimilarWorkoutCandidateProvider(
                 store: PreviewUnifiedWorkoutLibraryStore()
             )
         )
@@ -952,3 +866,11 @@ private final class PreviewUnifiedWorkoutLibraryStore: UnifiedWorkoutStore {
         )
     }
 }
+
+#if DEBUG && targetEnvironment(simulator)
+@MainActor
+private enum CompanionSyntheticFailure {
+    private static var failed = Set<UUID>()
+    static func takeFirst(_ id: UUID) -> Bool { failed.insert(id).inserted }
+}
+#endif

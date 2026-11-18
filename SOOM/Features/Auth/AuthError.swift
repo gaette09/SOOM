@@ -6,6 +6,7 @@ enum AuthError: Error, Equatable {
     case invalidEmail
     case appleCredentialMissing
     case sessionNotFound
+    case sessionTransitionInProgress
     case futureRemoteAuthNotConfigured
     case unknown(String)
 
@@ -19,6 +20,8 @@ enum AuthError: Error, Equatable {
             return "이메일 주소를 다시 확인해주세요."
         case .appleCredentialMissing:
             return "Apple 로그인 정보를 확인하지 못했어요. 다시 시도해 주세요."
+        case .sessionTransitionInProgress:
+            return "계정 연결을 변경하고 있어요. 잠시 후 다시 시도해 주세요."
         case .sessionNotFound:
             return "사용자 정보를 찾지 못했어요. 로컬 사용자로 다시 시작할 수 있어요."
         case .futureRemoteAuthNotConfigured:

@@ -10,6 +10,7 @@ struct HealthKitWorkout: Identifiable, Equatable {
     let distance: Double?
     let averageHeartRate: Double?
     let calories: Double?
+    var deviceName: String? = nil
 }
 
 enum HealthKitWorkoutType: String, Equatable {
@@ -52,6 +53,8 @@ enum HealthKitWorkoutType: String, Equatable {
 
 extension HealthKitWorkout {
     init(workout: HKWorkout) {
+        let activeCalories = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
+            .flatMap { workout.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .kilocalorie()) }
         self.init(
             id: workout.uuid,
             workoutType: HealthKitWorkoutType(activityType: workout.workoutActivityType),
@@ -59,8 +62,11 @@ extension HealthKitWorkout {
             endDate: workout.endDate,
             duration: workout.duration,
             distance: workout.totalDistance?.doubleValue(for: .meter()),
-            averageHeartRate: nil,
-            calories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
+            averageHeartRate: HKQuantityType.quantityType(forIdentifier: .heartRate).flatMap {
+                workout.statistics(for: $0)?.averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+            },
+            calories: activeCalories,
+            deviceName: workout.device?.name ?? workout.device?.model ?? workout.sourceRevision.source.name
         )
     }
 }

@@ -16,6 +16,12 @@ struct ClubDomain: Identifiable, Equatable {
     let membershipState: ClubMembershipState
 }
 
+/// The club INSERT succeeded; a later owner-membership step did not confirm.
+/// This receipt must never fall through to a second local or remote creation.
+struct ClubCreationCommitted: Error {
+    let club: ClubDomain
+}
+
 enum ClubVisibility: Hashable {
     case open
     case `private`
@@ -47,8 +53,8 @@ enum ClubMembershipState: Hashable {
         switch self {
         case .joined: return "가입됨"
         case .recommended: return "가입하기"
-        case .owned: return "관리"
-        case .admin: return "관리"
+        case .owned: return "관리 준비 중"
+        case .admin: return "관리 준비 중"
         }
     }
 
@@ -475,7 +481,8 @@ struct ClubMotivationSummary: Equatable {
     }
 
     var nextGoalText: String {
-        if currentRank <= 1 {
+        if currentRank <= 0 { return nextRankTargetLabel }
+        if currentRank == 1 {
             return "지금은 기준을 지키는 중"
         }
 
@@ -529,15 +536,15 @@ struct ClubMotivationSummary: Equatable {
     }
 
     static let emptyNewClub = ClubMotivationSummary(
-        currentRank: 1,
+        currentRank: 0,
         previousRank: nil,
         weeklyContributionDistance: 0,
         weeklyContributionCount: 0,
         contributionPercent: 0,
         nextRankTargetDistance: nil,
         nextRankTargetLabel: "첫 기여를 시작해보세요",
-        activeMembersThisWeek: 1,
-        newBadgesThisWeek: 1,
+        activeMembersThisWeek: 0,
+        newBadgesThisWeek: 0,
         completedChallengesThisWeek: 0,
         clubGoalProgress: 0,
         motivationLine: "아직 랭킹이 만들어지는 중이에요. 첫 움직임이 클럽의 기준이 됩니다."
@@ -571,6 +578,7 @@ struct ClubSummary: Identifiable, Equatable {
 
     var rankText: String {
         guard let weeklyRank else { return "가입 전" }
+        guard weeklyRank > 0 else { return "순위 집계 전" }
         return "이번 주 내 순위 \(weeklyRank)위"
     }
 }
@@ -686,6 +694,10 @@ struct ClubDetail: Identifiable, Equatable {
             isJoined: membershipState.isMember,
             membershipState: membershipState
         )
+    }
+
+    var weeklyRankText: String {
+        weeklyRank > 0 ? "\(weeklyRank)위" : "집계 전"
     }
 
     var goalPercentText: String {
@@ -807,6 +819,15 @@ struct ClubDirectorySnapshot: Equatable {
     let joinedClubs: [ClubDetail]
     let createdClubs: [ClubDetail]
     let recommendedClubs: [ClubSummary]
+    /// A failed remote read may still supply local clubs, but cannot confirm a remote write.
+    let usedLocalFallback: Bool
+
+    init(joinedClubs: [ClubDetail], createdClubs: [ClubDetail], recommendedClubs: [ClubSummary], usedLocalFallback: Bool = false) {
+        self.joinedClubs = joinedClubs
+        self.createdClubs = createdClubs
+        self.recommendedClubs = recommendedClubs
+        self.usedLocalFallback = usedLocalFallback
+    }
 
     static let empty = ClubDirectorySnapshot(joinedClubs: [], createdClubs: [], recommendedClubs: [])
 
@@ -891,6 +912,56 @@ protocol ClubService {
 
 enum ClubServiceError: Error, Equatable {
     case clubNotFound
+    case directoryReadUsedFallback
+
+    static func requiresDirectoryDiscard(_ error: Error) -> Bool {
+        CommunitySafetyError.isPolicyRejection(error)
+            || error as? CommunitySafetyError == .accountChanged
+            || error as? CommunitySafetyError == .signInRequired
+            || (error as? PostgrestError)?.code == "42501"
+    }
+}
+
+extension ClubServiceError {
+    /// Server/auth/decoding rejection is not evidence of offline creation.
+    static func requiresAuthoritativeFailure(_ error: Error) -> Bool {
+        requiresDirectoryDiscard(error) || error is PostgrestError || error is Supabase.AuthError || error is AuthError || error is DecodingError
+    }
+
+    /// A response can be lost after INSERT. Never invent a successful local receipt.
+    static func requiresCreationVerification(_ error: Error) -> Bool {
+        if error is DecodingError || error as? ClubSupabaseServiceError == .missingCreatedClub { return true }
+        guard let url = error as? URLError else { return false }
+        return [.timedOut, .networkConnectionLost, .cannotParseResponse,
+                .cannotDecodeRawData, .cannotDecodeContentData].contains(url.code)
+    }
+
+    static func message(for error: Error, creating: Bool) -> String {
+        if error is CommunitySafetyError || CommunitySafetyError.isPolicyRejection(error) {
+            return CommunitySafetyError.message(for: error)
+        }
+        if error is Supabase.AuthError || error is AuthError || (error as? PostgrestError)?.code == "PGRST301" {
+            return "로그인 상태를 확인하지 못했어요. 다시 로그인한 뒤 클럽을 확인해 주세요."
+        }
+        if creating && requiresCreationVerification(error) {
+            return "클럽 생성 결과를 확인하지 못했어요. 창을 닫고 목록을 먼저 확인해 주세요. 같은 클럽을 다시 만들지 마세요."
+        }
+        if let server = error as? PostgrestError {
+            switch server.code {
+            case "42501":
+                return creating
+                    ? "클럽 만들기 접근 권한을 확인하지 못했어요. 저장 완료로 처리하지 않았어요."
+                    : "클럽 목록 접근 권한을 확인하지 못했어요. 목록을 다시 불러와 주세요."
+            case "42P01", "42703", "42P17", "PGRST202", "PGRST203", "PGRST204", "PGRST205":
+                return "서버의 클럽 기능을 확인하지 못했어요. 잠시 후 다시 확인해 주세요."
+            default:
+                return "서버가 클럽 요청을 완료하지 못했어요. 잠시 후 다시 확인해 주세요."
+            }
+        }
+        if error is DecodingError { return "서버의 클럽 응답을 읽지 못했어요. 잠시 후 다시 확인해 주세요." }
+        if error is URLError { return "클럽 연결을 완료하지 못했어요. 연결 상태를 확인한 뒤 다시 시도해 주세요." }
+        return "클럽 요청을 완료하지 못했어요. 잠시 후 다시 확인해 주세요."
+    }
 }
 
 enum ClubSupabaseServiceError: Error, Equatable {
@@ -1077,26 +1148,26 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
     }
 
     func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload {
-        let clubs: [SupabaseClubRow] = try await client
+        async let clubs: [SupabaseClubRow] = client
             .from("clubs")
             .select()
             .execute()
             .value
 
-        let memberships: [SupabaseClubMemberRow] = try await client
+        async let memberships: [SupabaseClubMemberRow] = client
             .from("club_members")
             .select()
             .eq("user_id", value: currentUserID)
             .execute()
             .value
 
-        let memberRows: [SupabaseClubMemberRow] = try await client
+        async let memberRows: [SupabaseClubMemberRow] = client
             .from("club_members")
             .select()
             .execute()
             .value
 
-        return SupabaseClubDirectoryPayload(clubs: clubs, memberships: memberships, memberRows: memberRows)
+        return try await SupabaseClubDirectoryPayload(clubs: clubs, memberships: memberships, memberRows: memberRows)
     }
 
     func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload {
@@ -1190,11 +1261,11 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
             .select()
             .eq("visibility", value: "public")
             .in("user_id", values: memberIDs)
-            .gte("created_at", value: sinceValue)
+            .gte("activity_at", value: sinceValue)
 
         if let until {
             let untilValue = ISO8601DateFormatter().string(from: until)
-            query = query.lte("created_at", value: untilValue)
+            query = query.lte("activity_at", value: untilValue)
         }
 
         let posts: [ClubMemberActivityPostRow] = try await query
@@ -1225,11 +1296,11 @@ struct SupabaseClubRemoteClient: SupabaseClubRemoteClienting {
         let untilValue = ISO8601DateFormatter().string(from: until)
         let rows: [ClubActiveDayPostRow] = try await client
             .from("feed_posts")
-            .select("created_at")
+            .select("activity_at")
             .eq("visibility", value: "public")
             .in("user_id", values: memberIDs)
-            .gte("created_at", value: sinceValue)
-            .lte("created_at", value: untilValue)
+            .gte("activity_at", value: sinceValue)
+            .lte("activity_at", value: untilValue)
             .execute()
             .value
 
@@ -1248,7 +1319,7 @@ private struct ClubActiveDayPostRow: Decodable {
     let createdAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case createdAt = "created_at"
+        case createdAt = "activity_at"
     }
 }
 
@@ -1262,7 +1333,7 @@ private struct ClubMemberActivityPostRow: Decodable {
         case userID = "user_id"
         case distanceMeters = "distance_meters"
         case durationSeconds = "duration_seconds"
-        case createdAt = "created_at"
+        case createdAt = "activity_at"
     }
 }
 
@@ -1285,7 +1356,9 @@ final class SupabaseClubService: ClubService {
     }
 
     func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        let trace = LoadTrace("club-directory-service")
         let payload = try await remoteClient.fetchClubDirectory(currentUserID: currentUserID)
+        trace.mark("sdk-response")
         let membershipByClub = Dictionary(uniqueKeysWithValues: payload.memberships.map { ($0.clubID, $0) })
         let memberCounts = Dictionary(grouping: payload.memberRows, by: \.clubID).mapValues(\.count)
         // Sequential, not parallel — club directories are small at this
@@ -1304,11 +1377,13 @@ final class SupabaseClubService: ClubService {
             details.append(detail)
         }
 
-        return ClubDirectorySnapshot(
+        let snapshot = ClubDirectorySnapshot(
             joinedClubs: details.filter { $0.membershipState == .joined || $0.membershipState == .admin },
             createdClubs: details.filter { $0.membershipState == .owned },
             recommendedClubs: details.filter { $0.membershipState == .recommended }.map(\.summary)
         )
+        trace.mark("prepared")
+        return snapshot
     }
 
     func fetchClubDetail(clubId: String) async throws -> ClubDetail {
@@ -1333,11 +1408,12 @@ final class SupabaseClubService: ClubService {
             ownerUserID: currentUserID
         )
         let club = try await remoteClient.createClub(request)
-        try await remoteClient.joinClub(SupabaseClubMemberInsertRequest(
+        var membershipConfirmed = true
+        do { try await remoteClient.joinClub(SupabaseClubMemberInsertRequest(
             clubID: club.id,
             userID: currentUserID,
             role: ClubMemberRole.owner.rawValue
-        ))
+        )) } catch { membershipConfirmed = false }
         let detail = await makeDetail(
             club: club,
             membership: SupabaseClubMemberRow(
@@ -1352,6 +1428,7 @@ final class SupabaseClubService: ClubService {
             badges: [],
             memberCountOverride: 1
         )
+        guard membershipConfirmed else { throw ClubCreationCommitted(club: detail.club) }
         return detail.club
     }
 
@@ -1413,10 +1490,11 @@ final class SupabaseClubService: ClubService {
         let membershipState = membershipState(for: club, membership: membership)
         let memberCount = max(memberCountOverride ?? members.count, membershipState.isMember ? 1 : 0)
         let goalProgress = 0.0
-        let weeklyRank = membershipState.isMember ? 1 : 0
         let memberPreview = makeMemberPreview(from: members)
         let rankingSource = effectiveMembers(from: members, clubID: club.id, membershipState: membershipState)
         let ranking = await makeRanking(from: rankingSource, clubID: club.id)
+        let currentEntry = membershipState.isMember ? ranking.first(where: \.isCurrentUser) : nil
+        let weeklyRank = currentEntry?.rank ?? 0
         var mappedChallenges: [ClubChallenge] = []
         for row in challenges {
             mappedChallenges.append(await makeChallenge(row, members: rankingSource))
@@ -1444,7 +1522,7 @@ final class SupabaseClubService: ClubService {
             owner: ownerName(for: club, members: members),
             ownerId: club.ownerUserID,
             privacy: ClubVisibility(remoteValue: club.visibility),
-            activeMembersThisWeek: memberCount,
+            activeMembersThisWeek: ranking.count,
             rules: [
                 "클럽 안 랭킹만 표시합니다.",
                 "서로의 페이스를 존중합니다.",
@@ -1459,18 +1537,23 @@ final class SupabaseClubService: ClubService {
             memberCount: memberCount,
             weeklyRank: weeklyRank,
             rankMovement: 0,
-            contributionDistanceKm: 0,
+            contributionDistanceKm: currentEntry?.distanceKm ?? 0,
             goalProgress: goalProgress,
             ranking: ranking,
-            challenges: mappedChallenges.isEmpty ? defaultChallenges(clubID: club.id) : mappedChallenges,
-            badges: mappedBadges.isEmpty ? defaultBadges(clubID: club.id) : mappedBadges,
-            pulses: [
-                ClubActivityPulse(icon: SOOMIcon.people, message: "이번 주 \(memberCount)명이 클럽 리듬을 준비 중이에요", tone: .ink),
-                ClubActivityPulse(icon: SOOMIcon.trendUp, message: "챌린지 진행률 계산은 곧 더 정교해져요", tone: .bike)
-            ],
-            motivationSummary: membershipState == .recommended
-                ? ClubDetail.hangangRiders.withMembershipState(.recommended).motivationSummary
-                : .emptyNewClub,
+            challenges: mappedChallenges,
+            badges: mappedBadges,
+            pulses: [],
+            motivationSummary: ClubMotivationSummary(
+                currentRank: weeklyRank, previousRank: nil,
+                weeklyContributionDistance: currentEntry?.distanceKm ?? 0,
+                weeklyContributionCount: currentEntry?.sessions ?? 0,
+                contributionPercent: 0, nextRankTargetDistance: nil,
+                nextRankTargetLabel: "기여 기록을 확인하는 중이에요",
+                activeMembersThisWeek: ranking.count, newBadgesThisWeek: 0,
+                completedChallengesThisWeek: mappedChallenges.filter { $0.state == .completed }.count,
+                clubGoalProgress: 0,
+                motivationLine: ranking.isEmpty ? "확인된 이번 주 기여 기록이 아직 없어요." : "공개 운동 기록에서 확인한 이번 주 기여입니다."
+            ),
             createdAt: SupabaseClubDateParser.date(from: club.createdAt) ?? now()
         )
     }
@@ -1542,19 +1625,18 @@ final class SupabaseClubService: ClubService {
 
         let memberIDs = source.map(\.userID)
         let weekStart = Self.currentWeekStart(referenceDate: now())
-        // Failures degrade to zeros/"멤버 N" rather than surfacing an
-        // error — a club screen that can't show real ranking numbers
-        // this instant should still render the roster, same tolerance
-        // this file already applies to challenges/badges.
-        let summaries = (try? await remoteClient.fetchMemberActivitySummaries(memberIDs: memberIDs, since: weekStart)) ?? []
+        // Failed or absent activity is not a measured zero or a ranking.
+        guard let summaries = try? await remoteClient.fetchMemberActivitySummaries(memberIDs: memberIDs, since: weekStart) else { return [] }
         let summaryByUserID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.userID, $0) })
 
         let profileIDs = memberIDs.compactMap { UUID(uuidString: $0) }
         let profiles = (try? await profileFetcher?.fetchProfiles(ids: profileIDs)) ?? []
         let nameByUserID = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id.uuidString, $0.displayName) })
 
-        let unranked = source.map { member in
-            (member: member, summary: summaryByUserID[member.userID] ?? .empty(userID: member.userID))
+        let unranked = source.compactMap { member -> (member: SupabaseClubMemberRow, summary: ClubMemberActivitySummary)? in
+            guard let summary = summaryByUserID[member.userID],
+                  summary.workoutCount > 0 || summary.totalDistanceMeters > 0 || summary.totalDurationSeconds > 0 else { return nil }
+            return (member: member, summary: summary)
         }
         // Base order only — fetchRankings re-sorts by whatever metric the
         // UI actually asked for. Distance descending is just a sane
@@ -1683,26 +1765,6 @@ final class SupabaseClubService: ClubService {
         )
     }
 
-    private func defaultChallenges(clubID: String) -> [ClubChallenge] {
-        [
-            ClubChallenge(
-                clubId: clubID,
-                title: "첫 주 3회 움직이기",
-                metricType: .workoutCount,
-                progress: 0,
-                target: 3,
-                unit: "회",
-                subtitle: "클럽의 첫 리듬을 만듭니다."
-            )
-        ]
-    }
-
-    private func defaultBadges(clubID: String) -> [ClubBadge] {
-        [
-            ClubBadge(clubId: clubID, title: "첫 기여", subtitle: "준비 중", icon: SOOMIcon.medal, state: .locked, progress: 0)
-        ]
-    }
-
     private func ownerName(for club: SupabaseClubRow, members: [SupabaseClubMemberRow]) -> String {
         if club.ownerUserID == currentUserID {
             return "나"
@@ -1738,8 +1800,15 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchClubDirectory()
         } catch {
+            guard !ClubServiceError.requiresAuthoritativeFailure(error) else { throw error }
             onDidUseFallback()
-            return try await fallback.fetchClubDirectory()
+            let local = try await fallback.fetchClubDirectory()
+            return ClubDirectorySnapshot(
+                joinedClubs: local.joinedClubs.filter { UUID(uuidString: $0.id) == nil },
+                createdClubs: local.createdClubs.filter { UUID(uuidString: $0.id) == nil },
+                recommendedClubs: local.recommendedClubs.filter { UUID(uuidString: $0.id) == nil },
+                usedLocalFallback: true
+            )
         }
     }
 
@@ -1747,6 +1816,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchClubDetail(clubId: clubId)
         } catch {
+            guard UUID(uuidString: clubId) == nil, !CommunitySafetyError.isPolicyRejection(error) else { throw error }
             onDidUseFallback()
             return try await fallback.fetchClubDetail(clubId: clubId)
         }
@@ -1756,6 +1826,13 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.createClub(input: input)
         } catch {
+            if error is ClubCreationCommitted { throw error }
+            // Permission/account failures are not an offline-save request either.
+            if ClubServiceError.requiresAuthoritativeFailure(error)
+                || ClubServiceError.requiresCreationVerification(error)
+                || error as? ClubSupabaseServiceError == .missingCreatedClub {
+                throw error
+            }
             onDidUseFallback()
             return try await fallback.createClub(input: input)
         }
@@ -1765,6 +1842,7 @@ final class FallbackClubService: ClubService {
         do {
             try await primary.joinClub(clubId: clubId)
         } catch {
+            guard UUID(uuidString: clubId) == nil, !CommunitySafetyError.isPolicyRejection(error) else { throw error }
             onDidUseFallback()
             try await fallback.joinClub(clubId: clubId)
         }
@@ -1774,6 +1852,7 @@ final class FallbackClubService: ClubService {
         do {
             try await primary.leaveClub(clubId: clubId)
         } catch {
+            guard UUID(uuidString: clubId) == nil, !CommunitySafetyError.isPolicyRejection(error) else { throw error }
             onDidUseFallback()
             try await fallback.leaveClub(clubId: clubId)
         }
@@ -1783,6 +1862,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchRankings(clubId: clubId, metric: metric)
         } catch {
+            guard UUID(uuidString: clubId) == nil, !CommunitySafetyError.isPolicyRejection(error) else { throw error }
             onDidUseFallback()
             return try await fallback.fetchRankings(clubId: clubId, metric: metric)
         }
@@ -1792,6 +1872,7 @@ final class FallbackClubService: ClubService {
         do {
             return try await primary.fetchChallenges(clubId: clubId)
         } catch {
+            guard UUID(uuidString: clubId) == nil, !CommunitySafetyError.isPolicyRejection(error) else { throw error }
             onDidUseFallback()
             return try await fallback.fetchChallenges(clubId: clubId)
         }
@@ -1900,6 +1981,7 @@ private extension ClubMemberRole {
 }
 
 final class LocalClubPersistence {
+    static var accountKey = "soom.club.local.persistence.v1"
     private struct StoredState: Codable, Equatable {
         var createdClubs: [StoredCreatedClub] = []
         var membershipOverrides: [String: String] = [:]
@@ -1926,7 +2008,7 @@ final class LocalClubPersistence {
 
     init(
         userDefaults: UserDefaults = .standard,
-        key: String = "soom.club.local.persistence.v1"
+        key: String = LocalClubPersistence.accountKey
     ) {
         self.userDefaults = userDefaults
         self.key = key
@@ -2006,7 +2088,7 @@ final class InMemoryClubService: ClubService {
     private let persistence: LocalClubPersistence?
 
     init(
-        details: [ClubDetail] = InMemoryClubService.seedDetails,
+        details: [ClubDetail] = [],
         persistence: LocalClubPersistence? = nil
     ) {
         self.persistence = persistence
@@ -2154,6 +2236,10 @@ final class ClubsViewModel: ObservableObject {
     @Published private(set) var badges: [ClubBadge] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var membershipOperation: String?
+    @Published private(set) var membershipError: String?
+    @Published private(set) var rankingError: String?
+    @Published private(set) var rankingLoading = false
     @Published private(set) var selectedRankingMetric: ClubRankingMetric = .distance
     /// True once `FallbackClubService` (or the no-session/unconfigured path
     /// in `ClubServiceResolver`) has actually served local data for the
@@ -2162,14 +2248,32 @@ final class ClubsViewModel: ObservableObject {
     /// successful retry clears it on its own.
     @Published private(set) var isShowingLocalFallbackData = false
 
+    var shouldShowLocalFallbackBanner: Bool {
+        isShowingLocalFallbackData && (directory.joinedClubs + directory.createdClubs).contains { $0.id.hasPrefix("local-") }
+    }
+
     private var service: ClubService
+    private var serviceRevision = 0
+    private var directoryRequestRevision = 0
+    private var detailRequestRevision = 0
+    private var confirmedCreationRefreshWarning: String?
+    private var pendingCreatedClubID: String?
 
     init(service: ClubService = ClubServiceResolver.makeDefaultService()) {
         self.service = service
     }
 
     func configure(service: ClubService) {
+        serviceRevision += 1
+        directoryRequestRevision += 1
+        detailRequestRevision += 1
         self.service = service
+        directory = .empty
+        confirmedCreationRefreshWarning = nil
+        pendingCreatedClubID = nil
+        clearSelectedClub()
+        isShowingLocalFallbackData = false
+        errorMessage = nil; membershipOperation = nil; membershipError = nil; rankingError = nil; rankingLoading = false; isLoading = false
     }
 
     /// Callback target for `ClubServiceResolver`'s `onDidUseFallback`
@@ -2183,81 +2287,199 @@ final class ClubsViewModel: ObservableObject {
     }
 
     func loadDirectory() async {
+        let trace = LoadTrace("club-directory-screen")
+        let revision = serviceRevision
+        directoryRequestRevision += 1
+        detailRequestRevision += 1
+        let requestRevision = directoryRequestRevision
+        let currentService = service
         isLoading = true
+        errorMessage = nil
         isShowingLocalFallbackData = false
-        defer { isLoading = false }
+        // Keep the same account's last directory while verifying an already confirmed creation.
+        if confirmedCreationRefreshWarning == nil { directory = .empty }
+        clearSelectedClub()
+        defer { if requestRevision == directoryRequestRevision { isLoading = false } }
 
         do {
-            directory = try await service.fetchClubDirectory()
+            let loaded = try await currentService.fetchClubDirectory()
+            trace.mark("service-response")
+            guard revision == serviceRevision, requestRevision == directoryRequestRevision else { return }
+            if loaded.usedLocalFallback {
+                // Local success is not proof that the remote directory was refreshed.
+                if confirmedCreationRefreshWarning == nil || pendingCreatedClubID.map({ UUID(uuidString: $0) == nil }) == true {
+                    // A local receipt can be recovered from a successful local read; it never verifies a remote write.
+                    directory = loaded
+                }
+                isShowingLocalFallbackData = true
+                errorMessage = confirmedCreationRefreshWarning ?? "클럽 목록을 불러오지 못했어요. 목록을 다시 불러와 주세요."
+                return
+            }
+            directory = loaded
+            trace.mark("view-model-applied")
+            if let id = pendingCreatedClubID,
+               !(loaded.createdClubs + loaded.joinedClubs).contains(where: { $0.id == id }),
+               !loaded.recommendedClubs.contains(where: { $0.id == id }) {
+                errorMessage = confirmedCreationRefreshWarning
+                    ?? "저장된 클럽을 현재 목록에서 찾지 못했어요. 목록을 다시 확인해 주세요. 클럽을 다시 만들 필요는 없어요."
+                return
+            }
+            pendingCreatedClubID = nil
+            if loaded.createdClubs.contains(where: { $0.id.hasPrefix("local-") }) {
+                isShowingLocalFallbackData = true
+            }
+            confirmedCreationRefreshWarning = nil
             errorMessage = nil
         } catch {
-            errorMessage = "클럽 목록을 불러오지 못했어요."
+            guard revision == serviceRevision, requestRevision == directoryRequestRevision else { return }
+            if ClubServiceError.requiresDirectoryDiscard(error) {
+                directory = .empty
+                confirmedCreationRefreshWarning = nil
+            } else if confirmedCreationRefreshWarning == nil {
+                directory = .empty
+            }
+            clearSelectedClub()
+            errorMessage = confirmedCreationRefreshWarning ?? ClubServiceError.message(for: error, creating: false)
         }
     }
 
     func openClub(clubId: String) async {
+        let revision = serviceRevision
+        detailRequestRevision += 1
+        let requestRevision = detailRequestRevision
+        let currentService = service
         isLoading = true
-        isShowingLocalFallbackData = false
-        defer { isLoading = false }
+        errorMessage = nil
+        clearSelectedClub()
+        defer { if requestRevision == detailRequestRevision { isLoading = false } }
 
         do {
-            let detail = try await service.fetchClubDetail(clubId: clubId)
+            let detail = try await currentService.fetchClubDetail(clubId: clubId)
+            let loadedRankings = try await currentService.fetchRankings(clubId: clubId, metric: selectedRankingMetric)
+            guard revision == serviceRevision, requestRevision == detailRequestRevision else { return }
             selectedClub = detail
-            rankings = try await service.fetchRankings(clubId: clubId, metric: selectedRankingMetric)
-            // detail.challenges already computed this — fetchChallenges(clubId:)
-            // would just re-fetch the same club detail and recompute every
-            // challenge's currentValue a second time.
+            rankings = loadedRankings
+            // The fetched detail already carries the current challenges.
             challenges = detail.challenges
             badges = detail.badges
             errorMessage = nil
         } catch {
+            guard revision == serviceRevision, requestRevision == detailRequestRevision else { return }
+            clearSelectedClub()
+            removeCachedClub(clubId)
             errorMessage = "클럽 상세를 불러오지 못했어요."
         }
     }
 
-    func joinClub(clubId: String) async {
-        do {
-            try await service.joinClub(clubId: clubId)
-            directory = try await service.fetchClubDirectory()
-            await openClub(clubId: clubId)
-            errorMessage = nil
-        } catch {
-            errorMessage = "클럽 가입을 반영하지 못했어요."
-        }
-    }
+    @discardableResult
+    func joinClub(clubId: String) async -> Bool { await changeMembership(clubId: clubId, joining: true) }
 
-    func leaveClub(clubId: String) async {
+    @discardableResult
+    func leaveClub(clubId: String) async -> Bool { await changeMembership(clubId: clubId, joining: false) }
+
+    private func changeMembership(clubId: String, joining: Bool) async -> Bool {
+        guard membershipOperation == nil else { return false }
+        let revision = serviceRevision
+        let currentService = service
+        membershipOperation = clubId; membershipError = nil
+        defer { if revision == serviceRevision { membershipOperation = nil } }
         do {
-            try await service.leaveClub(clubId: clubId)
-            directory = try await service.fetchClubDirectory()
+            if joining { try await currentService.joinClub(clubId: clubId) }
+            else { try await currentService.leaveClub(clubId: clubId) }
+            guard revision == serviceRevision else { return false }
+            // The write is confirmed. A read failure must not invite another write.
+            await loadDirectory()
+            guard revision == serviceRevision else { return false }
             await openClub(clubId: clubId)
-            errorMessage = nil
+            return revision == serviceRevision
         } catch {
-            errorMessage = "클럽 탈퇴를 반영하지 못했어요."
+            guard revision == serviceRevision else { return false }
+            membershipError = joining ? "클럽 가입을 반영하지 못했어요. 다시 시도해 주세요." : "클럽 탈퇴를 확인하지 못했어요. 가입 상태를 다시 확인해 주세요."
+            errorMessage = membershipError
+            return false
         }
     }
 
     @discardableResult
-    func createClub(input: ClubCreateInput) async -> ClubDomain? {
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        let revision = serviceRevision
+        let currentService = service
         do {
-            let club = try await service.createClub(input: input)
-            directory = try await service.fetchClubDirectory()
-            errorMessage = nil
+            let club: ClubDomain
+            do { club = try await currentService.createClub(input: input) }
+            catch let receipt as ClubCreationCommitted { club = receipt.club }
+            guard revision == serviceRevision else { throw CommunitySafetyError.accountChanged }
+            pendingCreatedClubID = club.id
+            // Invalidate older directory reads after the confirmed write.
+            directoryRequestRevision += 1
+            let requestRevision = directoryRequestRevision
+            let saved = UUID(uuidString: club.id) == nil ? "이 기기에 클럽을 저장했지만" : "클럽은 만들었지만"
+            let refreshWarning = "\(saved) 목록을 갱신하지 못했어요. 목록을 다시 불러와 주세요. 클럽을 다시 만들 필요는 없어요."
+            // A newer read must also know the write is confirmed while this refresh awaits.
+            confirmedCreationRefreshWarning = refreshWarning
+            isLoading = true
+            defer { if requestRevision == directoryRequestRevision { isLoading = false } }
+            do {
+                let refreshed = try await currentService.fetchClubDirectory()
+                guard revision == serviceRevision else { throw CommunitySafetyError.accountChanged }
+                guard requestRevision == directoryRequestRevision else { return club }
+                if UUID(uuidString: club.id) != nil && refreshed.usedLocalFallback {
+                    throw ClubServiceError.directoryReadUsedFallback
+                }
+                directory = refreshed
+                let included = (refreshed.createdClubs + refreshed.joinedClubs).contains { $0.id == club.id }
+                    || refreshed.recommendedClubs.contains { $0.id == club.id }
+                confirmedCreationRefreshWarning = included ? nil : refreshWarning
+                if included { pendingCreatedClubID = nil }
+                if UUID(uuidString: club.id) == nil { isShowingLocalFallbackData = true }
+                errorMessage = included ? nil : "클럽 저장은 확인했지만 현재 목록에서 찾지 못했어요. 권한·목록 필터를 다시 확인해 주세요. 클럽을 다시 만들 필요는 없어요."
+            } catch {
+                guard revision == serviceRevision else { throw CommunitySafetyError.accountChanged }
+                guard requestRevision == directoryRequestRevision else { return club }
+                if ClubServiceError.requiresDirectoryDiscard(error) { directory = .empty }
+                confirmedCreationRefreshWarning = refreshWarning
+                errorMessage = refreshWarning
+            }
             return club
         } catch {
-            errorMessage = "클럽을 만들지 못했어요."
-            return nil
+            if revision == serviceRevision { errorMessage = ClubServiceError.message(for: error, creating: true) }
+            throw error
         }
     }
 
     func selectRankingMetric(_ metric: ClubRankingMetric, clubId: String) async {
+        let revision = serviceRevision
+        let detailRevision = detailRequestRevision
+        let currentService = service
         selectedRankingMetric = metric
+        rankingLoading = true; rankingError = nil; errorMessage = nil
+        defer { if revision == serviceRevision, detailRevision == detailRequestRevision, selectedRankingMetric == metric { rankingLoading = false } }
         do {
-            rankings = try await service.fetchRankings(clubId: clubId, metric: metric)
+            let loaded = try await currentService.fetchRankings(clubId: clubId, metric: metric)
+            guard revision == serviceRevision, detailRevision == detailRequestRevision, selectedRankingMetric == metric else { return }
+            rankings = loaded
             errorMessage = nil
         } catch {
-            errorMessage = "랭킹을 불러오지 못했어요."
+            guard revision == serviceRevision, detailRevision == detailRequestRevision, selectedRankingMetric == metric else { return }
+            rankings = []
+            rankingError = "랭킹을 불러오지 못했어요."
+            errorMessage = rankingError
         }
+    }
+
+    private func clearSelectedClub() {
+        selectedClub = nil
+        rankings = []
+        challenges = []
+        badges = []
+    }
+
+    private func removeCachedClub(_ clubId: String) {
+        directory = ClubDirectorySnapshot(
+            joinedClubs: directory.joinedClubs.filter { $0.id != clubId },
+            createdClubs: directory.createdClubs.filter { $0.id != clubId },
+            recommendedClubs: directory.recommendedClubs.filter { $0.id != clubId }
+        )
     }
 
     func detail(for clubId: String) -> ClubDetail? {
@@ -2273,14 +2495,57 @@ final class ClubsViewModel: ObservableObject {
             return created
         }
 
-        return InMemoryClubService.seedDetails.first { $0.id == clubId }
+        return nil
     }
 
     func ranking(for clubId: String) -> [ClubRankingEntry] {
-        if selectedClub?.id == clubId, !rankings.isEmpty {
+        if selectedClub?.id == clubId {
             return rankings
         }
         return detail(for: clubId)?.ranking ?? []
+    }
+}
+
+@MainActor
+final class ClubCreateViewModel: ObservableObject {
+    @Published var name = ""
+    @Published var purpose = ""
+    @Published var sportFocus = "자전거"
+    @Published var visibility: ClubVisibility = .open
+    @Published private(set) var isSubmitting = false
+    @Published private(set) var errorMessage: String?
+    @Published private(set) var savedLocally = false
+    private var creationNeedsVerification = false
+    private var didCreate = false
+
+    var canCreate: Bool {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let purpose = purpose.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !name.isEmpty && name.count <= 100 && !purpose.isEmpty && purpose.count <= 1_000
+            && !isSubmitting && !didCreate && !creationNeedsVerification
+    }
+
+    /// True only for a confirmed server creation. Local saves stay visible
+    /// with an explicit explanation; rejected input remains editable.
+    func submit(using create: (ClubCreateInput) async throws -> ClubDomain) async -> Bool {
+        guard canCreate else { return false }
+        isSubmitting = true
+        errorMessage = nil
+        defer { isSubmitting = false }
+        do {
+            let club = try await create(ClubCreateInput(
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                purpose: purpose.trimmingCharacters(in: .whitespacesAndNewlines),
+                sportFocus: sportFocus, visibility: visibility
+            ))
+            savedLocally = UUID(uuidString: club.id) == nil
+            didCreate = true
+            return !savedLocally
+        } catch {
+            creationNeedsVerification = ClubServiceError.requiresCreationVerification(error)
+            errorMessage = ClubServiceError.message(for: error, creating: true)
+            return false
+        }
     }
 }
 
@@ -2307,7 +2572,7 @@ extension ClubDetail {
         purpose: "주 3회 이상 가볍게 움직이며, 오래 이어갈 수 있는 라이딩 리듬을 만듭니다.",
         sport: "자전거",
         owner: "지환",
-        ownerId: "owner-jihwan",
+        ownerId: "owner-demo",
         privacy: .open,
         activeMembersThisWeek: 128,
         rules: [
@@ -2459,7 +2724,7 @@ extension ClubDetail {
         purpose: "강도보다 회복과 지속성을 기준으로, 가벼운 운동을 서로 인정합니다.",
         sport: "혼합",
         owner: "지환",
-        ownerId: "owner-jihwan",
+        ownerId: "owner-demo",
         privacy: .private,
         activeMembersThisWeek: 21,
         rules: [
@@ -2569,7 +2834,7 @@ extension ClubDetail {
                 name: input.name,
                 sport: input.sportFocus,
                 memberCount: 1,
-                weeklyRank: 1,
+                weeklyRank: 0,
                 contributionText: "방금 만든 클럽",
                 goalPercent: 0,
                 tagline: input.purpose
@@ -2581,7 +2846,7 @@ extension ClubDetail {
             owner: "나",
             ownerId: "current-user",
             privacy: input.visibility,
-            activeMembersThisWeek: 1,
+            activeMembersThisWeek: 0,
             rules: ["기록 조작 없이 실제 움직임만 반영합니다.", "서로의 페이스를 존중합니다."],
             memberPreview: [
                 ClubMemberPreview(name: "나", role: "운영자", activityText: "첫 챌린지 준비", tone: .ink)
@@ -2589,16 +2854,12 @@ extension ClubDetail {
             identityTags: [input.sportFocus, "새 클럽", input.visibility.text],
             membershipState: .owned,
             memberCount: 1,
-            weeklyRank: 1,
+            weeklyRank: 0,
             rankMovement: 0,
             contributionDistanceKm: 0,
             goalProgress: 0,
-            ranking: [
-                ClubRankingEntry(clubId: id, rank: 1, name: "나", distanceKm: 0, sessions: 0, consistencyDays: 0, isCurrentUser: true)
-            ],
-            challenges: [
-                ClubChallenge(clubId: id, title: "첫 주 3회 움직이기", metricType: .workoutCount, progress: 0, target: 3, unit: "회", subtitle: "클럽의 첫 리듬을 만듭니다.")
-            ],
+            ranking: [],
+            challenges: [],
             badges: [
                 ClubBadge(clubId: id, title: "첫 클럽", subtitle: "획득", icon: SOOMIcon.clubs, state: .earned)
             ],

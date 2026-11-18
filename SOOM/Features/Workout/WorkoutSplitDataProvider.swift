@@ -21,17 +21,11 @@ struct WorkoutSplitDataProvider: WorkoutSplitDataProviding {
     }
 
     func insight(for workout: HKWorkout, current: WorkoutGrowthInput) async throws -> WorkoutSplitInsight? {
-        do {
-            let samplesByType = try await fetcher.fetchZoneMetricSamples(for: workout)
-            let splitMetrics = streamBuilder.build(current: current, samplesByType: samplesByType)
+        let samplesByType = try await fetcher.fetchZoneMetricSamples(for: workout)
+        try Task.checkCancellation()
+        let splitMetrics = streamBuilder.build(current: current, samplesByType: samplesByType)
 
-            guard streamBuilder.hasUsefulStreamData(splitMetrics) else {
-                return nil
-            }
-
-            return insightBuilder.build(current: current, splitMetrics: splitMetrics)
-        } catch {
-            return nil
-        }
+        guard streamBuilder.hasUsefulStreamData(splitMetrics) else { return nil }
+        return insightBuilder.build(current: current, splitMetrics: splitMetrics)
     }
 }

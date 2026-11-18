@@ -8,7 +8,7 @@ struct PersonalRecordCard: View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
                 HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                    Image(systemName: SOOMIcon.medal)
+                    Image(soom: SOOMIcon.medal)
                         .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                         .foregroundStyle(tint)
                         .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -71,7 +71,7 @@ struct PersonalRecordCard: View {
 
     private func recordRow(_ record: PersonalRecord) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.gridSpacing) {
-            Image(systemName: record.metricType.icon)
+            Image(soom: record.metricType.icon)
                 .font(.system(size: SOOMLayout.RecoveryAI.promptIconSize, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.RecoveryAI.promptIconFrame, height: SOOMLayout.RecoveryAI.promptIconFrame)

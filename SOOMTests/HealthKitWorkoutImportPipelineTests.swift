@@ -26,6 +26,20 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.map(\.workoutType), [.running, .cycling])
     }
 
+    func testAutoPublicImportMarksOnlyNewHealthKitWorkoutsForPublication() async {
+        let store = FakeUnifiedWorkoutStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([
+                makeWorkout(id: UUID(), type: .running)
+            ])), store: store, autoPublishNewWorkouts: true)
+        let result = await pipeline.importRecentWorkouts(limit: 10)
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.importedWorkouts.first?.sharingVisibilityRaw,
+                       ImportedWorkoutPublication.pendingVisibility(for:.privatePost))
+        XCTAssertEqual(store.savedWorkouts.first?.sharingVisibilityRaw,
+                       ImportedWorkoutPublication.pendingVisibility(for:.privatePost))
+    }
+
     func testImportedHealthKitWorkoutCanBecomeProcessedWorkout() async {
         let workoutID = UUID(uuidString: "12121212-1212-1212-1212-121212121212")!
         let store = FakeUnifiedWorkoutStore()
@@ -247,7 +261,7 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertFalse(processed.hasRoute)
     }
 
-    func testDuplicateSkippedHealthKitWorkoutDoesNotPersistRoute() async {
+    func testOverlappingHealthKitSourceRetainsItsOwnRoute() async {
         let workoutID = UUID(uuidString: "60606060-6060-6060-6060-606060606060")!
         let startDate = Date(timeIntervalSince1970: 1_800_000_000)
         let localWorkout = makeUnifiedWorkout(
@@ -278,9 +292,9 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
 
         let result = await pipeline.importRecentWorkouts(limit: 10)
 
-        XCTAssertEqual(result.savedCount, 0)
-        XCTAssertEqual(result.skippedCount, 1)
-        XCTAssertTrue(routeStore.savedRoutes.isEmpty)
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(routeStore.savedRoutes.first?.workoutId, workoutID)
     }
 
 
@@ -335,7 +349,24 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(store.savedWorkouts.first?.externalId, workoutID.uuidString)
     }
 
-    func testLocalSoomWorkoutVsSimilarHealthKitWorkoutPrefersLocalAndSkipsImport() async {
+    func testAutomaticImportSkipsExistingHealthKitWorkoutWithoutRepublishing() async {
+        let store = FakeUnifiedWorkoutStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([
+                makeWorkout(id: UUID(), type: .running)
+            ])), store: store, autoPublishNewWorkouts: true)
+
+        let first = await pipeline.importRecentWorkouts()
+        let second = await pipeline.importRecentWorkouts()
+
+        XCTAssertEqual(first.savedCount, 1)
+        XCTAssertEqual(second.savedCount, 0)
+        XCTAssertEqual(second.skippedCount, 1)
+        XCTAssertTrue(second.importedWorkouts.isEmpty)
+        XCTAssertEqual(store.savedWorkouts.count, 1)
+    }
+
+    func testSimilarHealthKitWorkoutRetainsItsRawSourceForReview() async {
         let startDate = Date(timeIntervalSince1970: 1_800_000_000)
         let localWorkout = makeUnifiedWorkout(
             source: .soomLocal,
@@ -362,10 +393,11 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         let result = await pipeline.importRecentWorkouts()
 
         XCTAssertEqual(result.fetchedCount, 1)
-        XCTAssertEqual(result.savedCount, 0)
-        XCTAssertEqual(result.skippedCount, 1)
-        XCTAssertEqual(store.savedWorkouts.count, 1)
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(store.savedWorkouts.count, 2)
         XCTAssertEqual(store.savedWorkouts.first?.source, .soomLocal)
+        XCTAssertEqual(store.savedWorkouts.last?.source, .appleHealthKit)
     }
 
     func testDifferentTimeHealthKitWorkoutStillImports() async {
@@ -512,6 +544,107 @@ final class HealthKitWorkoutImportPipelineTests: XCTestCase {
         XCTAssertEqual(result.failedCount, 1)
         XCTAssertTrue(result.importedWorkouts.isEmpty)
         XCTAssertFalse(result.message.isEmpty)
+    }
+
+    func testExistingWorkoutRepairsLateRouteWithoutNewCardOrLosingOwnerFields() async {
+        let id = UUID()
+        var existing = makeUnifiedWorkout(id: id, source: .appleHealthKit, type: .running,
+            startDate: Date(timeIntervalSince1970: 1_800_000_000), duration: 3_600,
+            distance: 10_000, externalId: id.uuidString)
+        existing.userTitle = "내 러닝"
+        existing.userDescription = "사진과 댓글은 유지"
+        existing.sharingVisibilityRaw = "private"
+        existing.isBookmarked = true
+        existing.preferredWorkoutID = id
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [existing])
+        let routes = FakeWorkoutRoutePersistenceStore()
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([makeWorkout(id: id, type: .running)])),
+            store: store, routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
+            routeFetcher: FakeHealthKitWorkoutRouteFetcher(route: makeRoute(workoutId: id)), routeStore: routes,
+            autoPublishNewWorkouts: true)
+        let result = await pipeline.importRecentWorkouts()
+        XCTAssertEqual(result.savedCount, 0)
+        XCTAssertEqual(result.refreshedWorkouts.count, 1)
+        XCTAssertEqual(store.savedWorkouts.count, 1)
+        XCTAssertEqual(routes.savedRoutes.first?.workoutId, id)
+        XCTAssertEqual(store.savedWorkouts.first?.routeMissingReason, WorkoutRouteMissingReason.none)
+        XCTAssertEqual(store.savedWorkouts.first?.userTitle, existing.userTitle)
+        XCTAssertEqual(store.savedWorkouts.first?.sharingVisibilityRaw, existing.sharingVisibilityRaw)
+        XCTAssertEqual(store.savedWorkouts.first?.isBookmarked, true)
+        XCTAssertEqual(store.savedWorkouts.first?.preferredWorkoutID, id)
+    }
+
+    func testOverlappingRunIsSavedForReviewInsteadOfPublishingSecondCard() async {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let local = makeUnifiedWorkout(source: .soomLocal, type: .running, startDate: start, duration: 4_380, distance: 11_250)
+        let store = FakeUnifiedWorkoutStore(existingWorkouts: [local])
+        let pipeline = HealthKitWorkoutImportPipeline(workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([
+            makeWorkout(type: .running, startDate: start.addingTimeInterval(240), duration: 4_140, distance: 10_030)
+        ])), store: store, autoPublishNewWorkouts: true)
+        let result = await pipeline.importRecentWorkouts()
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.importedWorkouts.first?.sharingVisibilityRaw, "source_review_pending")
+        XCTAssertEqual(store.savedWorkouts.count, 2)
+    }
+
+    @MainActor
+    func testTelemetryIsStoredAgainstStableImportedIDAndPartialChannelFailureIsReported() async {
+        let id = UUID()
+        var saved: WorkoutTelemetry?
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let telemetry = WorkoutTelemetry(workoutID: UUID(), source: .appleHealthKit, samples: [
+            .init(timestamp: start, heartRateBPM: 140, powerWatts: 220, speedMetersPerSecond: 2.5),
+            .init(timestamp: start.addingTimeInterval(5), heartRateBPM: 145, powerWatts: 225)
+        ])
+        let pipeline = HealthKitWorkoutImportPipeline(workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([makeWorkout(id: id, type: .running)])),
+            store: FakeUnifiedWorkoutStore(), routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
+            telemetryFetcher: FakeHealthKitTelemetryFetcher(value: .init(telemetry: telemetry, failedChannels: ["stepCount"])),
+            saveTelemetry: { saved = $0 })
+        let result = await pipeline.importRecentWorkouts()
+        XCTAssertEqual(saved?.workoutID, id)
+        XCTAssertEqual(saved?.samples.compactMap(\.powerWatts), [220, 225])
+        XCTAssertEqual(result.detailWarningCount, 1)
+        XCTAssertEqual(result.importedWorkouts.first?.averageHeartRate, 142.5)
+        XCTAssertEqual(result.failedCount, 0)
+    }
+
+    @MainActor
+    func testRealHealthKitQuantitiesMapRunningChannelsWithoutCyclingUnitsOrSummaryGraphs() async throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let raw = HKWorkout(activityType: .running, start: start, end: start.addingTimeInterval(60),
+            duration: 60, totalEnergyBurned: nil, totalDistance: HKQuantity(unit: .meter(), doubleValue: 100), metadata: nil)
+        var requested: [HKQuantityTypeIdentifier] = []
+        let fetcher = HealthKitWorkoutTelemetryFetcher(sampleProvider: { identifier, workout in
+            requested.append(identifier)
+            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { return [] }
+            let value: Double
+            let unit: HKUnit
+            switch identifier {
+            case .heartRate: value = 140; unit = HKUnit.count().unitDivided(by: .minute())
+            case .runningPower: value = 225; unit = .watt()
+            case .runningSpeed: value = 2.5; unit = HKUnit.meter().unitDivided(by: .second())
+            case .stepCount: value = 80; unit = .count()
+            case .distanceWalkingRunning: value = 100; unit = .meter()
+            case .activeEnergyBurned: value = 10; unit = .kilocalorie()
+            default: return []
+            }
+            return [HKQuantitySample(type: type, quantity: HKQuantity(unit: unit, doubleValue: value),
+                start: workout.startDate, end: workout.startDate.addingTimeInterval(30))]
+        })
+        let result = try await fetcher.fetchTelemetry(for: raw)
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.heartRateBPM), [140])
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.powerWatts), [225])
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.speedMetersPerSecond), [2.5])
+        XCTAssertEqual(result.telemetry.intervals.first { $0.kind == .steps }?.value, 80)
+        XCTAssertEqual(result.telemetry.intervals.first { $0.kind == .distanceMeters }?.value, 100)
+        let derived = WorkoutTelemetryChartBuilder.addingDerivedChannels(to: result.telemetry, route: nil)
+        XCTAssertEqual(derived.samples.compactMap(\.cadencePerMinute), [160])
+        XCTAssertTrue(requested.contains(.runningPower))
+        XCTAssertFalse(requested.contains(.cyclingPower))
+        XCTAssertTrue(result.failedChannels.isEmpty)
+        XCTAssertTrue(HealthKitManager.readTypes.contains(HKQuantityType.quantityType(forIdentifier: .runningPower)!))
+        XCTAssertTrue(HealthKitManager.readTypes.contains(HKQuantityType.quantityType(forIdentifier: .runningSpeed)!))
     }
 
     private func makeWorkout(
@@ -731,4 +864,211 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
 private enum SampleError: Error {
     case fetchFailed
     case saveFailed
+}
+
+private struct FakeHealthKitTelemetryFetcher: HealthKitWorkoutTelemetryFetching {
+    let value: HealthKitWorkoutTelemetryResult
+    func fetchTelemetry(for workout: HKWorkout) async throws -> HealthKitWorkoutTelemetryResult { value }
+}
+
+@MainActor
+final class HealthKitMissingDetailTests: XCTestCase {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+    private func raw(_ type: HKWorkoutActivityType = .running, events: [HKWorkoutEvent]? = nil,
+                     length: Double? = nil, energy: Double? = nil) -> HKWorkout {
+        HKWorkout(activityType: type, start: start, end: start.addingTimeInterval(120),
+            workoutEvents: events, totalEnergyBurned: energy.map { HKQuantity(unit: .kilocalorie(), doubleValue: $0) },
+            totalDistance: HKQuantity(unit: .meter(), doubleValue: 1000),
+            metadata: length.map { [HKMetadataKeyLapLength: HKQuantity(unit: .meter(), doubleValue: $0), HKMetadataKeySwimmingLocationType: NSNumber(value: HKWorkoutSwimmingLocationType.pool.rawValue)] })
+    }
+    private func sample(_ identifier: HKQuantityTypeIdentifier = .heartRate, device: String = "watch-a",
+                        from: Double = 10, to: Double = 11) -> HKQuantitySample {
+        HKQuantitySample(type: HKQuantityType.quantityType(forIdentifier: identifier)!,
+            quantity: HKQuantity(unit: identifier == .heartRate ? HKUnit.count().unitDivided(by: .minute()) : .meter(), doubleValue: identifier == .heartRate ? 142 : 500),
+            start: start.addingTimeInterval(from), end: start.addingTimeInterval(to),
+            device: HKDevice(name: "Synthetic Watch", manufacturer: "Fixture", model: "Watch", hardwareVersion: nil,
+                firmwareVersion: nil, softwareVersion: nil, localIdentifier: device, udiDeviceIdentifier: nil), metadata: nil)
+    }
+    private func unified(_ workout: HKWorkout) -> UnifiedWorkout {
+        HealthKitWorkoutToUnifiedWorkoutMapper().map(HealthKitWorkout(workout: workout), mappedAt: start)
+    }
+    func testNikePatternUnlinkedWatchHeartRateUsesExactTimeFallbackOnlyForHeartRate() async throws {
+        var scopes: [(HKQuantityTypeIdentifier, HealthKitSampleQueryScope)] = []
+        let reading = sample()
+        let fetcher = HealthKitWorkoutTelemetryFetcher(queryProvider: { identifier, _, scope in
+            scopes.append((identifier, scope))
+            return identifier == .heartRate && scope == .timeWindow ? [reading] : []
+        })
+        let result = try await fetcher.fetchTelemetry(for: raw())
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.heartRateBPM), [142])
+        XCTAssertTrue(result.telemetry.intervals.isEmpty)
+        XCTAssertFalse(scopes.contains { $0.0 != .heartRate && $0.1 == .timeWindow })
+    }
+    func testAppleWatchLinkedHeartRateDoesNotRunFallbackQueries() async throws {
+        var heartScopes: [HealthKitSampleQueryScope] = []
+        let reading = sample()
+        let fetcher = HealthKitWorkoutTelemetryFetcher(queryProvider: { identifier, _, scope in
+            guard identifier == .heartRate else { return [] }
+            heartScopes.append(scope)
+            return [reading]
+        })
+        let result = try await fetcher.fetchTelemetry(for: raw())
+        XCTAssertEqual(heartScopes, [.associated])
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.heartRateBPM), [142])
+    }
+    func testHeartRateFallbackRejectsAmbiguousDevicesAndOutsideWorkout() {
+        XCTAssertTrue(HealthKitWorkoutTelemetryFetcher.unambiguousHeartRate([sample(device: "a"), sample(device: "b")], workout: raw()).isEmpty)
+        XCTAssertTrue(HealthKitWorkoutTelemetryFetcher.unambiguousHeartRate([sample(from: -1, to: 1), sample(from: 119, to: 121)], workout: raw()).isEmpty)
+        XCTAssertEqual(HealthKitWorkoutTelemetryFetcher.unambiguousHeartRate([sample(), sample(from: 50, to: 51)], workout: raw()).count, 2)
+    }
+    func testChannelFailurePreservesOtherDataAndCancellationIsNotEmptySuccess() async throws {
+        let reading = sample()
+        let fetcher = HealthKitWorkoutTelemetryFetcher(queryProvider: { identifier, _, _ in
+            if identifier == .distanceWalkingRunning { throw NSError(domain: "fixture", code: 1) }
+            return identifier == .heartRate ? [reading] : []
+        })
+        let result = try await fetcher.fetchTelemetry(for: raw())
+        XCTAssertEqual(result.telemetry.samples.compactMap(\.heartRateBPM), [142])
+        XCTAssertEqual(result.failedChannels, [HKQuantityTypeIdentifier.distanceWalkingRunning.rawValue])
+        let cancelled = HealthKitWorkoutTelemetryFetcher(queryProvider: { _, _, _ in throw CancellationError() })
+        do { _ = try await cancelled.fetchTelemetry(for: raw()); XCTFail("Cancellation must propagate") }
+        catch is CancellationError {} catch { XCTFail("Unexpected error") }
+    }
+    private func event(_ type: HKWorkoutEventType, _ offset: Double, _ seconds: Double) -> HKWorkoutEvent {
+        HKWorkoutEvent(type: type, dateInterval: DateInterval(start: start.addingTimeInterval(offset), duration: seconds), metadata: nil)
+    }
+    func testSwimmingOriginalLapsDistanceTimeAndLegacyCaloriesArePreserved() async throws {
+        let workout = raw(.swimming, events: [event(.lap, 0, 30), event(.lap, 35, 40)], length: 25, energy: 88)
+        let fetcher = HealthKitWorkoutTelemetryFetcher(sampleProvider: { _, _ in [] })
+        let details = try await fetcher.fetchTelemetry(for: workout)
+        XCTAssertEqual(details.telemetry.splits.map(\.durationSeconds), [30, 40])
+        XCTAssertEqual(details.telemetry.splits.map(\.distanceMeters), [25, 25])
+        XCTAssertEqual(details.telemetry.splits.map(\.label), ["랩 1", "랩 2"])
+        let updated = unified(raw(.swimming)).withHealthKitDetails(workout, telemetry: details.telemetry)
+        XCTAssertEqual(updated.activeEnergyKcal, 88)
+        let display = WorkoutSplitDisplay(type: .swimming, preferredUnit: .metric, showsLapDuration: true)
+        XCTAssertEqual(display.text(distance: nil, seconds: 30), "0:30")
+        XCTAssertEqual(display.distanceText(25), "25 m")
+        XCTAssertEqual(display.unit, "")
+    }
+    func testSwimmingDoesNotInventLengthsForTimestampEventsOrMissingMetadata() {
+        XCTAssertTrue(HealthKitWorkoutTelemetryFetcher.swimmingSplits(raw(.swimming, events: [event(.lap, 30, 0)], length: 25)).isEmpty)
+        let missing = HealthKitWorkoutTelemetryFetcher.swimmingSplits(raw(.swimming, events: [event(.lap, 0, 30)]))
+        XCTAssertEqual(missing.count, 1)
+        XCTAssertNil(missing.first?.distanceMeters)
+        let segment = HealthKitWorkoutTelemetryFetcher.swimmingSplits(raw(.swimming, events: [event(.segment, 0, 60)], length: 25))
+        XCTAssertEqual(segment.first?.label, "구간 1")
+        XCTAssertNil(segment.first?.distanceMeters)
+    }
+    func testSwimmingOverlapsAndSegmentDuplicatesAreRejected() {
+        XCTAssertTrue(HealthKitWorkoutTelemetryFetcher.swimmingSplits(raw(.swimming, events: [event(.lap, 0, 40), event(.lap, 30, 40)])).isEmpty)
+        let laps = HealthKitWorkoutTelemetryFetcher.swimmingSplits(raw(.swimming, events: [event(.lap, 0, 30), event(.segment, 0, 90)], length: 25))
+        XCTAssertEqual(laps.count, 1)
+        XCTAssertEqual(laps.first?.label, "랩 1")
+    }
+    func testSwimmingDistanceSeriesCannotBecomeSyntheticKilometreLaps() {
+        let telemetry = WorkoutTelemetry(workoutID: UUID(), source: .appleHealthKit, samples: [
+            .init(timestamp: start, distanceMeters: 0), .init(timestamp: start.addingTimeInterval(60), distanceMeters: 1000)])
+        XCTAssertTrue(WorkoutTelemetryChartBuilder.derivedSplits(telemetry, workoutType: .swimming).isEmpty)
+        XCTAssertEqual(WorkoutTelemetryChartBuilder.derivedSplits(telemetry, workoutType: .running).count, 1)
+    }
+    func testCacheCoalescesConcurrentReadsAndReentryWithoutNewQueries() async throws {
+        let cache = HealthKitDetailReadCache()
+        let key = HealthKitDetailReadCache.Key(scope: "fixture", workoutID: UUID(), externalID: UUID().uuidString, revision: start, needsRoute: false)
+        var calls = 0
+        let loader: @MainActor () async throws -> HealthKitDetailReadResult = { calls += 1; await Task.yield(); return .init() }
+        async let first = cache.read(key: key, loader: loader)
+        async let second = cache.read(key: key, loader: loader)
+        _ = try await (first, second)
+        _ = try await cache.read(key: key, loader: loader)
+        XCTAssertEqual(calls, 1)
+        _ = try await cache.read(key: key, force: true, loader: loader)
+        XCTAssertEqual(calls, 2)
+    }
+    func testEmptyCacheExpiresAndRevisionOrAccountChangeReadsAgain() async throws {
+        var time = start
+        let cache = HealthKitDetailReadCache(now: { time })
+        let id = UUID(); let external = UUID().uuidString
+        func key(_ scope: String = "a", _ revision: Date? = nil) -> HealthKitDetailReadCache.Key {
+            .init(scope: scope, workoutID: id, externalID: external, revision: revision ?? start, needsRoute: true)
+        }
+        var calls = 0
+        let loader: @MainActor () async throws -> HealthKitDetailReadResult = { calls += 1; return .init() }
+        _ = try await cache.read(key: key(), loader: loader)
+        _ = try await cache.read(key: key(), loader: loader)
+        XCTAssertEqual(calls, 1)
+        time = time.addingTimeInterval(31)
+        _ = try await cache.read(key: key(), loader: loader)
+        _ = try await cache.read(key: key("a", time), loader: loader)
+        _ = try await cache.read(key: key("b"), loader: loader)
+        XCTAssertEqual(calls, 4)
+    }
+    func testCancelledCacheLoadIsNotCachedAndDoesNotErasePersistedData() async throws {
+        let cache = HealthKitDetailReadCache()
+        let key = HealthKitDetailReadCache.Key(scope: "a", workoutID: UUID(), externalID: UUID().uuidString, revision: start, needsRoute: false)
+        do { _ = try await cache.read(key: key) { throw CancellationError() }; XCTFail("must throw") }
+        catch is CancellationError {} catch { XCTFail("wrong error") }
+        var calls = 0
+        _ = try await cache.read(key: key) { calls += 1; return .init() }
+        XCTAssertEqual(calls, 1)
+        let saved = WorkoutTelemetry(workoutID: key.workoutID, source: .appleHealthKit, samples: [.init(timestamp: start, heartRateBPM: 140)])
+        let merged = saved.merging(WorkoutTelemetry(workoutID: key.workoutID, source: .appleHealthKit))
+        XCTAssertEqual(merged.samples.compactMap(\.heartRateBPM), [140])
+    }
+    func testHeartSummaryRemainsVisibleWithoutInventingSeriesOrZones() {
+        let workout = raw()
+        let measured = WorkoutTelemetry(workoutID: workout.uuid, source: .appleHealthKit,
+            samples: [.init(timestamp: start.addingTimeInterval(10), heartRateBPM: 142)])
+        let model = unified(workout).withHealthKitDetails(workout, telemetry: measured)
+        let empty = WorkoutTelemetry(workoutID: model.id, source: .appleHealthKit)
+        XCTAssertEqual(empty.displaySummaryMetrics(for: model).first { $0.key == "averageHeartRate" }?.value, 142)
+        XCTAssertTrue(empty.samples.isEmpty)
+        XCTAssertTrue(empty.heartRateZones.isEmpty)
+        XCTAssertTrue(measured.displaySummaryMetrics(for: model).isEmpty)
+        XCTAssertTrue(empty.displaySummaryMetrics(for: unified(workout)).isEmpty)
+    }
+    func testPhoneRecordedWorkoutCanUseOneWatchSensorAndPreserveDisplayRevision() {
+        let phone = HKDevice(name: "Fixture phone", manufacturer: "Fixture", model: "Phone", hardwareVersion: nil,
+            firmwareVersion: nil, softwareVersion: nil, localIdentifier: "phone", udiDeviceIdentifier: nil)
+        let workout = HKWorkout(activityType: .running, start: start, end: start.addingTimeInterval(120),
+            workoutEvents: nil, totalEnergyBurned: nil, totalDistance: nil, device: phone, metadata: nil)
+        XCTAssertEqual(HealthKitWorkoutTelemetryFetcher.unambiguousHeartRate([sample()], workout: workout).count, 1)
+        let model = unified(workout)
+        let telemetry = WorkoutTelemetry(workoutID: model.id, source: .appleHealthKit,
+            samples: [.init(timestamp: start.addingTimeInterval(10), heartRateBPM: 142)])
+        let first = model.withHealthKitDetails(workout, telemetry: telemetry, updatedAt: model.updatedAt)
+        let next = model.withHealthKitDetails(workout, telemetry: telemetry, updatedAt: model.updatedAt)
+        XCTAssertEqual(first, next)
+        XCTAssertEqual(first.updatedAt, model.updatedAt)
+        XCTAssertEqual(first.averageHeartRate, 142)
+    }
+    func testMissingDetailPolicyDoesNotDependOnRecentThreeDayWindow() {
+        let workout = unified(raw(.swimming))
+        XCTAssertTrue(HealthKitDetailReadCache.needsMeasurements(workout, telemetry: nil))
+        let other = UnifiedWorkout(id: UUID(), externalId: nil, source: .manual, workoutType: .swimming,
+            startDate: start, endDate: start.addingTimeInterval(120), durationSeconds: 120,
+            distanceMeters: nil, activeEnergyKcal: nil, averageHeartRate: nil, maxHeartRate: nil,
+            averageSpeedMetersPerSecond: nil, elevationGainMeters: nil, dataQuality: workout.dataQuality,
+            createdAt: start, updatedAt: start)
+        XCTAssertFalse(HealthKitDetailReadCache.needsMeasurements(other, telemetry: nil))
+    }
+}
+
+
+private struct CancelledHealthTelemetryFixture: HealthKitWorkoutTelemetryFetching {
+    func fetchTelemetry(for workout: HKWorkout) async throws -> HealthKitWorkoutTelemetryResult { throw CancellationError() }
+}
+extension HealthKitWorkoutImportPipelineTests {
+    @MainActor
+    func testCancelledTelemetryImportDoesNotContinueToDetailSave() async {
+        let store = FakeUnifiedWorkoutStore()
+        var detailSaves = 0
+        let pipeline = HealthKitWorkoutImportPipeline(
+            workoutFetcher: FakeHealthKitWorkoutFetcher(result: .success([makeWorkout(type: .running)])),
+            store: store, routeLookupProvider: FakeHealthKitWorkoutLookupProvider(workout: makeHKWorkout()),
+            telemetryFetcher: CancelledHealthTelemetryFixture(), saveTelemetry: { _ in detailSaves += 1 })
+        _ = await pipeline.importRecentWorkouts(limit: 1)
+        XCTAssertEqual(detailSaves, 0)
+        XCTAssertEqual(store.savedWorkouts.count, 1, "Only the initial identity save may precede cancellation; no post-cancellation writes")
+    }
 }

@@ -6,6 +6,7 @@ import UIKit
 struct RecordMapView: View {
     let sport: RecordSportMode
     let route: RecordRouteRecommendation
+    var capturedRoute: RecordRouteCapture? = nil
     let locationState: RecordLocationState
     let recenterTrigger: Int
     let sessionState: RecordWorkoutSessionState?
@@ -16,6 +17,7 @@ struct RecordMapView: View {
     init(
         sport: RecordSportMode,
         route: RecordRouteRecommendation,
+        capturedRoute: RecordRouteCapture? = nil,
         locationState: RecordLocationState = .mockCurrent,
         recenterTrigger: Int = 0,
         sessionState: RecordWorkoutSessionState? = nil,
@@ -25,6 +27,7 @@ struct RecordMapView: View {
     ) {
         self.sport = sport
         self.route = route
+        self.capturedRoute = capturedRoute
         self.locationState = locationState
         self.recenterTrigger = recenterTrigger
         self.sessionState = sessionState
@@ -39,6 +42,7 @@ struct RecordMapView: View {
                 RecordMapboxSurface(
                     sport: sport,
                     route: route,
+                    capturedRoute: capturedRoute,
                     locationState: locationState,
                     cameraState: RecordMapCameraState.launch(
                         currentCoordinate: locationState.canShowUserLocation ? locationState.coordinate : nil,
@@ -80,6 +84,7 @@ struct RecordMapView: View {
 private struct RecordMapboxSurface: UIViewRepresentable {
     let sport: RecordSportMode
     let route: RecordRouteRecommendation
+    var capturedRoute: RecordRouteCapture? = nil
     let locationState: RecordLocationState
     let cameraState: RecordMapCameraState
     let recenterTrigger: Int
@@ -124,6 +129,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
         context.coordinator.configure(
             mapView: mapView,
             route: route,
+            capturedRoute: capturedRoute,
             locationState: locationState,
             cameraState: cameraState,
             sessionState: sessionState,
@@ -139,6 +145,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
         context.coordinator.configure(
             mapView: mapView,
             route: route,
+            capturedRoute: capturedRoute,
             locationState: locationState,
             cameraState: cameraState,
             sessionState: sessionState,
@@ -184,6 +191,7 @@ private struct RecordMapboxSurface: UIViewRepresentable {
         func configure(
             mapView: MapView,
             route: RecordRouteRecommendation,
+            capturedRoute: RecordRouteCapture?,
             locationState: RecordLocationState,
             cameraState: RecordMapCameraState,
             sessionState: RecordWorkoutSessionState?,
@@ -192,8 +200,9 @@ private struct RecordMapboxSurface: UIViewRepresentable {
             tint: UIColor
         ) {
             let signature = [
-                route.coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|"),
+                (capturedRoute?.coordinates.map { "\($0.latitude),\($0.longitude),\($0.segmentIndex)" }.joined(separator: "|") ?? route.coordinates.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|")),
                 "\(locationState.displayCoordinate.latitude),\(locationState.displayCoordinate.longitude)",
+                "\(locationState.canShowUserLocation)",
                 locationState.heading.signature,
                 sessionState.map(String.init(describing:)) ?? "not-started",
                 "\(reduceMotionEnabled)",
@@ -214,16 +223,15 @@ private struct RecordMapboxSurface: UIViewRepresentable {
                 sessionState: sessionState
             )
 
-            if route.coordinates.count >= 2 {
-                var routeAnnotation = PolylineAnnotation(
-                    lineCoordinates: route.coordinates.map(\.locationCoordinate)
-                )
-                routeAnnotation.lineColor = StyleColor(tint)
-                routeAnnotation.lineWidth = 4.0
-                routeAnnotation.lineOpacity = 0.78
-                routeManager?.annotations = [routeAnnotation]
-            } else {
-                routeManager?.annotations = []
+            let segments = capturedRoute?.coordinateSegments.map { segment in
+                segment.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            } ?? [route.coordinates.map(\.locationCoordinate)]
+            routeManager?.annotations = segments.filter { $0.count >= 2 }.map { segment in
+                var annotation = PolylineAnnotation(lineCoordinates: segment)
+                annotation.lineColor = StyleColor(tint)
+                annotation.lineWidth = 4.0
+                annotation.lineOpacity = 0.78
+                return annotation
             }
 
             currentLocationState = locationState
@@ -382,7 +390,8 @@ private struct RecordMapboxSurface: UIViewRepresentable {
             for locationState: RecordLocationState,
             pulseProgress: Double
         ) -> [CircleAnnotation] {
-            let displayCoordinate = locationState.displayCoordinate.locationCoordinate
+            guard locationState.canShowUserLocation, let coordinate = locationState.coordinate else { return [] }
+            let displayCoordinate = coordinate.locationCoordinate
             let tint = markerTint(for: locationState)
             var annotations: [CircleAnnotation] = []
 

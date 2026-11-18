@@ -33,7 +33,9 @@ struct RecoveryCoachMessagePersonalizer {
             trends: summary.trends,
             insights: summary.insights,
             lastUpdated: summary.lastUpdated,
-            dataQuality: summary.dataQuality
+            dataQuality: summary.dataQuality,
+            hasCalculatedScore: summary.hasCalculatedScore,
+            activityCountToday: summary.activityCountToday
         )
     }
 

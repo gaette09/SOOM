@@ -4,8 +4,8 @@ enum FeedMockData {
     static let items: [FeedItem] = [
         FeedItem(
             id: UUID(uuidString: "8F3F1C68-BF75-43B8-B142-3FE3D60E13A1")!,
-            authorName: "정지환",
-            authorHandle: "@jihwan",
+            authorName: "데모 사용자",
+            authorHandle: "@demo_runner",
             createdAt: Date(timeIntervalSince1970: 1_800_420_000),
             itemType: .workoutSession,
             visibility: .followers,

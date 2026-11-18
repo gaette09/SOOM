@@ -336,6 +336,29 @@ final class RecordMapFoundationTests: XCTestCase {
         XCTAssertEqual(authorized.heading.trueHeadingDegrees, 91)
     }
 
+    func testRevokedPermissionHidesLocationEvenWhenTheCachedCoordinateIsUnchanged() {
+        let coordinate = RecordMapCoordinate(latitude: 37.5301, longitude: 126.9302)
+        let authorized = RecordLocationState(
+            authorization: .authorized, coordinate: coordinate,
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let denied = RecordLocationState(
+            authorization: .denied, coordinate: coordinate,
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+        let awaitingFix = RecordLocationState(
+            authorization: .authorized, coordinate: nil,
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+        )
+
+        XCTAssertEqual(authorized.displayCoordinate, denied.displayCoordinate)
+        XCTAssertTrue(authorized.canShowUserLocation)
+        XCTAssertFalse(denied.canShowUserLocation)
+        XCTAssertFalse(awaitingFix.canShowUserLocation)
+        XCTAssertNil(denied.recenterTarget)
+        XCTAssertEqual(authorized.recenterTarget, coordinate)
+    }
+
     func testAuthorizationStatusMapping() {
         XCTAssertEqual(RecordLocationAuthorizationState(.authorizedWhenInUse), .authorized)
         XCTAssertEqual(RecordLocationAuthorizationState(.denied), .denied)
@@ -458,4 +481,98 @@ final class RecordMapFoundationTests: XCTestCase {
                 + (RecordCurrentLocationMarkerStyle.pulseEndRadius - RecordCurrentLocationMarkerStyle.pulseStartRadius) * 0.5
         )
     }
+}
+
+final class RecordLocationManagerLifecycleTests: XCTestCase {
+    private let date = Date(timeIntervalSince1970: 1_800_000_000)
+
+    func testExplicitRecordingStartsContinuousLocationAndStopsOnPause() {
+        let driver = RecordingLocationDriver()
+        let recorder = RecordLocationManager(manager: driver, now: { self.date }, headingAvailable: false, supportsBackgroundRecording: true)
+        XCTAssertEqual(driver.starts, 0)
+        recorder.setRecording(true)
+        recorder.setRecording(true)
+        XCTAssertEqual(driver.starts, 1)
+        XCTAssertTrue(driver.allowsBackgroundLocationUpdates)
+        XCTAssertTrue(driver.showsBackgroundLocationIndicator)
+        XCTAssertFalse(driver.pausesLocationUpdatesAutomatically)
+        recorder.setRecording(false)
+        XCTAssertFalse(recorder.isCollectingLocation)
+        XCTAssertFalse(driver.allowsBackgroundLocationUpdates)
+        XCTAssertFalse(driver.showsBackgroundLocationIndicator)
+        XCTAssertTrue(driver.pausesLocationUpdatesAutomatically)
+    }
+
+    func testPermissionLossStopsCollectionAndGrantResumesOnlyRequestedSession() {
+        let driver = RecordingLocationDriver()
+        driver.authorizationStatus = .notDetermined
+        let recorder = RecordLocationManager(manager: driver, now: { self.date }, headingAvailable: false)
+        recorder.setRecording(true)
+        XCTAssertEqual(driver.starts, 0)
+        XCTAssertEqual(driver.permissionRequests, 0, "A time-only start must not silently request optional location")
+        driver.authorizationStatus = .authorizedWhenInUse
+        recorder.refreshAuthorization()
+        XCTAssertEqual(driver.starts, 1)
+        driver.authorizationStatus = .denied
+        recorder.refreshAuthorization()
+        XCTAssertFalse(recorder.isCollectingLocation)
+        XCTAssertNil(recorder.state.coordinate)
+        XCTAssertNotNil(recorder.recordingStatusMessage)
+        recorder.shutdown()
+        driver.authorizationStatus = .authorizedWhenInUse
+        recorder.refreshAuthorization()
+        XCTAssertEqual(driver.starts, 1, "A grant after ending the session cannot restart GPS")
+    }
+
+    func testLocationFixesKeepSensorTimestampsAndRejectStaleInaccurateOrDuplicateSamples() {
+        let driver = RecordingLocationDriver()
+        let recorder = RecordLocationManager(manager: driver, now: { self.date }, headingAvailable: false)
+        recorder.setRecording(true)
+        recorder.receiveLocations([
+            fix(secondsAgo: 2, accuracy: 4), fix(secondsAgo: 4, accuracy: 5),
+            fix(secondsAgo: 40, accuracy: 4), fix(secondsAgo: 0, accuracy: 100),
+            fix(secondsAgo: -30, accuracy: 4), fix(secondsAgo: 1, accuracy: -1)
+        ])
+        XCTAssertEqual(recorder.recordingUpdates.map(\.timestamp), [date.addingTimeInterval(-4), date.addingTimeInterval(-2)])
+        recorder.receiveLocations([fix(secondsAgo: 4, accuracy: 5), fix(secondsAgo: 2, accuracy: 4)])
+        XCTAssertEqual(recorder.recordingUpdates.count, 2)
+        recorder.receiveLocations([fix(secondsAgo: 0, accuracy: 4)])
+        XCTAssertEqual(recorder.recordingUpdates.map(\.timestamp), [date])
+        recorder.shutdown()
+        recorder.receiveLocations([fix(secondsAgo: 0, accuracy: 4)])
+        XCTAssertTrue(recorder.recordingUpdates.isEmpty)
+    }
+
+    func testCachedCoordinateWithoutFreshAccuracyCannotSeedRecordingState() {
+        let driver = RecordingLocationDriver()
+        driver.location = fix(secondsAgo: 60, accuracy: 5)
+        let recorder = RecordLocationManager(manager: driver, now: { self.date }, headingAvailable: false)
+        XCTAssertNil(recorder.state.coordinate)
+        XCTAssertNil(RecordLocationFix(location: fix(secondsAgo: 0, accuracy: 70), receivedAt: date))
+    }
+
+    private func fix(secondsAgo: Double, accuracy: Double) -> CLLocation {
+        CLLocation(coordinate: CLLocationCoordinate2D(latitude: 37.5, longitude: 127), altitude: 0, horizontalAccuracy: accuracy, verticalAccuracy: -1, course: 0, speed: 3, timestamp: date.addingTimeInterval(-secondsAgo))
+    }
+}
+
+private final class RecordingLocationDriver: RecordLocationControlling {
+    weak var delegate: CLLocationManagerDelegate?
+    var authorizationStatus: CLAuthorizationStatus = .authorizedWhenInUse
+    var location: CLLocation?
+    var desiredAccuracy: CLLocationAccuracy = 0
+    var distanceFilter: CLLocationDistance = 0
+    var headingFilter: CLLocationDegrees = 0
+    var activityType: CLActivityType = .other
+    var pausesLocationUpdatesAutomatically = true
+    var allowsBackgroundLocationUpdates = false
+    var showsBackgroundLocationIndicator = false
+    var starts = 0
+    var permissionRequests = 0
+    func requestWhenInUseAuthorization() { permissionRequests += 1 }
+    func requestLocation() {}
+    func startUpdatingLocation() { starts += 1 }
+    func stopUpdatingLocation() {}
+    func startUpdatingHeading() {}
+    func stopUpdatingHeading() {}
 }

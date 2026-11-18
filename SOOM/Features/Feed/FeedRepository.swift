@@ -8,6 +8,8 @@ enum FeedRepositoryError: Error, Equatable {
 
 protocol FeedRepositoryProtocol {
     func fetchFeed(limit: Int) async throws -> [FeedItem]
+    func fetchFeedPage(limit: Int, offset: Int) async throws -> [FeedItem]
+    func fetchFeedPage(limit: Int, offset: Int, audience: FeedAudience) async throws -> [FeedItem]
     func fetchSavedPosts() async throws -> [FeedItem]
     /// Single-post lookup for notification deep links. Returns nil for
     /// "not found" (deleted, or RLS silently filtered it out because it's
@@ -17,13 +19,37 @@ protocol FeedRepositoryProtocol {
     func fetchPost(id: UUID) async throws -> FeedItem?
 }
 
+extension FeedRepositoryProtocol {
+    func fetchFeedPage(limit: Int, offset: Int, audience: FeedAudience) async throws -> [FeedItem] {
+        guard audience == .all else { throw FeedRepositoryError.remoteFetchNotImplemented }
+        return try await fetchFeedPage(limit: limit, offset: offset)
+    }
+    func fetchFeedPage(limit: Int, offset: Int) async throws -> [FeedItem] {
+        let items = try await fetchFeed(limit: limit + offset)
+        return Array(items.dropFirst(offset).prefix(limit))
+    }
+}
+
 protocol FeedRemotePostFetching {
     func fetchFeedPosts(limit: Int) async throws -> [FeedPostBundleDTO]
+    func fetchFeedPosts(limit: Int, offset: Int) async throws -> [FeedPostBundleDTO]
+    func fetchFeedPosts(limit: Int, offset: Int, audience: FeedAudience) async throws -> [FeedPostBundleDTO]
     func fetchSavedFeedPosts() async throws -> [FeedPostBundleDTO]
     /// Goes through the exact same RLS-scoped client as fetchFeedPosts —
     /// deliberately not a separate/elevated path, so a private post stays
     /// invisible to a single-row lookup exactly as it is to the list one.
     func fetchFeedPost(id: UUID) async throws -> FeedPostBundleDTO?
+}
+
+extension FeedRemotePostFetching {
+    func fetchFeedPosts(limit: Int, offset: Int, audience: FeedAudience) async throws -> [FeedPostBundleDTO] {
+        guard audience == .all else { throw FeedRepositoryError.remoteFetchNotImplemented }
+        return try await fetchFeedPosts(limit: limit, offset: offset)
+    }
+    func fetchFeedPosts(limit: Int, offset: Int) async throws -> [FeedPostBundleDTO] {
+        let posts = try await fetchFeedPosts(limit: limit + offset)
+        return Array(posts.dropFirst(offset).prefix(limit))
+    }
 }
 
 protocol FeedRemotePostPosting {
@@ -65,7 +91,19 @@ struct MockFeedRepository: FeedRepositoryProtocol {
     }
 
     func fetchFeed(limit: Int) async throws -> [FeedItem] {
-        Array(items.sorted { $0.createdAt > $1.createdAt }.prefix(limit))
+        Array(items.sorted {
+            let left = $0.activityDate ?? $0.createdAt
+            let right = $1.activityDate ?? $1.createdAt
+            return left == right ? $0.id.uuidString > $1.id.uuidString : left > right
+        }.prefix(limit))
+    }
+
+    func fetchFeedPage(limit: Int, offset: Int) async throws -> [FeedItem] {
+        Array(items.sorted {
+            let left = $0.activityDate ?? $0.createdAt
+            let right = $1.activityDate ?? $1.createdAt
+            return left == right ? $0.id.uuidString > $1.id.uuidString : left > right
+        }.dropFirst(offset).prefix(limit))
     }
 
     func fetchSavedPosts() async throws -> [FeedItem] {

@@ -54,10 +54,29 @@ final class AnalysisViewModelTests: XCTestCase {
         await provider.waitUntilRequested()
         XCTAssertTrue(viewModel.isLoading)
 
-        provider.succeed(with: makeProgress(workoutCount: 1, trendType: .steady))
+        await provider.succeed(with: makeProgress(workoutCount: 1, trendType: .steady))
         await loadTask.value
 
         XCTAssertFalse(viewModel.isLoading)
+    }
+
+    func testSuspendedProviderResumesAllRequestWaitersAndKeepsTheSignalAfterCompletion() async throws {
+        let expected = makeProgress(workoutCount: 1, trendType: .steady)
+        for _ in 0..<50 {
+            let provider = SuspendedWeeklyWorkoutProgressProvider()
+            let firstWaiter = Task { await provider.waitUntilRequested() }
+            let secondWaiter = Task { await provider.waitUntilRequested() }
+            let request = Task { try await provider.fetchWeeklyProgress(referenceDate: baseDate) }
+
+            await firstWaiter.value
+            await secondWaiter.value
+            await provider.succeed(with: expected)
+            let result = try await request.value
+            XCTAssertEqual(result, expected)
+            // A request remains observed after its response continuation has
+            // been consumed; a late waiter must not suspend indefinitely.
+            await provider.waitUntilRequested()
+        }
     }
 
     func testLoadDoesNotUseRecoveryCalculator() async {
@@ -296,29 +315,31 @@ private final class FakePersonalRecordProvider: PersonalRecordProviding {
     }
 }
 
-private final class SuspendedWeeklyWorkoutProgressProvider: WeeklyWorkoutProgressProviding {
+private actor SuspendedWeeklyWorkoutProgressProvider: WeeklyWorkoutProgressProviding {
     private var continuation: CheckedContinuation<WeeklyWorkoutProgress, Error>?
-    private var requestedContinuation: CheckedContinuation<Void, Never>?
+    private var requestWaiters: [CheckedContinuation<Void, Never>] = []
+    private var hasRequested = false
 
     func fetchWeeklyProgress(referenceDate: Date) async throws -> WeeklyWorkoutProgress {
-        requestedContinuation?.resume()
-        requestedContinuation = nil
-
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
+            // Register the response before notifying the test. Actor isolation
+            // also makes waiter's check-and-registration atomic with this signal.
             self.continuation = continuation
+            hasRequested = true
+            let waiters = requestWaiters
+            requestWaiters.removeAll()
+            waiters.forEach { $0.resume() }
         }
     }
 
     func waitUntilRequested() async {
-        if continuation != nil { return }
-
-        await withCheckedContinuation { continuation in
-            requestedContinuation = continuation
-        }
+        if hasRequested { return }
+        await withCheckedContinuation { requestWaiters.append($0) }
     }
 
     func succeed(with progress: WeeklyWorkoutProgress) {
-        continuation?.resume(returning: progress)
+        let response = continuation
         continuation = nil
+        response?.resume(returning: progress)
     }
 }

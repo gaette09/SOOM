@@ -16,6 +16,14 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
     }
 
     func fetchFeed(limit: Int = 20) async throws -> [FeedItem] {
+        try await fetchFeedPage(limit: limit, offset: 0)
+    }
+
+    func fetchFeedPage(limit: Int, offset: Int) async throws -> [FeedItem] {
+        try await fetchFeedPage(limit: limit, offset: offset, audience: .all)
+    }
+
+    func fetchFeedPage(limit: Int, offset: Int, audience: FeedAudience) async throws -> [FeedItem] {
         guard clientProvider.state == .ready else {
             throw FeedRepositoryError.unconfigured
         }
@@ -23,7 +31,7 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             throw FeedRepositoryError.remoteFetchNotImplemented
         }
 
-        async let bundlesTask = remoteFetcher.fetchFeedPosts(limit: limit)
+        async let bundlesTask = remoteFetcher.fetchFeedPosts(limit: limit, offset: offset, audience: audience)
         let currentUserId = await currentUserId()
         let bundles = try await bundlesTask
         let profilesByID = await fetchProfilesByID(for: bundles)
@@ -33,7 +41,8 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             return bundle.makeFeedItem(
                 authorName: profile?.displayName ?? "SOOM 사용자",
                 authorHandle: profile?.handle,
-                currentUserId: currentUserId
+                avatarPath: profile?.avatarPath,
+                currentUserId: currentUserId, profilesByID: profilesByID
             )
         }
     }
@@ -56,7 +65,8 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             return bundle.makeFeedItem(
                 authorName: profile?.displayName ?? "SOOM 사용자",
                 authorHandle: profile?.handle,
-                currentUserId: currentUserId
+                avatarPath: profile?.avatarPath,
+                currentUserId: currentUserId, profilesByID: profilesByID
             )
         }
     }
@@ -75,11 +85,13 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             return nil
         }
 
-        let profile = await fetchProfilesByID(for: [bundle])[bundle.post.userId]
+        let profilesByID = await fetchProfilesByID(for: [bundle])
+        let profile = profilesByID[bundle.post.userId]
         return bundle.makeFeedItem(
             authorName: profile?.displayName ?? "SOOM 사용자",
             authorHandle: profile?.handle,
-            currentUserId: currentUserId
+            avatarPath: profile?.avatarPath,
+            currentUserId: currentUserId, profilesByID: profilesByID
         )
     }
 
@@ -95,7 +107,7 @@ final class SupabaseFeedRepository: FeedRepositoryProtocol {
             return [:]
         }
 
-        let userIDs = Array(Set(bundles.map(\.post.userId)))
+        let userIDs = Array(Set(bundles.flatMap(\.previewProfileIDs)))
         guard let profiles = try? await profileFetcher.fetchProfiles(ids: userIDs) else {
             return [:]
         }

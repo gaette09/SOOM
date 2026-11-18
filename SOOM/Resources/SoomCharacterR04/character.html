@@ -1,0 +1,211 @@
+<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'"><style>html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}#art{width:100%;height:100%}#art>svg{display:block;width:100%;height:100%}</style></head><body><div id="art" aria-hidden="true"></div><script>/* SOOM 2D R04 — R01 eyes, approved R02 motion, square state-aware review.
+   Reference: approved local PNG, 1536x1024. No bitmap enters the rig. */
+(function(root){
+const TAU=Math.PI*2, clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const pulse=(t,c,w)=>Math.max(0,1-Math.abs(t-c)/w);
+const keys=(t,arr)=>{if(t<=arr[0][0])return arr[0][1];for(let i=1;i<arr.length;i++)if(t<=arr[i][0]){const a=arr[i-1],b=arr[i];return a[1]+(b[1]-a[1])*smooth((t-a[0])/(b[0]-a[0]));}return arr.at(-1)[1]};
+const clips=[
+ {id:'idle',name:'편안한 호흡',duration:3,loop:true,reference:'R03 Float_z / Body_squash: quiet neutral hover',note:'4% 몸체 호흡, R01 눈·승인된 시선, 18unit 부유와 꽁지 후속 반응'},
+ {id:'blink',name:'자연스러운 깜박임',duration:2.4,loop:true,reference:'R03 Blink_Left / Blink_Right',note:'각 눈의 위·아래 경계가 닫혔다 열림; 오른쪽 눈은 30ms 늦음'},
+ {id:'look_up',name:'위를 바라보기',duration:3,loop:false,reference:'R03 2.7–4.3s up-right Head_pitch / Yaw',note:'오른쪽 위→왼쪽 위로 훑은 뒤 정면 복귀; 강도 유지'},
+ {id:'look_down',name:'아래를 바라보기',duration:3,loop:false,reference:'R03 4.4–5.9s down-left Head_pitch / Yaw',note:'오른쪽 아래→왼쪽 아래로 훑은 뒤 정면 복귀; 강도 유지'},
+ {id:'think',name:'생각과 말풍선',duration:4,loop:false,reference:'R03 Bubble_show / Dot_pulse / Bubble_float',note:'정사각형 안의 ... 말풍선, 고민의 녹색빛과 보라색 복귀'},
+ {id:'understand',name:'이해와 끄덕임',duration:3,loop:false,reference:'R03 6.0–7.4s reaction/reset translated to eye/body response',note:'두 번의 작은 끄덕임, 눈과 몸체 압축, 꽁지의 180ms 지연'},
+ {id:'joy',name:'기쁜 곡선 눈',duration:3,loop:false,reference:'R03 0.5–2.4s / 7.6–8.8s Smile_Left / Smile_Right',note:'타원 눈에서 승인된 아치 눈으로 변형, R01 곡선 눈과 승인된 좌우 탄성·복귀'},
+ {id:'wink',name:'가벼운 윙크',duration:2.4,loop:false,reference:'R03 11.0–11.6s independent right-eye wink',note:'오른쪽 눈만 곡선으로 닫힘; 승인된 R02 몸체 반응 유지'},
+ {id:'surprise',name:'! 놀람',duration:3.2,loop:false,reference:'User-requested new surprise state',note:'꼬리 없는 원형 !, 독립 기호 움직임과 둥근 눈, 노란빛 뒤 보라 복귀'},
+ {id:'reject',name:'X 거절',duration:3.4,loop:false,reference:'User-requested new refusal state',note:'원형 X와 독립 기호 움직임, 살짝 넓어진 눈, 부드러운 꽁지와 붉은빛 복귀'}
+];
+function core(id,t){
+ const m={breath:0,squash:0,lean:0,float:0,gazeX:0,gazeY:0,blinkL:0,blinkR:0,smileL:0,smileR:0,bubble:0,bubbleScale:1,bubbleY:0,dots:[0,0,0],shiftX:0,tint:0,state:id,eyeRound:0,eyeWide:0,symbolX:0,symbolY:0,symbolRotate:0};
+ if(id==='idle'){const w=Math.sin(TAU*t/3);m.breath=w*.04;m.float=-18*w;m.lean=10*w;m.gazeX=8*w;m.gazeY=-6*w;m.blinkL=m.blinkR=keys(t,[[0,0],[1.18,0],[1.31,1],[1.36,1],[1.55,0],[3,0]]);}
+ if(id==='blink'){m.blinkL=keys(t,[[0,0],[.56,0],[.73,1],[.83,1],[1.07,0],[2.4,0]]);m.blinkR=keys(t-.03,[[0,0],[.56,0],[.73,1],[.83,1],[1.07,0],[2.4,0]]);const e=keys(t,[[0,0],[.45,0],[.76,1],[1.18,0],[2.4,0]]);m.squash=.035*e;m.lean=10*e;m.gazeY=8*e;}
+ if(id==='look_up'||id==='look_down'){
+  const e=keys(t,[[0,0],[.32,0],[.88,1],[1.95,1],[2.7,0],[3,0]]),up=id==='look_up';
+  const scan=keys(t,[[0,0],[.32,0],[.88,1],[1.1,1],[1.7,-1],[1.95,-1],[2.7,0],[3,0]]);
+  m.gazeX=(up?50:46)*scan;m.gazeY=(up?-80:72)*e;m.lean=(up?50:40)*scan;m.squash=(up?-.045:.064)*e;m.float=(up?-12:12)*e;
+  m.blinkL=m.blinkR=keys(t,[[0,0],[.28,0],[.38,.85],[.51,0],[3,0]]);
+ }
+ if(id==='think'){
+  const e=keys(t,[[0,0],[.25,0],[.85,1],[3.05,1],[3.65,0],[4,0]]);
+  m.gazeX=-46*e;m.gazeY=-70*e;m.lean=-28*e;m.squash=-.036*e;m.float=-14*e;
+  m.bubble=keys(t,[[0,0],[.38,0],[.75,1],[3.18,1],[3.65,0],[4,0]]);
+  m.bubbleScale=keys(t,[[0,.72],[.38,.72],[.8,1.06],[1.12,1],[3.18,1],[3.65,.78],[4,.78]]);
+  m.bubbleY=keys(t,[[0,-60],[.38,-60],[.8,12],[1.12,0],[3.18,0],[3.65,-48],[4,-48]]);
+  for(let i=0;i<3;i++)m.dots[i]=Math.pow(Math.max(0,Math.sin(TAU*(t-1.05-i*.2)/1.6)),3)*m.bubble;
+  m.tint=keys(t,[[0,0],[.38,0],[.85,1],[3.05,1],[3.65,0],[4,0]]);
+ }
+ if(id==='understand'){
+  const n=keys(t,[[0,0],[.3,0],[.6,1],[.94,-.3],[1.2,0],[1.48,.58],[1.75,-.15],[2.02,0],[3,0]]);
+  m.squash=.085*n;m.gazeY=46*n;m.lean=-18*n;m.float=12*n;
+  m.blinkL=m.blinkR=keys(t,[[0,0],[.47,0],[.6,.72],[.85,0],[3,0]]);
+ }
+ if(id==='joy'){
+  const e=keys(t,[[0,0],[.28,0],[.62,1],[2.05,1],[2.55,0],[3,0]]);m.smileL=e;m.smileR=e;
+  m.lean=keys(t,[[0,0],[.35,0],[.72,36],[1.1,-32],[1.5,20],[1.9,-8],[2.3,0],[3,0]]);
+  m.squash=keys(t,[[0,0],[.32,0],[.5,.078],[.8,-.055],[1.2,.025],[1.65,-.018],[2.1,0],[3,0]]);
+  m.float=-34*e;m.gazeY=-8*e;
+ }
+ if(id==='wink'){const e=keys(t,[[0,0],[.45,0],[.72,1],[1.24,1],[1.58,0],[2.4,0]]);m.smileR=e;m.lean=keys(t,[[0,0],[.45,0],[.78,-28],[1.3,-28],[1.75,0],[2.4,0]]);m.squash=.045*e;m.float=-10*e;m.gazeX=-10*e;}
+ if(id==='surprise'){
+  const e=keys(t,[[0,0],[.22,0],[.65,1],[2.2,1],[2.95,0],[3.2,0]]);
+  m.squash=keys(t,[[0,0],[.22,0],[.38,.055],[.62,-.055],[.85,.02],[1.18,0],[3.2,0]]);m.float=-25*e;m.gazeY=-18*e;m.lean=8*e;
+  m.bubble=keys(t,[[0,0],[.25,0],[.62,1],[2.3,1],[2.9,0],[3.2,0]]);m.bubbleScale=keys(t,[[0,.72],[.25,.72],[.66,1.06],[.94,1],[2.3,1],[2.9,.78],[3.2,.78]]);m.bubbleY=keys(t,[[0,-60],[.25,-60],[.66,12],[.94,0],[2.3,0],[2.9,-48],[3.2,-48]]);m.tint=e;m.eyeRound=e;m.symbolY=-6*Math.sin(TAU*(t-.7)/1.6)*e;m.symbolRotate=2*Math.sin(TAU*(t-.7)/1.8)*e;
+ }
+ if(id==='reject'){
+  const e=keys(t,[[0,0],[.25,0],[.72,1],[2.35,1],[3.02,0],[3.4,0]]);
+  m.lean=keys(t,[[0,0],[.3,0],[.65,24],[1,-42],[1.35,38],[1.7,-26],[2.05,14],[2.4,0],[3.4,0]]);m.gazeX=m.lean*.55;m.gazeY=6*e;m.shiftX=m.lean*.24;m.squash=.024*e;
+  m.bubble=keys(t,[[0,0],[.28,0],[.68,1],[2.4,1],[3,0],[3.4,0]]);m.bubbleScale=keys(t,[[0,.72],[.28,.72],[.72,1.06],[1,1],[2.4,1],[3,.78],[3.4,.78]]);m.bubbleY=keys(t,[[0,-60],[.28,-60],[.72,12],[1,0],[2.4,0],[3,-48],[3.4,-48]]);m.tint=e;m.eyeWide=e;m.symbolX=4*Math.sin(TAU*(t-.72)/1.7)*e;m.symbolY=-3*Math.sin(TAU*(t-.72)/1.5)*e;m.symbolRotate=3*Math.sin(TAU*(t-.72)/1.9)*e;
+ }
+ return m;
+}
+function motion(id,t,reduced=false){
+ const clip=clips.find(c=>c.id===id)||clips[0];t=clamp(t,0,clip.duration);
+ const m=core(id,reduced?(['think','surprise','reject'].includes(id)?1.7:0):t);
+ // Periodic lag for loops; stronger, bounded fused-curl follow-through.
+ const lagT=clip.loop?(t-.18+clip.duration)%clip.duration:Math.max(0,t-.18),lag=core(id,lagT);
+ m.tailX=reduced?0:clamp((lag.lean-m.lean)*3.5,-65,65);
+ m.tailY=reduced?0:clamp((lag.squash+lag.breath-m.squash-m.breath)*520+(lag.gazeY-m.gazeY)*.44,-45,45);
+ if(id==='reject'&&!reduced){m.tailX=(lag.lean-m.lean)*.6;m.tailY=(lag.squash-m.squash)*200;}
+ if(reduced){m.symbolX=0;m.symbolY=0;m.symbolRotate=0;m.squash=0;m.lean=0;m.float=0;m.gazeX=0;m.gazeY=0;m.breath=0;m.dots=[0,0,0];m.bubbleScale=1;m.bubbleY=0;m.shiftX=0;}
+ return m;
+}
+const body=[['M',138,602],['C',139,422,294,281,510,251],['C',573,248,613,198,670,191],['C',739,178,794,217,804,262],['C',811,288,796,306,777,316],['C',758,325,776,339,793,352],['C',887,423,936,510,937,610],['C',938,753,842,823,709,844],['C',622,859,413,859,307,836],['C',186,813,133,727,138,602],['Z']];
+const highlight=[['M',214,493],['C',227,411,330,324,434,298],['C',490,284,508,294,472,327],['C',413,379,303,445,248,510],['C',225,540,205,530,214,493],['Z']];
+const crease=[['M',735,294],['C',749,296,764,300,778,316],['C',763,322,762,337,781,348],['C',747,336,734,316,735,294],['Z']];
+function point(x,y,m,tail=true){
+ const h=clamp((854-y)/663),sx=1+m.squash+m.breath;
+ const bulge=Math.sin(Math.PI*clamp((y-191)/663));
+ let xx=537+(x-537)*(1+(sx-1)*(.45+.55*bulge))+m.lean*h*h+m.shiftX;
+ let yy=854+(y-854)*(1-m.squash-m.breath)+m.float;
+ if(tail){const w=m.state==='reject'?smooth((x-600)/200)*smooth((410-y)/155):clamp((x-600)/160)*clamp((390-y)/125);xx+=m.tailX*w;yy+=m.tailY*w;}
+ return [xx,yy];
+}
+function path(parts,m,tail=true){return parts.map(p=>{let s=p[0];for(let i=1;i<p.length;i+=2){const v=point(p[i],p[i+1],m,tail);s+=' '+v.map(x=>x.toFixed(2)).join(' ')}return s}).join(' ')}
+function eye(x,y,rx,ry,blink,smile,m,label){
+ rx=rx+(42-rx)*(m.eyeRound||0)+6*(m.eyeWide||0);ry=ry+(42-ry)*(m.eyeRound||0)-5*(m.eyeWide||0);
+ // Corresponding cubic points interpolate a real eyelid contour to an arched smiling eye.
+ const oval=[[-rx,0],[-rx,-.5523*ry],[-.5523*rx,-ry],[0,-ry],[.5523*rx,-ry],[rx,-.5523*ry],[rx,0],[rx,.5523*ry],[.5523*rx,ry],[0,ry],[-.5523*rx,ry],[-rx,.5523*ry],[-rx,0]];
+ const arch=[[-31,4],[-30,-15],[-15,-27],[0,-27],[15,-27],[29,-15],[31,0],[35,12],[21,18],[18,6],[8,-11],[-14,-10],[-18,9]];
+ // A closed arch terminates at the left stroke cap through an extra curved segment.
+ const v=oval.map((p,i)=>[p[0]*(1-smile)+arch[i][0]*smile,p[1]*(1-smile)*(1-.97*blink)+arch[i][1]*smile]);
+ const pp=v.map(p=>point(x+p[0]+m.gazeX,y+p[1]+m.gazeY,m,false));
+ const f=p=>p.map(a=>a.toFixed(2)).join(' ');
+ let d='M '+f(pp[0]);for(let i=1;i<=12;i+=3)d+=' C '+[pp[i],pp[i+1],pp[i+2]].map(f).join(' ');
+ if(smile>0)d+=' C '+f(point(x-25,y+20+m.gazeY,m,false))+' '+f(point(x-36,y+16+m.gazeY,m,false))+' '+f(pp[0]);
+ d+=' Z';
+ const e=point(x+9+m.gazeX,y-22+m.gazeY,m,false);
+ return `<g id="eye-${label}" data-blink="${blink}" data-smile="${smile}"><path id="eye-${label}-outline" d="${d}" fill="url(#eyeFill)"/><ellipse cx="${e[0]}" cy="${e[1]}" rx="10" ry="17" transform="rotate(-17 ${e[0]} ${e[1]})" fill="#9072c7" opacity="${.3*(1-smile)*(1-blink)}"/></g>`;
+}
+const basePalette=['#cbb4ff','#b595fb','#9e7bf7','#7050e5'];
+const states={think:{name:'green',strength:1,body:['#b8edce','#89dab2','#55c59d','#2c967b'],bubble:['#a2f3cb','#43d59f','#10a475'],symbol:'...',ink:'#083f37'},surprise:{name:'soft warm yellow',strength:.86,body:['#f6e9bd','#e6d0a2','#d7b687','#a0808c'],bubble:['#fff0b2','#ffe180','#edb84c'],symbol:'!',ink:'#644212'},reject:{name:'red',strength:.7,body:['#ffb9b6','#fa9f9e','#eb7b8b','#c94e72'],bubble:['#ffd2d5','#f89aad','#e46185'],symbol:'X',ink:'#641f42'}};
+function mix(a,b,w){if(w===0)return a;const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));return '#'+rgb(a).map((v,i)=>Math.round(v+(rgb(b)[i]-v)*w).toString(16).padStart(2,'0')).join('')}
+function palette(m){
+ if(Number.isFinite(m.effort)){
+  // Keep the approved purple midpoint; distinguish relaxed teal and warm coral
+  // even at the sheet's small character size. Interpolate continuously.
+  const e=clamp(((m.colorEffort??m.effort)-1)/9),cool=['#b6f3e5','#75ddca','#3dbba9','#258c85'],hot=['#ffd1a8','#ffab83','#ef7d70','#c94e72'];
+  return basePalette.map((c,i)=>e<.5?mix(cool[i],c,smooth(e/.5)):mix(c,hot[i],smooth((e-.5)/.5)));
+ }
+ const state=states[m.state];return state?basePalette.map((c,i)=>mix(c,state.body[i],m.tint*state.strength)):basePalette;
+}
+function effortControls(value,t,reduced=false,aboveUsual=false){
+ const e=clamp((value-1)/9),strain=Math.max(smooth((e-.45)/.55),aboveUsual?.58:0);
+ const w=reduced?0:Math.sin(TAU*t/3),pant=reduced?0:Math.sin(TAU*t/1.5);
+ return {effort:value,strain,breath:w*(.012+e*.028)+pant*.012*strain,
+  float:reduced?0:-w*(4+e*9),lean:reduced?0:pant*6*strain,
+  tailX:reduced?0:-pant*8*strain,tailY:reduced?0:w*5,
+  gazeX:0,gazeY:10*e,smileL:Math.pow(1-e,2)*.8,smileR:Math.pow(1-e,2)*.8,
+  blinkL:strain*.52,blinkR:strain*.52,pant,sweatPhase:reduced?.4:(t/1.5)%1};
+}
+function effortFace(m){
+ if(!(m.strain>0))return '';
+ const mouth=point(562,650,m,false),drop=point(814,420,m,false),s=m.strain;
+ return `<g id="effort-expression" data-strain="${s}">
+ <ellipse id="panting-mouth" cx="${mouth[0]}" cy="${mouth[1]}" rx="${14+13*s}" ry="${9+(18+6*m.pant)*s}" fill="#36205e" opacity="${s}"/>
+ <g id="effort-sweat" opacity="${s*(.8-.3*m.sweatPhase)}" transform="translate(${drop[0]} ${drop[1]+m.sweatPhase*70}) scale(.8)"><path d="M0 -30 C-5 -13 -21 3 -21 19 A21 21 0 0 0 21 19 C21 3 5 -13 0 -30 Z" fill="#69d6f2" stroke="#328aa4" stroke-width="3"/></g>
+ </g>`;
+}
+function svg(id='idle',t=0,reduced=false,controls=null,layout='full'){
+ const m=controls?{...motion(id,t,reduced),...controls}:motion(id,t,reduced);
+ const show=m.bubble,bs=m.bubbleScale;
+ const state=states[id]||states.think,colors=palette(m),bubbleColors=state.bubble;
+ const symbol=id==='surprise'?`<g id="state-symbol" transform="translate(${m.symbolX} ${m.symbolY}) rotate(${m.symbolRotate} 252 265)" fill="${state.ink}"><path d="M252 218 L252 276" stroke="${state.ink}" stroke-width="20" stroke-linecap="round"/><circle cx="252" cy="303" r="11"/></g>`:id==='reject'?`<g id="state-symbol" transform="translate(${m.symbolX} ${m.symbolY}) rotate(${m.symbolRotate} 252 265)" fill="none" stroke="${state.ink}" stroke-width="20" stroke-linecap="round"><path d="M220 221 L284 290 M284 221 L220 290"/></g>`:m.dots.map((v,i)=>`<circle id="thought-dot-${i+1}" cx="${190+i*62}" cy="${265-v*24}" r="${16+v*1.5}" fill="${state.ink}" opacity="${.92+v*.08}"/>`).join('');
+ const roundBubble=id==='surprise'||id==='reject';
+ const bubblePath=roundBubble?'M345 265 A93 93 0 1 0 159 265 A93 93 0 1 0 345 265 Z':'M171 191 H333 Q405 191 405 261 V279 Q405 316 370 326 Q369 346 391 363 Q357 358 343 331 H171 Q99 331 99 261 Q99 191 171 191 Z';
+ const shadowW=360*(1+m.squash*.6+m.breath*.7),shadowA=.24+m.squash*.4+m.float*.002;
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -25 1074 1074" style="overflow:hidden" role="img" aria-label="SOOM 2D R03 ${id}" data-time="${t}" data-layout="square" data-tint="${m.tint}">
+ <defs>
+ <linearGradient id="bodyFill" x1="440" y1="200" x2="543" y2="865" gradientUnits="userSpaceOnUse"><stop stop-color="${colors[0]}"/><stop offset=".42" stop-color="${colors[1]}"/><stop offset=".74" stop-color="${colors[2]}"/><stop offset="1" stop-color="${colors[3]}"/></linearGradient>
+ <radialGradient id="softVolume" cx="72%" cy="38%" r="70%"><stop stop-color="#eee0ff" stop-opacity=".23"/><stop offset=".58" stop-color="#d0aaff" stop-opacity=".04"/><stop offset="1" stop-color="#8162e8" stop-opacity=".06"/></radialGradient>
+ <linearGradient id="eyeFill" x2=".35" y2="1"><stop stop-color="#36205e"/><stop offset="1" stop-color="#291748"/></linearGradient>
+ <linearGradient id="bubbleFill" x1="0" y1="0" x2=".3" y2="1"><stop stop-color="${bubbleColors[0]}"/><stop offset=".5" stop-color="${bubbleColors[1]}"/><stop offset="1" stop-color="${bubbleColors[2]}"/></linearGradient>
+ <filter id="shadow" x="-50%" y="-120%" width="200%" height="340%"><feGaussianBlur stdDeviation="16"/></filter>
+ <filter id="creaseBlur"><feGaussianBlur stdDeviation="12"/></filter>
+ <filter id="bubbleShadow" x="-25%" y="-35%" width="150%" height="175%"><feGaussianBlur stdDeviation="9"/></filter>
+ <clipPath id="bodyClip"><path d="${path(body,m)}"/></clipPath>
+ </defs>
+ <g id="ground-shadow"><ellipse cx="${537+m.shiftX}" cy="851" rx="${shadowW}" ry="22" fill="#8060c9" opacity="${shadowA}" filter="url(#shadow)"/></g>
+ <g id="body"><path id="body-outline" d="${path(body,m)}" fill="url(#bodyFill)"/><path d="${path(body,m)}" fill="url(#softVolume)"/>
+ <g clip-path="url(#bodyClip)"><path id="body-highlight" d="${path(highlight,m)}" fill="${mix('#efdcff',id==='surprise'?'#fff2ae':id==='reject'?'#ffd5d1':'#d7ffe6',m.tint*.55)}" opacity=".28"/><path id="fused-curl-crease" d="${path(crease,m)}" fill="#7950d2" opacity=".27" filter="url(#creaseBlur)"/></g></g>
+ <g id="face">${eye(493,548,29,50,m.blinkL,m.smileL,m,'left')}${eye(631,539,29,50,m.blinkR,m.smileR,m,'right')}${effortFace(m)}</g>
+ <g id="thought-bubble" opacity="${show}" data-stable-scale="1.344" transform="translate(265 ${245+m.bubbleY*.25}) scale(${1.344*bs}) translate(-252 -277)">
+ <path d="${bubblePath}" fill="#007d88" opacity=".14" transform="translate(0 6)" filter="url(#bubbleShadow)"/>
+ <path id="bubble-outline" d="${bubblePath}" fill="url(#bubbleFill)" stroke="#fff" stroke-width="5"/>
+ ${symbol}
+ </g></svg>`;
+}
+const api={clips,motion,svg,effortControls,geometry:{body,highlight,crease},keys,point,palette,basePalette,states};
+if(typeof module!=='undefined')module.exports=api;root.SOOM=api;
+})(typeof window!=='undefined'?window:globalThis);
+</script><script>(function(){
+'use strict';
+const art=document.getElementById('art');
+let state={id:'idle',playing:false,loop:true,speed:1,position:0,revision:-1,active:false,reduced:false};
+let time=0,raf=null,last=null,lastDraw=-Infinity,draws=0,colorEffort=null;
+const duration=()=>SOOM.clips.find(c=>c.id===state.id).duration;
+function draw(){
+ let controls=null;
+ if(Number.isFinite(state.effort)){
+  controls={...SOOM.effortControls(state.effort,time,state.reduced,state.aboveUsual),colorEffort};
+ }
+ art.innerHTML=SOOM.svg(state.id,time,state.reduced,controls);draws++;
+}
+function cancel(){if(raf!==null)cancelAnimationFrame(raf);raf=null;last=null;lastDraw=-Infinity;}
+function allowed(){return state.active&&state.playing&&!state.reduced&&!document.hidden;}
+function start(){if(allowed()&&raf===null)raf=requestAnimationFrame(tick);}
+function tick(now){raf=null;if(!allowed()){last=null;return;}
+ if(last!==null){
+  const dt=Math.max(0,Math.min(.1,(now-last)/1000));
+  time+=(now-last)/1000*state.speed;
+  // Ease color by elapsed time, independently of breathing speed. Never reset
+  // the motion clock or alternate through the default palette during dragging.
+  if(Number.isFinite(state.effort))colorEffort+=(state.effort-colorEffort)*(1-Math.exp(-dt/.16));
+ }
+ last=now;
+ if(time>=duration()){
+  if(state.loop)time%=duration();
+  else{time=duration();state.playing=false;draw();last=null;
+   window.webkit?.messageHandlers?.soomCharacter?.postMessage({event:'ended',id:state.id,revision:state.revision});return;}
+ }
+ if(now-lastDraw>=1000/30-.2){draw();lastDraw=now;}
+ start();
+}
+window.SoomCharacterRuntime={
+ configure(next){
+  if(!SOOM.clips.some(c=>c.id===next.id))return;
+  const reset=next.revision!==state.revision||next.id!==state.id;
+  state={...state,...next};
+  if(reset){cancel();time=Math.max(0,Math.min(duration(),state.position));}
+  if(!Number.isFinite(state.effort))colorEffort=null;
+  else if(!Number.isFinite(colorEffort)||!allowed())colorEffort=state.effort;
+  draw();if(!allowed())cancel();else start();
+ },
+ inspect(){return {...state,time,colorEffort,scheduled:raf!==null,draws};},
+ dispose(){state.active=false;cancel();}
+};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();else start();});
+draw();
+})();
+</script></body></html>

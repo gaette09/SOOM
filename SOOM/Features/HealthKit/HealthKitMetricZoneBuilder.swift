@@ -20,6 +20,7 @@ struct HealthKitMetricZoneBuilder {
         let personalizedMaxHeartRate = baseline.maxHeartRate.map { Double($0) }
         let maximumHeartRate = personalizedMaxHeartRate ?? maxHeartRate ?? fallbackMaxHeartRate
         let isPersonalized = personalizedMaxHeartRate != nil
+        guard maximumHeartRate.isFinite, maximumHeartRate > 0 else { return zoneBuilder.unavailableSummary(type: .heartRate) }
         let durations = aggregateDurations(
             samples: samples.filter { $0.sampleType == .heartRate },
             type: .heartRate
@@ -111,12 +112,22 @@ struct HealthKitMetricZoneBuilder {
         guard !samples.isEmpty else { return [] }
 
         var durationsByZone: [Int: TimeInterval] = [:]
-        for sample in samples {
-            let safeDuration = max(sample.durationSeconds, 1)
-            durationsByZone[zoneIndex(sample), default: 0] += safeDuration
+        let valid = samples.filter {
+            $0.value.isFinite && (type != .heartRate || (1...300).contains($0.value)) && $0.endDate >= $0.startDate
+        }.sorted { $0.startDate < $1.startDate }
+        for (index, sample) in valid.enumerated() {
+            let nextStart = index + 1 < valid.count ? valid[index + 1].startDate : nil
+            var end = sample.endDate
+            if type == .heartRate {
+                if end == sample.startDate, let nextStart, nextStart.timeIntervalSince(sample.startDate) <= 60 { end = nextStart }
+                if let nextStart { end = min(end, nextStart) }
+            }
+            let seconds = type == .heartRate ? end.timeIntervalSince(sample.startDate) : max(sample.durationSeconds, 1)
+            guard seconds.isFinite, seconds > 0 else { continue }
+            durationsByZone[zoneIndex(sample), default: 0] += seconds
         }
-
-        return durationsByZone.keys.sorted().map { index in
+        guard !durationsByZone.isEmpty else { return [] }
+        return (type == .heartRate ? Array(1...5) : durationsByZone.keys.sorted()).map { index in
             WorkoutZoneDurationInput(
                 zoneIndex: index,
                 durationSeconds: durationsByZone[index] ?? 0,

@@ -29,14 +29,15 @@ final class WorkoutSplitDataProviderTests: XCTestCase {
         XCTAssertNil(insight)
     }
 
-    func testFetchFailureReturnsNilSafely() async throws {
+    func testFetchFailureRemainsAnErrorInsteadOfMissingSplits() async throws {
         let provider = WorkoutSplitDataProvider(
             fetcher: FakeSplitMetricStreamFetcher(result: .failure(TestSplitError.fetchFailed))
         )
 
-        let insight = try await provider.insight(for: makeWorkout(), current: makeInput())
-
-        XCTAssertNil(insight)
+        do {
+            _ = try await provider.insight(for: makeWorkout(), current: makeInput())
+            XCTFail("A failed query must not become an empty success")
+        } catch { XCTAssertTrue(error is TestSplitError) }
     }
 
     private func makeInput() -> WorkoutGrowthInput {
@@ -117,5 +118,15 @@ private final class FakeSplitMetricStreamFetcher: HealthKitWorkoutMetricStreamFe
         case .failure(let error):
             throw error
         }
+    }
+}
+
+extension WorkoutSplitDataProviderTests {
+    func testCancellationIsNotAnEmptySuccessfulRead() async {
+        let fetcher = FakeSplitMetricStreamFetcher(result: .failure(CancellationError()))
+        do {
+            _ = try await WorkoutSplitDataProvider(fetcher: fetcher).insight(for: makeWorkout(), current: makeInput())
+            XCTFail("Cancellation must reach the detail lifecycle")
+        } catch { XCTAssertTrue(error is CancellationError) }
     }
 }

@@ -22,28 +22,38 @@ struct WorkoutSheetHandleButton: View {
 }
 
 struct WorkoutSheetHeader: View {
+    @Environment(\.workoutManagement) private var management
+    @Environment(\.dismiss) private var dismiss
     let workout: Workout
     let title: String
     let onCollapse: () -> Void
+    var sharedPostManagement: FeedPostManagement? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: SOOMLayout.DetailSheet.headerSpacing) {
                 Button(action: onCollapse) {
-                    Image(systemName: SOOMIcon.collapse)
+                    Image(soom: SOOMIcon.collapse)
                         .font(.system(size: SOOMLayout.DetailSheet.headerCollapseIconSize, weight: .semibold))
                         .foregroundStyle(SOOMColor.ink)
-                        .frame(width: SOOMLayout.DetailSheet.headerButtonSize, height: SOOMLayout.DetailSheet.headerButtonSize)
+                        .frame(width: max(44, SOOMLayout.DetailSheet.headerButtonSize), height: max(44, SOOMLayout.DetailSheet.headerButtonSize))
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // Keep native button activation and its accessible hit target.
+                // A downward drag here also collapses from a scrolled body.
+                .simultaneousGesture(DragGesture(minimumDistance: SOOMLayout.DetailSheet.dragMinimumDistance)
+                    .onEnded { value in
+                        if value.translation.height > SOOMLayout.DetailSheet.dragMinimumDistance { onCollapse() }
+                    })
                 .accessibilityLabel("상세 정보 접기")
+                .accessibilityIdentifier("workout.detail.collapse")
                 .accessibilityHint("상세 레이어를 중앙 위치로 내립니다.")
 
                 Spacer()
 
                 HStack(spacing: SOOMLayout.DetailSheet.titleSpacing) {
-                    Image(systemName: workout.sport.iconName)
-                        .font(.system(size: SOOMLayout.DetailSheet.headerIconSize, weight: .bold))
+                    SOOMSportIconView(name: workout.sport.iconName, size: SOOMLayout.DetailSheet.headerIconSize)
                     Text(title)
                         .font(SOOMFont.displayMedium(17, relativeTo: .headline))
                 }
@@ -53,9 +63,10 @@ struct WorkoutSheetHeader: View {
 
                 Spacer()
 
-                HStack(spacing: SOOMLayout.DetailSheet.headerTrailingSpacing) {
-                    SheetHeaderButton(icon: SOOMIcon.bookmark, accessibilityLabel: "경로 저장")
-                    SheetHeaderButton(icon: SOOMIcon.more, accessibilityLabel: "더보기")
+                if let management {
+                    WorkoutManagementButtons(model: management, onDelete: { dismiss() })
+                } else if let sharedPostManagement {
+                    FeedPostManagementButtons(model:sharedPostManagement,onDelete:{ dismiss() })
                 }
             }
             .padding(.horizontal, SOOMLayout.DetailSheet.headerHorizontalPadding)
@@ -66,22 +77,5 @@ struct WorkoutSheetHeader: View {
                 .overlay(SOOMColor.line)
         }
         .background(SOOMColor.background)
-    }
-}
-
-private struct SheetHeaderButton: View {
-    let icon: String
-    let accessibilityLabel: String
-
-    var body: some View {
-        Button {
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: icon == SOOMIcon.more ? SOOMLayout.DetailSheet.headerMoreIconSize : SOOMLayout.DetailSheet.headerActionIconSize, weight: icon == SOOMIcon.more ? .bold : .semibold))
-                .foregroundStyle(SOOMColor.ink)
-                .frame(width: SOOMLayout.DetailSheet.headerTrailingButtonSize, height: SOOMLayout.DetailSheet.headerTrailingButtonSize)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
     }
 }

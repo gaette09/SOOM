@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>ko</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>SOOM</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>WKApplication</key>
+	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>app.soom.prototype</string>
+	<key>WKWatchOnly</key>
+	<false/>
+	<key>WKRunsIndependentlyOfCompanionApp</key>
+	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>SOOM은 운동 중 심박·거리·파워·속도·케이던스·수영 스트로크를 읽어 운동 진행과 저장된 기록을 표시합니다.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>SOOM은 워치에서 시작한 운동과 GPS 경로를 Apple 건강에 저장하여 iPhone과 동기화합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SOOM은 사용자가 시작한 야외 운동의 GPS 경로와 고도를 기록합니다. 일시정지와 종료 시 위치 수집을 멈춥니다.</string>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
+	<key>NSMotionUsageDescription</key>
+	<string>SOOM은 운동 중 걸음과 케이던스를 표시하기 위해 동작 데이터를 사용합니다.</string>
+</dict>
+</plist>

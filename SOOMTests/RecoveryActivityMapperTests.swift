@@ -2,6 +2,12 @@ import XCTest
 @testable import SOOM
 
 final class RecoveryActivityMapperTests: XCTestCase {
+    func testZeroDurationDoesNotAcquireMinimumTrainingLoad() {
+        let snapshot = LocalWorkoutSnapshot(sport: .run, durationMinutes: 0, distanceKm: 0,
+            averageHeartRate: 0, relativeEffort: 0, completedAt: Date())
+        XCTAssertEqual(RecoveryActivityMapper().map(snapshot).trainingLoad, 0)
+    }
+
     func testLocalWorkoutSnapshotMapsToRecoveryActivity() {
         let completedAt = Date(timeIntervalSince1970: 1_800_000_000)
         let snapshot = LocalWorkoutSnapshot(

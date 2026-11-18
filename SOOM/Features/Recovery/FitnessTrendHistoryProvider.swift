@@ -20,7 +20,7 @@ struct SwiftDataFitnessTrendHistoryProvider: FitnessTrendHistoryProviding {
 
     func dailyTrainingLoads(upTo date: Date, windowDays: Int) async -> [Double] {
         guard windowDays > 0 else { return [] }
-        guard let workouts = try? await store.fetchRecentWorkouts(days: windowDays) else { return [] }
+        guard let workouts = try? await store.fetchCanonicalRecentWorkouts(days: windowDays) else { return [] }
 
         let calendar = Calendar.current
         let targetDay = calendar.startOfDay(for: date)

@@ -34,8 +34,79 @@ final class WorkoutGrowthSummaryBuilderTests: XCTestCase {
         let summary = builder.build(current: current, recentWorkouts: [current, previous, third])
 
         XCTAssertEqual(summary.improvementType, .consistency)
-        XCTAssertTrue(summary.comparisonText.contains("이번 주"))
+        XCTAssertEqual(summary.comparisonText, "이번 주 3회 운동")
         XCTAssertFalse(summary.motivationText.isEmpty)
+    }
+
+    func testWeeklyFrequencyCountsCurrentWorkoutWhenHistoryExcludesIt() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 10_000, duration: 3_000)
+        let previous = makeWorkout(daysAgo: 1, distanceMeters: 10_000, duration: 3_000)
+        let third = makeWorkout(daysAgo: 2, sport: .bike, distanceMeters: 25_000, duration: 3_600)
+
+        let summary = builder.build(current: current, recentWorkouts: [previous, third])
+
+        XCTAssertEqual(summary.improvementType, .consistency)
+        XCTAssertEqual(summary.comparisonText, "이번 주 3회 운동")
+    }
+
+    func testWeeklyFrequencyIgnoresWorkoutsAfterViewedWorkout() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 10_000, duration: 3_000)
+        let previous = makeWorkout(daysAgo: 1, distanceMeters: 10_000, duration: 3_000)
+        let nextDay = makeWorkout(daysAgo: -1, distanceMeters: 10_000, duration: 3_000)
+        let later = makeWorkout(daysAgo: -2, distanceMeters: 10_000, duration: 3_000)
+
+        let summary = builder.build(current: current, recentWorkouts: [previous, nextDay, later])
+        let expected = builder.build(current: current, recentWorkouts: [previous])
+
+        XCTAssertNotEqual(summary.improvementType, .consistency)
+        XCTAssertEqual(summary.improvementType, expected.improvementType)
+        XCTAssertEqual(summary.comparisonText, expected.comparisonText)
+    }
+
+    func testSummaryDoesNotUseDifferentActivityInSamePresentationSport() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 10_000, duration: 3_000, originalWorkoutType: .running)
+        let previousRun = makeWorkout(daysAgo: 7, distanceMeters: 10_000, duration: 3_000, originalWorkoutType: .running)
+        let recentWalk = makeWorkout(daysAgo: 1, distanceMeters: 2_000, duration: 3_600, originalWorkoutType: .walking)
+
+        let summary = builder.build(current: current, recentWorkouts: [previousRun, recentWalk])
+        let expected = builder.build(current: current, recentWorkouts: [previousRun])
+
+        XCTAssertEqual(summary.improvementType, expected.improvementType)
+        XCTAssertEqual(summary.comparisonText, expected.comparisonText)
+        XCTAssertNotEqual(summary.improvementType, .endurance)
+        XCTAssertNotEqual(summary.improvementType, .pace)
+    }
+
+    func testWeeklyFrequencyStillCountsDifferentOriginalActivityTypes() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 10_000, duration: 3_000, originalWorkoutType: .running)
+        let walking = makeWorkout(daysAgo: 1, distanceMeters: 2_000, duration: 3_600, originalWorkoutType: .walking)
+        let yoga = makeWorkout(daysAgo: 2, distanceMeters: 0, duration: 1_800, originalWorkoutType: .yoga)
+
+        let summary = builder.build(current: current, recentWorkouts: [walking, yoga])
+
+        XCTAssertEqual(summary.improvementType, .consistency)
+        XCTAssertEqual(summary.comparisonText, "이번 주 3회 운동")
+    }
+
+    func testMissingDistanceDoesNotProduceDistanceOrPaceImprovement() {
+        for distances in [(current: 0.0, previous: 0.0), (current: 5_000.0, previous: 0.0), (current: 0.0, previous: 5_000.0)] {
+            let current = makeWorkout(daysAgo: 0, distanceMeters: distances.current, duration: 1_800)
+            let previous = makeWorkout(daysAgo: 1, distanceMeters: distances.previous, duration: 3_600)
+
+            let summary = builder.build(current: current, recentWorkouts: [previous])
+
+            XCTAssertNotEqual(summary.improvementType, .endurance)
+            XCTAssertNotEqual(summary.improvementType, .pace)
+        }
+    }
+
+    func testMissingDurationDoesNotProducePaceImprovement() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 0)
+        let previous = makeWorkout(daysAgo: 1, distanceMeters: 5_000, duration: 1_800)
+
+        let summary = builder.build(current: current, recentWorkouts: [previous])
+
+        XCTAssertNotEqual(summary.improvementType, .pace)
     }
 
     func testInsufficientComparisonDataBuildsNoneSummary() {
@@ -63,7 +134,8 @@ final class WorkoutGrowthSummaryBuilderTests: XCTestCase {
         daysAgo: Int,
         sport: WorkoutSport = .run,
         distanceMeters: Double,
-        duration: TimeInterval
+        duration: TimeInterval,
+        originalWorkoutType: UnifiedWorkoutType? = nil
     ) -> Workout {
         Workout(
             id: UUID(),
@@ -85,7 +157,8 @@ final class WorkoutGrowthSummaryBuilderTests: XCTestCase {
             samples: makeSamples(durationMinutes: Int(duration / 60)),
             zones: [],
             achievements: [],
-            aiSummary: "테스트 운동입니다."
+            aiSummary: "테스트 운동입니다.",
+            originalWorkoutType: originalWorkoutType
         )
     }
 
@@ -102,5 +175,17 @@ final class WorkoutGrowthSummaryBuilderTests: XCTestCase {
                 power: nil
             )
         }
+    }
+}
+
+
+extension WorkoutGrowthSummaryBuilderTests {
+    func testPaceOnlySamplesDoNotClaimStableHeartRate() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 1_800)
+            .withChartData(samples: (0..<9).map { WorkoutSample(minute: Double($0), heartRate: nil, paceSeconds: 360, power: nil) }, splits: [])
+        let previous = makeWorkout(daysAgo: 2, distanceMeters: 5_000, duration: 1_800)
+        let summary = WorkoutGrowthSummaryBuilder().build(current: current, recentWorkouts: [previous])
+        XCTAssertNotEqual(summary.improvementType, .recovery)
+        XCTAssertFalse(summary.shortSummary.contains("심박 흐름이 크게 흔들리지"))
     }
 }

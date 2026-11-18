@@ -28,11 +28,8 @@ final class RecoveryTimelineBuilder {
             let snapshots = try await snapshotStore.fetchRecentSnapshots(days: days)
             return makeEntries(from: snapshots)
         } catch {
-            guard let fallbackSummary else {
-                return []
-            }
-
-            return buildMockTimeline(endingAt: fallbackSummary, calendar: fallbackCalendar)
+            // Failed history reads cannot establish past scores or check-ins.
+            return []
         }
     }
 
@@ -46,6 +43,7 @@ final class RecoveryTimelineBuilder {
         endingAt summary: RecoverySummary,
         calendar: Calendar = .current
     ) -> [RecoveryTimelineEntry] {
+        guard summary.hasCalculatedScore else { return [] }
         let today = calendar.startOfDay(for: summary.lastUpdated)
         let entries = [
             makeEntry(

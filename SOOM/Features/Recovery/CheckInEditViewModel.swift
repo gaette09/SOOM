@@ -9,8 +9,14 @@ final class CheckInEditViewModel: ObservableObject {
     @Published var moodLevel: Int
     @Published var note: String
     @Published private(set) var isSaving = false
+    #if DEBUG && targetEnvironment(simulator)
+    @Published private(set) var syntheticSaveAttempts = 0
+    #endif
     @Published private(set) var confirmationMessage: String?
     @Published private(set) var errorMessage: String?
+
+    private var presentationGeneration = UUID()
+    func stopPresenting() { presentationGeneration = UUID(); isSaving = false }
 
     private let originalCheckIn: RecoveryCheckIn
     private let store: any RecoveryCheckInEditableStore
@@ -35,7 +41,11 @@ final class CheckInEditViewModel: ObservableObject {
     func save() async -> RecoveryCheckIn? {
         guard canSave else { return nil }
 
+        let generation = presentationGeneration
         isSaving = true
+        #if DEBUG && targetEnvironment(simulator)
+        syntheticSaveAttempts += 1
+        #endif
         errorMessage = nil
         confirmationMessage = nil
 
@@ -43,10 +53,12 @@ final class CheckInEditViewModel: ObservableObject {
 
         do {
             try await store.updateCheckIn(updatedCheckIn)
+            guard generation == presentationGeneration, !Task.isCancelled else { return nil }
             confirmationMessage = "컨디션 기록을 수정했어요."
             isSaving = false
             return updatedCheckIn
         } catch {
+            guard generation == presentationGeneration, !Task.isCancelled else { return nil }
             errorMessage = "수정 내용을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
             isSaving = false
             return nil

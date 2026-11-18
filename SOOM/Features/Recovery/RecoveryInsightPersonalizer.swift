@@ -26,7 +26,9 @@ struct RecoveryInsightPersonalizer {
             trends: summary.trends,
             insights: [insight] + summary.insights,
             lastUpdated: summary.lastUpdated,
-            dataQuality: summary.dataQuality
+            dataQuality: summary.dataQuality,
+            hasCalculatedScore: summary.hasCalculatedScore,
+            activityCountToday: summary.activityCountToday
         )
     }
 

@@ -51,7 +51,7 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
         XCTAssertFalse(result.summary.recommendation.isEmpty)
     }
 
-    func testDuplicateLikeWorkoutsAreNotDeduplicatedAutomatically() async throws {
+    func testCrossSourceCopiesContributeOnlyOneRecoveryWorkout() async throws {
         let first = makeWorkout(daysAgo: 0, externalId: "garmin-ride", source: .garmin, durationSeconds: 3_600, distanceMeters: 28_000)
         let second = makeWorkout(daysAgo: 0, externalId: "healthkit-ride", source: .appleHealthKit, durationSeconds: 3_620, distanceMeters: 28_100)
         let provider = UnifiedWorkoutRecoveryPreviewProvider(
@@ -61,7 +61,7 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
 
         let result = try await provider.fetchPreviewSummary()
 
-        XCTAssertEqual(result.usedWorkoutCount, 2)
+        XCTAssertEqual(result.usedWorkoutCount, 1)
         XCTAssertNotEqual(result.summary.status, "데이터 부족")
     }
 
@@ -154,8 +154,8 @@ final class UnifiedWorkoutRecoveryPreviewProviderTests: XCTestCase {
             externalId: externalId,
             source: source,
             workoutType: type,
-            startDate: startDate,
-            endDate: startDate.addingTimeInterval(durationSeconds),
+            startDate: startDate.addingTimeInterval(-durationSeconds),
+            endDate: startDate,
             durationSeconds: durationSeconds,
             distanceMeters: distanceMeters,
             activeEnergyKcal: activeEnergyKcal,
@@ -193,4 +193,19 @@ private final class FakeRecoveryPreviewWorkoutStore: UnifiedWorkoutStore {
     func updateCompanions(id: UUID, names: [String]) async throws {}
     func deleteWorkout(id: UUID) async throws {}
     func deleteAllWorkouts() async throws {}
+}
+
+
+extension UnifiedWorkoutRecoveryPreviewProviderTests {
+    func testUsedCountDescribesSevenDayInputsDespiteThirtyDayFetch() async throws {
+        let provider = UnifiedWorkoutRecoveryPreviewProvider(
+            store: FakeRecoveryPreviewWorkoutStore(workouts: [
+                makeWorkout(daysAgo: 0, durationSeconds: 1_800, distanceMeters: 3_000),
+                makeWorkout(daysAgo: 14, durationSeconds: 7_200, distanceMeters: 50_000)
+            ]), calculator: RecoveryCalculator(referenceDate: baseDate)
+        )
+        let result = try await provider.fetchPreviewSummary()
+        XCTAssertEqual(result.usedWorkoutCount, 1)
+        XCTAssertEqual(result.summary.activityCountToday, 1)
+    }
 }

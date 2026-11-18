@@ -25,6 +25,17 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
     let updatedAt: Date
     /// Free-text names only (batch 8) — no `profiles`/`follows` lookup.
     let companionNames: [String]
+    // Optional fields decode older cloud payloads without a migration/reset.
+    var userTitle: String? = nil
+    var userDescription: String? = nil
+    var sharingVisibilityRaw: String? = nil
+    var isBookmarked: Bool? = nil
+    var deviceName: String? = nil
+    var locationName: String? = nil
+    /// Explicit owner choice; raw provider IDs and measurements remain intact.
+    var preferredWorkoutID: UUID? = nil
+    var keepSeparate: Bool? = nil
+    var resolutionRequestID: UUID? = nil
 
     init(
         id: UUID,
@@ -47,7 +58,16 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         isExcludedFromAnalysis: Bool = false,
         createdAt: Date,
         updatedAt: Date,
-        companionNames: [String] = []
+        companionNames: [String] = [],
+        userTitle: String? = nil,
+        userDescription: String? = nil,
+        sharingVisibilityRaw: String? = nil,
+        isBookmarked: Bool? = nil,
+        deviceName: String? = nil,
+        locationName: String? = nil,
+        preferredWorkoutID: UUID? = nil,
+        keepSeparate: Bool? = nil,
+        resolutionRequestID: UUID? = nil
     ) {
         self.id = id
         self.externalId = externalId
@@ -70,6 +90,15 @@ struct UnifiedWorkout: Identifiable, Equatable, Codable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.companionNames = companionNames
+        self.userTitle = userTitle
+        self.userDescription = userDescription
+        self.sharingVisibilityRaw = sharingVisibilityRaw
+        self.isBookmarked = isBookmarked
+        self.deviceName = deviceName
+        self.locationName = locationName
+        self.preferredWorkoutID = preferredWorkoutID
+        self.keepSeparate = keepSeparate
+        self.resolutionRequestID = resolutionRequestID
     }
 }
 
@@ -117,7 +146,11 @@ extension UnifiedWorkout {
             isExcludedFromAnalysis: isExcludedFromAnalysis,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            companionNames: companionNames
+            companionNames: companionNames,
+            userTitle: userTitle, userDescription: userDescription,
+            sharingVisibilityRaw: sharingVisibilityRaw, isBookmarked: isBookmarked,
+            deviceName: deviceName, locationName: locationName,
+            preferredWorkoutID: preferredWorkoutID, keepSeparate: keepSeparate, resolutionRequestID: resolutionRequestID
         )
     }
 
@@ -152,7 +185,11 @@ extension UnifiedWorkout {
             isExcludedFromAnalysis: isExcludedFromAnalysis,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            companionNames: companionNames
+            companionNames: companionNames,
+            userTitle: userTitle, userDescription: userDescription,
+            sharingVisibilityRaw: sharingVisibilityRaw, isBookmarked: isBookmarked,
+            deviceName: deviceName, locationName: locationName,
+            preferredWorkoutID: preferredWorkoutID, keepSeparate: keepSeparate, resolutionRequestID: resolutionRequestID
         )
     }
 
@@ -178,7 +215,11 @@ extension UnifiedWorkout {
             isExcludedFromAnalysis: isExcludedFromAnalysis,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            companionNames: names
+            companionNames: names,
+            userTitle: userTitle, userDescription: userDescription,
+            sharingVisibilityRaw: sharingVisibilityRaw, isBookmarked: isBookmarked,
+            deviceName: deviceName, locationName: locationName,
+            preferredWorkoutID: preferredWorkoutID, keepSeparate: keepSeparate, resolutionRequestID: resolutionRequestID
         )
     }
 }

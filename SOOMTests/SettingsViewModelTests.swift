@@ -274,6 +274,43 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(identity.representativeBadge?.title, "첫 기록")
     }
 
+    func testProfileWithoutRouteProviderNeverInventsSignaturePlaces() {
+        let aggregator = makeAggregator()
+        let emptyIdentity = aggregator.profileIdentity(from: [])
+        let recordedIdentity = aggregator.profileIdentity(from: [
+            workout(type: .cycling, daysAgo: 1, hour: 7, duration: 3_600, distance: 42_000)
+        ])
+        let processedIdentity = aggregator.profileIdentity(processedWorkouts: [
+            processedWorkout(type: .running, daysAgo: 1, hour: 7, duration: 1_800, distance: 5_000)
+        ])
+
+        XCTAssertTrue(emptyIdentity.signatureRoutes.isEmpty)
+        XCTAssertTrue(recordedIdentity.signatureRoutes.isEmpty)
+        XCTAssertTrue(processedIdentity.signatureRoutes.isEmpty)
+        XCTAssertTrue(recordedIdentity.connections.isEmpty)
+        XCTAssertEqual(recordedIdentity.personalBests.first?.value, "42.0km")
+    }
+
+    func testWorkoutsAloneDoNotClaimRecoveryTraitsOrClubContribution() {
+        let aggregator = makeAggregator()
+        let identity = aggregator.profileIdentity(from: [
+            workout(type: .cycling, daysAgo: 1, hour: 7, duration: 3_600, distance: 42_000)
+        ])
+
+        XCTAssertFalse(identity.patterns.contains { $0.title == "회복 친화형" })
+        XCTAssertTrue(identity.patterns.contains { $0.title == "아침형" })
+        XCTAssertEqual(identity.badges.first { $0.id == "club-contribution" }?.progress, 0)
+        XCTAssertEqual(identity.badges.first { $0.id == "club-contribution" }?.state, "대기")
+    }
+
+    func testProfileWithInsufficientPatternDataKeepsNeutralExplanation() {
+        let identity = makeAggregator().profileIdentity(from: [
+            workout(type: .swimming, daysAgo: 1, hour: 18, duration: 900, distance: nil)
+        ])
+
+        XCTAssertEqual(identity.patterns.map(\.title), ["성향 자료 부족"])
+    }
+
     func testProfileHeroPersonalBestAndBadgesUseAggregateValues() {
         let identity = makeAggregator().profileIdentity(from: [
             workout(type: .cycling, daysAgo: 0, hour: 7, duration: 3_600, distance: 42_000),

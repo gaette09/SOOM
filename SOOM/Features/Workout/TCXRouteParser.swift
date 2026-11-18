@@ -50,7 +50,7 @@ struct TCXRouteParser {
         self.maximumCoordinateCount = maximumCoordinateCount
     }
 
-    func parse(_ data: Data) throws -> TCXParsedRoute {
+    func parse(_ data: Data, allowMissingRoute: Bool = false) throws -> TCXParsedRoute {
         guard !data.isEmpty else { throw TCXRouteParserError.emptyData }
         guard data.count <= maximumFileSizeBytes else {
             throw TCXRouteParserError.fileTooLarge(maximumBytes: maximumFileSizeBytes)
@@ -58,7 +58,8 @@ struct TCXRouteParser {
 
         let delegate = TCXRouteParserDelegate(
             maximumLapCount: maximumLapCount,
-            maximumCoordinateCount: maximumCoordinateCount
+            maximumCoordinateCount: maximumCoordinateCount,
+            includePositionlessSamples: allowMissingRoute
         )
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
@@ -71,9 +72,11 @@ struct TCXRouteParser {
         guard delegate.sawAcceptedRoot else { throw TCXRouteParserError.unsupportedDocument }
         guard delegate.activityCount > 0 else { throw TCXRouteParserError.missingActivity }
         guard delegate.activityCount == 1 else { throw TCXRouteParserError.multipleActivities }
-        guard delegate.sawTrackPoint else { throw TCXRouteParserError.noTrackPoints }
-        guard delegate.coordinates.count >= 2 else {
-            throw TCXRouteParserError.insufficientValidCoordinates(validCount: delegate.coordinates.count)
+        if !allowMissingRoute {
+            guard delegate.sawTrackPoint else { throw TCXRouteParserError.noTrackPoints }
+            guard delegate.coordinates.count >= 2 else {
+                throw TCXRouteParserError.insufficientValidCoordinates(validCount: delegate.coordinates.count)
+            }
         }
         return delegate.makeParsedRoute()
     }
@@ -87,6 +90,7 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
 
     private let maximumLapCount: Int
     private let maximumCoordinateCount: Int
+    private let includePositionlessSamples: Bool
     private let isoFormatter = ISO8601DateFormatter()
     private var elementStack: [(name: String, namespace: String?)] = []
     private var activeText = ""
@@ -106,9 +110,10 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
     private(set) var sawTrackPoint = false
     private(set) var error: TCXRouteParserError?
 
-    init(maximumLapCount: Int, maximumCoordinateCount: Int) {
+    init(maximumLapCount: Int, maximumCoordinateCount: Int, includePositionlessSamples: Bool) {
         self.maximumLapCount = maximumLapCount
         self.maximumCoordinateCount = maximumCoordinateCount
+        self.includePositionlessSamples = includePositionlessSamples
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         super.init()
     }
@@ -157,7 +162,7 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
             switch name {
             case "Id" where parent?.name == "Activity": activityStartDate = parseDate(text)
             case "TotalTimeSeconds": activeLap?.durationSeconds = validNonnegative(text)
-            case "DistanceMeters": activeLap?.distanceMeters = validNonnegative(text)
+            case "DistanceMeters" where parent?.name == "Lap": activeLap?.distanceMeters = validNonnegative(text)
             case "Calories": activeLap?.calories = validPositive(text)
             case "Value" where parent?.name == "AverageHeartRateBpm": activeLap?.averageHeartRate = validHeartRate(text)
             case "Value" where parent?.name == "MaximumHeartRateBpm": activeLap?.maxHeartRate = validHeartRate(text)
@@ -196,6 +201,7 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
         }
         let startDate = activityStartDate ?? lapSummaries.compactMap(\.startDate).first ?? coordinates.compactMap(\.timestamp).first
         let usableDistance = summaryDistance.nonZero
+        let measuredDistance = usableDistance ?? (coordinates.count >= 2 ? routeDistance : nil)
         return TCXParsedRoute(
             coordinates: coordinates,
             totalDistanceMeters: usableDistance ?? routeDistance,
@@ -205,7 +211,7 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
                 durationSeconds: duration.nonZero ?? inferredDuration(),
                 distanceMeters: usableDistance,
                 activeEnergyKcal: lapSummaries.compactMap(\.calories).reduce(0, +).nonZero,
-                averageSpeedMetersPerSecond: duration.nonZero.map { summaryDistance / $0 },
+                averageSpeedMetersPerSecond: duration.nonZero.flatMap { seconds in measuredDistance.map { $0 / seconds } },
                 elevationGainMeters: elevationGain.nonZero,
                 averageHeartRate: weightedAverage(lapSummaries.compactMap { guard let duration = $0.durationSeconds, let value = $0.averageHeartRate else { return nil }; return (duration, value) }) ?? pointHeartRates.average,
                 maxHeartRate: lapSummaries.compactMap(\.maxHeartRate).max() ?? pointHeartRates.max(),
@@ -217,12 +223,16 @@ private final class TCXRouteParserDelegate: NSObject, XMLParserDelegate {
 
     private func appendActivePointIfValid(_ parser: XMLParser) {
         defer { activePoint = nil }
-        guard let point = activePoint, let latitude = point.latitude, let longitude = point.longitude,
-              latitude.isFinite, longitude.isFinite, (-90...90).contains(latitude), (-180...180).contains(longitude) else { return }
+        guard let point = activePoint else { return }
+        let hasCoordinate = point.latitude.map { $0.isFinite && (-90...90).contains($0) } == true &&
+            point.longitude.map { $0.isFinite && (-180...180).contains($0) } == true
+        if hasCoordinate || includePositionlessSamples {
+            if let value = point.heartRate { pointHeartRates.append(value) }
+            if let value = point.cadence { pointCadences.append(value) }
+            if let value = point.power { pointPowers.append(value) }
+        }
+        guard hasCoordinate, let latitude = point.latitude, let longitude = point.longitude else { return }
         coordinates.append(WorkoutRouteCoordinate(latitude: latitude, longitude: longitude, altitude: point.altitude, timestamp: point.timestamp))
-        if let value = point.heartRate { pointHeartRates.append(value) }
-        if let value = point.cadence { pointCadences.append(value) }
-        if let value = point.power { pointPowers.append(value) }
         if coordinates.count > maximumCoordinateCount { fail(.coordinateLimitExceeded(maximumCoordinates: maximumCoordinateCount), parser: parser) }
     }
 

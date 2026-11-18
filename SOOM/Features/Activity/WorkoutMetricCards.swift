@@ -62,23 +62,31 @@ struct WorkoutChartStack: View {
 
 struct WorkoutSplitsCard: View {
     let workout: Workout
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.workoutDetailReduceMotion) private var previewReduced
+    private var motionReduced: Bool { reduceMotion || previewReduced }
+    @State private var expanded = false
 
     var body: some View {
         SOOMCard {
-            SOOMSectionHeader("스플릿")
-            ForEach(workout.splits) { split in
+            let display = WorkoutSplitDisplay(type: workout.sport == .bike ? .cycling : .running,
+                preferredUnit: TrainingSettingsStore.shared.loadSettings().preferredUnit)
+            WorkoutDetailDisclosure(title: workout.sport == .bike ? "스플릿 · 평균 속도" : "스플릿", isExpanded: $expanded, identifier: "detail.legacySplits.toggle")
+            if expanded { ForEach(workout.splits) { split in
                 SOOMMetricRow(
                     leading: split.label,
-                    title: "\(split.distance) · \(split.time)",
-                    subtitle: split.pace
+                    title: "\((workout.sport == .run || workout.sport == .bike) ? (display.distanceText(split.distanceMeters) ?? split.distance) : split.distance) · \(split.time)",
+                    subtitle: ((workout.sport == .run || workout.sport == .bike)
+                        ? display.text(distance: split.distanceMeters, seconds: split.durationSeconds ?? 0) : split.pace)
                         + (split.heartRate.map { " · \($0)bpm" } ?? "")
                         + (split.power.map { " · \($0)w" } ?? ""),
                     tint: workout.sport.tint
                 )
                 Divider()
-            }
+            } }
         }
         .accessibilityLabel("스플릿")
+        .animation(motionReduced ? nil : .easeInOut(duration:0.38), value:expanded)
     }
 }
 

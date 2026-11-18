@@ -1,3 +1,4 @@
+import AuthenticationServices
 import XCTest
 @testable import SOOM
 
@@ -75,6 +76,20 @@ final class AppleSignInProviderTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+    }
+
+    func testCredentialStateMappingKeepsTransferredSeparateFromRevocation() throws {
+        XCTAssertEqual(try AppleSignInProvider.checkedCredentialState(.authorized, error: nil), .authorized)
+        XCTAssertEqual(try AppleSignInProvider.checkedCredentialState(.revoked, error: nil), .revoked)
+        XCTAssertEqual(try AppleSignInProvider.checkedCredentialState(.notFound, error: nil), .notFound)
+        XCTAssertEqual(try AppleSignInProvider.checkedCredentialState(.transferred, error: nil), .transferred)
+    }
+
+    func testCredentialCallbackErrorTakesPrecedenceOverRevokedOrNotFoundState() {
+        let error = NSError(domain: ASAuthorizationError.errorDomain, code: 1004)
+        XCTAssertThrowsError(try AppleSignInProvider.checkedCredentialState(.revoked, error: error))
+        XCTAssertThrowsError(try AppleSignInProvider.checkedCredentialState(.notFound, error: error))
+        XCTAssertThrowsError(try AppleSignInProvider.checkedCredentialState(.notFound, error: URLError(.notConnectedToInternet)))
     }
 
     func testProviderDoesNotUseRecoveryCalculator() {

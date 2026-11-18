@@ -11,12 +11,12 @@ struct WorkoutComparisonInsightCard: View {
 
                 if insight.metricRows.isEmpty {
                     Text(insight.summary)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(insight.summary)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -35,7 +35,7 @@ struct WorkoutComparisonInsightCard: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: iconName)
+            Image(soom: iconName)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(toneTint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
@@ -45,7 +45,7 @@ struct WorkoutComparisonInsightCard: View {
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 Text("이전 비슷한 운동과 비교")
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(toneTint)
 
                 Text(insight.title)
@@ -60,11 +60,11 @@ struct WorkoutComparisonInsightCard: View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing) {
                 Text(row.title)
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.ink)
 
                 Text(row.detailText)
-                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }

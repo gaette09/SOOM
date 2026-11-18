@@ -5,6 +5,14 @@ import Security
 import AuthenticationServices
 #endif
 
+enum AppleCredentialState: Equatable {
+    case authorized
+    case revoked
+    case notFound
+    case transferred
+    case unknown
+}
+
 final class AppleSignInProvider {
     private let now: () -> Date
     private let nonceCharacters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
@@ -68,6 +76,33 @@ final class AppleSignInProvider {
     }
 
 #if canImport(AuthenticationServices)
+    func credentialState(forUserID userID: String) async throws -> AppleCredentialState {
+        try await withCheckedThrowingContinuation { continuation in
+            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: userID) { state, error in
+                // Errors (including accountNotFound) are not a confirmed credential state.
+                do {
+                    continuation.resume(returning: try Self.checkedCredentialState(state, error: error))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    static func checkedCredentialState(
+        _ state: ASAuthorizationAppleIDProvider.CredentialState,
+        error: Error?
+    ) throws -> AppleCredentialState {
+        if let error { throw error }
+        switch state {
+        case .authorized: return .authorized
+        case .revoked: return .revoked
+        case .notFound: return .notFound
+        case .transferred: return .transferred
+        @unknown default: return .unknown
+        }
+    }
+
     func configure(_ request: ASAuthorizationAppleIDRequest, rawNonce: String) {
         request.requestedScopes = [.fullName, .email]
         request.nonce = hashedNonce(rawNonce)

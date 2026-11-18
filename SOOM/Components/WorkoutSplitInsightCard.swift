@@ -10,7 +10,7 @@ struct WorkoutSplitInsightCard: View {
                 header
 
                 Text(insight.summary)
-                    .font(SOOMFont.body(13, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -30,7 +30,7 @@ struct WorkoutSplitInsightCard: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: iconName)
+            Image(soom: iconName)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(toneTint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
@@ -40,7 +40,7 @@ struct WorkoutSplitInsightCard: View {
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 Text("운동 흐름")
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(toneTint)
 
                 Text(insight.title)
@@ -55,11 +55,11 @@ struct WorkoutSplitInsightCard: View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing) {
                 Text(row.title)
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.ink)
 
                 Text(row.detailText)
-                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }

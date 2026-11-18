@@ -19,16 +19,21 @@ final class HealthKitRecoveryPreviewViewModel: ObservableObject {
     }
 
     func loadSummary() async {
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
 
         do {
-            summary = try await provider.fetchRecoverySummary()
+            let value = try await provider.fetchRecoverySummary()
+            try Task.checkCancellation()
+            summary = value
+        } catch is CancellationError {
+            // Cancellation is not a failure or a replacement for cached data.
         } catch {
-            summary = nil
+            guard !Task.isCancelled else { return }
             errorMessage = "HealthKit 기반 Recovery 미리보기를 불러오지 못했어요. 건강 앱 권한과 운동 기록을 확인해 주세요."
         }
 
-        isLoading = false
     }
 }

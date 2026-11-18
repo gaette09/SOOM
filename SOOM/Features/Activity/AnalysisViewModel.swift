@@ -32,6 +32,7 @@ final class AnalysisViewModel: ObservableObject {
     @Published private(set) var personalRecords: [PersonalRecord]
     @Published private(set) var progressionIntelligence: ProgressionIntelligence
     @Published private(set) var isLoading = false
+    @Published private(set) var hasLoaded = false
     @Published private(set) var errorMessage: String?
 
     private let provider: WeeklyWorkoutProgressProviding
@@ -71,13 +72,16 @@ final class AnalysisViewModel: ObservableObject {
         fallbackWorkouts: [Workout] = [],
         referenceDate: Date = Date()
     ) async {
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
 
         do {
             progress = try await provider.fetchWeeklyProgress(referenceDate: referenceDate)
         } catch {
-            progress = builder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            guard !Task.isCancelled else { return }
+            if !hasLoaded { progress = builder.build(workouts: fallbackWorkouts, referenceDate: referenceDate) }
             if progress.trendType != .insufficientData || !fallbackWorkouts.isEmpty {
                 errorMessage = "가져온 운동 기록을 불러오지 못해 기존 운동 데이터로 표시하고 있어요."
             } else {
@@ -85,11 +89,14 @@ final class AnalysisViewModel: ObservableObject {
             }
         }
 
+        guard !Task.isCancelled else { return }
         await loadFourWeekTrend(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
+        guard !Task.isCancelled else { return }
         await loadProgressionIntelligence(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
+        guard !Task.isCancelled else { return }
         await loadPersonalRecords(fallbackWorkouts: fallbackWorkouts, referenceDate: referenceDate)
+        if !Task.isCancelled { hasLoaded = true }
 
-        isLoading = false
     }
 
     private func loadProgressionIntelligence(
@@ -104,7 +111,8 @@ final class AnalysisViewModel: ObservableObject {
         do {
             progressionIntelligence = try await progressionIntelligenceProvider.fetchProgressionIntelligence(referenceDate: referenceDate)
         } catch {
-            progressionIntelligence = progressionIntelligenceBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            guard !Task.isCancelled else { return }
+            if !hasLoaded { progressionIntelligence = progressionIntelligenceBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate) }
             if errorMessage == nil {
                 errorMessage = "장기 운동 흐름을 불러오지 못해 기존 운동 데이터로 표시하고 있어요."
             }
@@ -123,7 +131,8 @@ final class AnalysisViewModel: ObservableObject {
         do {
             personalRecords = try await personalRecordProvider.fetchPersonalRecords(referenceDate: referenceDate)
         } catch {
-            personalRecords = personalRecordBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            guard !Task.isCancelled else { return }
+            if !hasLoaded { personalRecords = personalRecordBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate) }
             if errorMessage == nil {
                 errorMessage = "개인 기록을 불러오지 못해 기존 운동 데이터로 표시하고 있어요."
             }
@@ -142,7 +151,8 @@ final class AnalysisViewModel: ObservableObject {
         do {
             fourWeekTrend = try await fourWeekTrendProvider.fetchFourWeekTrend(referenceDate: referenceDate)
         } catch {
-            fourWeekTrend = fourWeekTrendBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate)
+            guard !Task.isCancelled else { return }
+            if !hasLoaded { fourWeekTrend = fourWeekTrendBuilder.build(workouts: fallbackWorkouts, referenceDate: referenceDate) }
             if errorMessage == nil {
                 errorMessage = "4주 성장 추세를 불러오지 못해 기존 운동 데이터로 표시하고 있어요."
             }

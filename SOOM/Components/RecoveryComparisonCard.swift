@@ -29,7 +29,7 @@ struct RecoveryComparisonCard: View {
                 )
             }
 
-            Label("차이 \(comparison.difference)점", systemImage: SOOMIcon.trendFlat)
+            Label("차이 \(comparison.difference)점", soomIcon: SOOMIcon.trendFlat)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(levelTint)
                 .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
@@ -97,7 +97,7 @@ struct RecoveryComparisonCard: View {
 
     private func comparisonBlock(title: String, message: String, icon: String, tint: Color) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)

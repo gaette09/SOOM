@@ -60,6 +60,7 @@ struct WorkoutWeaknessInsightBuilder {
             )
         }
 
+        guard workout.samples.count >= 6 else { return noInsight() }
         return WorkoutWeaknessInsight(
             title: "다음에도 이 흐름을 이어가요",
             shortInsight: "오늘 운동에서 크게 흔들린 지점은 보이지 않았어요.",
@@ -100,12 +101,13 @@ struct WorkoutWeaknessInsightBuilder {
     }
 
     private func hasHighHeartRate(_ workout: Workout, previousWorkouts: [Workout]) -> Bool {
-        let sameSport = previousWorkouts.filter { $0.sport == workout.sport }
+        guard workout.avgHeartRate > 0 else { return false }
+        let sameSport = previousWorkouts.filter { $0.comparisonWorkoutType == workout.comparisonWorkoutType && $0.avgHeartRate > 0 }
         let previousAverage = sameSport.isEmpty
             ? Double(workout.avgHeartRate)
             : Double(sameSport.map(\.avgHeartRate).reduce(0, +)) / Double(sameSport.count)
 
-        return workout.avgHeartRate >= 170 || Double(workout.avgHeartRate) >= previousAverage + 12
+        return !sameSport.isEmpty && Double(workout.avgHeartRate) >= previousAverage + 12
     }
 
     private func hasIrregularWorkoutGaps(_ previousWorkouts: [Workout]) -> Bool {

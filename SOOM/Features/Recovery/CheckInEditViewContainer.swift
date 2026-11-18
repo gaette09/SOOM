@@ -11,7 +11,7 @@ struct CheckInEditViewContainer: View {
         CheckInEditView(
             viewModel: CheckInEditViewModel(
                 checkIn: checkIn,
-                store: SwiftDataCheckInStore(modelContext: modelContext)
+                store: CheckInViewModelFactory.makeStore(modelContext: modelContext)
             ),
             onSaved: onSaved
         )

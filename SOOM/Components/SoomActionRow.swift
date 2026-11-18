@@ -8,8 +8,7 @@ struct SOOMActionRow: View {
 
     var body: some View {
         HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            Image(systemName: icon)
-                .font(.title3.weight(.semibold))
+            SOOMSportIconView(name: icon, size: 21)
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
                 .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
@@ -25,7 +24,7 @@ struct SOOMActionRow: View {
             }
 
             Spacer()
-            Image(systemName: SOOMIcon.chevronRight)
+            Image(soom: SOOMIcon.chevronRight)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(SOOMColor.tertiaryInk)
         }

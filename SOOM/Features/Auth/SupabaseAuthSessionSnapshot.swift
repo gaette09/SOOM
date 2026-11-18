@@ -14,4 +14,8 @@ struct SupabaseAuthSessionSnapshot: Equatable {
     let email: String?
     let checkedAt: Date
     let status: Status
+    var displayName: String? = nil
+    var appleUserIdentifier: String? = nil
+    var linkedAuthProviders: [String]? = nil
+    var avatarPath: String? = nil
 }

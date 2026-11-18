@@ -49,7 +49,7 @@ struct FITRouteParser {
         self.maximumCoordinateCount = maximumCoordinateCount
     }
 
-    func parse(_ data: Data) throws -> FITParsedRoute {
+    func parse(_ data: Data, allowMissingRoute: Bool = false) throws -> FITParsedRoute {
         guard !data.isEmpty else {
             throw FITRouteParserError.emptyData
         }
@@ -67,7 +67,7 @@ struct FITRouteParser {
         reader.offset = header.headerSize
 
         var definitions: [UInt8: FITDefinitionMessage] = [:]
-        var accumulator = FITRouteAccumulator(maximumCoordinateCount: maximumCoordinateCount)
+        var accumulator = FITRouteAccumulator(maximumCoordinateCount: maximumCoordinateCount, allowMissingRoute: allowMissingRoute)
 
         while reader.offset < dataEnd {
             let recordHeader = try reader.readUInt8(limit: dataEnd)
@@ -93,7 +93,7 @@ struct FITRouteParser {
             }
         }
 
-        return try accumulator.makeParsedRoute()
+        return try accumulator.makeParsedRoute(allowMissingRoute: allowMissingRoute)
     }
 
     fileprivate static func totalDistanceMeters(for coordinates: [WorkoutRouteCoordinate]) -> Double {
@@ -305,6 +305,7 @@ private struct FITDataReader {
 
 private struct FITRouteAccumulator {
     private let maximumCoordinateCount: Int
+    private let allowMissingRoute: Bool
     private var coordinates: [WorkoutRouteCoordinate] = []
     private var summary = MutableFITWorkoutSummary()
     private var sawPosition = false
@@ -313,8 +314,9 @@ private struct FITRouteAccumulator {
     private var recordCadences: [Double] = []
     private var recordPowers: [Double] = []
 
-    init(maximumCoordinateCount: Int) {
+    init(maximumCoordinateCount: Int, allowMissingRoute: Bool) {
         self.maximumCoordinateCount = maximumCoordinateCount
+        self.allowMissingRoute = allowMissingRoute
     }
 
     mutating func consume(fields: [UInt8: FITFieldValue], globalMessageNumber: UInt16) {
@@ -328,20 +330,20 @@ private struct FITRouteAccumulator {
         }
     }
 
-    func makeParsedRoute() throws -> FITParsedRoute {
-        guard sawPosition else {
-            throw FITRouteParserError.noRouteCoordinates
-        }
-        guard coordinates.count >= 2 else {
-            throw FITRouteParserError.insufficientValidCoordinates(validCount: coordinates.count)
+    func makeParsedRoute(allowMissingRoute: Bool) throws -> FITParsedRoute {
+        if !allowMissingRoute {
+            guard sawPosition else { throw FITRouteParserError.noRouteCoordinates }
+            guard coordinates.count >= 2 else {
+                throw FITRouteParserError.insufficientValidCoordinates(validCount: coordinates.count)
+            }
         }
         guard coordinates.count <= maximumCoordinateCount else {
             throw FITRouteParserError.coordinateLimitExceeded(maximumCoordinates: maximumCoordinateCount)
         }
 
-        let distance = summary.distanceMeters
-            ?? recordDistances.last
-            ?? FITRouteParser.totalDistanceMeters(for: coordinates)
+        let measuredDistance = summary.distanceMeters ?? recordDistances.last
+            ?? (coordinates.count >= 2 ? FITRouteParser.totalDistanceMeters(for: coordinates) : nil)
+        let distance = measuredDistance ?? 0
         let startedAt = summary.startDate ?? coordinates.compactMap(\.timestamp).first
         let duration = summary.durationSeconds ?? durationFromCoordinateTimestamps()
         let averageHeartRate = summary.averageHeartRate ?? average(recordHeartRates)
@@ -349,7 +351,7 @@ private struct FITRouteAccumulator {
         let averageCadence = summary.averageCadence ?? average(recordCadences)
         let averagePower = summary.averagePower ?? average(recordPowers)
         let averageSpeed = summary.averageSpeedMetersPerSecond
-            ?? averageSpeed(distanceMeters: distance, durationSeconds: duration)
+            ?? measuredDistance.flatMap { self.averageSpeed(distanceMeters: $0, durationSeconds: duration) }
 
         return FITParsedRoute(
             coordinates: coordinates,
@@ -378,28 +380,15 @@ private struct FITRouteAccumulator {
             sawPosition = true
         }
 
-        guard
-            let latitude,
-            let longitude,
-            (-90...90).contains(latitude),
-            (-180...180).contains(longitude)
-        else {
-            return
+        let hasCoordinate = latitude.map { (-90...90).contains($0) } == true &&
+            longitude.map { (-180...180).contains($0) } == true
+        if hasCoordinate || allowMissingRoute {
+            if let distance = fields[5]?.uint32Meters(scale: 100) { recordDistances.append(distance) }
+            if let heartRate = fields[3]?.uint8Double { recordHeartRates.append(heartRate) }
+            if let cadence = fields[4]?.uint8Double { recordCadences.append(cadence) }
+            if let power = fields[7]?.uint16Double { recordPowers.append(power) }
         }
-
-        let distanceMeters = fields[5]?.uint32Meters(scale: 100)
-        if let distanceMeters {
-            recordDistances.append(distanceMeters)
-        }
-        if let heartRate = fields[3]?.uint8Double {
-            recordHeartRates.append(heartRate)
-        }
-        if let cadence = fields[4]?.uint8Double {
-            recordCadences.append(cadence)
-        }
-        if let power = fields[7]?.uint16Double {
-            recordPowers.append(power)
-        }
+        guard hasCoordinate, let latitude, let longitude else { return }
 
         coordinates.append(
             WorkoutRouteCoordinate(

@@ -38,17 +38,19 @@ struct CheckInDetailView: View {
                             onUpdated(updatedCheckIn)
                         }
                     } label: {
-                        Label("수정하기", systemImage: SOOMIcon.edit)
+                        Label("수정하기", soomIcon: SOOMIcon.edit)
                     }
 
                     Button(role: .destructive) {
                         isShowingDeleteConfirmation = true
                     } label: {
-                        Label("삭제하기", systemImage: SOOMIcon.trash)
+                        Label("삭제하기", soomIcon: SOOMIcon.trash)
                     }
                     .disabled(viewModel.isDeleting)
                 } label: {
-                    Image(systemName: SOOMIcon.more)
+                    Image(soom: SOOMIcon.more)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("기록 관리")
                 .accessibilityHint("이 컨디션 기록을 수정하거나 삭제합니다.")
@@ -88,16 +90,11 @@ struct CheckInDetailView: View {
         SOOMCard {
             SOOMSectionHeader("기록한 몸 상태", caption: "1점에서 5점 사이로 남긴 주관 컨디션입니다.")
 
-            VStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                    metricPill(title: "피로감", value: checkIn.fatigueLevel, tint: SOOMColor.warning)
-                    metricPill(title: "수면감", value: checkIn.sleepQuality, tint: SOOMColor.recovery)
-                }
-
-                HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                    metricPill(title: "근육통", value: checkIn.muscleSoreness, tint: SOOMColor.run)
-                    metricPill(title: "기분", value: checkIn.moodLevel, tint: SOOMColor.bike)
-                }
+            SOOMAdaptiveSummaryGrid {
+                metricPill(title: "피로감", value: checkIn.fatigueLevel, tint: SOOMColor.warning)
+                metricPill(title: "수면감", value: checkIn.sleepQuality, tint: SOOMColor.recovery)
+                metricPill(title: "근육통", value: checkIn.muscleSoreness, tint: SOOMColor.run)
+                metricPill(title: "기분", value: checkIn.moodLevel, tint: SOOMColor.bike)
             }
         }
         .accessibilityElement(children: .combine)
@@ -120,7 +117,7 @@ struct CheckInDetailView: View {
     private var usageCard: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                Image(systemName: SOOMIcon.sparkles)
+                Image(soom: SOOMIcon.sparkles)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(SOOMColor.orange)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -205,7 +202,7 @@ struct CheckInDetailView: View {
             Text("\(value)/5")
                 .font(SOOMFont.displayMedium(20, relativeTo: .title3))
         }
-        .foregroundStyle(tint)
+        .foregroundStyle(SOOMColor.ink)
         .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
         .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)

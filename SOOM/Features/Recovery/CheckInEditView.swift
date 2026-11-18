@@ -2,6 +2,9 @@ import SwiftUI
 
 struct CheckInEditView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.soomBottomOverlayInset) private var bottomOverlayInset
+    @FocusState private var noteFocused: Bool
+    @AccessibilityFocusState private var resultFocused: Bool
     @StateObject private var viewModel: CheckInEditViewModel
 
     private let onSaved: (RecoveryCheckIn) -> Void
@@ -15,6 +18,7 @@ struct CheckInEditView: View {
     }
 
     var body: some View {
+        GeometryReader { viewport in
         SOOMScreen {
             header
 
@@ -51,11 +55,45 @@ struct CheckInEditView: View {
             )
 
             noteCard
-            saveButton
-            feedback
+                .disabled(viewModel.isSaving)
         }
+        .disabled(viewModel.isSaving)
+        .onDisappear { viewModel.stopPresenting() }
         .navigationTitle("기록 수정")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("완료") { noteFocused = false }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: SOOMLayout.Spacing.sm) {
+                if viewModel.confirmationMessage != nil || viewModel.errorMessage != nil {
+                    SOOMBoundedFeedback(maxHeight: max(80, viewport.size.height * 0.30)) {
+                        feedback.accessibilityFocused($resultFocused)
+                    }
+                }
+                #if DEBUG && targetEnvironment(simulator)
+                if ReviewDemoMode.isActive, ProcessInfo.processInfo.environment["SOOM_CHECKIN_FORM_QA"] == "1" {
+                    Text("QA 저장 시도 \(viewModel.syntheticSaveAttempts)")
+                        .font(.system(size: 12)).accessibilityIdentifier("checkin.qa.attempts")
+                }
+                #endif
+                saveButton.fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(SOOMLayout.screenPadding)
+            .padding(.bottom, bottomOverlayInset)
+            .background(SOOMColor.background)
+        }
+        .onChange(of: viewModel.errorMessage) { _, value in
+            if value != nil { noteFocused = false; resultFocused = true }
+        }
+        .onChange(of: viewModel.confirmationMessage) { _, value in
+            if value != nil { noteFocused = false; resultFocused = true }
+        }
+        }
     }
 
     private var header: some View {
@@ -77,6 +115,7 @@ struct CheckInEditView: View {
             SOOMSectionHeader("메모", caption: "수정할 내용이 있으면 짧게 정리해 주세요.")
 
             TextEditor(text: $viewModel.note)
+                .focused($noteFocused)
                 .font(SOOMFont.body(14, relativeTo: .body))
                 .foregroundStyle(SOOMColor.ink)
                 .scrollContentBackground(.hidden)
@@ -101,6 +140,7 @@ struct CheckInEditView: View {
 
     private var saveButton: some View {
         Button {
+            noteFocused = false
             Task {
                 if let updatedCheckIn = await viewModel.save() {
                     onSaved(updatedCheckIn)
@@ -114,7 +154,7 @@ struct CheckInEditView: View {
                         .tint(SOOMColor.white)
                         .accessibilityHidden(true)
                 } else {
-                    Image(systemName: SOOMIcon.checkCircle)
+                    Image(soom: SOOMIcon.checkCircle)
                         .font(.body.weight(.bold))
                 }
 
@@ -123,7 +163,9 @@ struct CheckInEditView: View {
             }
             .foregroundStyle(SOOMColor.white)
             .frame(maxWidth: .infinity)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, SOOMLayout.CheckIn.saveButtonVerticalPadding)
+            .frame(minHeight: 44)
             .background(SOOMColor.green)
             .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.RecoveryAI.ctaCornerRadius, style: .continuous))
         }
@@ -135,30 +177,15 @@ struct CheckInEditView: View {
 
     @ViewBuilder
     private var feedback: some View {
-        if let confirmationMessage = viewModel.confirmationMessage {
-            SOOMCard {
-                HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                    Image(systemName: SOOMIcon.sparkles)
-                        .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
-                        .foregroundStyle(SOOMColor.orange)
-                        .frame(width: SOOMLayout.CheckIn.confirmationIconFrame, height: SOOMLayout.CheckIn.confirmationIconFrame)
-                        .background(SOOMColor.orange.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
-                        .clipShape(RoundedRectangle(cornerRadius: SOOMLayout.CheckIn.optionCornerRadius, style: .continuous))
-
-                    Text(confirmationMessage)
-                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .accessibilityElement(children: .combine)
-        } else if let errorMessage = viewModel.errorMessage {
-            Text(errorMessage)
-                .font(SOOMFont.body(12, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.red)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        if let message = viewModel.confirmationMessage {
+            SOOMActionFeedback(title: "기록 완료", message: message)
+                .accessibilityIdentifier("checkin.save.success")
+        } else if let message = viewModel.errorMessage {
+            SOOMActionFeedback(title: "저장하지 못했어요", message: message + " 선택한 값과 메모는 그대로 있어요.", isError: true)
+                .accessibilityIdentifier("checkin.save.failure")
         }
     }
+
 }
 
 #Preview("CheckInEditView") {

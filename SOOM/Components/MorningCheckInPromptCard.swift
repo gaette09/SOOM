@@ -15,7 +15,7 @@ struct MorningCheckInPromptCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: SOOMIcon.recovery)
+                Image(soom: SOOMIcon.recovery)
                     .font(.system(size: SOOMLayout.RecoveryAI.promptIconSize, weight: .semibold))
                     .foregroundStyle(SOOMColor.recovery)
                     .frame(width: SOOMLayout.RecoveryAI.promptIconFrame, height: SOOMLayout.RecoveryAI.promptIconFrame)

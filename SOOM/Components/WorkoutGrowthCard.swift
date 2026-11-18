@@ -7,7 +7,7 @@ struct WorkoutGrowthCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: summary.improvementType.icon)
+                Image(soom: summary.improvementType.icon)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -17,7 +17,7 @@ struct WorkoutGrowthCard: View {
 
                 VStack(alignment: .leading, spacing: SOOMLayout.RecoveryAI.textSpacing) {
                     Text("오늘 운동에서 좋아진 점")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(tint)
 
                     Text(summary.title)
@@ -26,22 +26,22 @@ struct WorkoutGrowthCard: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(summary.shortSummary)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(summary.comparisonText)
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.ink)
 
                     Text(summary.motivationText)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let insight = summary.insight {
-                        Label(insight, systemImage: SOOMIcon.sparkles)
-                            .font(SOOMFont.body(12, relativeTo: .caption))
+                        Label(insight, soomIcon: SOOMIcon.sparkles)
+                            .font(SOOMFont.body(14, relativeTo: .subheadline))
                             .foregroundStyle(SOOMColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }

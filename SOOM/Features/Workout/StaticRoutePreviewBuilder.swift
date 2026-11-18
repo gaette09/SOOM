@@ -22,7 +22,9 @@ struct StaticRoutePreviewBuilder {
     ) -> StaticRoutePreview {
         let fallbackStyle = StaticRouteFallbackStyle(workoutType: workoutType)
 
-        guard let route, !route.coordinates.isEmpty else {
+        guard let route, !route.coordinates.isEmpty,
+              route.coordinates.allSatisfy({ $0.latitude.isFinite && $0.longitude.isFinite &&
+                  abs($0.latitude) <= 90 && abs($0.longitude) <= 180 }) else {
             return StaticRoutePreview(
                 imageURL: nil,
                 bounds: nil,
@@ -32,7 +34,10 @@ struct StaticRoutePreviewBuilder {
         }
 
         let previewRoute = routeMasker.mask(route: route, policy: privacyPolicy)
-        guard previewRoute.coordinates.count >= 2 else {
+        let coordinates = previewRoute.coordinates.map {
+            ShareRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude, segmentIndex: $0.segmentIndex)
+        }
+        guard ShareRouteGeometry(coordinates: coordinates) != nil else {
             return StaticRoutePreview(
                 imageURL: nil,
                 bounds: nil,
@@ -45,7 +50,9 @@ struct StaticRoutePreviewBuilder {
             imageURL: urlBuilder.buildURL(for: previewRoute, width: width, height: height, styleID: styleID),
             bounds: previewRoute.bounds,
             routeExists: true,
-            fallbackStyle: fallbackStyle
+            fallbackStyle: fallbackStyle,
+            routeWorkoutID: route.workoutId,
+            maskedCoordinates: coordinates
         )
     }
 }

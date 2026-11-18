@@ -6,18 +6,9 @@ import SwiftUI
 /// fail server-side.
 struct FeedCommentComposeSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var commentText = ""
-    let onSubmit: (String) -> Void
-
-    private static let maxLength = 500
-
-    private var trimmedText: String {
-        commentText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var canSubmit: Bool {
-        !trimmedText.isEmpty && trimmedText.count <= Self.maxLength
-    }
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
+    @StateObject private var viewModel = FeedCommentComposeViewModel()
+    let onSubmit: (String) async throws -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
@@ -29,45 +20,57 @@ struct FeedCommentComposeSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: SOOMIcon.close)
+                    Image(soom: SOOMIcon.close)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("닫기")
+                .disabled(viewModel.isSubmitting)
             }
 
-            TextField("응원하는 마음을 남겨보세요", text: $commentText, axis: .vertical)
+            TextField("응원하는 마음을 남겨보세요", text: $viewModel.text, axis: .vertical)
                 .font(SOOMFont.body(15, relativeTo: .subheadline))
                 .lineLimit(4, reservesSpace: true)
+                .disabled(viewModel.isSubmitting)
                 .padding(SOOMLayout.Spacing.lg)
                 .background(SOOMColor.surfaceAmbient)
                 .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
-            Text("\(trimmedText.count)/\(Self.maxLength)")
+            Text("\(viewModel.trimmedText.count)/500")
                 .font(SOOMFont.body(11, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.tertiaryInk)
 
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+                    .font(SOOMFont.body(13, relativeTo: .caption))
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("feed.comment.error")
+            }
+
             Button {
-                onSubmit(trimmedText)
-                dismiss()
+                Task {
+                    if await viewModel.submit(using: onSubmit) { dismiss() }
+                }
             } label: {
-                Text("댓글 남기기")
+                Text(viewModel.isSubmitting ? "댓글 보내는 중…" : "댓글 남기기")
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, SOOMLayout.Spacing.lg)
-                    .background(canSubmit ? SOOMColor.accent : SOOMColor.surfaceMuted)
+                    .background(viewModel.canSubmit ? SOOMColor.accent : SOOMColor.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
             .buttonStyle(.plain)
-            .disabled(!canSubmit)
+            .disabled(!viewModel.canSubmit)
 
             Spacer(minLength: 0)
         }
         .padding(SOOMLayout.screenPadding)
         .background(SOOMColor.background)
+        .interactiveDismissDisabled(viewModel.isSubmitting)
+        .onChange(of: safetyStore.accountGeneration) { _, _ in dismiss() }
     }
 }
 

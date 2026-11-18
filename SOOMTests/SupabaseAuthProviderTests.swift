@@ -148,6 +148,18 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertEqual(session.sessionState, .signedOut)
     }
 
+    func testOfflineLogoutCompletesWhenSDKAlreadyRemovedItsSession() async throws {
+        let requester = ProviderFakeRemoteSignOutRequester(error: URLError(.notConnectedToInternet))
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .init(
+                projectURL: URL(string: "https://example.supabase.co"), anonKey: "synthetic-anon-key")),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: ProviderFakeSessionReader(session: nil)),
+            remoteSignOutRequester: requester)
+        let result = try await provider.signOut()
+        XCTAssertEqual(result.sessionState, .signedOut)
+        XCTAssertEqual(requester.callCount, 1)
+    }
+
     func testConfiguredSignOutWithoutRequesterFailsSafely() async {
         let provider = SupabaseAuthProvider(
             clientProvider: SupabaseClientProvider(
@@ -194,6 +206,109 @@ final class SupabaseAuthProviderTests: XCTestCase {
         XCTAssertEqual(requester.callCount, 1)
     }
 
+    func testAppleRevocationClearsOnlyMatchingSupabaseSession() async {
+        let currentID = UUID()
+        let cleaner = ProviderFakeRemoteSignOutRequester()
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .empty),
+            sessionProbe: SupabaseAuthSessionProbe(
+                isConfigured: true,
+                reader: ProviderFakeSessionReader(session: .init(userId: currentID.uuidString, email: nil))
+            ),
+            accountDeletionSessionCleaner: cleaner
+        )
+
+        await provider.endSessionAfterAppleCredentialRevocation(expectedUserID: UUID())
+        XCTAssertEqual(cleaner.callCount, 0)
+        await provider.endSessionAfterAppleCredentialRevocation(expectedUserID: currentID)
+        XCTAssertEqual(cleaner.callCount, 1)
+    }
+
+    func testAppleRevocationCleanupNetworkFailureDoesNotRestoreSDKSession() async {
+        let currentID = UUID()
+        let cleaner = ProviderFakeRemoteSignOutRequester(error: URLError(.notConnectedToInternet))
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .empty),
+            sessionProbe: SupabaseAuthSessionProbe(
+                isConfigured: true,
+                reader: ProviderFakeSessionReader(session: .init(userId: currentID.uuidString, email: nil))
+            ),
+            accountDeletionSessionCleaner: cleaner
+        )
+
+        await provider.endSessionAfterAppleCredentialRevocation(expectedUserID: currentID)
+
+        XCTAssertEqual(cleaner.callCount, 1)
+    }
+
+    func testDeletingAccountRejectsCallbackBeforeItCanReplaceSDKSession() async throws {
+        let snapshot = SupabaseAuthSessionSnapshot(
+            isConfigured: true, hasSession: true, userId: UUID().uuidString,
+            email: nil, checkedAt: Date(), status: .signedIn
+        )
+        let loader = ProviderFakeAuthCallbackSessionLoader(snapshot: snapshot)
+        let cleaner = ProviderFakeRemoteSignOutRequester()
+        var provider: SupabaseAuthProvider!
+        let deleter = ProviderFakeAccountDeleter(onDelete: {
+            do {
+                _ = try await provider.handleAuthCallback(url: URL(string: "soom://auth/callback")!)
+                XCTFail("A callback must not install another SDK session during deletion")
+            } catch let error as AuthError {
+                XCTAssertEqual(error, .sessionTransitionInProgress)
+            }
+            XCTAssertTrue(loader.urls.isEmpty)
+            XCTAssertEqual(cleaner.callCount, 0)
+        })
+        provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .init(
+                projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-test-key"
+            )),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            callbackSessionLoader: loader, accountDeleter: deleter,
+            accountDeletionSessionCleaner: cleaner
+        )
+
+        try await provider.deleteAccount()
+
+        XCTAssertTrue(loader.urls.isEmpty)
+        XCTAssertEqual(cleaner.callCount, 1)
+        _ = try await provider.handleAuthCallback(url: URL(string: "soom://auth/callback")!)
+        XCTAssertEqual(loader.urls.count, 1, "The mutation gate must release after deletion")
+    }
+
+    func testRevocationProtectsExpectedAccountAndTokenCleanupThroughSDKTeardown() async {
+        let currentID = UUID()
+        let cleaner = ProviderFakeRemoteSignOutRequester()
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .empty),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader:
+                ProviderFakeSessionReader(session: .init(userId: currentID.uuidString, email: nil))),
+            accountDeletionSessionCleaner: cleaner
+        )
+        var tokenCleanupCount = 0
+        let wrongAccountResult = await provider.endSessionAfterAppleCredentialRevocation(
+            expectedUserID: UUID(), beforeSignOut: { tokenCleanupCount += 1 }
+        )
+        XCTAssertFalse(wrongAccountResult)
+        XCTAssertEqual(tokenCleanupCount, 0)
+        let result = await provider.endSessionAfterAppleCredentialRevocation(
+            expectedUserID: currentID,
+            beforeSignOut: {
+                tokenCleanupCount += 1
+                XCTAssertEqual(cleaner.callCount, 0)
+                do {
+                    _ = try await provider.handleAuthCallback(url: URL(string: "soom://auth/callback")!)
+                    XCTFail("Callback must be blocked throughout token cleanup")
+                } catch let error as AuthError {
+                    XCTAssertEqual(error, .sessionTransitionInProgress)
+                } catch { XCTFail("Unexpected error: \(error)") }
+            }
+        )
+        XCTAssertTrue(result)
+        XCTAssertEqual(tokenCleanupCount, 1)
+        XCTAssertEqual(cleaner.callCount, 1)
+    }
+
     func testProviderDeleteAccountAlsoStaysFutureOnly() async {
         let provider = SupabaseAuthProvider(configuration: .empty)
 
@@ -207,8 +322,11 @@ final class SupabaseAuthProviderTests: XCTestCase {
         }
     }
 
-    func testConfiguredDeleteAccountUsesInjectedDeleter() async throws {
+    func testConfiguredDeleteAccountClearsSDKSessionAfterDeletion() async throws {
         let deleter = ProviderFakeAccountDeleter()
+        let sessionCleaner = ProviderFakeRemoteSignOutRequester(onSignOut: {
+            XCTAssertEqual(deleter.callCount, 1, "Session cleanup must follow successful deletion")
+        })
         let provider = SupabaseAuthProvider(
             clientProvider: SupabaseClientProvider(
                 configuration: SupabaseAuthConfiguration(
@@ -217,12 +335,37 @@ final class SupabaseAuthProviderTests: XCTestCase {
                 )
             ),
             sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
-            accountDeleter: deleter
+            accountDeleter: deleter,
+            accountDeletionSessionCleaner: sessionCleaner
         )
 
         try await provider.deleteAccount()
 
         XCTAssertEqual(deleter.callCount, 1)
+        XCTAssertEqual(sessionCleaner.callCount, 1)
+    }
+
+    func testSuccessfulAccountDeletionStillCommitsWhenSessionCleanupRequestFails() async throws {
+        let deleter = ProviderFakeAccountDeleter()
+        let sessionCleaner = ProviderFakeRemoteSignOutRequester(error: AuthError.unknown("Offline after deletion"))
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(
+                configuration: SupabaseAuthConfiguration(
+                    projectURL: URL(string: "https://example.supabase.co"),
+                    anonKey: "anon-test-key"
+                )
+            ),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            accountDeleter: deleter,
+            accountDeletionSessionCleaner: sessionCleaner
+        )
+
+        // Returning success lets AuthViewModel commit local session removal
+        // and Settings proceed to erase the user's local data.
+        try await provider.deleteAccount()
+
+        XCTAssertEqual(deleter.callCount, 1)
+        XCTAssertEqual(sessionCleaner.callCount, 1)
     }
 
     func testConfiguredDeleteAccountWithoutDeleterFailsSafely() async {
@@ -246,8 +389,9 @@ final class SupabaseAuthProviderTests: XCTestCase {
         }
     }
 
-    func testDeleteAccountFailurePropagates() async {
+    func testDeleteAccountFailurePropagatesWithoutClearingSDKSession() async {
         let deleter = ProviderFakeAccountDeleter(error: AuthError.unknown("계정을 삭제하지 못했어요."))
+        let sessionCleaner = ProviderFakeRemoteSignOutRequester()
         let provider = SupabaseAuthProvider(
             clientProvider: SupabaseClientProvider(
                 configuration: SupabaseAuthConfiguration(
@@ -256,7 +400,8 @@ final class SupabaseAuthProviderTests: XCTestCase {
                 )
             ),
             sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
-            accountDeleter: deleter
+            accountDeleter: deleter,
+            accountDeletionSessionCleaner: sessionCleaner
         )
 
         do {
@@ -269,6 +414,7 @@ final class SupabaseAuthProviderTests: XCTestCase {
         }
 
         XCTAssertEqual(deleter.callCount, 1)
+        XCTAssertEqual(sessionCleaner.callCount, 0)
     }
 
     func testProviderCanReturnReadOnlySessionSmokeSnapshot() async {
@@ -669,28 +815,223 @@ private final class ProviderFakeAuthCallbackSessionLoader: SupabaseAuthCallbackS
 
 private final class ProviderFakeRemoteSignOutRequester: SupabaseRemoteSignOutRequesting {
     private let error: Error?
+    private let onSignOut: (() -> Void)?
     private(set) var callCount = 0
 
-    init(error: Error? = nil) {
+    init(error: Error? = nil, onSignOut: (() -> Void)? = nil) {
         self.error = error
+        self.onSignOut = onSignOut
     }
 
     func signOut() async throws {
         callCount += 1
+        onSignOut?()
         if let error { throw error }
     }
 }
 
 private final class ProviderFakeAccountDeleter: SupabaseAccountDeleting {
     private let error: Error?
+    private let onDelete: (() async throws -> Void)?
     private(set) var callCount = 0
 
-    init(error: Error? = nil) {
+    init(error: Error? = nil, onDelete: (() async throws -> Void)? = nil) {
         self.error = error
+        self.onDelete = onDelete
     }
 
     func deleteAccount() async throws {
         callCount += 1
+        if let error { throw error }
+        try await onDelete?()
+    }
+}
+
+
+extension SupabaseAuthProviderTests {
+    func testExpectedDeletionRejectsReplacementOrMissingSDKSessionBeforeRequest() async {
+        let expectedOwner = UUID()
+        let replacement = SupabaseAuthSessionProbe.SessionInfo(userId: UUID().uuidString, email: nil)
+        for current in [replacement, nil] {
+            let deleter = ProviderFakeAccountDeleter()
+            let cleaner = ProviderFakeRemoteSignOutRequester()
+            let provider = SupabaseAuthProvider(
+                clientProvider: SupabaseClientProvider(configuration: .init(
+                    projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-test-key")),
+                sessionProbe: SupabaseAuthSessionProbe(isConfigured: true,
+                    reader: ProviderFakeSessionReader(session: current)),
+                accountDeleter: deleter, accountDeletionSessionCleaner: cleaner
+            )
+
+            do {
+                try await provider.deleteAccount(expectedUserID: expectedOwner)
+                XCTFail("An old confirmation must not delete the currently authenticated replacement")
+            } catch { XCTAssertEqual(error as? AuthError, .sessionNotFound) }
+            XCTAssertEqual(deleter.callCount, 0)
+            XCTAssertEqual(cleaner.callCount, 0)
+        }
+    }
+
+    func testExpectedDeletionValidatesOwnerAndKeepsSDKMutationGateThroughRequest() async throws {
+        let owner = UUID()
+        let cleaner = ProviderFakeRemoteSignOutRequester()
+        var provider: SupabaseAuthProvider!
+        let deleter = ProviderFakeAccountDeleter(onDelete: {
+            do {
+                _ = try await provider.handleAuthCallback(url: URL(string: "soom://auth/callback")!)
+                XCTFail("The validated account must remain fixed through the deletion request")
+            } catch { XCTAssertEqual(error as? AuthError, .sessionTransitionInProgress) }
+        })
+        provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .init(
+                projectURL: URL(string: "https://example.supabase.co"), anonKey: "anon-test-key")),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true,
+                reader: ProviderFakeSessionReader(session: .init(userId: owner.uuidString, email: nil))),
+            accountDeleter: deleter, accountDeletionSessionCleaner: cleaner
+        )
+
+        try await provider.deleteAccount(expectedUserID: owner)
+
+        XCTAssertEqual(deleter.callCount, 1)
+        XCTAssertEqual(cleaner.callCount, 1)
+    }
+}
+
+extension SupabaseAuthProviderTests {
+    @MainActor
+    func testAppleGrantRegistrarReceivesVerifiedSessionOwnerAndCredentialThenMarksRegistered() async throws {
+        let owner = UUID()
+        let state = AppleGrantRegistrationState.shared
+        defer { state.clear(owner) }
+        state.set(.needsRetry, for: owner)
+        let registrar = ProviderFakeAppleGrantRegistrar()
+        let credential = syntheticGrantCredential
+        let provider = grantProvider(snapshot: grantSnapshot(owner), registrar: registrar)
+
+        let result = try await provider.signInWithAppleCredential(credential)
+
+        XCTAssertTrue(result.isSignedIn)
+        XCTAssertEqual(result.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(result.currentUser?.id, owner)
+        XCTAssertEqual(registrar.owners, [owner])
+        XCTAssertEqual(registrar.credentials, [credential])
+        XCTAssertEqual(state.status(for: owner), .registered)
+    }
+
+    @MainActor
+    func testAppleGrantRegistrationFailureKeepsLoginAndMarksOnlyItsOwnerForRetry() async throws {
+        let owner = UUID(), other = UUID()
+        let state = AppleGrantRegistrationState.shared
+        defer { state.clear(owner); state.clear(other) }
+        state.set(.registered, for: other)
+        let registrar = ProviderFakeAppleGrantRegistrar(error: URLError(.notConnectedToInternet))
+        let provider = grantProvider(snapshot: grantSnapshot(owner), registrar: registrar)
+
+        let result = try await provider.signInWithAppleCredential(syntheticGrantCredential)
+
+        XCTAssertTrue(result.isSignedIn)
+        XCTAssertEqual(result.currentUser?.id, owner)
+        XCTAssertEqual(registrar.owners, [owner])
+        XCTAssertEqual(state.status(for: owner), .needsRetry)
+        XCTAssertEqual(state.status(for: other), .registered)
+    }
+
+    @MainActor
+    func testFailedAppleExchangeNeverRegistersGrantOrChangesReadiness() async {
+        let owner = UUID()
+        let state = AppleGrantRegistrationState.shared
+        defer { state.clear(owner) }
+        let registrar = ProviderFakeAppleGrantRegistrar()
+        let failure = AuthError.unknown("Synthetic exchange failure")
+        let provider = grantProvider(snapshot: grantSnapshot(owner), registrar: registrar, exchangeError: failure)
+
+        do {
+            _ = try await provider.signInWithAppleCredential(syntheticGrantCredential)
+            XCTFail("A failed exchange must not produce a logged-in session")
+        } catch { XCTAssertEqual(error as? AuthError, failure) }
+
+        XCTAssertTrue(registrar.owners.isEmpty)
+        XCTAssertTrue(registrar.credentials.isEmpty)
+        XCTAssertNil(state.status(for: owner))
+    }
+
+    @MainActor
+    func testInvalidExchangedSessionsNeverReachAppleGrantRegistrar() async {
+        let owner = UUID()
+        let state = AppleGrantRegistrationState.shared
+        defer { state.clear(owner) }
+        let snapshots: [SupabaseAuthSessionSnapshot] = [
+            .init(isConfigured: true, hasSession: false, userId: owner.uuidString, email: nil, checkedAt: Date(), status: .signedIn),
+            .init(isConfigured: true, hasSession: true, userId: owner.uuidString, email: nil, checkedAt: Date(), status: .signedOut),
+            .init(isConfigured: true, hasSession: true, userId: owner.uuidString, email: nil, checkedAt: Date(), status: .failed),
+            .init(isConfigured: true, hasSession: true, userId: "synthetic-invalid-uuid", email: nil, checkedAt: Date(), status: .signedIn)
+        ]
+        for snapshot in snapshots {
+            let registrar = ProviderFakeAppleGrantRegistrar()
+            let provider = grantProvider(snapshot: snapshot, registrar: registrar)
+            do {
+                _ = try await provider.signInWithAppleCredential(syntheticGrantCredential)
+                XCTFail("An invalid exchanged session must not authorize grant registration")
+            } catch { XCTAssertEqual(error as? AuthError, .sessionNotFound) }
+            XCTAssertTrue(registrar.owners.isEmpty)
+            XCTAssertTrue(registrar.credentials.isEmpty)
+        }
+        XCTAssertNil(state.status(for: owner))
+    }
+
+    @MainActor
+    func testInvalidAppleCredentialNeverReachesExchangeOrGrantRegistration() async {
+        let owner = UUID()
+        let state = AppleGrantRegistrationState.shared
+        defer { state.clear(owner) }
+        let exchanger = ProviderFakeAppleCredentialExchanger(snapshot: grantSnapshot(owner))
+        let registrar = ProviderFakeAppleGrantRegistrar()
+        let provider = SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .init(
+                projectURL: URL(string: "https://example.supabase.co"), anonKey: "synthetic-anon-key")),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: exchanger, appleGrantRegistrar: registrar)
+        do {
+            _ = try await provider.signInWithAppleCredential(
+                AppleSignInCredential(userIdentifier: "synthetic-apple-subject", identityToken: "synthetic-token", authorizationCode: "synthetic-code"))
+            XCTFail("Missing nonce must fail before either remote dependency")
+        } catch { XCTAssertEqual(error as? AuthError, .appleCredentialMissing) }
+        XCTAssertTrue(exchanger.idTokens.isEmpty)
+        XCTAssertTrue(registrar.owners.isEmpty)
+        XCTAssertNil(state.status(for: owner))
+    }
+
+    private var syntheticGrantCredential: AppleSignInCredential {
+        AppleSignInCredential(userIdentifier: "synthetic-apple-subject", identityToken: "synthetic-identity-token",
+            authorizationCode: "synthetic-single-use-code", email: "fixture@example.test", fullName: "Synthetic User",
+            nonce: "synthetic-raw-nonce", createdAt: Date(timeIntervalSince1970: 1_800_000_000))
+    }
+
+    private func grantSnapshot(_ owner: UUID) -> SupabaseAuthSessionSnapshot {
+        .init(isConfigured: true, hasSession: true, userId: owner.uuidString, email: "fixture@example.test",
+            checkedAt: Date(timeIntervalSince1970: 1_800_000_000), status: .signedIn,
+            appleUserIdentifier: "synthetic-apple-subject", linkedAuthProviders: ["apple"])
+    }
+
+    private func grantProvider(snapshot: SupabaseAuthSessionSnapshot, registrar: ProviderFakeAppleGrantRegistrar,
+                               exchangeError: Error? = nil) -> SupabaseAuthProvider {
+        SupabaseAuthProvider(
+            clientProvider: SupabaseClientProvider(configuration: .init(
+                projectURL: URL(string: "https://example.supabase.co"), anonKey: "synthetic-anon-key")),
+            sessionProbe: SupabaseAuthSessionProbe(isConfigured: true, reader: nil),
+            appleCredentialExchanger: ProviderFakeAppleCredentialExchanger(snapshot: snapshot, error: exchangeError),
+            appleGrantRegistrar: registrar)
+    }
+}
+
+private final class ProviderFakeAppleGrantRegistrar: AppleGrantRegistering {
+    private let error: Error?
+    private(set) var owners: [UUID] = []
+    private(set) var credentials: [AppleSignInCredential] = []
+    init(error: Error? = nil) { self.error = error }
+    func register(credential: AppleSignInCredential, expectedUserID: UUID) async throws {
+        owners.append(expectedUserID)
+        credentials.append(credential)
         if let error { throw error }
     }
 }

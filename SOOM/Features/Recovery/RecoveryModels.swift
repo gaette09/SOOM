@@ -12,6 +12,44 @@ struct RecoverySummary {
     let insights: [RecoveryInsight]
     let lastUpdated: Date
     let dataQuality: RecoveryDataQuality
+    /// False when the score is only the calculator's empty-input fallback.
+    let hasCalculatedScore: Bool
+    /// Count for lastUpdated's calendar day; nil means the provider did not establish it.
+    let activityCountToday: Int?
+
+    var statusLabel: String {
+        hasCalculatedScore ? "회복 \(score) · \(status)" : "회복 · 데이터 부족"
+    }
+
+    init(
+        score: Int,
+        status: String,
+        description: String,
+        recommendation: String,
+        trendText: String,
+        coachMessage: RecoveryCoachMessage,
+        recommendationCard: RecoveryRecommendation,
+        trends: [RecoveryTrend],
+        insights: [RecoveryInsight],
+        lastUpdated: Date,
+        dataQuality: RecoveryDataQuality,
+        hasCalculatedScore: Bool = true,
+        activityCountToday: Int? = nil
+    ) {
+        self.score = score
+        self.status = status
+        self.description = description
+        self.recommendation = recommendation
+        self.trendText = trendText
+        self.coachMessage = coachMessage
+        self.recommendationCard = recommendationCard
+        self.trends = trends
+        self.insights = insights
+        self.lastUpdated = lastUpdated
+        self.dataQuality = dataQuality
+        self.hasCalculatedScore = hasCalculatedScore
+        self.activityCountToday = activityCountToday
+    }
 }
 
 struct RecoveryCoachMessage {

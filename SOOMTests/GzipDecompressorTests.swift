@@ -79,4 +79,30 @@ final class GzipDecompressorTests: XCTestCase {
             XCTAssertEqual(error as? GzipDecompressorError, .decompressionFailed)
         }
     }
+    func testChecksumAndForgedSizeCannotMakeCorruptStreamsValid() throws {
+        let valid = try data(fromBase64: Self.fixtureA)
+        var badCRC = valid
+        badCRC[badCRC.count - 8] ^= 0xff
+        XCTAssertThrowsError(try decompressor.decompress(badCRC))
+        var badSize = valid
+        badSize[badSize.count - 4] ^= 0xff
+        XCTAssertThrowsError(try decompressor.decompress(badSize))
+    }
+
+    func testExactOutputLimitSucceedsAndOneByteLessFails() throws {
+        let valid = try data(fromBase64: Self.fixtureA)
+        let count = Self.fixtureAPlaintext.utf8.count
+        XCTAssertEqual(try GzipDecompressor(maximumDecompressedBytes: count).decompress(valid), Data(Self.fixtureAPlaintext.utf8))
+        XCTAssertThrowsError(try GzipDecompressor(maximumDecompressedBytes: count - 1).decompress(valid)) {
+            XCTAssertEqual($0 as? GzipDecompressorError, .sizeLimitExceeded(maximumBytes: count - 1))
+        }
+    }
+
+    func testTruncatedTrailerAndTrailingDataAreRejected() throws {
+        let valid = try data(fromBase64: Self.fixtureA)
+        XCTAssertThrowsError(try decompressor.decompress(Data(valid.dropLast())))
+        XCTAssertThrowsError(try decompressor.decompress(valid + Data([0])))
+        XCTAssertThrowsError(try decompressor.decompress(valid + valid))
+    }
+
 }

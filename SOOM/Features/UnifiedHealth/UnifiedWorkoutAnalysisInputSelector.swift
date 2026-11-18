@@ -16,7 +16,8 @@ struct UnifiedWorkoutAnalysisInputSelector {
     }
 
     func selectIncludedWorkouts(_ workouts: [UnifiedWorkout]) -> [UnifiedWorkout] {
-        workouts.filter { !$0.isExcludedFromAnalysis }
+        UnifiedWorkoutDeduplicationEngine().canonicalWorkouts(workouts)
+            .filter { !$0.isExcludedFromAnalysis }
     }
 
     func selectRecoveryInputs(from workouts: [UnifiedWorkout]) -> [RecoveryActivity] {

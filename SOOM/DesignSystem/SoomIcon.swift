@@ -1,3 +1,5 @@
+import SwiftUI
+
 enum SOOMIcon {
     static let home = "house.fill"
     static let analysis = "chart.xyaxis.line"
@@ -6,11 +8,18 @@ enum SOOMIcon {
     static let activity = "list.bullet.rectangle"
     static let clubs = "flag.checkered"
     static let profile = "person.crop.circle"
-    static let swim = "figure.pool.swim"
-    static let bike = "bicycle"
-    static let run = "figure.run"
+    static let swim = "soom_pool_swimming"
+    static let openWaterSwim = "soom_open_water_swimming"
+    static let bike = "soom_road_cycling"
+    static let mountainBike = "soom_mtb"
+    static let run = "soom_running"
+    static let trailRun = "soom_trail_running"
     static let brick = "point.3.connected.trianglepath.dotted"
     static let back = "chevron.left"
+    static let chevronLeft = "chevron.left"
+    static let ranking = "trophy"
+    static let settings = "gearshape"
+    static let bookmarkFilled = "bookmark.fill"
     static let chevronRight = "chevron.right"
     static let collapse = "chevron.down"
     static let close = "xmark"
@@ -45,4 +54,24 @@ enum SOOMIcon {
     static let trendUp = "arrow.up.right"
     static let trendDown = "arrow.down.right"
     static let trendFlat = "arrow.right"
+}
+
+/// Keeps the packaged 24pt sport artwork proportional at the size of each UI slot.
+/// Other activity types continue to use the existing symbol catalog.
+struct SOOMSportIconView: View {
+    let name: String
+    let size: CGFloat
+
+    var body: some View {
+        if SOOMPhosphorCatalog.isSportAsset(name) {
+            Image(soom: name)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+        } else {
+            Image(soom: name)
+                .font(.system(size: size))
+                .frame(width: size, height: size)
+        }
+    }
 }

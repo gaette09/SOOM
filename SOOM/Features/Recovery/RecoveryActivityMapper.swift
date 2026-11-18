@@ -92,7 +92,8 @@ struct RecoveryActivityMapper {
     }
 
     func map(_ workout: Workout) -> RecoveryActivity {
-        let durationMinutes = max(1, Int((workout.duration / 60).rounded()))
+        let durationMinutes = workout.duration.isFinite && workout.duration > 0
+            ? max(1, Int(min(workout.duration / 60, Double(Int.max / 2)).rounded())) : 0
         let distanceKm = workout.distanceMeters / 1_000
 
         return RecoveryActivity(
@@ -128,6 +129,7 @@ struct RecoveryActivityMapper {
         averageHeartRate: Int,
         relativeEffort: Int
     ) -> Double {
+        guard durationMinutes > 0 else { return 0 }
         // TODO: Replace this estimate with SOOM's validated TRIMP/load formula.
         let durationComponent = Double(durationMinutes) * 0.45
         let heartRateComponent = Double(max(0, averageHeartRate - 110)) * 0.35

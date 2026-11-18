@@ -21,12 +21,9 @@ struct WorkoutZoneDataProvider: WorkoutZoneDataProviding {
     }
 
     func summaries(for workout: HKWorkout, sport: WorkoutSport) async throws -> [WorkoutZoneSummary] {
-        do {
-            let samplesByType = try await fetcher.fetchZoneMetricSamples(for: workout)
-            return makeSummaries(from: samplesByType, sport: sport)
-        } catch {
-            return []
-        }
+        let samplesByType = try await fetcher.fetchZoneMetricSamples(for: workout)
+        try Task.checkCancellation()
+        return makeSummaries(from: samplesByType, sport: sport)
     }
 
     func makeSummaries(

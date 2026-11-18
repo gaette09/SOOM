@@ -343,13 +343,13 @@ struct ProcessedWorkoutBuilder {
     private func sportIconName(for workoutType: UnifiedWorkoutType) -> String {
         switch workoutType {
         case .running:
-            return "figure.run"
+            return SOOMIcon.run
         case .cycling:
-            return "bicycle"
+            return SOOMIcon.bike
         case .walking:
             return "figure.walk"
         case .swimming:
-            return "figure.pool.swim"
+            return SOOMIcon.swim
         case .hiking:
             return "figure.hiking"
         case .strength:
@@ -367,6 +367,8 @@ struct ProcessedWorkoutBuilder {
             return "Apple Health"
         case .garmin:
             return "Garmin"
+        case .googleHealth:
+            return "Google Health"
         case .strava:
             return "Strava"
         case .samsungHealth:

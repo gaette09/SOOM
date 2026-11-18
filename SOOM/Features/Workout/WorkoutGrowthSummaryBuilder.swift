@@ -10,10 +10,13 @@ struct WorkoutGrowthSummaryBuilder {
             return noComparisonSummary(for: workout)
         }
 
-        let sameSportPrevious = previousWorkouts.first { $0.sport == workout.sport }
-        let sameWeekWorkouts = recentWorkouts.filter { isSameWeek($0.date, workout.date) }
+        let sameSportPrevious = previousWorkouts.first { $0.comparisonWorkoutType == workout.comparisonWorkoutType }
+        // History providers may exclude the viewed workout; count it once and ignore later sessions.
+        let sameWeekWorkoutCount = previousWorkouts.filter { isSameWeek($0.date, workout.date) }.count + 1
 
         if let previous = sameSportPrevious,
+           workout.distanceMeters > 0,
+           previous.distanceMeters > 0,
            workout.distanceMeters >= previous.distanceMeters * 1.08 {
             return WorkoutGrowthSummary(
                 workoutId: workout.id,
@@ -27,7 +30,9 @@ struct WorkoutGrowthSummaryBuilder {
         }
 
         if let previous = sameSportPrevious,
-           paceSeconds(for: workout) <= paceSeconds(for: previous) * 0.97 {
+           let currentPace = paceSeconds(for: workout),
+           let previousPace = paceSeconds(for: previous),
+           currentPace <= previousPace * 0.97 {
             return WorkoutGrowthSummary(
                 workoutId: workout.id,
                 title: "페이스 흐름이 좋아졌어요",
@@ -39,13 +44,13 @@ struct WorkoutGrowthSummaryBuilder {
             )
         }
 
-        if sameWeekWorkouts.count >= 3 {
+        if sameWeekWorkoutCount >= 3 {
             return WorkoutGrowthSummary(
                 workoutId: workout.id,
                 title: "이번 주 꾸준함이 좋아요",
                 shortSummary: "최근 운동 빈도가 안정적으로 이어지고 있어요.",
                 improvementType: .consistency,
-                comparisonText: "이번 주 \(sameWeekWorkouts.count)회 운동",
+                comparisonText: "이번 주 \(sameWeekWorkoutCount)회 운동",
                 motivationText: "오늘은 기록보다 꾸준함이 더 좋은 신호예요.",
                 insight: "다음 운동은 강도를 올리기보다 같은 리듬을 이어가는 쪽이 좋아요."
             )
@@ -86,8 +91,8 @@ struct WorkoutGrowthSummaryBuilder {
         )
     }
 
-    private func paceSeconds(for workout: Workout) -> Double {
-        guard workout.distanceMeters > 0 else { return .greatestFiniteMagnitude }
+    private func paceSeconds(for workout: Workout) -> Double? {
+        guard workout.distanceMeters > 0, workout.duration > 0 else { return nil }
         return workout.duration / (workout.distanceMeters / 1_000)
     }
 
@@ -105,8 +110,11 @@ struct WorkoutGrowthSummaryBuilder {
         let segmentSize = max(orderedSamples.count / 3, 1)
         let firstSegment = orderedSamples.prefix(segmentSize)
         let lastSegment = orderedSamples.suffix(segmentSize)
-        let firstAverage = averageHeartRate(firstSegment.compactMap(\.heartRate))
-        let lastAverage = averageHeartRate(lastSegment.compactMap(\.heartRate))
+        let firstValues = firstSegment.compactMap(\.heartRate).filter { $0 > 0 }
+        let lastValues = lastSegment.compactMap(\.heartRate).filter { $0 > 0 }
+        guard firstValues.count >= 2, lastValues.count >= 2 else { return false }
+        let firstAverage = averageHeartRate(firstValues)
+        let lastAverage = averageHeartRate(lastValues)
 
         return lastAverage - firstAverage <= 8
     }

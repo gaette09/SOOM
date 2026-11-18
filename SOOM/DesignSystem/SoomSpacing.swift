@@ -60,8 +60,8 @@ enum SOOMLayout {
         static let minimizedRatio: CGFloat = 0.18
         static let minimizedMinHeight: CGFloat = 148
         static let minimizedMaxHeight: CGFloat = 190
-        static let standardRatio: CGFloat = 0.56
-        static let standardMinHeight: CGFloat = 468
+        static let standardRatio: CGFloat = 0.46
+        static let standardMinHeight: CGFloat = 240
         static let standardMaxHeight: CGFloat = 600
         static let expandedTopOverflow: CGFloat = 72
         static let expandedYOffset: CGFloat = -36
@@ -123,7 +123,9 @@ enum SOOMLayout {
 
     enum MapControls {
         static let spacing: CGFloat = 12
-        static let topPadding: CGFloat = 16
+        // Mapbox ornaments are positioned from the map view's safe area.
+        static let scaleBarTopMargin: CGFloat = 72
+        static let topPadding: CGFloat = 8
         static let horizontalPadding: CGFloat = 18
         static let buttonSize: CGFloat = 46
         static let backIconSize: CGFloat = 22
@@ -137,15 +139,21 @@ enum SOOMLayout {
 
     enum TabBar {
         static let bottomOverlayInset: CGFloat = 92
-        static let outerHorizontalPadding: CGFloat = 34
+        static let outerHorizontalPadding: CGFloat = 20
         static let bottomPadding: CGFloat = 8
+        // Reference capsule ends about 20pt above the physical bottom. The
+        // system-safe layout already reserves its inset; avoid counting it twice.
+        static func safeAreaLowering(_ inset: CGFloat) -> CGFloat {
+            guard inset.isFinite, inset >= 0 else { return 0 }
+            return max(0, inset + bottomPadding - 20)
+        }
         static let height: CGFloat = 52
         static let containerHorizontalPadding: CGFloat = 5
         static let containerVerticalPadding: CGFloat = 4
-        static let itemHeight: CGFloat = 44
+        static let itemHeight: CGFloat = 52
         static let itemCornerRadius: CGFloat = SOOMRadius.liquidTabItem
-        static let iconHeight: CGFloat = 19
-        static let defaultIconSize: CGFloat = 18
+        static let iconHeight: CGFloat = 24
+        static let defaultIconSize: CGFloat = 24
         static let itemLabelSpacing: CGFloat = 2
         static let topHighlightHeight: CGFloat = 0.8
         static let topHighlightHorizontalPadding: CGFloat = 28

@@ -51,9 +51,9 @@ enum SOOMColor {
 }
 
 enum SOOMRouteRenderingStyle {
-    static let accentHex = "#2F7D5B"
-    static let accentColor = Color(hex: 0x2F7D5B)
-    static let accentUIColor = UIColor(red: 0x2F / 255, green: 0x7D / 255, blue: 0x5B / 255, alpha: 1)
+    static let accentHex = "#7541EE"
+    static let accentColor = SOOMColor.accent
+    static let accentUIColor = UIColor(red: 0x75 / 255, green: 0x41 / 255, blue: 0xEE / 255, alpha: 1)
     static let detailLineWidth: Double = 3.2
     static let feedLineWidth: Double = 2.6
     static let shareOuterLineWidth: CGFloat = 4.4

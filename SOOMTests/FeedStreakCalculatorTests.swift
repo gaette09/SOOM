@@ -70,3 +70,31 @@ final class FeedStreakCalculatorTests: XCTestCase {
         DateComponents(calendar: calendar, timeZone: calendar.timeZone, year: year, month: month, day: day).date!
     }
 }
+
+@MainActor
+final class FeedOverviewPageSelectionTests: XCTestCase {
+    func testRecoveryReturnKeepsChosenPageThroughRepeatedAppearances() {
+        var selected = 2
+        for _ in 0..<3 {
+            selected = FeedOverviewPageSelection.resolve(selected, availablePages: [0, 1, 2])
+            XCTAssertEqual(selected, 2, "Returning from recovery must preserve its overview page")
+        }
+    }
+
+    func testRefreshKeepsExistingPageAndFallsBackWhenThatPageDisappears() {
+        var selected = FeedOverviewPageSelection.resolve(2, availablePages: [0, 2])
+        XCTAssertEqual(selected, 2)
+        selected = FeedOverviewPageSelection.resolve(selected, availablePages: [0, 1])
+        XCTAssertEqual(selected, 0)
+        selected = FeedOverviewPageSelection.resolve(selected, availablePages: [1, 2])
+        XCTAssertEqual(selected, 1)
+    }
+
+    func testFirstAppearanceAndEmptyToAvailableTransitionKeepOriginalFallback() {
+        XCTAssertEqual(FeedOverviewPageSelection.resolve(0, availablePages: [0, 1, 2]), 0)
+        XCTAssertEqual(FeedOverviewPageSelection.resolve(0, availablePages: [2]), 2)
+        let empty = FeedOverviewPageSelection.resolve(2, availablePages: [])
+        XCTAssertEqual(empty, 0)
+        XCTAssertEqual(FeedOverviewPageSelection.resolve(empty, availablePages: [1, 2]), 1)
+    }
+}

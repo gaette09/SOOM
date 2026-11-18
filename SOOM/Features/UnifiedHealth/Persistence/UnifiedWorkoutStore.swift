@@ -13,6 +13,14 @@ protocol UnifiedWorkoutStore {
     func deleteAllWorkouts() async throws
 }
 
+extension UnifiedWorkoutStore {
+    /// Raw source records stay available for provider upserts and duplicate
+    /// review. Read-only product surfaces consume one enriched session each.
+    func fetchCanonicalRecentWorkouts(days: Int) async throws -> [UnifiedWorkout] {
+        UnifiedWorkoutDeduplicationEngine().canonicalWorkouts(try await fetchRecentWorkouts(days: days))
+    }
+}
+
 @MainActor
 final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
     private let modelContext: ModelContext
@@ -31,7 +39,7 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
 
     func saveWorkout(_ workout: UnifiedWorkout) async throws {
         try upsert(workout)
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func saveWorkouts(_ workouts: [UnifiedWorkout]) async throws {
@@ -39,10 +47,13 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
             try upsert(workout)
         }
 
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func fetchRecentWorkouts(days: Int) async throws -> [UnifiedWorkout] {
+        #if DEBUG
+        WorkoutCardPerformanceProbe.hit("workoutFetch")
+        #endif
         guard days > 0 else { return [] }
 
         let threshold = Calendar.current.date(
@@ -93,7 +104,8 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
 
         record.isExcludedFromAnalysis = isExcluded
         record.updatedAt = referenceDate()
-        try modelContext.save()
+        try HealthCloudJournal.workout(record, context: modelContext)
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func updateCompanions(id: UUID, names: [String]) async throws {
@@ -103,7 +115,8 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
 
         record.companionNames = names
         record.updatedAt = referenceDate()
-        try modelContext.save()
+        try HealthCloudJournal.workout(record, context: modelContext)
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func deleteWorkout(id: UUID) async throws {
@@ -111,18 +124,31 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
             return
         }
 
+        try recordDeletion(record)
         modelContext.delete(record)
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func deleteAllWorkouts() async throws {
         let records = try modelContext.fetch(FetchDescriptor<UnifiedWorkoutRecord>())
 
         for record in records {
+            try recordDeletion(record)
             modelContext.delete(record)
         }
 
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
+    }
+
+    private func recordDeletion(_ record: UnifiedWorkoutRecord) throws {
+        try HealthCloudJournal.record(.workout, key: record.id.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
+        guard modelContext.container.schema.entities.contains(where: { $0.name == "PersistedWorkoutRoute" }) else { return }
+        let workoutID = record.id
+        let routes = try modelContext.fetch(FetchDescriptor<PersistedWorkoutRoute>(predicate: #Predicate { $0.workoutId == workoutID }))
+        for route in routes {
+            try HealthCloudJournal.record(.route, key: route.workoutId.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
+            modelContext.delete(route)
+        }
     }
 
     private func upsert(_ workout: UnifiedWorkout) throws {
@@ -134,20 +160,18 @@ final class SwiftDataUnifiedWorkoutStore: UnifiedWorkoutStore {
             existingRecord = try fetchRecord(id: workout.id)
         }
 
+        let saved: UnifiedWorkoutRecord
         if let existingRecord {
-            mapper.update(
-                existingRecord,
-                with: workout,
-                syncTimestamp: referenceDate()
-            )
+            // External identity upserts must preserve route/draft foreign IDs.
+            let stableID = existingRecord.id
+            mapper.update(existingRecord, with: workout)
+            existingRecord.id = stableID
+            saved = existingRecord
         } else {
-            modelContext.insert(
-                mapper.makeRecord(
-                    from: workout,
-                    syncTimestamp: referenceDate()
-                )
-            )
+            saved = mapper.makeRecord(from: workout)
+            modelContext.insert(saved)
         }
+        try HealthCloudJournal.workout(saved, context: modelContext)
     }
 
     private func fetchRecord(id: UUID) throws -> UnifiedWorkoutRecord? {

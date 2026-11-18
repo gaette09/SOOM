@@ -46,6 +46,7 @@ final class SwiftDataDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
                         explanation: snapshot.explanation,
                         dataQuality: snapshot.dataQuality,
                         activityCount: snapshot.activityCount,
+                        activityCountKnown: snapshot.activityCountKnown,
                         checkInId: snapshot.checkInId,
                         createdAt: now,
                         updatedAt: now
@@ -54,7 +55,10 @@ final class SwiftDataDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
             )
         }
 
-        try modelContext.save()
+        if let saved = try fetchRecord(for: normalizedDate) {
+            try HealthCloudJournal.snapshot(saved, context: modelContext)
+        }
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func fetchRecentSnapshots(days: Int) async throws -> [DailyRecoverySnapshot] {
@@ -88,8 +92,9 @@ final class SwiftDataDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
             return
         }
 
+        try HealthCloudJournal.record(.recoverySnapshot, key: HealthCloudJournal.snapshotKey(record.date), payload: nil, deleted: true, context: modelContext)
         modelContext.delete(record)
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     private func update(
@@ -107,6 +112,7 @@ final class SwiftDataDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
         record.explanation = snapshot.explanation
         record.dataQuality = mapper.makeDataQualityString(from: snapshot.dataQuality)
         record.activityCount = snapshot.activityCount
+        record.activityCountKnown = snapshot.activityCountKnown
         record.checkInId = snapshot.checkInId
         record.updatedAt = updatedAt
     }

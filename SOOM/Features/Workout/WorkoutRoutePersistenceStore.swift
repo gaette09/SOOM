@@ -41,10 +41,16 @@ final class SwiftDataWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStorin
             )
         }
 
-        try modelContext.save()
+        if let saved = try fetchRecord(workoutId: route.workoutId) {
+            try HealthCloudJournal.route(saved, context: modelContext)
+        }
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func fetchRoute(workoutId: UUID) async throws -> WorkoutRoute? {
+        #if DEBUG
+        WorkoutCardPerformanceProbe.hit("routeFetch")
+        #endif
         guard let record = try fetchRecord(workoutId: workoutId) else {
             return nil
         }
@@ -76,18 +82,20 @@ final class SwiftDataWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStorin
             return
         }
 
+        try HealthCloudJournal.record(.route, key: record.workoutId.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
         modelContext.delete(record)
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func deleteAllRoutes() async throws {
         let records = try modelContext.fetch(FetchDescriptor<PersistedWorkoutRoute>())
 
         for record in records {
-            modelContext.delete(record)
+            try HealthCloudJournal.record(.route, key: record.workoutId.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
+        modelContext.delete(record)
         }
 
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     private func fetchRecord(workoutId: UUID) throws -> PersistedWorkoutRoute? {

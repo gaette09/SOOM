@@ -13,6 +13,20 @@ final class HealthKitWorkoutTests: XCTestCase {
         XCTAssertEqual(HealthKitWorkoutType(activityType: .mindAndBody), .other)
     }
 
+    func testWorkoutEnergyIsPreservedWhenOnlyWorkoutTotalIsAvailable() {
+        let workout = HKWorkout(
+            activityType: .running,
+            start: Date(timeIntervalSince1970: 100),
+            end: Date(timeIntervalSince1970: 200),
+            workoutEvents: nil,
+            totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: 500),
+            totalDistance: nil,
+            metadata: nil
+        )
+
+        XCTAssertEqual(HealthKitWorkout(workout: workout).calories, 500)
+    }
+
     func testHealthKitManagerReadTypesAreReadOnlyCandidates() {
         let readTypes = HealthKitManager.readTypes
 

@@ -46,6 +46,66 @@ final class WorkoutComparisonInsightBuilderTests: XCTestCase {
         XCTAssertTrue(insight.metricRows.contains { $0.title == "100m 페이스" && $0.valueText.contains("초/100m") })
     }
 
+    func testDistanceRoundedToZeroUsesNeutralCopy() {
+        let baseline = makeInput(type: .running, distance: 10, duration: 50)
+
+        for delta in [0, 0.04, -0.04] {
+            let current = makeInput(type: .running, distance: 10 + delta, duration: 50)
+            assertNeutralRow(
+                current: current, baseline: baseline, title: "거리",
+                detail: "이전 기록과 비슷한 거리를 움직였어요."
+            )
+        }
+    }
+
+    func testPaceRoundedToZeroUsesNeutralCopy() {
+        let baseline = makeInput(type: .running, distance: 10, duration: 50)
+
+        for delta in [0, 0.4, -0.4] {
+            let current = makeInput(type: .running, distance: 3000 / (300 - delta), duration: 50)
+            assertNeutralRow(
+                current: current, baseline: baseline, title: "페이스",
+                detail: "이전 기록과 비슷한 페이스를 유지했어요."
+            )
+        }
+    }
+
+    func testSwimmingPaceRoundedToZeroPerHundredMetersUsesNeutralCopy() {
+        let baseline = makeInput(type: .swimming, distance: 1.5, duration: 30)
+
+        for delta in [0, 0.4, -0.4] {
+            let current = makeInput(type: .swimming, distance: 1800 / (1200 - delta * 10), duration: 30)
+            assertNeutralRow(
+                current: current, baseline: baseline, title: "100m 페이스",
+                detail: "이전 기록과 비슷한 100m 리듬을 이어갔어요."
+            )
+        }
+    }
+
+    func testSpeedRoundedToZeroUsesNeutralCopy() {
+        let baseline = makeInput(type: .cycling, distance: 25, duration: 60, speed: 25)
+
+        for delta in [0, 0.04, -0.04] {
+            let current = makeInput(type: .cycling, distance: 25, duration: 60, speed: 25 + delta)
+            assertNeutralRow(
+                current: current, baseline: baseline, title: "평균 속도",
+                detail: "이전 기록과 비슷한 평균 속도로 움직였어요."
+            )
+        }
+    }
+
+    func testElevationRoundedToZeroUsesNeutralCopy() {
+        let baseline = makeInput(type: .cycling, distance: 25, duration: 60, elevation: 200)
+
+        for delta in [0, 0.4, -0.4] {
+            let current = makeInput(type: .cycling, distance: 25, duration: 60, elevation: 200 + delta)
+            assertNeutralRow(
+                current: current, baseline: baseline, title: "상승 고도",
+                detail: "이전 기록과 비슷한 상승 고도를 기록했어요."
+            )
+        }
+    }
+
     func testRouteCandidateControlsComparisonType() {
         let current = makeInput(type: .cycling, distance: 30, duration: 70, speed: 26)
         let baseline = makeInput(type: .cycling, distance: 30, duration: 72, speed: 25)
@@ -71,6 +131,22 @@ final class WorkoutComparisonInsightBuilderTests: XCTestCase {
         XCTAssertFalse(copy.contains("못"))
         XCTAssertFalse(copy.contains("나쁨"))
         XCTAssertFalse(copy.contains("실패"))
+    }
+
+    private func assertNeutralRow(
+        current: WorkoutGrowthInput,
+        baseline: WorkoutGrowthInput,
+        title: String,
+        detail: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let insight = builder.build(current: current, baseline: baseline)
+        let row = insight.metricRows.first { $0.title == title }
+
+        XCTAssertEqual(row?.valueText, "비슷함", file: file, line: line)
+        XCTAssertEqual(row?.detailText, detail, file: file, line: line)
+        XCTAssertEqual(insight.tone, .steady, file: file, line: line)
     }
 
     private func makeInput(

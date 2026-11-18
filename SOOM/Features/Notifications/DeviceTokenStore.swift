@@ -25,4 +25,8 @@ final class DeviceTokenStore {
     func cache(tokenHex: String) {
         userDefaults.set(tokenHex, forKey: Key.cachedTokenHex)
     }
+
+    func clear() {
+        userDefaults.removeObject(forKey: Key.cachedTokenHex)
+    }
 }

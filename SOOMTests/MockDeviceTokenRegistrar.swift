@@ -4,12 +4,16 @@ import Foundation
 final class MockDeviceTokenRegistrar: DeviceTokenRegistering, @unchecked Sendable {
     private(set) var upsertCalls: [(tokenHex: String, userId: UUID)] = []
     private(set) var deleteCalls: [String] = []
+    var upsertError: Error?
+    var upsertDelayNanoseconds: UInt64 = 0
     var deleteError: Error?
     var onUpsert: (() -> Void)?
 
     func upsert(tokenHex: String, userId: UUID) async throws {
         upsertCalls.append((tokenHex, userId))
         onUpsert?()
+        if upsertDelayNanoseconds > 0 { try? await Task.sleep(nanoseconds:upsertDelayNanoseconds) }
+        if let upsertError { throw upsertError }
     }
 
     func deleteToken(tokenHex: String) async throws {

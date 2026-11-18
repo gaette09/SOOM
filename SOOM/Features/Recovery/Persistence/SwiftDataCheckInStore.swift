@@ -40,6 +40,10 @@ final class SwiftDataCheckInStore: RecoveryCheckInEditableStore {
     }
 
     func saveCheckIn(_ checkIn: RecoveryCheckIn) async throws {
+        if try fetchRecord(id: checkIn.id) != nil {
+            try await updateCheckIn(checkIn)
+            return
+        }
         let now = referenceDate()
         let record = mapper.makeRecord(
             from: checkIn,
@@ -48,7 +52,8 @@ final class SwiftDataCheckInStore: RecoveryCheckInEditableStore {
         )
 
         modelContext.insert(record)
-        try modelContext.save()
+        try HealthCloudJournal.checkIn(record, context: modelContext)
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func updateCheckIn(_ checkIn: RecoveryCheckIn) async throws {
@@ -63,8 +68,9 @@ final class SwiftDataCheckInStore: RecoveryCheckInEditableStore {
         record.moodLevel = checkIn.moodLevel
         record.note = checkIn.note
         record.updatedAt = referenceDate()
+        try HealthCloudJournal.checkIn(record, context: modelContext)
 
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func deleteCheckIn(id: UUID) async throws {
@@ -72,18 +78,20 @@ final class SwiftDataCheckInStore: RecoveryCheckInEditableStore {
             return
         }
 
+        try HealthCloudJournal.record(.checkIn, key: record.id.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
         modelContext.delete(record)
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     func deleteAllCheckIns() async throws {
         let records = try modelContext.fetch(FetchDescriptor<CheckInRecord>())
 
         for record in records {
-            modelContext.delete(record)
+            try HealthCloudJournal.record(.checkIn, key: record.id.uuidString.lowercased(), payload: nil, deleted: true, context: modelContext)
+        modelContext.delete(record)
         }
 
-        try modelContext.save()
+        try HealthCloudJournal.commit(modelContext)
     }
 
     private func fetchRecord(id: UUID) throws -> CheckInRecord? {

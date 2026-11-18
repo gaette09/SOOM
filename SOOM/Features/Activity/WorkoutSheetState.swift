@@ -16,16 +16,25 @@ struct WorkoutSheetMetrics {
     let isMiddle: Bool
     let isBottom: Bool
 
+    static func standardHeight(viewportHeight: CGFloat) -> CGFloat {
+        // Keep slightly more than half the map visible, even on short screens.
+        min(viewportHeight * 0.48, min(max(viewportHeight * SOOMLayout.DetailSheet.standardRatio,
+            SOOMLayout.DetailSheet.standardMinHeight), SOOMLayout.DetailSheet.standardMaxHeight))
+    }
+
     init(proxy: GeometryProxy, position: WorkoutSheetPosition, drag: CGFloat) {
-        minimizedHeight = min(max(proxy.size.height * SOOMLayout.DetailSheet.minimizedRatio, SOOMLayout.DetailSheet.minimizedMinHeight), SOOMLayout.DetailSheet.minimizedMaxHeight)
-        standardHeight = min(max(proxy.size.height * SOOMLayout.DetailSheet.standardRatio, SOOMLayout.DetailSheet.standardMinHeight), SOOMLayout.DetailSheet.standardMaxHeight)
-        expandedHeight = max(proxy.size.height + proxy.safeAreaInsets.top + SOOMLayout.DetailSheet.expandedTopOverflow, standardHeight)
+        minimizedHeight = min(proxy.size.height * 0.30, min(max(proxy.size.height * SOOMLayout.DetailSheet.minimizedRatio, SOOMLayout.DetailSheet.minimizedMinHeight), SOOMLayout.DetailSheet.minimizedMaxHeight))
+        standardHeight = Self.standardHeight(viewportHeight: proxy.size.height)
+        expandedHeight = max(proxy.size.height, standardHeight)
         baseHeight = position.height(minimized: minimizedHeight, standard: standardHeight, expanded: expandedHeight)
         sheetHeight = min(max(baseHeight - drag, minimizedHeight), expandedHeight)
         isExpanded = position == .expanded
         topCornerRadius = isExpanded && drag < SOOMLayout.DetailSheet.expandedCornerDragThreshold ? 0 : SOOMLayout.DetailSheet.topCornerRadius
-        sheetFrameHeight = sheetHeight + proxy.safeAreaInsets.bottom
-        sheetYOffset = proxy.safeAreaInsets.bottom + (isExpanded ? SOOMLayout.DetailSheet.expandedYOffset : 0)
+        // A fixed oversized expanded child grows its bottom-aligned ZStack,
+        // adding the home safe-area height above the header a second time.
+        // Preview geometry is deliberately unchanged.
+        sheetFrameHeight = sheetHeight + (isExpanded ? 0 : proxy.safeAreaInsets.bottom)
+        sheetYOffset = isExpanded ? 0 : proxy.safeAreaInsets.bottom
         hiddenSheetHeight = max(sheetFrameHeight - proxy.size.height - sheetYOffset, 0)
         scrollBottomPadding = proxy.safeAreaInsets.bottom + SOOMLayout.DetailSheet.scrollBottomPadding + (isExpanded ? hiddenSheetHeight : 0)
         shadowOpacity = isExpanded && drag < SOOMLayout.DetailSheet.expandedCornerDragThreshold ? 0 : SOOMLayout.DetailSheet.shadowOpacity

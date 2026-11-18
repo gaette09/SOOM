@@ -1,3 +1,5 @@
+import Combine
+import SwiftData
 import HealthKit
 import Photos
 import SwiftUI
@@ -10,7 +12,19 @@ enum WorkoutDetailPresentationStyle {
 }
 
 struct WorkoutDetailContent: View {
+    @Environment(\.soomProfileOnlyDetailPresentation) private var profileOnlyDetailPresentation
+    @Environment(\.workoutManagement) private var management
+    @Environment(\.workoutDetailSharing) private var sharing
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var accountStorage: HealthAccountStorageController
+    @EnvironmentObject private var auth: AuthViewModel
+    @State private var shareScopeID: String?
+    @State private var companionEditScope: String?
+    @Environment(\.workoutDetailPresentationStore) private var presentationStore
+    @Environment(\.workoutDetailVisitStore) private var visitStore
+    @State private var localPresentationStore = WorkoutDetailPresentationStore()
+    @State private var approvedMapRepair = ApprovedWorkoutMapRepair()
 
     let workout: Workout
     let showsHeader: Bool
@@ -28,6 +42,18 @@ struct WorkoutDetailContent: View {
     var recoveryImpact: WorkoutRecoveryImpact?
     var shareableCard: ShareableWorkoutCardModel?
     var mapRoute: WorkoutRoute?
+    #if DEBUG
+    // Review-only injection. Do not feed derived geometry to charts, sharing or analytics.
+    var mapOnlyRouteCandidate: WorkoutMapOnlyRouteCandidate? = nil
+    #endif
+    private var heroMapGeometry: WorkoutRoute? {
+        #if DEBUG
+        if let mapOnlyRouteCandidate { return mapOnlyRouteCandidate.mapGeometry(for: mapRoute) }
+        #endif
+        guard sharedRecord == nil, mapRoute?.workoutId == ApprovedWorkoutMapRepair.targetID else { return mapRoute }
+        return approvedMapRepair.resolve(mapRoute, viewerID: auth.session.currentUser?.id,
+            storage: accountStorage, context: modelContext)
+    }
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
     var companionUpdateAction: WorkoutCompanionUpdateAction?
@@ -37,10 +63,13 @@ struct WorkoutDetailContent: View {
     var samplesOverride: [WorkoutSample]?
     var splitsOverride: [WorkoutSplit]?
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
+    var telemetryOverride: WorkoutTelemetry?
+    var healthKitReadPresentation: HealthKitDetailReadPresentation?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
     var achievementCountOverride: Int?
     var fitnessTrendOverride: FitnessTrend?
+    var sharedRecord: WorkoutDetailSharedRecord? = nil
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
@@ -51,7 +80,8 @@ struct WorkoutDetailContent: View {
     @State private var feedDraftMessage: String?
     @State private var feedDraftErrorMessage: String?
     @State private var isCreatingFeedDraft = false
-    @State private var isShareComposerPresented = false
+    @State private var selectedFeedVisibility: ShareableWorkoutVisibility = .privateOnly
+    @State private var shareComposerPresentation: WorkoutShareCardPresentation?
     @State private var isRouteFileImporterPresented = false
     @State private var isAttachingRouteFile = false
     @State private var routeAttachmentMessage: String?
@@ -66,219 +96,238 @@ struct WorkoutDetailContent: View {
     static let showsInlineShareControls = false
 
     var body: some View {
-        Group {
-            if showsHeader {
-                DetailHeader(
-                    icon: workout.sport.iconName,
-                    title: workout.title,
-                    subtitle: "\(workout.sport.title) · \(processedWorkout.display.distanceText) · \(processedWorkout.display.durationText)",
-                    tint: workout.sport.tint
-                )
-            }
-
-            if presentationStyle == .standalone {
-                ActivityDetailHeroMap(workout: workout, route: mapRoute, achievements: achievements, routeMissingReason: processedWorkout.routeMissingReason)
-            }
-            ForEach(achievements) { achievement in
-                WorkoutAchievementCard(achievement: achievement, tint: workout.sport.tint)
-            }
-            if let achievementCountOverride, achievementCountOverride > 0 {
-                WorkoutResultsCard(achievementCount: achievementCountOverride, tint: workout.sport.tint)
-            }
-            if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
-                ActivityDetailRouteMissingCard(
-                    reason: processedWorkout.routeMissingReason,
-                    tint: workout.sport.tint,
-                    showsImportAction: routeAttachmentAction != nil,
-                    isImporting: isAttachingRouteFile,
-                    message: routeAttachmentMessage,
-                    errorMessage: routeAttachmentErrorMessage,
-                    importAction: { isRouteFileImporterPresented = true }
-                )
-            }
-            ActivityDetailSummaryCard(
-                workout: workout,
-                processedWorkout: processedWorkout
+        VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
+            WorkoutRecordHeading(
+                title: sharedRecord?.item.recordTitle ?? sourceUnifiedWorkout?.displayTitle ?? workout.title,
+                date: sharedRecord?.item.activityDate ?? (sharedRecord == nil ? sourceUnifiedWorkout?.startDate : sharedRecord?.item.createdAt) ?? workout.date,
+                sport: sharedRecord?.item.recordSport ?? sourceUnifiedWorkout?.workoutType.shareDisplayName ?? workout.sport.title,
+                description: nil,
+                visibility: AccountActivityDetailFallbackPolicy.headerVisibility(sharedRecord?.item.activityProjection != nil ? nil : sharedRecord == nil ? (management == nil ? .privatePost : management?.visibility) : sharedRecord?.item.visibility.feedPostVisibility, profileOnlyContext: profileOnlyDetailPresentation),
+                sportType: sharedRecord?.item.recordWorkoutType ?? sourceUnifiedWorkout?.workoutType ?? workout.comparisonWorkoutType,
+                author: sharedRecord.map { $0.item.authorHandle ?? $0.item.authorName } ?? auth.session.currentUser?.displayName ?? "나",
+                authorID: sharedRecord == nil ? auth.session.currentUser?.id : sharedRecord?.item.authorId,
+                avatarPath: sharedRecord == nil ? auth.session.currentUser?.avatarPath : sharedRecord?.item.avatarPath,
+                device: sharedRecord == nil ? (sourceUnifiedWorkout?.deviceName ?? sourceUnifiedWorkout?.feedSourceLabel ?? workout.source) : sharedRecord?.item.deviceName,
+                location: sharedRecord?.item.activityProjection != nil ? "지역 정보 미표시" : FeedCardFormatting.region(sharedRecord == nil ? sourceUnifiedWorkout?.locationName : sharedRecord?.item.locationHint,
+                    hasRoute: sharedRecord?.hasRouteImage ?? ((mapRoute?.coordinates.count ?? 0) > 1))
             )
-            ActivityDetailRhythmCard(insight: rhythmInsight, tint: workout.sport.tint)
-
-            if let terrainInsight, terrainInsight.isVisible {
-                TerrainInsightCue(insight: terrainInsight, tint: workout.sport.tint)
-            }
-
-            WorkoutCompanionCard(
-                sourceTag: processedWorkout.display.sourceTitle,
-                companions: companions,
-                tint: workout.sport.tint,
-                canEditCompanions: companionUpdateAction != nil,
-                isUpdating: isUpdatingCompanions,
-                errorMessage: companionUpdateErrorMessage,
-                onTapEdit: { isCompanionSheetPresented = true }
-            )
-
-            detailSection(.core) {
-                if let sessionSummary {
-                    WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
+            if let sharedRecord {
+                WorkoutRecordMetricsCard(metrics: sharedRecord.presentationMetrics, compact: presentationStyle == .mapSheet)
+                if sharedRecord.item.activityProjection != nil {
+                    Text("공개된 운동 요약이에요. 사진·경로·측정 정보는 현재 공유 범위에서 표시되지 않을 수 있어요.")
+                        .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
                 }
-            }
-
-            detailSection(.growth) {
-                if let metrics = growthMetrics, !metrics.isEmpty {
-                    WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
-                }
-
-                if let growthSummary {
-                    WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
-                }
-
-                if ActivityDetailVisibilityPolicy.showsComparisonInsight(comparisonInsight),
-                   let comparisonInsight {
-                    WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
-                }
-
-                if let courseRecord {
-                    CourseRecordCard(record: courseRecord, tint: workout.sport.tint)
-                }
-
-                if let courseProgression {
-                    CourseProgressionCard(timeline: courseProgression, tint: workout.sport.tint)
-                }
-
-                if ActivityDetailVisibilityPolicy.showsSplitInsight(displayedSplitInsight),
-                   let displayedSplitInsight {
-                    WorkoutSplitInsightCard(insight: displayedSplitInsight, tint: workout.sport.tint)
-                }
-
-                if let climbInsight, climbInsight.isVisible {
-                    ClimbInsightCard(insight: climbInsight, tint: workout.sport.tint)
-                }
-            }
-
-            if showsSensorDataSection {
-                detailSection(.sensorData) {
-                    if ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: streamZoneSummaries) {
-                        WorkoutZoneSection(
-                            workout: workout,
-                            streamSummaries: streamZoneSummaries,
-                            isLoadingStream: isLoadingZoneSummaries,
-                            didFailLoadingStream: didFailLoadingZoneSummaries
-                        )
-                    }
-                    if ActivityDetailVisibilityPolicy.showsCharts(workout: effectiveWorkout) {
-                        WorkoutChartStack(workout: effectiveWorkout)
-                    }
-                    if ActivityDetailVisibilityPolicy.showsSplits(workout: effectiveWorkout) {
-                        WorkoutSplitsCard(workout: effectiveWorkout)
-                    }
-
-                    WorkoutDistanceChartCard(
-                        title: "파워",
-                        unitLabel: "W",
-                        samples: [],
-                        tint: workout.sport.tint,
-                        placeholderMessage: "파워 데이터가 있는 워크아웃에서 제공됩니다."
-                    )
-
-                    WorkoutDistanceChartCard(
-                        title: "심박수",
-                        unitLabel: "bpm",
-                        samples: heartRateChartSamples,
-                        tint: workout.sport.tint,
-                        placeholderMessage: heartRateChartSamples.isEmpty ? "Apple Health 연동 시 제공됩니다." : nil,
-                        stats: heartRateStats
-                    )
-
-                    if let heartRateInsightText {
-                        WorkoutInsightCueCard(
-                            icon: SOOMIcon.heart,
-                            eyebrow: "심박 흐름",
-                            message: heartRateInsightText,
-                            tint: workout.sport.tint,
-                            accessibilityLabel: "심박 흐름",
-                            accessibilityValue: heartRateInsightText
-                        )
-                    }
-
-                    WorkoutDistanceChartCard(
-                        title: "속도",
-                        unitLabel: "km/h",
-                        samples: speedChartSamples,
-                        tint: workout.sport.tint,
-                        showsInfoIcon: false,
-                        placeholderMessage: speedChartSamples.isEmpty ? "GPS 경로 데이터가 있는 워크아웃에서 제공됩니다." : nil,
-                        stats: speedStats
-                    )
-
-                    WorkoutDistanceChartCard(
-                        title: "케이던스",
-                        unitLabel: "rpm",
-                        samples: [],
-                        tint: workout.sport.tint,
-                        placeholderMessage: "케이던스 데이터가 있는 워크아웃에서 제공됩니다.",
-                        stats: cadenceStats
-                    )
-
-                    WorkoutDistanceChartCard(
-                        title: "고도",
-                        unitLabel: "m",
-                        samples: elevationChartSamples,
-                        tint: workout.sport.tint,
-                        placeholderMessage: elevationChartSamples.isEmpty ? "GPS 고도 데이터가 있는 워크아웃에서 제공됩니다." : nil,
-                        stats: elevationStats
-                    )
-                }
-            }
-
-            detailSection(.recovery) {
-                if let fitnessTrendOverride {
-                    FitnessTrendCard(trend: fitnessTrendOverride, tint: workout.sport.tint)
-                }
-
-                if let relativeEffortComparisonOverride {
-                    RelativeEffortCard(comparison: relativeEffortComparisonOverride)
-                }
-
-                if let recoveryImpact {
-                    WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
-                }
-
-                if let weaknessInsight {
-                    WorkoutWeaknessCard(insight: weaknessInsight, tint: workout.sport.tint)
-                }
-
-                SOOMCard {
-                    SOOMSectionHeader("AI 해석")
-                    Text(workout.aiSummary)
-                        .font(SOOMFont.body(15, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.secondaryInk)
+                if let caption = sharedRecord.item.caption, !caption.isEmpty {
+                    Text(caption).font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("AI 해석")
-                .accessibilityValue(workout.aiSummary)
-            }
-
-            ActivityDetailActionsCard(
-                canShareImage: shareableCard != nil,
-                isCreatingFeedDraft: isCreatingFeedDraft,
-                feedDraftMessage: feedDraftMessage,
-                feedDraftErrorMessage: feedDraftErrorMessage,
-                createFeedDraft: { await createFeedDraft() },
-                openImageShare: { isShareComposerPresented = true }
-            )
-        }
-        .sheet(isPresented: $isShareComposerPresented) {
-            if let shareableCard {
-                ShareCardComposer(
-                    baseCard: shareableCard,
-                    tint: SOOMColor.accent,
-                    renderShareImage: renderShareImage
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                if presentationStyle != .mapSheet {
+                WorkoutPhotoMediaRow(workoutID: nil, photos: sharedRecord.item.photos,
+                    hasRoute: false) { EmptyView() }
+                }
+                if let telemetry = sharedRecord.presentationTelemetry {
+                    detailSection(.sensorData) {
+                        WorkoutTelemetrySection(telemetry: telemetry, workout: sharedRecord.presentationWorkout,
+                            route: sharedRecord.route, sharedMeasurementOnly: true)
+                    }
+                }
             } else {
-                EmptyView()
+                if let sourceUnifiedWorkout {
+                    WorkoutRecordMetricsCard(metrics: ActivityWorkoutRow.metrics(sourceUnifiedWorkout)
+                        + [WorkoutCardMetric(label: "활동 칼로리", value: sourceUnifiedWorkout.activeEnergyKcal.map { "\(Int($0)) kcal" } ?? "—"),
+                           WorkoutCardMetric(label: "평균 파워", value: sourceUnifiedWorkout.averagePowerWatts.map { "\(Int($0)) W" } ?? "—")],
+                        compact: presentationStyle == .mapSheet)
+                } else {
+                    ActivityDetailSummaryCard(workout: workout, processedWorkout: processedWorkout)
+                }
+                if let description = sourceUnifiedWorkout?.recordDescription, !description.isEmpty {
+                    Text(description).font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                WorkoutEffortControl(workoutID: sourceUnifiedWorkout?.id ?? workout.id,
+                    directory: accountStorage.scopeDirectory, isDemo: ReviewDemoMode.isActive, workout: sourceUnifiedWorkout,
+                    canAccess: { [weak accountStorage, expectedScope = accountStorage.scopeID] in accountStorage?.scopeID == expectedScope })
+                    .id(accountStorage.scopeID + (sourceUnifiedWorkout?.id ?? workout.id).uuidString
+                        + String(sourceUnifiedWorkout?.averageHeartRate ?? 0)
+                        + String(sourceUnifiedWorkout?.durationSeconds ?? 0)
+                        + String(TrainingSettingsStore.shared.loadSettings().maxHeartRate ?? 0))
+                detailSection(.sensorData) {
+                    if let read = healthKitReadPresentation {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(read.message).font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                                .accessibilityIdentifier("detail.health.status")
+                            if read.isLoading { ProgressView("측정값 확인 중") }
+                            else if let retry = read.retry {
+                                Button("건강 측정값 다시 읽기") { Task { await retry() } }
+                                    .frame(minHeight: 44).accessibilityIdentifier("detail.health.retry")
+                            }
+                        }
+                    }
+                    WorkoutTelemetrySection(telemetry: detailTelemetry,
+                        workout: sourceUnifiedWorkout ?? unifiedWorkoutForDraft, route: mapRoute,
+                        showsHeartRateZones: telemetryOverride != nil || !ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: streamZoneSummaries))
+                    if telemetryOverride == nil {
+                        if ActivityDetailVisibilityPolicy.showsHeartRateEffort(workout: workout, streamSummaries: streamZoneSummaries) {
+                            WorkoutZoneSection(workout: workout, streamSummaries: streamZoneSummaries,
+                                isLoadingStream: isLoadingZoneSummaries, didFailLoadingStream: didFailLoadingZoneSummaries)
+                        }
+                        if ActivityDetailVisibilityPolicy.showsSplits(workout: effectiveWorkout) {
+                            WorkoutSplitsCard(workout: effectiveWorkout)
+                        }
+                    }
+                }
+
+                if let management, let error = management.sharingError {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(error).font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                        Button("공개 범위 다시 확인") { Task { await management.refreshSharing() } }.frame(minHeight: 44)
+                    }
+                }
+                if let notice = management?.notice {
+                    Text(notice).font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if presentationStyle == .standalone, let heroMapGeometry, RoutePrivacyMasker().mask(route: heroMapGeometry).coordinates.count > 1 {
+                    ActivityDetailHeroMap(workout: workout, route: heroMapGeometry, achievements: achievements, routeMissingReason: processedWorkout.routeMissingReason)
+                }
+                if presentationStyle == .standalone, let sourceUnifiedWorkout {
+                    WorkoutPhotoMediaRow(workoutID: sourceUnifiedWorkout.id, photos: [], hasRoute: false) {
+                        EmptyView()
+                    }
+                }
+                ForEach(achievements) { achievement in
+                    WorkoutAchievementCard(achievement: achievement, tint: workout.sport.tint)
+                }
+                if let achievementCountOverride, achievementCountOverride > 0 {
+                    WorkoutResultsCard(achievementCount: achievementCountOverride, tint: workout.sport.tint)
+                }
+                if processedWorkout.routeMissingReason.isActionableForRouteAttachment {
+                    ActivityDetailRouteMissingCard(
+                        reason: processedWorkout.routeMissingReason,
+                        tint: workout.sport.tint,
+                        showsImportAction: routeAttachmentAction != nil,
+                        isImporting: isAttachingRouteFile,
+                        message: routeAttachmentMessage,
+                        errorMessage: routeAttachmentErrorMessage,
+                        importAction: { isRouteFileImporterPresented = true }
+                    )
+                }
+                ActivityDetailRhythmCard(insight: rhythmInsight, tint: workout.sport.tint)
+
+                if let terrainInsight, terrainInsight.isVisible {
+                    TerrainInsightCue(insight: terrainInsight, tint: workout.sport.tint)
+                }
+
+                if !companions.isEmpty || companionUpdateAction != nil {
+                WorkoutCompanionCard(
+                    sourceTag: processedWorkout.display.sourceTitle,
+                    companions: companions,
+                    tint: workout.sport.tint,
+                    canEditCompanions: companionUpdateAction != nil,
+                    isUpdating: isUpdatingCompanions,
+                    errorMessage: companionUpdateErrorMessage,
+                    onTapEdit: { companionEditScope = accountStorage.scopeID; isCompanionSheetPresented = true }
+                )
+                }
+
+                detailSection(.core) {
+                    if let sessionSummary {
+                        WorkoutSessionSummaryCard(summary: sessionSummary, tint: workout.sport.tint)
+                    }
+                }
+
+                detailSection(.growth) {
+                    if let metrics = growthMetrics, !metrics.isEmpty {
+                        WorkoutGrowthMetricsCard(metrics: metrics, tint: workout.sport.tint)
+                    }
+
+                    if let growthSummary {
+                        WorkoutGrowthCard(summary: growthSummary, tint: workout.sport.tint)
+                    }
+
+                    if ActivityDetailVisibilityPolicy.showsComparisonInsight(comparisonInsight),
+                       let comparisonInsight {
+                        WorkoutComparisonInsightCard(insight: comparisonInsight, tint: workout.sport.tint)
+                    }
+
+                    if let courseRecord {
+                        CourseRecordCard(record: courseRecord, tint: workout.sport.tint)
+                    }
+
+                    if let courseProgression {
+                        CourseProgressionCard(timeline: courseProgression, tint: workout.sport.tint)
+                    }
+
+                    if ActivityDetailVisibilityPolicy.showsSplitInsight(displayedSplitInsight),
+                       let displayedSplitInsight {
+                        WorkoutSplitInsightCard(insight: displayedSplitInsight, tint: workout.sport.tint)
+                    }
+
+                    if let climbInsight, climbInsight.isVisible {
+                        ClimbInsightCard(insight: climbInsight, tint: workout.sport.tint)
+                    }
+                }
+
+                detailSection(.recovery) {
+                    if let fitnessTrendOverride {
+                        FitnessTrendCard(trend: fitnessTrendOverride, tint: workout.sport.tint)
+                    }
+
+                    if let relativeEffortComparisonOverride {
+                        RelativeEffortCard(comparison: relativeEffortComparisonOverride)
+                    }
+
+                    if let recoveryImpact {
+                        WorkoutRecoveryImpactCard(impact: recoveryImpact, tint: workout.sport.tint)
+                    }
+
+                    if let weaknessInsight {
+                        WorkoutWeaknessCard(insight: weaknessInsight, tint: workout.sport.tint)
+                    }
+
+                    WorkoutInsightDisclosure(title: "AI 해석", icon: "sparkles", summary: workout.aiSummary) {
+                        Text(workout.aiSummary).font(.body).foregroundStyle(SOOMColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                }
+
+
             }
+        }
+        .environment(\.workoutRevealContext, WorkoutRevealContext(store: visitStore ?? localPresentationStore,
+            workoutID: sourceUnifiedWorkout?.id ?? workout.id))
+        .onReceive(sharing?.actions.eraseToAnyPublisher() ?? Empty<WorkoutDetailShareActions.Action, Never>().eraseToAnyPublisher()) { action in
+            guard sharedRecord == nil, shareScopeID == accountStorage.scopeID else { return }
+            switch action {
+            case .feed:
+                // Ignore stale legacy events. Workout delivery is automatic;
+                // this detail surface must not reopen a manual publication flow.
+                break
+            case .image:
+                if let card = shareableCard { shareComposerPresentation = WorkoutShareCardPresentation(card: card) }
+            }
+        }
+        .sheet(item: $shareComposerPresentation) { presentation in
+            ShareCardComposer(
+                baseCard: presentation.card,
+                tint: SOOMColor.accent,
+                renderShareImage: renderShareImage
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .onChange(of: accountStorage.scopeID) { _, _ in
+            shareComposerPresentation = nil
+            isCompanionSheetPresented = false; companionEditScope = nil
+        }
+        .onChange(of: shareableCard?.imageSourceKey) { _, _ in shareComposerPresentation = nil }
+        .onAppear {
+            if shareScopeID == nil { shareScopeID = accountStorage.scopeID }
+        }
+        .task(id: workout.id) {
+            guard sharedRecord == nil else { return }
+            selectedFeedVisibility = accountStorage.defaultWorkoutAudience.shareableVisibility
         }
         .fileImporter(
             isPresented: $isRouteFileImporterPresented,
@@ -290,23 +339,39 @@ struct WorkoutDetailContent: View {
             WorkoutCompanionEditSheet(
                 initialNames: companions,
                 tint: workout.sport.tint,
+                canAccess: { companionEditScope == accountStorage.scopeID },
                 onSave: { names in await updateCompanions(names) }
             )
         }
         .task(id: healthKitWorkout?.uuid) {
+            guard sharedRecord == nil else { return }
             await loadStreamZoneSummaries()
             await loadStreamSplitInsight()
         }
     }
 
 
-    @ViewBuilder
+    private var detailTelemetry: WorkoutTelemetry {
+        if let telemetryOverride, !telemetryOverride.isEmpty { return telemetryOverride }
+        let start = (sourceUnifiedWorkout ?? unifiedWorkoutForDraft).startDate
+        var telemetry = WorkoutTelemetry(workoutID: workout.id, source: (sourceUnifiedWorkout ?? unifiedWorkoutForDraft).source)
+        telemetry.samples = effectiveWorkout.samples.compactMap { sample in
+            guard sample.minute.isFinite, sample.minute >= 0 else { return nil }
+            return WorkoutTelemetrySample(timestamp: start.addingTimeInterval(sample.minute * 60),
+                heartRateBPM: sample.heartRate.map(Double.init), powerWatts: sample.power.map(Double.init))
+        }
+        return telemetry
+    }
+
     private func detailSection<Content: View>(
         _ group: WorkoutDetailSectionGroup,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         WorkoutDetailSectionContainer(group: group, reduceMotion: reduceMotion) {
-            content()
+            if group == .growth {
+                WorkoutInsightDisclosure(title: group.title, icon: "chart.line.uptrend.xyaxis",
+                    summary: growthSummary?.shortSummary ?? "이 운동의 성장 지표와 이전 기록을 확인해요.") { content() }
+            } else { content() }
         }
     }
 
@@ -341,13 +406,15 @@ struct WorkoutDetailContent: View {
     }
 
     @MainActor
-    private func updateCompanions(_ names: [String]) async {
-        guard let companionUpdateAction else { return }
+    private func updateCompanions(_ names: [String]) async -> WorkoutCompanionUpdateResult {
+        guard let companionUpdateAction, companionEditScope == accountStorage.scopeID, !Task.isCancelled else { return .failure(.persistenceFailed) }
+        let scope = accountStorage.scopeID
 
         isUpdatingCompanions = true
         companionUpdateErrorMessage = nil
 
         let result = await companionUpdateAction.updateCompanions(names)
+        guard scope == accountStorage.scopeID, !Task.isCancelled else { isUpdatingCompanions = false; return .failure(.persistenceFailed) }
         switch result {
         case .success(let savedNames):
             companionNamesOverride = savedNames
@@ -357,6 +424,7 @@ struct WorkoutDetailContent: View {
         }
 
         isUpdatingCompanions = false
+        return result
     }
 
     @MainActor
@@ -369,17 +437,18 @@ struct WorkoutDetailContent: View {
         }
 
         isLoadingZoneSummaries = true
+        defer { isLoadingZoneSummaries = false }
         didFailLoadingZoneSummaries = false
 
         do {
             let summaries = try await zoneDataProvider.summaries(for: healthKitWorkout, sport: workout.sport)
+            try Task.checkCancellation()
             streamZoneSummaries = summaries.contains { $0.isAvailable } ? summaries : nil
+        } catch is CancellationError {
+            return // Dismissal is not a missing measurement or a failed read.
         } catch {
-            streamZoneSummaries = nil
             didFailLoadingZoneSummaries = true
         }
-
-        isLoadingZoneSummaries = false
     }
 
     @MainActor
@@ -390,12 +459,16 @@ struct WorkoutDetailContent: View {
         }
 
         do {
-            streamSplitInsight = try await splitDataProvider.insight(
+            let insight = try await splitDataProvider.insight(
                 for: healthKitWorkout,
                 current: workoutGrowthInput
             )
+            try Task.checkCancellation()
+            streamSplitInsight = insight
+        } catch is CancellationError {
+            return
         } catch {
-            streamSplitInsight = nil
+            // Preserve an already displayed result after a transient read error.
         }
     }
 
@@ -521,7 +594,7 @@ struct WorkoutDetailContent: View {
         WorkoutGrowthInput(
             id: workout.id,
             source: .soomLocal,
-            workoutType: UnifiedWorkoutType(workoutSport: workout.sport),
+            workoutType: workout.comparisonWorkoutType,
             startDate: workout.date,
             durationMinutes: Int(workout.duration / 60),
             distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
@@ -534,33 +607,144 @@ struct WorkoutDetailContent: View {
     }
 
     @MainActor
-    private func createFeedDraft() async {
-        guard !isCreatingFeedDraft else { return }
+    private func createFeedDraft() {
+        guard ImportedWorkoutPublication.usesLegacyPublication else { return }
+        // A preview cannot silently publish the original description instead of
+        // the edited draft, nor drop selected mention identities during a write.
+        if FeedMentionPicker.isPreviewEnabled {
+            feedDraftErrorMessage = "멘션 미리보기 모드에서는 게시하지 않습니다. 본문과 멘션을 함께 저장하는 서버 연결이 필요해요."
+            return
+        }
+        guard !isCreatingFeedDraft, let scope = shareScopeID,
+              scope == accountStorage.scopeID else { return }
 
+        // Capture the workout and its account-owned dependencies in the
+        // button callback, before an unstructured Task can be delayed.
+        let owner = accountStorage.userID
+        let store = FileFeedShareDraftStore.live
+        let workout = unifiedWorkoutForDraft
+        let visibility = selectedFeedVisibility
+        let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient()
+        let remotePoster: (any FeedRemotePostPosting)? = ReviewDemoMode.isActive
+            ? ReviewDemoCommunityStore.shared
+            : owner.flatMap { owner in
+                client.map { SupabaseFeedRemoteClient(client: $0, expectedPostingUserID: owner) }
+            }
+        let fallbackRoute = mapRoute
+        let validateShareContext: @MainActor () throws -> Void = {
+            guard accountStorage.scopeID == scope, accountStorage.userID == owner else {
+                throw CommunitySafetyError.accountChanged
+            }
+            if let client, client.auth.currentSession?.user.id != owner {
+                throw CommunitySafetyError.accountChanged
+            }
+            guard modelContext.container === accountStorage.container else { throw CommunitySafetyError.accountChanged }
+            if sourceUnifiedWorkout != nil {
+                let id = workout.id
+                guard try !modelContext.fetch(FetchDescriptor<UnifiedWorkoutRecord>(predicate: #Predicate { $0.id == id })).isEmpty else {
+                    throw WorkoutRecordManagementError.missingRecord
+                }
+            }
+        }
+        let rankingPublication = SocialRankingPublicationContext()
+        let automaticShare = UnifiedWorkoutAutomaticShare(context: modelContext, validate: validateShareContext,
+            makeSecondaryPrivate: { member in
+                guard owner != nil else { return }
+                let model = WorkoutRecordManagement(workout: member)
+                model.configure(context: modelContext, storage: accountStorage)
+                guard await model.setVisibility(.privatePost) else { throw WorkoutRecordManagementError.unavailable }
+            })
+        let coordinator = RecordShareDraftCoordinator(
+            store: store, remotePoster: remotePoster, visibilityProvider: { visibility },
+            validateContext: validateShareContext,
+            prepareWorkout: { workout in
+                guard sourceUnifiedWorkout != nil else { return workout }
+                try validateShareContext()
+                _ = await WorkoutRegionEnricher.resolveAndPersist(workoutID: workout.id,
+                    context: modelContext, scopeID: scope, isCurrent: {
+                        accountStorage.scopeID == scope && accountStorage.userID == owner
+                            && modelContext.container === accountStorage.container
+                    })
+                try validateShareContext()
+                let id = workout.id
+                guard let record = try modelContext.fetch(FetchDescriptor<UnifiedWorkoutRecord>(
+                    predicate: #Predicate { $0.id == id })).first else {
+                    throw WorkoutRecordManagementError.missingRecord
+                }
+                _ = record // Existence checked above; publish the unified snapshot, not this raw row.
+                let prepared = try await automaticShare.prepare(workoutID: workout.id)
+                if SocialRankingReleaseGate.productionReady {
+                    rankingPublication.intent = try automaticShare.rankingContribution(primaryID: prepared.id)
+                }
+                return prepared
+            },
+            prepareRemoteShare: { workout in
+                guard let owner, let client else { return }
+                try validateShareContext()
+                let storedRoute = try await WorkoutTelemetryStore(modelContext: modelContext).resolvedRoute(for: workout)
+                try validateShareContext()
+                let sharedRoute = storedRoute ?? (sourceUnifiedWorkout == nil ? fallbackRoute : nil)
+                let measurements = try WorkoutTelemetryStore(modelContext: modelContext).resolved(for: workout)
+                let sharedService = SupabaseWorkoutSharedDetailService(client: client)
+                let sharedEnabled = try await sharedService.enabled()
+                try await sharedService.prepare(workout: workout,
+                    route: sharedRoute, telemetry: measurements, ownerID: owner)
+                try validateShareContext()
+                if sharedEnabled { return }
+                guard let route = sharedRoute,
+                      route.workoutId == workout.id else { return }
+                let data = try await WorkoutRouteSnapshotRenderer().render(route: route, workoutType: workout.workoutType)
+                try validateShareContext()
+                guard let data else { return }
+                try await WorkoutPhotoService(client: client).uploadRoute(workout: workout, ownerID: owner, data: data)
+                try validateShareContext()
+            }
+        )
         isCreatingFeedDraft = true
         feedDraftMessage = nil
         feedDraftErrorMessage = nil
 
-        do {
-            let clientProvider = SupabaseClientProvider(environment: AuthEnvironmentLoader().load())
-            let remotePoster = clientProvider.makeClient().map(SupabaseFeedRemoteClient.init(client:))
-            let coordinator = RecordShareDraftCoordinator(store: FileFeedShareDraftStore.live, remotePoster: remotePoster)
-            let outcome = try await coordinator.handle(.shareToFeed, workout: unifiedWorkoutForDraft)
-            feedDraftMessage = outcome?.summaryMessage
-                ?? "이 기기에 저장했어요. 로그인하면 다른 사람도 볼 수 있어요."
-        } catch {
-            feedDraftErrorMessage = "피드 초안을 만들지 못했어요. 잠시 후 다시 시도해주세요."
+        Task { @MainActor in
+            do {
+                var outcome = try await coordinator.handle(.shareToFeed, workout: workout)
+                guard scope == accountStorage.scopeID else { return }
+                feedDraftMessage = outcome?.summaryMessage
+                    ?? "온라인에 게시되지 않았어요. 이 기기에 공유 초안으로 저장했어요."
+                // Posting is already confirmed. Registration is isolated and never
+                // enters the posting retry/local-draft fallback path.
+                if outcome?.postedRemotely == true, outcome?.visibility == .publicFeed,
+                   SocialRankingReleaseGate.productionReady, let intent = rankingPublication.intent,
+                   let owner, let client {
+                    let safety = CommunitySafetyStore.shared
+                    let result = await SocialRankingContributionClient(client: client, viewer: owner,
+                        generation: safety.accountGeneration, safetyRevision: safety.revision)
+                        .registerPublished(intent, store: SocialRankingRetryStore(directory: accountStorage.scopeDirectory, ownerID: owner))
+                    guard scope == accountStorage.scopeID, accountStorage.userID == owner else { return }
+                    outcome?.rankingRegistrationPending = result != .registered
+                }
+                if let confirmed = outcome, confirmed.postedRemotely {
+                    outcome?.finalizeConfirmedPublication {
+                        try automaticShare.complete(primaryID: confirmed.draft.sourceWorkoutId)
+                    }
+                    await management?.refreshSharing()
+                }
+                if let outcome { feedDraftMessage = outcome.summaryMessage }
+                NotificationCenter.default.post(name: WorkoutRecordManagement.didChange, object: owner)
+            } catch {
+                guard scope == accountStorage.scopeID else { return }
+                feedDraftErrorMessage = (error as? RecordSharePublicationError)?.message ?? CommunitySafetyError.message(for: error)
+            }
+            isCreatingFeedDraft = false
         }
-
-        isCreatingFeedDraft = false
     }
 
     private var unifiedWorkoutForDraft: UnifiedWorkout {
-        UnifiedWorkout(
+        if let sourceUnifiedWorkout { return sourceUnifiedWorkout }
+        return UnifiedWorkout(
             id: workout.id,
             externalId: "workout-detail-\(workout.id.uuidString)",
             source: .soomLocal,
-            workoutType: UnifiedWorkoutType(workoutSport: workout.sport),
+            workoutType: workout.comparisonWorkoutType,
             startDate: workout.date,
             endDate: workout.date.addingTimeInterval(workout.duration),
             durationSeconds: workout.duration,
@@ -592,7 +776,7 @@ struct DetailHeader: View {
     var body: some View {
         SOOMCard {
             HStack(spacing: SOOMLayout.Metrics.detailHeaderSpacing) {
-                Image(systemName: icon)
+                Image(soom: icon)
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.Metrics.detailIconFrame, height: SOOMLayout.Metrics.detailIconFrame)
@@ -642,7 +826,7 @@ private struct ActivityDetailHeroMap: View {
 
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 Text("오늘의 경로")
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white.opacity(0.86))
 
                 Text(route == nil ? "경로가 없어도 운동의 흐름은 남아 있어요." : "움직인 길을 먼저 보고, 의미를 천천히 읽어요.")
@@ -681,7 +865,7 @@ private struct ActivityDetailRouteMissingCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
-                Image(systemName: SOOMIcon.map)
+                Image(soom: SOOMIcon.map)
                     .font(.system(size: SOOMFont.Size.body, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: 32, height: 32)
@@ -691,7 +875,7 @@ private struct ActivityDetailRouteMissingCard: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("경로 데이터 없음")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(tint)
 
                     Text(fallbackMessage)
@@ -700,13 +884,13 @@ private struct ActivityDetailRouteMissingCard: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text("원본 앱에서 GPX 또는 FIT 파일을 내보내면 이 운동에 경로를 추가할 수 있습니다.")
-                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if showsImportAction {
                         Button(action: importAction) {
-                            Label(isImporting ? "경로 추가 중" : "경로 파일 가져오기", systemImage: SOOMIcon.share)
+                            Label(isImporting ? "경로 추가 중" : "경로 파일 가져오기", soomIcon: SOOMIcon.share)
                                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                                 .foregroundStyle(SOOMColor.white)
                                 .frame(maxWidth: .infinity)
@@ -751,7 +935,7 @@ private struct ActivityDetailRouteMissingCard: View {
 
     private func statusMessage(_ text: String, tint: Color) -> some View {
         Text(text)
-            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+            .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
             .foregroundStyle(tint)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SOOMLayout.Metrics.actionTextSpacing)
@@ -769,8 +953,7 @@ private struct ActivityDetailSummaryCard: View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
                 HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowTextSpacing) {
-                    Image(systemName: workout.sport.iconName)
-                        .font(.title3.weight(.semibold))
+                    SOOMSportIconView(name: workout.sport.iconName, size: 21)
                         .foregroundStyle(workout.sport.tint)
                         .frame(width: 36, height: 36)
                         .background(workout.sport.tint.opacity(0.12))
@@ -855,41 +1038,25 @@ private struct ActivityDetailRhythmCard: View {
 
 private struct ActivityDetailActionsCard: View {
     let canShareImage: Bool
+    @Binding var selectedVisibility: ShareableWorkoutVisibility
     let isCreatingFeedDraft: Bool
     let feedDraftMessage: String?
     let feedDraftErrorMessage: String?
-    let createFeedDraft: () async -> Void
+    let createFeedDraft: () -> Void
     let openImageShare: () -> Void
 
     var body: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
-                SOOMSectionHeader("액션", caption: "운동 해석은 그대로 두고, 공유는 필요할 때만 열어요.")
+                SOOMSectionHeader("공유")
 
-                HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                    statusPill("저장됨", icon: SOOMIcon.checkCircle)
-                    statusPill("수정 준비 중", icon: SOOMIcon.edit)
-                    statusPill("삭제 준비 중", icon: SOOMIcon.trash)
-                }
-
-                Button {
-                    Task { await createFeedDraft() }
-                } label: {
-                    Label(isCreatingFeedDraft ? "피드 초안 만드는 중" : "피드에 공유하기", systemImage: SOOMIcon.feed)
-                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, SOOMLayout.Card.padding)
-                        .background(SOOMColor.ink)
-                        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(isCreatingFeedDraft)
-                .accessibilityHint("공개하지 않고 로컬 피드 초안으로 저장합니다.")
+                Text(ProfileOnlyPrivacyReleaseGate.productionReady ? "운동 요약은 자동으로 반영돼요. 공개·비공개는 프로필에서만 선택하며, 비공개 프로필의 운동은 서로 팔로우한 사람만 볼 수 있어요." : "운동은 본인 피드에 자동으로 표시돼요. 공개·비공개는 계정 설정에서 관리하며, 비공개 계정은 승인된 팔로워만 볼 수 있어요. 기존 기록의 공유 범위는 전환 확인 전 유지돼요.")
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
+                    .foregroundStyle(SOOMColor.secondaryInk)
 
                 if canShareImage {
                     Button(action: openImageShare) {
-                        Label("이미지로 공유하기", systemImage: SOOMIcon.share)
+                        Label("이미지로 공유하기", soomIcon: SOOMIcon.share)
                             .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                             .foregroundStyle(SOOMColor.ink)
                             .frame(maxWidth: .infinity)
@@ -902,7 +1069,7 @@ private struct ActivityDetailActionsCard: View {
                 }
 
                 Text("회복 점수와 개인 코칭 문장은 피드 초안에 포함하지 않아요.")
-                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -919,7 +1086,7 @@ private struct ActivityDetailActionsCard: View {
     }
 
     private func statusPill(_ title: String, icon: String) -> some View {
-        Label(title, systemImage: icon)
+        Label(title, soomIcon: icon)
             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
             .foregroundStyle(SOOMColor.secondaryInk)
             .padding(.horizontal, SOOMLayout.Metrics.pillPadding)
@@ -930,12 +1097,59 @@ private struct ActivityDetailActionsCard: View {
 
     private func statusMessage(_ text: String, tint: Color) -> some View {
         Text(text)
-            .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+            .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
             .foregroundStyle(tint)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SOOMLayout.Metrics.actionTextSpacing)
             .background(tint.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
+    }
+}
+
+/// The sheet receives its content and identity together, including first presentation.
+struct WorkoutShareCardPresentation: Identifiable {
+    let id = UUID()
+    let card: ShareableWorkoutCardModel
+}
+
+struct WorkoutShareImagePresentation: Identifiable {
+    let id = UUID()
+    let image: UIImage
+
+    init?(image: UIImage?) {
+        guard let image, image.size.width.isFinite, image.size.height.isFinite,
+              image.size.width > 0, image.size.height > 0,
+              let pixels = image.cgImage, pixels.width > 0, pixels.height > 0 else { return nil }
+        self.image = image
+    }
+}
+
+@MainActor
+final class WorkoutShareImagePreparation: ObservableObject {
+    @Published private(set) var isPreparing = false
+    @Published var errorMessage: String?
+    private var generation = UUID()
+
+    func prepare(render: @MainActor () async -> UIImage?) async -> WorkoutShareImagePresentation? {
+        // A repeated tap does not turn an in-flight render into a failure alert.
+        guard !isPreparing else { return nil }
+        let request = generation
+        isPreparing = true
+        errorMessage = nil
+        defer { if request == generation { isPreparing = false } }
+        let image = await render()
+        guard request == generation, !Task.isCancelled else { return nil }
+        guard let payload = WorkoutShareImagePresentation(image: image) else {
+            errorMessage = "공유 카드 이미지를 만들 수 없어요. 닫고 다시 시도해 주세요."
+            return nil
+        }
+        return payload
+    }
+
+    func cancel() {
+        generation = UUID()
+        isPreparing = false
+        errorMessage = nil
     }
 }
 
@@ -947,15 +1161,15 @@ private struct ShareCardComposer: View {
     let renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage?
 
     @State private var selectedCardIndex = 0
-    @State private var shareImage: UIImage?
-    @State private var isShareSheetPresented = false
-    @State private var isRenderingShareImage = false
-    @State private var shareErrorMessage: String?
+    @State private var sharePresentation: WorkoutShareImagePresentation?
+    @StateObject private var imagePreparation = WorkoutShareImagePreparation()
     @State private var shareTargetMessage: String?
     @State private var pendingSaveCard: ShareableWorkoutCardModel?
 
+    private var cardTypes: [ShareCardType] { ShareCardComposerLayout.availableCardTypes(for: baseCard) }
+
     private var selectedType: ShareCardType {
-        ShareCardComposerLayout.cardType(at: selectedCardIndex)
+        cardTypes.indices.contains(selectedCardIndex) ? cardTypes[selectedCardIndex] : .workout
     }
 
     private var configuredCard: ShareableWorkoutCardModel {
@@ -979,6 +1193,11 @@ private struct ShareCardComposer: View {
                         message: shareTargetMessage,
                         handle: { target in handleShareTarget(target, card: configuredCard) }
                     )
+                    .disabled(imagePreparation.isPreparing)
+                    if imagePreparation.isPreparing {
+                        ProgressView("공유 이미지 준비 중")
+                            .accessibilityIdentifier("share.image.preparing")
+                    }
                 }
                 .padding(.horizontal, SOOMLayout.screenPadding)
                 .padding(.top, SOOMLayout.stackSpacing)
@@ -992,7 +1211,7 @@ private struct ShareCardComposer: View {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
+                        Image(soom: "xmark")
                             .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                             .foregroundStyle(SOOMColor.ink)
                     }
@@ -1000,25 +1219,27 @@ private struct ShareCardComposer: View {
                 }
             }
         }
-        .sheet(isPresented: $isShareSheetPresented) {
-            if let shareImage {
-                WorkoutShareSheet(activityItems: [shareImage])
-            }
+        .sheet(item: $sharePresentation) { presentation in
+            WorkoutShareSheet(activityItems: [presentation.image])
+        }
+        .onDisappear { imagePreparation.cancel() }
+        .onChange(of: selectedCardIndex) { _, _ in
+            imagePreparation.cancel(); sharePresentation = nil; pendingSaveCard = nil
         }
         .alert(
             "공유 카드를 만들지 못했어요",
             isPresented: Binding(
-                get: { shareErrorMessage != nil },
+                get: { imagePreparation.errorMessage != nil },
                 set: { isPresented in
                     if !isPresented {
-                        shareErrorMessage = nil
+                        imagePreparation.errorMessage = nil
                     }
                 }
             )
         ) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text(shareErrorMessage ?? "잠시 후 다시 시도해주세요.")
+            Text(imagePreparation.errorMessage ?? "잠시 후 다시 시도해주세요.")
         }
         .alert(
             "이미지를 저장할까요?",
@@ -1045,46 +1266,31 @@ private struct ShareCardComposer: View {
     }
 
     @MainActor
-    private func renderImage(for card: ShareableWorkoutCardModel) async -> UIImage? {
-        guard !isRenderingShareImage else { return nil }
-
-        isRenderingShareImage = true
-        let preparedImage = await ShareableWorkoutCardRenderer().renderPrepared(card: card, tint: tint)
-        let image = preparedImage ?? renderShareImage(card, tint)
-        isRenderingShareImage = false
-        return image
+    private func prepareImage(for card: ShareableWorkoutCardModel) async -> WorkoutShareImagePresentation? {
+        guard card.id == baseCard.id, card.canExportShareImage else { return nil }
+        return await imagePreparation.prepare {
+            let prepared = await ShareableWorkoutCardRenderer().renderPrepared(card: card, tint: tint)
+            return prepared ?? renderShareImage(card, tint)
+        }
     }
 
     @MainActor
     private func share(_ card: ShareableWorkoutCardModel) {
         Task {
-            let image = await renderImage(for: card)
-
-            guard let image else {
-                shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
-                return
-            }
-
-            shareImage = image
-            isShareSheetPresented = true
+            guard let presentation = await prepareImage(for: card) else { return }
+            sharePresentation = presentation
         }
     }
 
     @MainActor
     private func saveImage(_ card: ShareableWorkoutCardModel) {
         Task {
-            let image = await renderImage(for: card)
-
-            guard let image else {
-                shareErrorMessage = "공유 카드 이미지를 만들 수 없어요."
-                return
-            }
-
+            guard let presentation = await prepareImage(for: card) else { return }
             do {
-                try await ShareImagePhotoSaver.save(image)
+                try await ShareImagePhotoSaver.save(presentation.image)
                 shareTargetMessage = nil
             } catch {
-                shareErrorMessage = "이미지를 사진 앱에 저장하지 못했어요. 사진 접근 권한을 확인해주세요."
+                imagePreparation.errorMessage = "이미지를 사진 앱에 저장하지 못했어요. 사진 접근 권한을 확인해주세요."
             }
         }
     }
@@ -1110,20 +1316,23 @@ private struct ShareCardCarousel: View {
     @Binding var selectedIndex: Int
     let tint: Color
 
+    private var cardTypes: [ShareCardType] { ShareCardComposerLayout.availableCardTypes(for: baseCard) }
+
     private var selectedType: ShareCardType {
-        ShareCardComposerLayout.cardType(at: selectedIndex)
+        cardTypes.indices.contains(selectedIndex) ? cardTypes[selectedIndex] : .workout
     }
 
     var body: some View {
         VStack(spacing: SOOMLayout.stackSpacing) {
             VStack(spacing: SOOMLayout.SectionHeader.spacing) {
-                Text("\(selectedType.cardTitle) · \(selectedIndex + 1) / \(ShareCardComposerLayout.cardOrder.count)")
+                Text("\(selectedType.cardTitle) · \(selectedIndex + 1) / \(cardTypes.count)")
                     .font(SOOMFont.displayMedium(18, relativeTo: .headline))
                     .foregroundStyle(SOOMColor.ink)
                     .lineLimit(1)
+                    .accessibilityIdentifier("share.card.selection")
 
                 Text(WorkoutDetailContent.sharePrivacyCopy)
-                    .font(SOOMFont.body(12, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1131,7 +1340,7 @@ private struct ShareCardCarousel: View {
             .frame(maxWidth: .infinity)
 
             TabView(selection: $selectedIndex) {
-                ForEach(Array(ShareCardComposerLayout.cardOrder.enumerated()), id: \.offset) { index, type in
+                ForEach(Array(cardTypes.enumerated()), id: \.offset) { index, type in
                     ShareCardCarouselPreview(
                         card: configuredCard(for: type),
                         tint: tint
@@ -1145,6 +1354,7 @@ private struct ShareCardCarousel: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .accessibilityIdentifier("share.card.carousel")
             .frame(
                 width: ShareComposerCarouselMetrics.previewWidth,
                 height: ShareComposerCarouselMetrics.previewViewportHeight
@@ -1152,7 +1362,7 @@ private struct ShareCardCarousel: View {
             .clipped()
 
             HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                ForEach(ShareCardComposerLayout.cardOrder.indices, id: \.self) { index in
+                ForEach(cardTypes.indices, id: \.self) { index in
                     Capsule()
                         .fill(index == selectedIndex ? SOOMColor.accent : SOOMColor.line)
                         .frame(
@@ -1294,7 +1504,7 @@ private struct ShareTargetGrid: View {
                         Button {
                             handle(target)
                         } label: {
-                            Label(target.title, systemImage: target.icon)
+                            Label(target.title, soomIcon: target.icon)
                                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                                 .foregroundStyle(SOOMColor.ink)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1308,7 +1518,7 @@ private struct ShareTargetGrid: View {
 
                 if let message {
                     Text(message)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -1473,7 +1683,7 @@ enum ActivityDetailSummaryMetrics {
             id: workout.id,
             externalId: "workout-detail-\(workout.id.uuidString)",
             source: .soomLocal,
-            workoutType: UnifiedWorkoutType(workoutSport: workout.sport),
+            workoutType: workout.comparisonWorkoutType,
             startDate: workout.date,
             endDate: workout.date.addingTimeInterval(workout.duration),
             durationSeconds: workout.duration,
@@ -1502,10 +1712,11 @@ private struct WorkoutDetailSectionContainer<Content: View>: View {
     let reduceMotion: Bool
     @ViewBuilder let content: Content
     @State private var didAppear = false
+    @Environment(\.workoutRevealContext) private var revealContext
 
     var body: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.WorkoutDetail.groupContentSpacing) {
-            header
+            if group != .growth { header }
             content
         }
         .padding(.top, SOOMLayout.WorkoutDetail.groupTopPadding)
@@ -1513,7 +1724,10 @@ private struct WorkoutDetailSectionContainer<Content: View>: View {
         .offset(y: shouldAnimate ? (didAppear ? 0 : SOOMMotion.Offset.subtleRevealY) : 0)
         .animation(SOOMMotion.normalEaseOut.delay(Double(group.priority) * 0.03), value: didAppear)
         .onAppear {
-            didAppear = true
+            let first = revealContext?.claim("sections.\(group.priority)") ?? !didAppear
+            var transaction = Transaction()
+            transaction.disablesAnimations = !first || reduceMotion
+            withTransaction(transaction) { didAppear = true }
         }
         .accessibilityElement(children: .contain)
     }
@@ -1525,12 +1739,12 @@ private struct WorkoutDetailSectionContainer<Content: View>: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.WorkoutDetail.groupHeaderSpacing) {
             Text(group.title)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.ink)
                 .textCase(.none)
 
             Text(group.caption)
-                .font(SOOMFont.body(12, relativeTo: .caption))
+                .font(SOOMFont.body(14, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.tertiaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1551,5 +1765,122 @@ private extension UnifiedWorkoutType {
         case .run:
             self = .running
         }
+    }
+}
+
+/// Query evidence in the currently scoped ModelContext; no HealthKit/server reads or writes.
+struct WorkoutSourceEvidenceView: View {
+    let workoutID: UUID
+    var compact = false
+    @Query private var records: [UnifiedWorkoutRecord]
+    @Query private var storedRoutes: [PersistedWorkoutRoute]
+    init(workoutID: UUID, date: Date, compact: Bool = false) {
+        self.workoutID = workoutID; self.compact = compact
+        let lower = date.addingTimeInterval(-86_400), upper = date.addingTimeInterval(86_400)
+        _records = Query(filter: #Predicate<UnifiedWorkoutRecord> { $0.startDate >= lower && $0.startDate <= upper })
+        if compact {
+            let emptyID = UUID()
+            _storedRoutes = Query(filter: #Predicate<PersistedWorkoutRoute> { $0.workoutId == emptyID })
+        }
+    }
+    private var evidence: UnifiedWorkoutProvenance? {
+        let originals = records.map { UnifiedWorkoutPersistenceMapper().makeWorkout(from: $0) }
+        guard let group = UnifiedWorkoutDeduplicationEngine().canonicalGroups(originals)
+            .first(where: { $0.sourceWorkouts.contains { $0.id == workoutID } }) else { return nil }
+        return UnifiedWorkoutProvenance(group: group)
+    }
+    private func overlappingSources(_ evidence: UnifiedWorkoutProvenance) -> [UnifiedWorkout] {
+        let ids = Set(evidence.group.sourceWorkouts.map(\.id))
+        return records.map { UnifiedWorkoutPersistenceMapper().makeWorkout(from: $0) }.filter { original in
+            !ids.contains(original.id) && evidence.group.sourceWorkouts.contains {
+                UnifiedWorkoutDeduplicationEngine().compare($0, original) != nil
+            }
+        }
+    }
+    var body: some View {
+        if let evidence {
+            let overlaps = overlappingSources(evidence)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(evidence.orderedSources.map(\.recordingSourceLabel).joined(separator: " + "))
+                    .font(.caption.weight(.semibold))
+                Text(evidence.status).font(.caption).foregroundStyle(.secondary)
+                if !overlaps.isEmpty {
+                    Text("겹치는 다른 원본 \(overlaps.count)건 · 합치기 확인 전: " + overlaps.map(\.recordingSourceLabel).joined(separator: ", "))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !compact {
+                    Text("원본을 삭제하거나 덮어쓰지 않습니다. 피드 한 건은 두 기기 수집 완료의 증거가 아닙니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    sourceRow("거리", source: evidence.source(for: \.distanceMeters))
+                    sourceRow("시간", source: evidence.group.workout)
+                    sourceRow("평균 심박", source: evidence.source(for: \.averageHeartRate))
+                    sourceRow("최대 심박", source: evidence.source(for: \.maxHeartRate))
+                    sourceRow("칼로리", source: evidence.source(for: \.activeEnergyKcal))
+                    // Inspect persisted GPS, not routeMissingReason (which may predate route fetch).
+                    let routeSource = (evidence.isConfirmed ? evidence.orderedSources : [evidence.group.workout]).first { original in
+                        guard let record = storedRoutes.first(where: { route in
+                            route.workoutId == original.id || (original.source == .appleHealthKit && route.workoutId.uuidString == original.externalId)
+                        }) else { return false }
+                        let route = WorkoutRouteMapper().makeRoute(from: record)
+                        return route.coordinates.filter { point in
+                            guard let time = point.timestamp else { return true }
+                            return time >= evidence.group.workout.startDate && time <= evidence.group.workout.endDate
+                        }.count > 1
+                    }
+                    sourceRow("GPS 경로", source: routeSource)
+                    let streamSources = (evidence.isConfirmed ? evidence.orderedSources : [evidence.group.workout]).filter { original in
+                        guard let data = records.first(where: { $0.id == original.id })?.telemetryData,
+                              let stream = try? JSONDecoder().decode(WorkoutTelemetry.self, from: data) else { return false }
+                        return stream.validated(for: original).samples.contains { $0.heartRateBPM != nil }
+                    }
+                    Text("심박 시계열 수집: " + (streamSources.isEmpty ? "미수집" : streamSources.map(\.recordingSourceLabel).joined(separator: ", ")))
+                        .font(.footnote)
+                    Text("속도·페이스는 선택된 거리와 시간에서 계산합니다. 심박 요약 보완은 전체 시계열의 수집 완료를 뜻하지 않습니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    DisclosureGroup("보관된 원본 ID·측정값") {
+                        ForEach(evidence.orderedSources) { original in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(original.recordingSourceLabel)
+                                Text("SOOM ID: \(original.id.uuidString)")
+                                Text("원본 ID: \(original.externalId ?? "없음")")
+                                Text("\(FeedCardFormatting.distance(original.distanceMeters)) · \(FeedCardFormatting.duration(original.durationSeconds)) · 심박 \(original.averageHeartRate.map { String(format: "%.0f bpm", $0) } ?? "미수집")")
+                            }.font(.caption).textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+            .accessibilityElement(children: compact ? .combine : .contain)
+            .accessibilityIdentifier(compact ? "workout.source.badge" : "workout.source.evidence")
+        }
+    }
+    private func sourceRow(_ label: String, source: UnifiedWorkout?) -> some View {
+        Text("\(label): \(source?.recordingSourceLabel ?? "미수집")")
+            .font(.footnote).accessibilityIdentifier("workout.source.\(label)")
+    }
+}
+
+/// Compact interpretation with an explicit, accessible expansion control.
+struct WorkoutInsightDisclosure<Content: View>: View {
+    let title: String
+    let icon: String
+    let summary: String
+    @ViewBuilder let content: () -> Content
+    @State private var expanded = false
+    private var shortSummary: String {
+        let paragraph = summary.components(separatedBy: "\n").first ?? summary
+        let first = paragraph.components(separatedBy: ". ").first ?? paragraph
+        return first.count > 120 ? String(first.prefix(117)) + "…" : first
+    }
+    var body: some View {
+        SOOMCard {
+            Label(title, systemImage: icon).font(.headline)
+            Text(shortSummary).font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if expanded { content() }
+            Button(expanded ? "접기" : "자세히 보기") { expanded.toggle() }
+                .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+                .accessibilityLabel(title + (expanded ? " 접기" : " 자세히 보기"))
+                .accessibilityValue(expanded ? "펼쳐짐" : "접힘")
+        }.accessibilityElement(children: .contain)
     }
 }

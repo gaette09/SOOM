@@ -4,11 +4,14 @@ import UIKit
 
 struct AnalysisView: View {
     @EnvironmentObject private var dashboardViewModel: DashboardViewModel
+    @EnvironmentObject private var auth: AuthViewModel
     @StateObject private var analysisViewModel: AnalysisViewModel
     private let renderWeeklyShareImage: @MainActor (ShareableWeeklyProgressCardModel) -> UIImage?
     @State private var weeklyShareImage: UIImage?
     @State private var isWeeklyShareSheetPresented = false
     @State private var weeklyShareErrorMessage: String?
+    @State private var isManualWorkoutPresented = false
+    @State private var selectedWorkout: Workout?
 
     static let weeklySharePrivacyCopy = "이번 주 성장 흐름을 9:16 이미지로 저장해요. 위치, 심박, 회복 점수는 기본으로 제외됩니다."
 
@@ -27,10 +30,23 @@ struct AnalysisView: View {
 
     var body: some View {
         SOOMScreen {
-            Text("분석")
-                .font(SOOMFont.display(38, relativeTo: .largeTitle))
-                .foregroundStyle(SOOMColor.ink)
+            HStack {
+                Text("분석")
+                    .font(SOOMFont.display(38, relativeTo: .largeTitle))
+                    .foregroundStyle(SOOMColor.ink)
+                Spacer()
+                Button { isManualWorkoutPresented = true } label: {
+                    Label("직접 입력", soomIcon: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("analysis.manualWorkout")
+            }
 
+            if analysisViewModel.isLoading && !analysisViewModel.hasLoaded {
+                SOOMSkeleton(layout: .summary, label: "주간 운동 분석 중")
+                SOOMSkeleton(layout: .chart, label: "운동 흐름 불러오는 중")
+            } else {
             WeeklyWorkoutProgressCard(
                 progress: analysisViewModel.progress,
                 tint: SOOMColor.accent
@@ -52,6 +68,8 @@ struct AnalysisView: View {
                 records: analysisViewModel.personalRecords,
                 tint: SOOMColor.warning
             )
+
+            }
 
             SOOMCard {
                 SOOMSectionHeader("지난 한 달 변화", caption: "종목별 볼륨과 강도 흐름")
@@ -91,14 +109,23 @@ struct AnalysisView: View {
                 Text("분석할 운동")
                     .font(SOOMFont.displayMedium(17, relativeTo: .headline))
                 ForEach(dashboardViewModel.workouts) { workout in
-                    NavigationLink {
-                        WorkoutDeepDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
-                    } label: {
-                        SOOMCard {
-                            SOOMActionRow(icon: workout.sport.iconName, title: workout.title, subtitle: "\(workout.formattedDistance) · \(workout.formattedPace)", tint: workout.sport.tint)
+                    VStack(spacing: 0) {
+                        WorkoutRecordCard(title: workout.title, description: nil, date: workout.date,
+                            sport: workout.comparisonWorkoutType, author: auth.session.currentUser?.displayName ?? "나",
+                            authorID: auth.session.currentUser?.id, avatarPath: auth.session.currentUser?.avatarPath,
+                            device: workout.source,
+                            location: FeedCardFormatting.region(nil, hasRoute: workout.route.count > 1),
+                            metrics: Self.legacyCardMetrics(workout),
+                            route: WorkoutMapSheetRouteContext.route(for: workout, override: nil),
+                            onOpen: {
+                                SOOMHaptics.selection()
+                                selectedWorkout = workout
+                            }) {
+                                EmptyView()
                         }
+                        Rectangle().fill(SOOMColor.surfaceMuted).frame(height: 6)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, -SOOMLayout.screenPadding)
                 }
             }
         }
@@ -108,6 +135,11 @@ struct AnalysisView: View {
         .sheet(isPresented: $isWeeklyShareSheetPresented) {
             if let weeklyShareImage {
                 WorkoutShareSheet(activityItems: [weeklyShareImage])
+            }
+        }
+        .sheet(isPresented: $isManualWorkoutPresented) {
+            ManualWorkoutEntryView { _ in
+                Task { await analysisViewModel.load(fallbackWorkouts: dashboardViewModel.workouts) }
             }
         }
         .alert(
@@ -127,6 +159,23 @@ struct AnalysisView: View {
         }
         .navigationTitle("분석")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: Binding(
+            get: { selectedWorkout != nil },
+            set: { if !$0 { selectedWorkout = nil } }
+        )) {
+            if let selectedWorkout {
+                WorkoutDeepDetailView(workout: selectedWorkout, comparisonWorkouts: dashboardViewModel.workouts)
+            }
+        }
+    }
+
+    /// Legacy records keep their own identity and detail route; only display values are adapted.
+    static func legacyCardMetrics(_ workout: Workout) -> [WorkoutCardMetric] {
+        let sport = workout.comparisonWorkoutType
+        return [WorkoutCardMetric(label: "거리", value: FeedCardFormatting.distance(workout.distanceMeters)),
+                WorkoutCardMetric(label: FeedCardFormatting.movementLabel(sport),
+                    value: FeedCardFormatting.movement(sport: sport, distance: workout.distanceMeters, seconds: workout.duration) ?? "—"),
+                WorkoutCardMetric(label: "총 시간", value: FeedCardFormatting.duration(workout.duration))]
     }
 
     private var weeklySharePreview: some View {
@@ -149,7 +198,7 @@ struct AnalysisView: View {
             Button {
                 shareWeeklyProgress(card)
             } label: {
-                Label("주간 카드 공유하기", systemImage: SOOMIcon.share)
+                Label("주간 카드 공유하기", soomIcon: SOOMIcon.share)
                     .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)

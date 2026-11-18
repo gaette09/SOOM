@@ -23,7 +23,7 @@ struct WeeklyCoachSummaryCard: View {
                     .overlay(SOOMColor.line)
 
                 HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                    Image(systemName: SOOMIcon.sparkles)
+                    Image(soom: SOOMIcon.sparkles)
                         .font(.system(size: SOOMFont.Size.subheadline, weight: .semibold))
                         .foregroundStyle(SOOMColor.orange)
                         .accessibilityHidden(true)
@@ -42,7 +42,7 @@ struct WeeklyCoachSummaryCard: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: summary.trendDirection.icon)
+            Image(soom: summary.trendDirection.icon)
                 .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .bold))
                 .foregroundStyle(trendTint)
                 .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

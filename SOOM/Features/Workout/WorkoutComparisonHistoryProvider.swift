@@ -24,7 +24,7 @@ struct SwiftDataWorkoutComparisonHistoryProvider: WorkoutComparisonHistoryProvid
     func comparisonWorkouts(excluding workoutId: UUID) async -> [Workout] {
         let workouts: [UnifiedWorkout]
         do {
-            workouts = try await store.fetchRecentWorkouts(days: lookbackDays)
+            workouts = try await store.fetchCanonicalRecentWorkouts(days: lookbackDays)
         } catch {
             // Falls back to [] silently for the user (same as "no history yet"), but
             // logs so a real fetch failure is distinguishable from genuinely empty history.

@@ -3,13 +3,50 @@ import SwiftUI
 struct WorkoutZoneCard: View {
     let summary: WorkoutZoneSummary
     let tint: Color
+    @ScaledMetric(relativeTo: .subheadline) private var labelWidth: CGFloat = 56
+    @ScaledMetric(relativeTo: .subheadline) private var statisticsWidth: CGFloat = 100
+    @ScaledMetric(relativeTo: .subheadline) private var rowHeight: CGFloat = 48
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if summary.type == .heartRate {
+            VStack(alignment: .leading, spacing: 8) {
+                Divider().padding(.bottom, 12)
+                Text("심박수 훈련 구간").font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                    .accessibilityHint([summary.baselineDescription, summary.insightText].compactMap { $0 }.joined(separator: ". "))
+                    .padding(.bottom, 6)
+                ForEach(1...5, id: \.self) { index in
+                    let zone = summary.zones.first { $0.zoneIndex == index }
+                    let fraction = (zone?.percentage ?? 0) / 100
+                    WorkoutCompactMeasuredBar(fraction: fraction, tint: WorkoutDetailPalette.zone(index),
+                        labelWidth: 24, statisticsWidth: 76, revealID: "providerZones.heartRate.\(index)", baseHeight: 28) {
+                        Text("\(index)").font(.subheadline.weight(.semibold))
+                            .foregroundStyle(fraction >= 0.12 ? Color.white : SOOMColor.ink)
+                    } values: {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(zone.map { WorkoutSplitDisplay.duration($0.durationSeconds) } ?? "기록 없음").fontWeight(.semibold)
+                            Text(zone.map { percentageText($0.percentage) } ?? "—").foregroundStyle(SOOMColor.secondaryInk)
+                        }.font(.caption.monospacedDigit())
+                    }.accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Zone \(index), " + (zone.map { durationText($0.durationSeconds) + ", " + percentageText($0.percentage) } ?? "기록 없음"))
+                }
+                if !summary.isAvailable { unavailableView }
+            }
+        } else { legacyCard }
+    }
+    private var legacyCard: some View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
                 header
 
-                if summary.isAvailable {
+                if summary.type == .heartRate {
+                    VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing + 6) {
+                        ForEach(1...5, id: \.self) { index in
+                            if let zone = summary.zones.first(where: { $0.zoneIndex == index }) { zoneRow(zone) }
+                            else { HStack { Text("Zone \(index)"); Spacer(); Text("기록 없음 · —") }.font(.caption).foregroundStyle(SOOMColor.secondaryInk) }
+                        }
+                    }
+                    if !summary.isAvailable { unavailableView }
+                } else if summary.isAvailable {
                     VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing + 6) {
                         ForEach(summary.zones) { zone in
                             zoneRow(zone)
@@ -27,7 +64,7 @@ struct WorkoutZoneCard: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: summary.type.iconName)
+            Image(soom: summary.type.iconName)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(summary.type.accentColor(tint: tint))
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
@@ -98,37 +135,19 @@ struct WorkoutZoneCard: View {
     }
 
     private func zoneRow(_ zone: WorkoutZone) -> some View {
-        VStack(alignment: .leading, spacing: SOOMLayout.Metrics.rowTextSpacing + 2) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Zone \(zone.zoneIndex)")
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.ink)
-
-                if let range = zone.rangeDescription {
-                    Text(range)
-                        .font(SOOMFont.body(11, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.tertiaryInk)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
-
-                Text("\(durationText(zone.durationSeconds)) · \(percentageText(zone.percentage))")
-                    .font(SOOMFont.body(12, relativeTo: .caption))
-                    .foregroundStyle(zone.id == summary.dominantZone?.id ? summary.type.accentColor(tint: tint) : SOOMColor.secondaryInk)
+        VStack(alignment: .leading, spacing: 4) {
+            WorkoutTrailingValueBar(label: "Z\(zone.zoneIndex)", fraction: zone.percentage / 100,
+                tint: summary.type == .heartRate ? WorkoutDetailPalette.zone(zone.zoneIndex) : summary.type.accentColor(tint: tint),
+                statisticsWidth: statisticsWidth, labelWidth: labelWidth, rowHeight: rowHeight,
+                revealID: "providerZones.\(summary.type).\(zone.zoneIndex)") {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(durationText(zone.durationSeconds)).fontWeight(.semibold)
+                    Text(percentageText(zone.percentage)).foregroundStyle(SOOMColor.secondaryInk)
+                }.font(.caption.monospacedDigit())
             }
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(SOOMColor.line.opacity(0.55))
-                    Capsule()
-                        .fill(summary.type.accentColor(tint: tint).opacity(zone.id == summary.dominantZone?.id ? 0.9 : 0.42))
-                        .frame(width: max(4, proxy.size.width * zone.percentage / 100))
-                }
+            if let range = zone.rangeDescription {
+                Text(range).font(.caption).foregroundStyle(SOOMColor.secondaryInk)
             }
-            .frame(height: 7)
-            .accessibilityHidden(true)
         }
     }
 
@@ -162,6 +181,7 @@ struct WorkoutZoneCard: View {
     }
 
     private func durationText(_ seconds: TimeInterval) -> String {
+        guard seconds >= 60 else { return "\(Int(max(0, seconds).rounded()))초" }
         let minutes = Int((seconds / 60).rounded())
         if minutes >= 60 {
             return "\(minutes / 60)시간 \(minutes % 60)분"

@@ -15,6 +15,8 @@ struct ProfileSummaryCard: View {
     let representativeBadgeState: String
     let compactStats: [ProfileHeroStat]
     let authStatus: String
+    let userID: UUID?
+    let avatarPath: String?
 
     init(
         name: String = "SOOM 사용자",
@@ -28,7 +30,9 @@ struct ProfileSummaryCard: View {
             ProfileHeroStat(id: "distance", title: "누적 거리", value: "0km"),
             ProfileHeroStat(id: "sport", title: "대표 종목", value: "준비 중")
         ],
-        authStatus: String = "로컬 사용자"
+        authStatus: String = "로컬 사용자",
+        userID: UUID? = nil,
+        avatarPath: String? = nil
     ) {
         self.name = name
         self.handle = handle
@@ -38,6 +42,8 @@ struct ProfileSummaryCard: View {
         self.representativeBadgeState = representativeBadgeState
         self.compactStats = compactStats
         self.authStatus = authStatus
+        self.userID = userID
+        self.avatarPath = avatarPath
     }
 
     var body: some View {
@@ -101,9 +107,7 @@ struct ProfileSummaryCard: View {
             Circle()
                 .stroke(SOOMColor.accentLine, lineWidth: 2)
                 .padding(SOOMLayout.Spacing.xs)
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 46, weight: .semibold))
-                .foregroundStyle(SOOMColor.accent)
+            SOOMAvatarView(userID: userID, avatarPath: avatarPath, size: 54)
         }
         .frame(width: 66, height: 66)
         .shadow(color: SOOMColor.accent.opacity(0.10), radius: 14, x: 0, y: 8)
@@ -112,7 +116,7 @@ struct ProfileSummaryCard: View {
 
     private var representativeBadge: some View {
         HStack(spacing: 12) {
-            Image(systemName: "seal.fill")
+            Image(soom: "seal.fill")
                 .font(.system(size: SOOMFont.Size.title, weight: .bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 42, height: 42)

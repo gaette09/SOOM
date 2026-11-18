@@ -35,9 +35,10 @@ struct RecoveryRealDataPreviewView: View {
 
     @ViewBuilder
     private var previewContent: some View {
-        if viewModel.isLoading {
+        if let error = viewModel.errorMessage, viewModel.summary != nil { Text(error).font(.footnote).foregroundStyle(.secondary) }
+        if viewModel.isLoading && viewModel.summary == nil {
             loadingCard
-        } else if let errorMessage = viewModel.errorMessage {
+        } else if let errorMessage = viewModel.errorMessage, viewModel.summary == nil {
             messageCard(
                 icon: SOOMIcon.recovery,
                 title: "미리보기를 불러오지 못했어요",
@@ -70,20 +71,7 @@ struct RecoveryRealDataPreviewView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                ProgressView()
-                    .tint(SOOMColor.recovery)
-                    .accessibilityHidden(true)
-
-                Text("가져온 운동 기록으로 검증용 회복 흐름을 계산하고 있어요.")
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("실제 운동 기록 기반 검증용 Recovery 흐름 계산 중")
+        SOOMSkeleton(layout: .summary, label: "회복 흐름 계산 중")
     }
 
     private func summaryCard(_ summary: RecoverySummary) -> some View {
@@ -180,7 +168,7 @@ struct RecoveryRealDataPreviewView: View {
 
     private func previewBlock(title: String, message: String, icon: String, tint: Color) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)

@@ -8,26 +8,27 @@ struct WorkoutZoneBuilder {
         isPersonalized: Bool = false,
         baselineDescription: String? = nil
     ) -> WorkoutZoneSummary {
-        let validDurations = durations.filter { $0.durationSeconds > 0 }
-        let totalDuration = validDurations.reduce(0) { $0 + $1.durationSeconds }
-
-        guard totalDuration > 0 else {
+        let validDurations = durations.filter {
+            $0.durationSeconds.isFinite && (type == .heartRate
+                ? (1...5).contains($0.zoneIndex) && $0.durationSeconds >= 0
+                : $0.durationSeconds > 0)
+        }
+        // Coalesce repeated provider rows before generating stable zone IDs.
+        let grouped = Dictionary(grouping: validDurations, by: \.zoneIndex)
+        let durationsByZone = grouped.mapValues { $0.reduce(0) { $0 + $1.durationSeconds } }
+        let totalDuration = durationsByZone.values.reduce(0, +)
+        guard totalDuration.isFinite,
+              totalDuration > 0 || (type == .heartRate && !validDurations.isEmpty) else {
             return unavailableSummary(type: type)
         }
+        let zones = durationsByZone.keys.sorted().map { index in
+            WorkoutZone(zoneType: type, zoneIndex: index,
+                durationSeconds: durationsByZone[index] ?? 0,
+                percentage: totalDuration > 0 ? (durationsByZone[index] ?? 0) / totalDuration * 100 : 0,
+                rangeDescription: grouped[index]?.first?.rangeDescription)
+        }
 
-        let zones = validDurations
-            .sorted { $0.zoneIndex < $1.zoneIndex }
-            .map { input in
-                WorkoutZone(
-                    zoneType: type,
-                    zoneIndex: input.zoneIndex,
-                    durationSeconds: input.durationSeconds,
-                    percentage: input.durationSeconds / totalDuration * 100,
-                    rangeDescription: input.rangeDescription
-                )
-            }
-
-        let dominantZone = zones.max { $0.durationSeconds < $1.durationSeconds }
+        let dominantZone = zones.filter { $0.durationSeconds > 0 }.max { $0.durationSeconds < $1.durationSeconds }
 
         return WorkoutZoneSummary(
             type: type,

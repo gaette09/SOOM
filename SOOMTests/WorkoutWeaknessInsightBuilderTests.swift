@@ -53,6 +53,25 @@ final class WorkoutWeaknessInsightBuilderTests: XCTestCase {
         XCTAssertFalse(insight.suggestion.isEmpty)
     }
 
+    func testHeartRateComparisonIgnoresDifferentOriginalActivityType() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 1_800, avgHeartRate: 155, samples: [], originalWorkoutType: .running)
+        let previousRun = makeWorkout(daysAgo: 3, distanceMeters: 5_000, duration: 1_800, avgHeartRate: 155, samples: [], originalWorkoutType: .running)
+        let yoga = makeWorkout(daysAgo: 1, distanceMeters: 0, duration: 1_800, avgHeartRate: 80, samples: [], originalWorkoutType: .yoga)
+
+        let insight = builder.build(current: current, recentWorkouts: [previousRun, yoga])
+
+        XCTAssertEqual(insight.insightType, .none)
+    }
+
+    func testHeartRateComparisonStillUsesSameOriginalActivityType() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 3_600, avgHeartRate: 155, samples: [], originalWorkoutType: .walking)
+        let previousWalk = makeWorkout(daysAgo: 3, distanceMeters: 5_000, duration: 3_600, avgHeartRate: 130, samples: [], originalWorkoutType: .walking)
+
+        let insight = builder.build(current: current, recentWorkouts: [previousWalk])
+
+        XCTAssertEqual(insight.insightType, .heartRate)
+    }
+
     func testInsightUsesWorkoutDataWithoutRecoveryScore() {
         let current = makeWorkout(daysAgo: 0, distanceMeters: 10_000, duration: 3_100, effort: 9)
         let previous = makeWorkout(daysAgo: 1, distanceMeters: 9_000, duration: 2_900, effort: 8)
@@ -88,7 +107,8 @@ final class WorkoutWeaknessInsightBuilderTests: XCTestCase {
         duration: TimeInterval,
         avgHeartRate: Int = 148,
         effort: Int = 6,
-        samples: [WorkoutSample]? = nil
+        samples: [WorkoutSample]? = nil,
+        originalWorkoutType: UnifiedWorkoutType? = nil
     ) -> Workout {
         Workout(
             id: UUID(),
@@ -110,7 +130,8 @@ final class WorkoutWeaknessInsightBuilderTests: XCTestCase {
             samples: samples ?? makeSamples(earlyPace: 300, latePace: 304, earlyHeartRate: 144, lateHeartRate: 150),
             zones: [],
             achievements: [],
-            aiSummary: "테스트 운동입니다."
+            aiSummary: "테스트 운동입니다.",
+            originalWorkoutType: originalWorkoutType
         )
     }
 
@@ -135,5 +156,27 @@ final class WorkoutWeaknessInsightBuilderTests: XCTestCase {
                 power: nil
             )
         }
+    }
+}
+
+
+extension WorkoutWeaknessInsightBuilderTests {
+    func testMissingSamplesAndMissingHistoricalHeartRateStayNeutral() {
+        let current = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 1_800, avgHeartRate: 150, samples: [])
+        let previous = makeWorkout(daysAgo: 2, distanceMeters: 5_000, duration: 1_800, avgHeartRate: 0, samples: [])
+        let insight = builder.build(current: current, recentWorkouts: [previous])
+        XCTAssertEqual(insight.insightType, .none)
+        XCTAssertTrue(insight.title.contains("비교 데이터"))
+        XCTAssertFalse(insight.shortInsight.contains("흔들린 지점은 보이지"))
+    }
+
+    func testDetailInsightInputUsesSuppliedMeasuredSamplesWithoutChangingBaseWorkout() {
+        let base = makeWorkout(daysAgo: 0, distanceMeters: 5_000, duration: 1_800, samples: [])
+        let measured = makeSamples(earlyPace: 300, latePace: 350, earlyHeartRate: 140, lateHeartRate: 150)
+        let detail = WorkoutDetailView(workout: base, samplesOverride: measured)
+        XCTAssertTrue(base.samples.isEmpty)
+        XCTAssertEqual(detail.insightWorkout.samples.count, measured.count)
+        XCTAssertEqual(builder.build(current: detail.insightWorkout, recentWorkouts: []).insightType, .pacing)
+        XCTAssertEqual(detail.insightWorkout.id, base.id)
     }
 }

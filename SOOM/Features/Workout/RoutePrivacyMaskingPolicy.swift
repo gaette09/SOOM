@@ -13,14 +13,17 @@ struct RoutePrivacyMaskingPolicy: Equatable {
 
     init(
         mode: RoutePrivacyMaskingMode = .startAndEnd,
-        distanceMeters: Double = 200
+        distanceMeters: Double = 100
     ) {
         self.mode = mode
         self.distanceMeters = max(0, distanceMeters)
     }
 
     static let none = RoutePrivacyMaskingPolicy(mode: .none, distanceMeters: 0)
-    static let defaultShare = RoutePrivacyMaskingPolicy()
+    /// Personal display: radial distance from each original endpoint, not path length.
+    static let defaultDisplay = RoutePrivacyMaskingPolicy(distanceMeters: 50)
+    /// Existing shared v1 contract remains 200m until a separately reviewed server transition.
+    static let defaultShare = RoutePrivacyMaskingPolicy(distanceMeters: 200)
 
     var shouldMaskStart: Bool {
         mode == .startAndEnd || mode == .startOnly

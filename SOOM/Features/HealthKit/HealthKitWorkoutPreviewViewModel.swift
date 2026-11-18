@@ -15,16 +15,21 @@ final class HealthKitWorkoutPreviewViewModel: ObservableObject {
     }
 
     func loadRecentWorkouts() async {
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
 
         do {
-            workouts = try await fetcher.fetchRecentWorkouts(limit: limit)
+            let value = try await fetcher.fetchRecentWorkouts(limit: limit)
+            try Task.checkCancellation()
+            workouts = value
+        } catch is CancellationError {
+            // Cancellation is not a failure or a replacement for cached data.
         } catch {
-            workouts = []
+            guard !Task.isCancelled else { return }
             errorMessage = "운동 기록을 불러오지 못했어요. 건강 앱 권한을 확인해 주세요."
         }
 
-        isLoading = false
     }
 }

@@ -1,8 +1,7 @@
 import SwiftUI
 
 /// Deep-link landing spot for a tapped notification. Resolves `postId` to a
-/// `FeedItem` (the resolver checks the already-loaded feed first, then
-/// falls back to a single-post fetch — see `FeedViewModel.resolveFeedItem`)
+/// `FeedItem` through a fresh server lookup (see `FeedViewModel.resolveFeedItem`)
 /// and only then renders the same `FeedItemDetailDestination` the normal
 /// feed-card tap path uses.
 ///
@@ -14,20 +13,21 @@ import SwiftUI
 struct FeedNotificationDetailLoader: View {
     let postId: UUID
     let resolve: (UUID) async -> FeedItem?
-    let onSubmitComment: ((FeedItem, String) -> Void)?
+    let onSubmitComment: ((FeedItem, String) async throws -> Void)?
 
     private enum LoadState {
         case loading
-        case loaded(FeedItem)
+        case loaded(FeedItem, revision: Int)
         case failed
     }
 
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
     @State private var state: LoadState = .loading
 
     init(
         postId: UUID,
         resolve: @escaping (UUID) async -> FeedItem?,
-        onSubmitComment: ((FeedItem, String) -> Void)? = nil
+        onSubmitComment: ((FeedItem, String) async throws -> Void)? = nil
     ) {
         self.postId = postId
         self.resolve = resolve
@@ -38,22 +38,30 @@ struct FeedNotificationDetailLoader: View {
         Group {
             switch state {
             case .loading:
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .loaded(let item):
-                FeedItemDetailDestination(
-                    item: item,
-                    onSubmitComment: onSubmitComment.map { callback in
-                        { (body: String) in callback(item, body) }
-                    }
-                )
+                ScrollView { SOOMSkeleton(layout: .detail, label: "알림의 운동 불러오는 중").padding(SOOMLayout.screenPadding) }
+            case .loaded(let item, let revision):
+                if revision == safetyStore.revision {
+                    FeedItemDetailDestination(
+                        item: item,
+                        onSubmitComment: onSubmitComment.map { callback in
+                            { (body: String) in try await callback(item, body) }
+                        }
+                    )
+                    .id(safetyStore.revision)
+                } else {
+                    SOOMSkeleton(layout: .detail, label: "공개 범위 확인 중").padding(SOOMLayout.screenPadding)
+                }
             case .failed:
                 failedState
             }
         }
-        .task {
-            if let item = await resolve(postId) {
-                state = .loaded(item)
+        .task(id: "\(postId.uuidString):\(safetyStore.revision)") {
+            let revision = safetyStore.revision
+            state = .loading
+            let item = await resolve(postId)
+            guard !Task.isCancelled, revision == safetyStore.revision else { return }
+            if let item, !safetyStore.isBlocked(item.authorId) {
+                state = .loaded(item, revision: revision)
             } else {
                 state = .failed
             }
@@ -62,7 +70,7 @@ struct FeedNotificationDetailLoader: View {
 
     private var failedState: some View {
         VStack(spacing: SOOMLayout.Spacing.md) {
-            Image(systemName: SOOMIcon.activity)
+            Image(soom: SOOMIcon.activity)
                 .font(.system(size: 32, weight: .semibold))
                 .foregroundStyle(SOOMColor.tertiaryInk)
 

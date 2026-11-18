@@ -4,9 +4,9 @@ struct UnifiedWorkoutPersistenceMapper {
     func makeRecord(
         from workout: UnifiedWorkout,
         syncTimestamp: Date? = nil,
-        isExcludedFromAnalysis: Bool = false
+        isExcludedFromAnalysis: Bool? = nil
     ) -> UnifiedWorkoutRecord {
-        UnifiedWorkoutRecord(
+        let record = UnifiedWorkoutRecord(
             id: workout.id,
             externalId: workout.externalId,
             sourceRaw: workout.source.rawValue,
@@ -27,9 +27,19 @@ struct UnifiedWorkoutPersistenceMapper {
             createdAt: workout.createdAt,
             updatedAt: workout.updatedAt,
             syncTimestamp: syncTimestamp,
-            isExcludedFromAnalysis: isExcludedFromAnalysis,
+            isExcludedFromAnalysis: isExcludedFromAnalysis ?? workout.isExcludedFromAnalysis,
             companionNames: workout.companionNames
         )
+        record.userTitle = workout.userTitle
+        record.userDescription = workout.userDescription
+        record.sharingVisibilityRaw = workout.sharingVisibilityRaw
+        record.isBookmarked = workout.isBookmarked
+        record.deviceName = workout.deviceName
+        record.locationName = workout.locationName
+        record.preferredWorkoutID = workout.preferredWorkoutID
+        record.keepSeparate = workout.keepSeparate
+        record.resolutionRequestID = workout.resolutionRequestID
+        return record
     }
 
     func makeWorkout(from record: UnifiedWorkoutRecord) -> UnifiedWorkout {
@@ -54,7 +64,11 @@ struct UnifiedWorkoutPersistenceMapper {
             isExcludedFromAnalysis: record.isExcludedFromAnalysis,
             createdAt: record.createdAt,
             updatedAt: record.updatedAt,
-            companionNames: record.companionNames
+            companionNames: record.companionNames,
+            userTitle: record.userTitle, userDescription: record.userDescription,
+            sharingVisibilityRaw: record.sharingVisibilityRaw, isBookmarked: record.isBookmarked,
+            deviceName: record.deviceName, locationName: record.locationName,
+            preferredWorkoutID: record.preferredWorkoutID, keepSeparate: record.keepSeparate, resolutionRequestID: record.resolutionRequestID
         )
     }
 
@@ -82,5 +96,10 @@ struct UnifiedWorkoutPersistenceMapper {
         record.dataQualityRaw = workout.dataQuality.rawValue
         record.updatedAt = workout.updatedAt
         record.syncTimestamp = syncTimestamp
+        record.deviceName = workout.deviceName ?? record.deviceName
+        record.locationName = workout.locationName ?? record.locationName
+        record.preferredWorkoutID = workout.preferredWorkoutID ?? record.preferredWorkoutID
+        record.keepSeparate = workout.keepSeparate ?? record.keepSeparate
+        record.resolutionRequestID = workout.resolutionRequestID ?? record.resolutionRequestID
     }
 }

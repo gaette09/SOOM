@@ -24,7 +24,7 @@ struct RecoveryExplanationCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: icon)
+                Image(soom: icon)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(tone.tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

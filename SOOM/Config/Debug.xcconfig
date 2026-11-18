@@ -7,4 +7,7 @@ WEATHER_API_KEY = $(OPENWEATHER_API_KEY)
 SOOM_SUPABASE_URL =
 SOOM_SUPABASE_ANON_KEY =
 
+// Set an approved public HTTPS policy URL before App Store submission.
+SOOM_PRIVACY_POLICY_URL =
+
 #include? "LocalSecrets.xcconfig"

@@ -27,9 +27,11 @@ struct UnifiedWorkoutRecoveryPreviewProvider {
     }
 
     func fetchPreviewSummary() async throws -> UnifiedWorkoutRecoveryPreviewResult {
-        let workouts = try await store.fetchRecentWorkouts(days: lookbackDays)
+        let workouts = try await store.fetchCanonicalRecentWorkouts(days: lookbackDays)
         let processedWorkouts = workouts.map { processedWorkoutBuilder.make(from: $0) }
-        let recoveryInputs = selector.selectRecoveryInputs(fromProcessedWorkouts: processedWorkouts)
+        let recoveryInputs = calculator.activitiesInCalculationWindow(
+            from: selector.selectRecoveryInputs(fromProcessedWorkouts: processedWorkouts)
+        )
         let summary = calculator.calculateSummary(from: recoveryInputs)
 
         return UnifiedWorkoutRecoveryPreviewResult(

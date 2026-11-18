@@ -7,7 +7,7 @@ struct CheckInSummaryCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                Image(systemName: SOOMIcon.recovery)
+                Image(soom: SOOMIcon.recovery)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(SOOMColor.recovery)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

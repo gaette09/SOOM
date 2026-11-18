@@ -1,8 +1,31 @@
 import XCTest
+import Supabase
 @testable import SOOM
 
 @MainActor
 final class ClubDomainFoundationTests: XCTestCase {
+    func testDirectoryHTTPReadsRunConcurrentlyWithNoWritesOrRealCredentials() async throws {
+        ClubDirectoryHTTPFixture.state.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ClubDirectoryHTTPFixture.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let client = SupabaseClient(supabaseURL: URL(string: "https://synthetic.soom.invalid")!, supabaseKey: "synthetic-fixture-key",
+            options: .init(auth: .init(storage: ClubMetricNoAuthStorage(), autoRefreshToken: false, emitLocalSessionAsInitialSession: true),
+                global: .init(session: session)))
+        let remote = SupabaseClubRemoteClient(client: client)
+        let started = ProcessInfo.processInfo.systemUptime
+        let payload = try await remote.fetchClubDirectory(currentUserID: "synthetic-user")
+        XCTAssertTrue(payload.clubs.isEmpty)
+        let state = ClubDirectoryHTTPFixture.state.snapshot()
+        XCTAssertEqual(state.requests, 3)
+        XCTAssertEqual(state.peak, 3, "Independent SDK reads should overlap rather than wait sequentially")
+        let result: [String: Any] = ["fixture": true, "requestCount": state.requests, "peakConcurrentReads": state.peak,
+            "perResponseDelayMilliseconds": 50, "endToEndMilliseconds": (ProcessInfo.processInfo.systemUptime - started) * 1_000,
+            "network": "URLProtocol fixture; no external network or production writes"]
+        let attachment = XCTAttachment(data: try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]), uniformTypeIdentifier: "public.json")
+        attachment.name = "club-directory-concurrency-fixture.json"; attachment.lifetime = .keepAlways; add(attachment)
+    }
     func testClubDomainModelsInitialize() {
         let club = ClubDetail.soomRiders.club
 
@@ -14,7 +37,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testLocalClubServiceReturnsDirectory() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let directory = try await service.fetchClubDirectory()
 
@@ -24,7 +47,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testFetchDetailReturnsScopedRankings() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let detail = try await service.fetchClubDetail(clubId: "soom-riders")
         let rankings = try await service.fetchRankings(clubId: "soom-riders", metric: .distance)
@@ -35,7 +58,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testJoinClubUpdatesMembershipStateAndDirectory() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         try await service.joinClub(clubId: "hangang-riders")
         let detail = try await service.fetchClubDetail(clubId: "hangang-riders")
@@ -48,11 +71,11 @@ final class ClubDomainFoundationTests: XCTestCase {
 
     func testJoinStatePersistsAcrossServiceReload() async throws {
         let persistence = makePersistence()
-        let service = InMemoryClubService(persistence: persistence)
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
 
         try await service.joinClub(clubId: "hangang-riders")
 
-        let reloadedService = InMemoryClubService(persistence: persistence)
+        let reloadedService = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
         let detail = try await reloadedService.fetchClubDetail(clubId: "hangang-riders")
         let directory = try await reloadedService.fetchClubDirectory()
 
@@ -62,11 +85,11 @@ final class ClubDomainFoundationTests: XCTestCase {
 
     func testLeaveStatePersistsAcrossServiceReload() async throws {
         let persistence = makePersistence()
-        let service = InMemoryClubService(persistence: persistence)
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
 
         try await service.leaveClub(clubId: "soom-riders")
 
-        let reloadedService = InMemoryClubService(persistence: persistence)
+        let reloadedService = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
         let detail = try await reloadedService.fetchClubDetail(clubId: "soom-riders")
         let directory = try await reloadedService.fetchClubDirectory()
 
@@ -76,7 +99,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testCreateClubAddsCreatedClub() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let club = try await service.createClub(input: ClubCreateInput(
             name: "Night Riders",
@@ -93,7 +116,7 @@ final class ClubDomainFoundationTests: XCTestCase {
 
     func testCreateClubPersistsAcrossServiceReload() async throws {
         let persistence = makePersistence()
-        let service = InMemoryClubService(persistence: persistence)
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
 
         let club = try await service.createClub(input: ClubCreateInput(
             name: "Night Riders",
@@ -102,7 +125,7 @@ final class ClubDomainFoundationTests: XCTestCase {
             visibility: .private
         ))
 
-        let reloadedService = InMemoryClubService(persistence: persistence)
+        let reloadedService = InMemoryClubService(details: InMemoryClubService.seedDetails, persistence: persistence)
         let directory = try await reloadedService.fetchClubDirectory()
         let detail = try await reloadedService.fetchClubDetail(clubId: club.id)
 
@@ -111,7 +134,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(detail.privacy, .private)
     }
 
-    func testCorruptedClubPersistenceFallsBackToSeedData() async throws {
+    func testCorruptedClubPersistenceKeepsProductionDirectoryEmpty() async throws {
         let userDefaults = makeUserDefaults()
         userDefaults.set(Data("not-json".utf8), forKey: "club-test")
         let persistence = LocalClubPersistence(userDefaults: userDefaults, key: "club-test")
@@ -119,12 +142,11 @@ final class ClubDomainFoundationTests: XCTestCase {
 
         let directory = try await service.fetchClubDirectory()
 
-        XCTAssertEqual(directory.joinedClubs.map(\.name), ["SOOM Riders", "Morning Runners"])
-        XCTAssertEqual(directory.createdClubs.map(\.name), ["Recovery Crew"])
+        XCTAssertEqual(directory, .empty)
     }
 
     func testRankingMetricSwitchReturnsExpectedEntries() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let sessionRankings = try await service.fetchRankings(clubId: "soom-riders", metric: .workoutCount)
         let distanceRankings = try await service.fetchRankings(clubId: "soom-riders", metric: .distance)
@@ -135,7 +157,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testChallengesExposeProgressFoundation() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let challenges = try await service.fetchChallenges(clubId: "soom-riders")
 
@@ -158,7 +180,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testClubDetailExposesMotivationSummary() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let detail = try await service.fetchClubDetail(clubId: "soom-riders")
 
@@ -228,7 +250,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testCreateClubReturnsDefaultMotivationState() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         let club = try await service.createClub(input: ClubCreateInput(
             name: "Quiet Miles",
@@ -243,7 +265,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testJoinClubKeepsDefaultMotivationStateForRecommendedClub() async throws {
-        let service = InMemoryClubService()
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
 
         try await service.joinClub(clubId: "hangang-riders")
         let detail = try await service.fetchClubDetail(clubId: "hangang-riders")
@@ -254,7 +276,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testClubsViewModelLoadsDirectoryAndOpensClub() async {
-        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        let viewModel = ClubsViewModel(service: InMemoryClubService(details: InMemoryClubService.seedDetails))
 
         await viewModel.loadDirectory()
         await viewModel.openClub(clubId: "soom-riders")
@@ -267,7 +289,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testOpenClubReusesDetailChallengesInsteadOfRefetching() async {
-        let spy = ChallengeFetchCountingClubService(wrapping: InMemoryClubService())
+        let spy = ChallengeFetchCountingClubService(wrapping: InMemoryClubService(details: InMemoryClubService.seedDetails))
         let viewModel = ClubsViewModel(service: spy)
 
         await viewModel.openClub(clubId: "soom-riders")
@@ -282,10 +304,10 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testClubsViewModelMarksLocalFallbackWhenServiceFallsBack() async {
-        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        let viewModel = ClubsViewModel(service: InMemoryClubService(details: InMemoryClubService.seedDetails))
         viewModel.configure(service: FallbackClubService(
             primary: SupabaseClubService(remoteClient: FailingSupabaseClubRemoteClient(), currentUserID: "current-user"),
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: viewModel.markUsingLocalFallback
         ))
 
@@ -300,7 +322,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testClubsViewModelDoesNotMarkLocalFallbackWhenPrimarySucceeds() async {
-        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        let viewModel = ClubsViewModel(service: InMemoryClubService(details: InMemoryClubService.seedDetails))
 
         await viewModel.loadDirectory()
         try? await Task.sleep(nanoseconds: 20_000_000)
@@ -309,7 +331,7 @@ final class ClubDomainFoundationTests: XCTestCase {
     }
 
     func testClubsViewModelResetsLocalFallbackFlagAtStartOfEachLoad() async {
-        let viewModel = ClubsViewModel(service: InMemoryClubService())
+        let viewModel = ClubsViewModel(service: InMemoryClubService(details: InMemoryClubService.seedDetails))
         viewModel.markUsingLocalFallback()
         try? await Task.sleep(nanoseconds: 20_000_000)
         XCTAssertTrue(viewModel.isShowingLocalFallbackData)
@@ -379,11 +401,11 @@ final class ClubDomainFoundationTests: XCTestCase {
 
         XCTAssertEqual(detail.membershipState, .owned)
         XCTAssertEqual(detail.privacy, .private)
-        XCTAssertEqual(detail.summary.weeklyRank, 1)
+        XCTAssertEqual(detail.summary.weeklyRank, 0)
     }
 
     func testClubServiceResolverReturnsFallbackWithoutRemoteClient() async throws {
-        let fallback = InMemoryClubService()
+        let fallback = InMemoryClubService(details: InMemoryClubService.seedDetails)
         let service = ClubServiceResolver.makeService(
             remoteClient: nil,
             currentUserID: "current-user",
@@ -400,7 +422,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let service = ClubServiceResolver.makeService(
             remoteClient: nil,
             currentUserID: "current-user",
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: { fallbackUsedCount += 1 }
         )
 
@@ -414,7 +436,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let service = ClubServiceResolver.makeService(
             remoteClient: FakeSupabaseClubRemoteClient(),
             currentUserID: nil,
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: { fallbackUsedCount += 1 }
         )
 
@@ -429,7 +451,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let service = ClubServiceResolver.makeService(
             remoteClient: remote,
             currentUserID: "current-user",
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: { fallbackUsedCount += 1 }
         )
 
@@ -474,7 +496,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let failingRemote = FailingSupabaseClubRemoteClient()
         let service = FallbackClubService(
             primary: SupabaseClubService(remoteClient: failingRemote, currentUserID: "current-user"),
-            fallback: InMemoryClubService()
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails)
         )
 
         let directory = try await service.fetchClubDirectory()
@@ -490,11 +512,73 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertEqual(created.membershipState, .owned)
     }
 
+    func testModerationRejectionNeverFallsBackToLocalClubCreation() async throws {
+        for message in ["SOOM_CONTENT_REJECTED", "SOOM_TEXT_TOO_LONG", "SOOM_ACCOUNT_SUSPENDED"] {
+            let remote = FakeSupabaseClubRemoteClient()
+            remote.createError = ClubCreatePolicyRejection(description: message)
+            let fallback = InMemoryClubService(details: InMemoryClubService.seedDetails)
+            var fallbackCount = 0
+            let service = FallbackClubService(
+                primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"),
+                fallback: fallback,
+                onDidUseFallback: { fallbackCount += 1 }
+            )
+            let input = ClubCreateInput(name: "Rejected Club", purpose: "수정할 소개", sportFocus: "걷기", visibility: .open)
+            do {
+                _ = try await service.createClub(input: input)
+                XCTFail("Moderation must propagate")
+            } catch { XCTAssertEqual(String(describing: error), message) }
+            XCTAssertEqual(fallbackCount, 0)
+            let directory = try await fallback.fetchClubDirectory()
+            XCTAssertFalse(directory.createdClubs.contains { $0.name == input.name })
+        }
+    }
+
+    func testClubCreateFormRetainsInputAndDisplaysServerRejection() async {
+        let form = ClubCreateViewModel()
+        form.name = "작성한 클럽"
+        form.purpose = "수정할 소개"
+        let dismiss = await form.submit { _ in throw ClubCreatePolicyRejection(description: "SOOM_CONTENT_REJECTED") }
+        XCTAssertFalse(dismiss)
+        XCTAssertEqual(form.name, "작성한 클럽")
+        XCTAssertEqual(form.purpose, "수정할 소개")
+        XCTAssertTrue(form.canCreate)
+        XCTAssertNotNil(form.errorMessage)
+        XCTAssertFalse(form.savedLocally)
+    }
+
+    func testClubCreateLocalFallbackStaysOpenWithExplicitLocalResult() async {
+        let form = ClubCreateViewModel()
+        form.name = "로컬 클럽"
+        form.purpose = "연결이 안 되어 초안으로 저장"
+        let service = InMemoryClubService(details: InMemoryClubService.seedDetails)
+        let dismiss = await form.submit { try await service.createClub(input: $0) }
+        XCTAssertFalse(dismiss)
+        XCTAssertTrue(form.savedLocally)
+        XCTAssertFalse(form.canCreate, "A completed local save must not be repeated by tapping again")
+        XCTAssertNil(form.errorMessage)
+    }
+
+    func testConfirmedRemoteClubCreationCanDismissForm() async {
+        let form = ClubCreateViewModel()
+        form.name = "온라인 클럽"
+        form.purpose = "함께 움직여요"
+        let dismiss = await form.submit { input in
+            ClubDomain(id: UUID().uuidString, name: input.name, intro: input.purpose,
+                       purpose: input.purpose, sportFocus: input.sportFocus, visibility: .open,
+                       ownerId: UUID().uuidString, memberCount: 1, createdAt: Date(),
+                       isJoined: true, membershipState: .owned)
+        }
+        XCTAssertTrue(dismiss)
+        XCTAssertFalse(form.savedLocally)
+        XCTAssertFalse(form.canCreate)
+    }
+
     func testFallbackClubServiceCallsOnDidUseFallbackWhenPrimaryFails() async throws {
         var fallbackUsedCount = 0
         let service = FallbackClubService(
             primary: SupabaseClubService(remoteClient: FailingSupabaseClubRemoteClient(), currentUserID: "current-user"),
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: { fallbackUsedCount += 1 }
         )
 
@@ -508,7 +592,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let remote = FakeSupabaseClubRemoteClient()
         let service = FallbackClubService(
             primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"),
-            fallback: InMemoryClubService(),
+            fallback: InMemoryClubService(details: InMemoryClubService.seedDetails),
             onDidUseFallback: { fallbackUsedCount += 1 }
         )
 
@@ -556,7 +640,7 @@ final class ClubDomainFoundationTests: XCTestCase {
         let detail = try await service.fetchClubDetail(clubId: "remote-riders")
 
         XCTAssertFalse(detail.motivationSummary.motivationLine.isEmpty)
-        XCTAssertFalse(detail.ranking.isEmpty)
+        XCTAssertTrue(detail.ranking.isEmpty)
         XCTAssertEqual(detail.challenges.first?.remainingLabel, "3회 운동 남음")
         XCTAssertEqual(detail.badges.first?.title, "첫 기여")
     }
@@ -883,6 +967,128 @@ final class ClubDomainFoundationTests: XCTestCase {
         XCTAssertTrue(sql.contains("drop function if exists public.is_club_member(uuid)"))
     }
 
+    func testNewInstallationAndLegacySampleMembershipsHaveNoProductionClubs() async throws {
+        let persistence = makePersistence()
+        persistence.saveMembershipState(.joined, for: "soom-riders")
+        persistence.saveMembershipState(.joined, for: UUID().uuidString)
+        let service = InMemoryClubService(persistence: persistence)
+        let directory = try await service.fetchClubDirectory()
+        XCTAssertEqual(directory, .empty)
+        let viewModel = ClubsViewModel(service: service)
+        await viewModel.loadDirectory()
+        viewModel.markUsingLocalFallback()
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        XCTAssertFalse(viewModel.shouldShowLocalFallbackBanner)
+        XCTAssertNil(viewModel.detail(for: "soom-riders"))
+        await viewModel.openClub(clubId: "soom-riders")
+        XCTAssertNil(viewModel.selectedClub)
+        XCTAssertNotNil(viewModel.errorMessage)
+    }
+
+    func testProductionPersistenceRestoresOnlyAClubActuallyCreatedLocally() async throws {
+        let persistence = makePersistence()
+        let service = InMemoryClubService(persistence: persistence)
+        let created = try await service.createClub(input: ClubCreateInput(
+            name: "My Saved Club", purpose: "실제로 저장한 소개", sportFocus: "걷기", visibility: .private
+        ))
+        let reloaded = InMemoryClubService(persistence: persistence)
+        let viewModel = ClubsViewModel(service: reloaded)
+        await viewModel.loadDirectory()
+        XCTAssertEqual(viewModel.directory.createdClubs.map(\.id), [created.id])
+        XCTAssertTrue(viewModel.directory.joinedClubs.isEmpty)
+        XCTAssertTrue(viewModel.directory.recommendedClubs.isEmpty)
+        XCTAssertTrue(viewModel.shouldShowLocalFallbackBanner)
+        let detail = try await reloaded.fetchClubDetail(clubId: created.id)
+        XCTAssertTrue(detail.ranking.isEmpty)
+        XCTAssertEqual(detail.weeklyRankText, "집계 전")
+        XCTAssertEqual(detail.activeMembersThisWeek, 0)
+    }
+
+    func testRemoteUUIDCacheCannotReturnThroughFallbackOrAcknowledgeFailedMembershipChange() async throws {
+        let detail = try await makeRealIDRemoteClub()
+        let local = ClubDetail.localCreated(input: ClubCreateInput(name: "Saved Local", purpose: "저장된 초안", sportFocus: "걷기", visibility: .private))
+        let fallback = InMemoryClubService(details: [detail, local])
+        let service = FallbackClubService(
+            primary: SupabaseClubService(remoteClient: FailingSupabaseClubRemoteClient(), currentUserID: "current-user"),
+            fallback: fallback
+        )
+        let directory = try await service.fetchClubDirectory()
+        XCTAssertEqual(directory.createdClubs.map(\.id), [local.id])
+        XCTAssertTrue(directory.joinedClubs.isEmpty)
+        let attempts: [() async throws -> Void] = [
+            { _ = try await service.fetchClubDetail(clubId: detail.id) },
+            { _ = try await service.fetchRankings(clubId: detail.id, metric: .distance) },
+            { _ = try await service.fetchChallenges(clubId: detail.id) },
+            { try await service.joinClub(clubId: detail.id) },
+            { try await service.leaveClub(clubId: detail.id) }
+        ]
+        for attempt in attempts {
+            do { try await attempt(); XCTFail("Remote failures must not be replaced by cached local success") }
+            catch { XCTAssertEqual(error as? ClubSupabaseServiceError, .unconfigured) }
+        }
+        let retained = try await fallback.fetchClubDetail(clubId: detail.id)
+        XCTAssertEqual(retained.membershipState, detail.membershipState)
+    }
+
+    func testFailedDirectoryAndDetailReloadDiscardPriorRemoteContent() async throws {
+        let detail = try await makeRealIDRemoteClub()
+        let service = MutableClubCacheTestService(wrapping: InMemoryClubService(details: [detail]))
+        let viewModel = ClubsViewModel(service: service)
+        await viewModel.loadDirectory()
+        await viewModel.openClub(clubId: detail.id)
+        XCTAssertEqual(viewModel.selectedClub?.id, detail.id)
+        service.failure = ClubServiceError.clubNotFound
+        await viewModel.openClub(clubId: detail.id)
+        XCTAssertNil(viewModel.detail(for: detail.id))
+        XCTAssertTrue(viewModel.rankings.isEmpty)
+        await viewModel.loadDirectory()
+        XCTAssertEqual(viewModel.directory, .empty)
+        XCTAssertNil(viewModel.selectedClub)
+    }
+
+    func testLateDirectoryFromPreviousAccountCannotRestoreItsClubs() async throws {
+        let detail = try await makeRealIDRemoteClub()
+        let service = MutableClubCacheTestService(wrapping: InMemoryClubService(details: [detail]))
+        let started = expectation(description: "Old account directory started")
+        var resume: CheckedContinuation<Void, Never>?
+        service.beforeDirectory = {
+            await withCheckedContinuation { continuation in resume = continuation; started.fulfill() }
+        }
+        let viewModel = ClubsViewModel(service: service)
+        let load = Task { await viewModel.loadDirectory() }
+        await fulfillment(of: [started], timeout: 1)
+        viewModel.configure(service: InMemoryClubService())
+        await viewModel.loadDirectory()
+        resume?.resume()
+        await load.value
+        XCTAssertEqual(viewModel.directory, .empty)
+        XCTAssertNil(viewModel.detail(for: detail.id))
+    }
+
+    func testRemoteClubWithoutActivityDoesNotInventRankOrDefaultChallenges() async throws {
+        let detail = try await makeRealIDRemoteClub()
+        XCTAssertEqual(detail.weeklyRank, 0)
+        XCTAssertTrue(detail.ranking.isEmpty)
+        XCTAssertTrue(detail.challenges.isEmpty)
+        XCTAssertTrue(detail.badges.isEmpty)
+        XCTAssertTrue(detail.pulses.isEmpty)
+        XCTAssertEqual(detail.motivationSummary.activeMembersThisWeek, 0)
+        XCTAssertEqual(detail.motivationSummary.newBadgesThisWeek, 0)
+    }
+
+    private func makeRealIDRemoteClub() async throws -> ClubDetail {
+        let remote = FakeSupabaseClubRemoteClient()
+        let id = UUID().uuidString
+        remote.detailPayload = SupabaseClubDetailPayload(
+            club: SupabaseClubRow(id: id, name: "Real Remote", intro: nil, purpose: nil,
+                sportFocus: "걷기", visibility: "open", ownerUserID: "other-user", createdAt: nil, updatedAt: nil),
+            membership: SupabaseClubMemberRow(id: "membership", clubID: id, userID: "current-user", role: "member", joinedAt: nil),
+            members: [SupabaseClubMemberRow(id: "membership", clubID: id, userID: "current-user", role: "member", joinedAt: nil)],
+            challenges: [], badges: []
+        )
+        return try await SupabaseClubService(remoteClient: remote, currentUserID: "current-user").fetchClubDetail(clubId: id)
+    }
+
     private func makePersistence() -> LocalClubPersistence {
         LocalClubPersistence(userDefaults: makeUserDefaults(), key: "club-test")
     }
@@ -957,6 +1163,36 @@ private final class ChallengeFetchCountingClubService: ClubService {
     }
 }
 
+private struct ClubMetricNoAuthStorage: AuthLocalStorage {
+    func store(key: String, value: Data) throws {}
+    func retrieve(key: String) throws -> Data? { nil }
+    func remove(key: String) throws {}
+}
+private final class ClubDirectoryHTTPFixture: URLProtocol {
+    final class State: @unchecked Sendable {
+        private let lock = NSLock()
+        private var active = 0, peak = 0, requests = 0
+        func reset() { lock.lock(); defer { lock.unlock() }; active = 0; peak = 0; requests = 0 }
+        func begin() { lock.lock(); defer { lock.unlock() }; active += 1; requests += 1; peak = max(peak, active) }
+        func finish() { lock.lock(); defer { lock.unlock() }; active -= 1 }
+        func snapshot() -> (requests: Int, peak: Int) { lock.lock(); defer { lock.unlock() }; return (requests, peak) }
+    }
+    static let state = State()
+    override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "synthetic.soom.invalid" }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        Self.state.begin()
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.05) { [self] in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data("[]".utf8))
+            Self.state.finish()
+            client?.urlProtocolDidFinishLoading(self)
+        }
+    }
+    override func stopLoading() {}
+}
+
 private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
     var directoryPayload = SupabaseClubDirectoryPayload(clubs: [], memberships: [], memberRows: [])
     var detailPayload: SupabaseClubDetailPayload?
@@ -972,11 +1208,20 @@ private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
         updatedAt: nil
     )
     var createdClubRequests: [SupabaseClubInsertRequest] = []
+    var createError: Error?
+    var directoryError: Error?
+    var afterDirectorySnapshot: (() async -> Void)?
+    var afterCreate: (() -> Void)?
     var joinRequests: [SupabaseClubMemberInsertRequest] = []
+    var joinError: Error?
     var leftClubIDs: [String] = []
 
     func fetchClubDirectory(currentUserID: String) async throws -> SupabaseClubDirectoryPayload {
-        directoryPayload
+        let payload = directoryPayload
+        let error = directoryError
+        await afterDirectorySnapshot?()
+        if let error { throw error }
+        return payload
     }
 
     func fetchClubDetail(clubID: String, currentUserID: String) async throws -> SupabaseClubDetailPayload {
@@ -988,11 +1233,14 @@ private final class FakeSupabaseClubRemoteClient: SupabaseClubRemoteClienting {
 
     func createClub(_ request: SupabaseClubInsertRequest) async throws -> SupabaseClubRow {
         createdClubRequests.append(request)
+        if let createError { throw createError }
+        afterCreate?()
         return createdClubRow
     }
 
     func joinClub(_ request: SupabaseClubMemberInsertRequest) async throws {
         joinRequests.append(request)
+        if let joinError { throw joinError }
     }
 
     func leaveClub(clubID: String, userID: String) async throws {
@@ -1047,5 +1295,666 @@ private final class FailingSupabaseClubRemoteClient: SupabaseClubRemoteClienting
 
     func fetchClubActiveDayCount(memberIDs: [String], since: Date, until: Date) async throws -> Int {
         throw ClubSupabaseServiceError.unconfigured
+    }
+}
+
+private struct ClubCreatePolicyRejection: Error, CustomStringConvertible {
+    let description: String
+}
+
+private final class MutableClubCacheTestService: ClubService {
+    let wrapped: any ClubService
+    var failure: Error?
+    var beforeDirectory: (() async -> Void)?
+
+    init(wrapping service: any ClubService) { wrapped = service }
+
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        await beforeDirectory?()
+        if let failure { throw failure }
+        return try await wrapped.fetchClubDirectory()
+    }
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail {
+        if let failure { throw failure }
+        return try await wrapped.fetchClubDetail(clubId: clubId)
+    }
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain { try await wrapped.createClub(input: input) }
+    func joinClub(clubId: String) async throws { try await wrapped.joinClub(clubId: clubId) }
+    func leaveClub(clubId: String) async throws { try await wrapped.leaveClub(clubId: clubId) }
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] {
+        if let failure { throw failure }
+        return try await wrapped.fetchRankings(clubId: clubId, metric: metric)
+    }
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] {
+        if let failure { throw failure }
+        return try await wrapped.fetchChallenges(clubId: clubId)
+    }
+}
+
+extension ClubDomainFoundationTests {
+    func testUXMembershipFailurePreservesStateAndRetryConfirmsCompletion() async throws {
+        let service = UXMembershipTestService()
+        let model = ClubsViewModel(service: service)
+        await model.loadDirectory()
+        await model.openClub(clubId: "soom-riders")
+        service.failWrite = true
+        let failed = await model.leaveClub(clubId: "soom-riders")
+        XCTAssertFalse(failed)
+        XCTAssertEqual(model.detail(for: "soom-riders")?.membershipState, .joined)
+        XCTAssertNotNil(model.membershipError)
+        XCTAssertNil(model.membershipOperation)
+        service.failWrite = false
+        let retried = await model.leaveClub(clubId: "soom-riders")
+        XCTAssertTrue(retried)
+        XCTAssertEqual(model.detail(for: "soom-riders")?.membershipState, .recommended)
+        XCTAssertNil(model.membershipError)
+    }
+
+    func testUXRepeatedMembershipTapDoesNotSendSecondWrite() async {
+        let service = UXMembershipTestService()
+        let started = expectation(description: "write started")
+        var resume: CheckedContinuation<Void, Never>?
+        service.beforeWrite = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let first = Task { await model.joinClub(clubId: "hangang-riders") }
+        await fulfillment(of: [started], timeout: 2)
+        XCTAssertEqual(model.membershipOperation, "hangang-riders")
+        let duplicate = await model.joinClub(clubId: "hangang-riders")
+        XCTAssertFalse(duplicate)
+        XCTAssertEqual(service.writeCount, 1)
+        resume?.resume()
+        let confirmed = await first.value
+        XCTAssertTrue(confirmed)
+        XCTAssertNil(model.membershipOperation)
+    }
+
+    func testUXConfirmedWriteWithReadFailureDoesNotInviteDuplicateMutation() async {
+        let service = UXMembershipTestService()
+        service.failReadsAfterWrite = true
+        let model = ClubsViewModel(service: service)
+        let confirmed = await model.joinClub(clubId: "hangang-riders")
+        XCTAssertTrue(confirmed, "The membership write succeeded even though its refresh failed")
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertEqual(service.writeCount, 1)
+        service.failReadsAfterWrite = false
+        await model.loadDirectory()
+        await model.openClub(clubId: "hangang-riders")
+        XCTAssertEqual(model.detail(for: "hangang-riders")?.membershipState, .joined)
+        XCTAssertEqual(service.writeCount, 1, "Recovery retries reads, never a confirmed write")
+    }
+
+    func testUXOldAccountMutationCannotDismissNewAccountSheet() async {
+        let service = UXMembershipTestService()
+        let started = expectation(description: "old write started")
+        var resume: CheckedContinuation<Void, Never>?
+        service.beforeWrite = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let old = Task { await model.joinClub(clubId: "hangang-riders") }
+        await fulfillment(of: [started], timeout: 2)
+        model.configure(service: InMemoryClubService())
+        resume?.resume()
+        let stale = await old.value
+        XCTAssertFalse(stale)
+        XCTAssertNil(model.membershipOperation)
+        XCTAssertEqual(model.directory, .empty)
+    }
+
+    func testUXManagementLabelMatchesAvailableActionAndConnectionStatesDiffer() {
+        XCTAssertEqual(ClubMembershipState.owned.actionTitle, "관리 준비 중")
+        XCTAssertEqual(ClubMembershipState.admin.actionTitle, "관리 준비 중")
+        XCTAssertNotEqual(GoogleHealthConnectionPhase.loginRequired.title, GoogleHealthConnectionPhase.unavailable.title)
+        XCTAssertNotEqual(GoogleHealthConnectionPhase.failed.title, GoogleHealthConnectionPhase.unavailable.title)
+    }
+}
+
+private final class UXMembershipTestService: ClubService {
+    let wrapped = InMemoryClubService(details: InMemoryClubService.seedDetails)
+    var failWrite = false
+    var failReadsAfterWrite = false
+    var writeCount = 0
+    var beforeWrite: (() async -> Void)?
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        if failReadsAfterWrite && writeCount > 0 { throw ClubServiceError.clubNotFound }
+        return try await wrapped.fetchClubDirectory()
+    }
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail {
+        if failReadsAfterWrite && writeCount > 0 { throw ClubServiceError.clubNotFound }
+        return try await wrapped.fetchClubDetail(clubId: clubId)
+    }
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain { try await wrapped.createClub(input: input) }
+    func joinClub(clubId: String) async throws {
+        writeCount += 1; await beforeWrite?()
+        if failWrite { throw ClubServiceError.clubNotFound }
+        try await wrapped.joinClub(clubId: clubId)
+    }
+    func leaveClub(clubId: String) async throws {
+        writeCount += 1; await beforeWrite?()
+        if failWrite { throw ClubServiceError.clubNotFound }
+        try await wrapped.leaveClub(clubId: clubId)
+    }
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] { try await wrapped.fetchRankings(clubId: clubId, metric: metric) }
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] { try await wrapped.fetchChallenges(clubId: clubId) }
+}
+
+@MainActor
+final class ClubCreationRefreshRegressionTests: XCTestCase {
+    private let input = ClubCreateInput(name: "Synthetic Created Club", purpose: "Synthetic purpose", sportFocus: "걷기", visibility: .open)
+
+    func testConfirmedCreationRefreshFailureShowsReadRetryWithoutDuplicateWrite() async throws {
+        let service = ClubCreationRefreshTestService()
+        service.failReads = true
+        let model = ClubsViewModel(service: service)
+        let form = ClubCreateViewModel(); form.name = input.name; form.purpose = input.purpose
+        let dismiss = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertTrue(dismiss)
+        XCTAssertTrue(service.stored)
+        XCTAssertEqual(service.creationCount, 1)
+        XCTAssertTrue(model.directory.createdClubs.isEmpty)
+        XCTAssertTrue(model.errorMessage?.contains("클럽을 다시 만들 필요는 없어요") == true)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertFalse(form.canCreate)
+        service.failReads = false
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [service.id])
+        XCTAssertNil(model.errorMessage)
+        let duplicate = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(duplicate)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+
+    func testLatePreCreationDirectorySnapshotCannotEraseCreatedClub() async throws {
+        let service = ClubCreationRefreshTestService()
+        let started = expectation(description: "old snapshot captured")
+        var resume: CheckedContinuation<Void, Never>?
+        service.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let old = Task { await model.loadDirectory() }
+        await fulfillment(of: [started], timeout: 2)
+        service.afterDirectorySnapshot = nil
+        _ = try await model.createClub(input: input)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [service.id])
+        resume?.resume(); await old.value
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [service.id])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+
+    func testLatePreCreationDirectoryErrorCannotReplaceConfirmedResult() async throws {
+        let service = ClubCreationRefreshTestService(); service.failReads = true
+        let started = expectation(description: "old failing read captured")
+        var resume: CheckedContinuation<Void, Never>?
+        service.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let old = Task { await model.loadDirectory() }
+        await fulfillment(of: [started], timeout: 2)
+        service.afterDirectorySnapshot = nil; service.failReads = false
+        _ = try await model.createClub(input: input)
+        resume?.resume(); await old.value
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [service.id])
+        XCTAssertNil(model.errorMessage)
+    }
+
+    func testCreationRefreshFromPreviousAccountCannotPopulateNewAccount() async throws {
+        let service = ClubCreationRefreshTestService()
+        let started = expectation(description: "old account refresh")
+        var resume: CheckedContinuation<Void, Never>?
+        service.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let creation = Task { try await model.createClub(input: input) }
+        await fulfillment(of: [started], timeout: 2)
+        let replacement = ClubCreationRefreshTestService()
+        model.configure(service: replacement)
+        resume?.resume()
+        do { _ = try await creation.value; XCTFail("Old-account receipt cannot confirm the new account's sheet") }
+        catch { XCTAssertEqual(error as? CommunitySafetyError, .accountChanged) }
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertNil(model.errorMessage)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(replacement.creationCount, 0)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+
+    func testLocalSaveRefreshFailureIsExplicitlyLocalAndCannotRepeat() async {
+        let service = ClubCreationRefreshTestService(id: "local-synthetic-created"); service.failReads = true
+        let model = ClubsViewModel(service: service)
+        let form = ClubCreateViewModel(); form.name = input.name; form.purpose = input.purpose
+        let dismiss = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(dismiss)
+        XCTAssertTrue(form.savedLocally)
+        XCTAssertTrue(model.errorMessage?.hasPrefix("이 기기에 클럽을 저장했지만") == true)
+        let duplicate = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(duplicate)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+
+    func testOldCreationRefreshCannotEndNewerReadLoadingState() async throws {
+        let service = ClubCreationRefreshTestService()
+        let creationStarted = expectation(description: "creation read")
+        let newerStarted = expectation(description: "newer read")
+        var resumeCreation: CheckedContinuation<Void, Never>?
+        var resumeNewer: CheckedContinuation<Void, Never>?
+        var reads = 0
+        service.afterDirectorySnapshot = {
+            reads += 1
+            if reads == 1 { await withCheckedContinuation { resumeCreation = $0; creationStarted.fulfill() } }
+            else { await withCheckedContinuation { resumeNewer = $0; newerStarted.fulfill() } }
+        }
+        let model = ClubsViewModel(service: service)
+        let creation = Task { try await model.createClub(input: input) }
+        await fulfillment(of: [creationStarted], timeout: 2)
+        let newer = Task { await model.loadDirectory() }
+        await fulfillment(of: [newerStarted], timeout: 2)
+        resumeCreation?.resume(); _ = try await creation.value
+        XCTAssertTrue(model.isLoading)
+        resumeNewer?.resume(); await newer.value
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [service.id])
+    }
+
+    func testOldAccountCreationCannotDismissNewAccountPresentation() async {
+        let service = ClubCreationRefreshTestService()
+        let started = expectation(description: "old form refresh")
+        var resume: CheckedContinuation<Void, Never>?
+        service.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: service)
+        let form = ClubCreateViewModel(); form.name = input.name; form.purpose = input.purpose
+        let creation = Task { await form.submit { try await model.createClub(input: $0) } }
+        await fulfillment(of: [started], timeout: 2)
+        model.configure(service: ClubCreationRefreshTestService())
+        resume?.resume()
+        let dismiss = await creation.value
+        XCTAssertFalse(dismiss)
+        XCTAssertFalse(form.savedLocally)
+        XCTAssertNotNil(form.errorMessage)
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+
+    func testPureCreationWriteFailureRetainsFormAndNeverClaimsSuccess() async {
+        let service = ClubCreationRefreshTestService(); service.failCreate = true
+        let model = ClubsViewModel(service: service)
+        let form = ClubCreateViewModel(); form.name = input.name; form.purpose = input.purpose
+        let dismiss = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(dismiss)
+        XCTAssertFalse(service.stored)
+        XCTAssertNotNil(form.errorMessage)
+        XCTAssertTrue(form.canCreate)
+        XCTAssertEqual(form.name, input.name)
+        XCTAssertEqual(form.purpose, input.purpose)
+        XCTAssertFalse(form.savedLocally)
+        XCTAssertEqual(service.creationCount, 1)
+    }
+}
+
+private final class ClubCreationRefreshTestService: ClubService {
+    let id: String
+    var stored = false
+    var failReads = false
+    var failCreate = false
+    var creationCount = 0
+    var afterDirectorySnapshot: (() async -> Void)?
+    init(id: String = "0c170000-0000-4000-8000-000000000001") { self.id = id }
+    private func detail() -> ClubDetail {
+        ClubDetail(summary: ClubSummary(id: id, name: "Synthetic Created Club", sport: "걷기", memberCount: 1,
+            weeklyRank: 0, contributionText: "", goalPercent: 0, tagline: ""), name: "Synthetic Created Club",
+            intro: "Synthetic", purpose: "Synthetic", sport: "걷기", owner: "Synthetic", privacy: .open,
+            activeMembersThisWeek: 0, rules: [], memberPreview: [], identityTags: [], membershipState: .owned,
+            memberCount: 1, weeklyRank: 0, rankMovement: 0, contributionDistanceKm: 0, goalProgress: 0,
+            ranking: [], challenges: [], badges: [], pulses: [])
+    }
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        let fail = failReads
+        let snapshot = ClubDirectorySnapshot(joinedClubs: [], createdClubs: stored ? [detail()] : [], recommendedClubs: [])
+        await afterDirectorySnapshot?()
+        if fail { throw ClubServiceError.clubNotFound }
+        return snapshot
+    }
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        creationCount += 1
+        if failCreate { throw ClubServiceError.clubNotFound }
+        stored = true; return detail().club
+    }
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail { detail() }
+    func joinClub(clubId: String) async throws {}
+    func leaveClub(clubId: String) async throws {}
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] { [] }
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] { [] }
+}
+
+@MainActor
+final class ClubFallbackCreationRecoveryTests: XCTestCase {
+    func testConfirmedInsertThenMembershipFailureNeverCreatesFallbackDuplicate() async throws {
+        let remote = remote()
+        remote.joinError = URLError(.networkConnectionLost)
+        remote.afterCreate = { remote.directoryPayload = self.payload([remote.createdClubRow]) }
+        let local = InMemoryClubService()
+        let model = ClubsViewModel(service: resolver(remote, local: local))
+        let form = form()
+        let dismissed = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertTrue(dismissed)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+        XCTAssertEqual(remote.joinRequests.count, 1)
+        let localDirectory = try await local.fetchClubDirectory()
+        XCTAssertTrue(localDirectory.createdClubs.isEmpty)
+        let repeated = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(repeated)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+    private let input = ClubCreateInput(name: "Synthetic Wrapper Club", purpose: "Synthetic recovery only", sportFocus: "걷기", visibility: .open)
+    private let createdID = "0c170005-0000-4000-8000-000000000001"
+
+    private func remote() -> FakeSupabaseClubRemoteClient {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.createdClubRow = row(id: createdID)
+        remote.afterCreate = { [weak remote] in
+            guard let remote else { return }
+            remote.directoryPayload = self.payload([remote.createdClubRow])
+            remote.directoryError = URLError(.notConnectedToInternet)
+        }
+        return remote
+    }
+    private func row(id: String) -> SupabaseClubRow {
+        SupabaseClubRow(id: id, name: "Synthetic Wrapper Club", intro: nil, purpose: "Synthetic", sportFocus: "걷기", visibility: "open", ownerUserID: "current-user", createdAt: nil, updatedAt: nil)
+    }
+    private func payload(_ rows: [SupabaseClubRow]) -> SupabaseClubDirectoryPayload {
+        SupabaseClubDirectoryPayload(clubs: rows, memberships: [], memberRows: [])
+    }
+    private func resolver(_ remote: FakeSupabaseClubRemoteClient, local: InMemoryClubService = InMemoryClubService()) -> any ClubService {
+        ClubServiceResolver.makeService(remoteClient: remote, currentUserID: "current-user", fallback: local)
+    }
+    private func form() -> ClubCreateViewModel {
+        let form = ClubCreateViewModel(); form.name = input.name; form.purpose = input.purpose
+        return form
+    }
+    private func assertWarning(_ model: ClubsViewModel, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(model.errorMessage?.contains("클럽은 만들었지만") == true, file: file, line: line)
+        XCTAssertTrue(model.errorMessage?.contains("클럽을 다시 만들 필요는 없어요") == true, file: file, line: line)
+        XCTAssertFalse(model.isLoading, file: file, line: line)
+    }
+
+    func testEmptyLocalFallbackKeepsConfirmedReceiptWarningAndReadOnlyRetryUntilRecovery() async throws {
+        let remote = remote(); let model = ClubsViewModel(service: resolver(remote)); let form = form()
+        let dismiss = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertTrue(dismiss)
+        XCTAssertTrue(model.directory.createdClubs.isEmpty)
+        assertWarning(model)
+        await model.loadDirectory() // Still offline: an empty fallback is not successful verification.
+        assertWarning(model)
+        XCTAssertTrue(model.directory.createdClubs.isEmpty)
+        remote.directoryError = nil
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertNil(model.errorMessage)
+        let repeatSubmit = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(repeatSubmit)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+        XCTAssertEqual(remote.joinRequests.count, 1)
+    }
+
+    func testExistingLocalResultsSurviveRemoteCreateAndRepeatedFallbackRead() async throws {
+        let remote = remote(); remote.directoryError = URLError(.notConnectedToInternet)
+        let local = InMemoryClubService()
+        let localClub = try await local.createClub(input: input)
+        let model = ClubsViewModel(service: resolver(remote, local: local))
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [localClub.id])
+        _ = try await model.createClub(input: input)
+        assertWarning(model)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [localClub.id])
+        await model.loadDirectory()
+        assertWarning(model)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [localClub.id])
+        remote.directoryError = nil; await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+
+    func testPreviouslyVerifiedRemoteResultsAreNotReplacedByLocalFallback() async throws {
+        let remote = remote(); let priorID = "0c170005-0000-4000-8000-000000000002"
+        remote.directoryPayload = payload([row(id: priorID)])
+        let local = InMemoryClubService(); _ = try await local.createClub(input: input)
+        let model = ClubsViewModel(service: resolver(remote, local: local))
+        await model.loadDirectory()
+        _ = try await model.createClub(input: input)
+        assertWarning(model)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [priorID])
+        await model.loadDirectory()
+        assertWarning(model)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [priorID])
+        remote.directoryError = nil; await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+
+    func testSuccessfulEmptyRemoteDirectoryIsDistinctFromFailedReadFallback() async throws {
+        let remote = remote(); remote.afterCreate = nil
+        let model = ClubsViewModel(service: resolver(remote)); let form = form()
+        let dismiss = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertTrue(dismiss)
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertNotNil(model.errorMessage, "Confirmed insert missing from a successful read must be distinguished from save failure")
+        await model.loadDirectory()
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+
+    func testLatePreCreationFallbackCannotEraseRecoveredRemoteDirectory() async throws {
+        let remote = remote(); remote.directoryError = URLError(.notConnectedToInternet)
+        let started = expectation(description: "old remote failure captured")
+        var resume: CheckedContinuation<Void, Never>?
+        remote.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: resolver(remote))
+        let old = Task { await model.loadDirectory() }
+        await fulfillment(of: [started], timeout: 2)
+        remote.afterDirectorySnapshot = nil
+        _ = try await model.createClub(input: input)
+        assertWarning(model)
+        remote.directoryError = nil; await model.loadDirectory()
+        resume?.resume(); await old.value
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+
+    func testPreviousAccountFallbackCompletionCannotDismissOrPopulateNewAccount() async {
+        let remote = remote(); let started = expectation(description: "post-create failed remote read captured")
+        var resume: CheckedContinuation<Void, Never>?
+        remote.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let model = ClubsViewModel(service: resolver(remote)); let form = form()
+        let creation = Task { await form.submit { try await model.createClub(input: $0) } }
+        await fulfillment(of: [started], timeout: 2)
+        let replacement = FakeSupabaseClubRemoteClient()
+        model.configure(service: resolver(replacement))
+        await model.loadDirectory()
+        resume?.resume()
+        let dismiss = await creation.value
+        XCTAssertFalse(dismiss)
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertNil(model.errorMessage)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertNotNil(form.errorMessage)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+        XCTAssertEqual(replacement.createdClubRequests.count, 0)
+    }
+
+    func testNewerReadDuringCreationRefreshRetainsWarningAndPriorRowsUntilRecovery() async throws {
+        let remote = remote(); let priorID = "0c170005-0000-4000-8000-000000000004"
+        remote.directoryPayload = payload([row(id: priorID)])
+        let model = ClubsViewModel(service: resolver(remote))
+        await model.loadDirectory()
+        let started = expectation(description: "creation refresh captured after confirmed write")
+        var resume: CheckedContinuation<Void, Never>?
+        remote.afterDirectorySnapshot = { await withCheckedContinuation { resume = $0; started.fulfill() } }
+        let creation = Task { try await model.createClub(input: input) }
+        await fulfillment(of: [started], timeout: 2)
+        remote.afterDirectorySnapshot = nil
+        await model.loadDirectory()
+        assertWarning(model)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [priorID])
+        remote.directoryError = nil; await model.loadDirectory()
+        resume?.resume(); let receipt = try await creation.value
+        XCTAssertEqual(receipt.id, createdID)
+        XCTAssertEqual(model.directory.createdClubs.map(\.id), [createdID])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+
+    func testPolicyRejectionDuringRecoveryClearsPreviouslyVerifiedRemoteRows() async throws {
+        let remote = remote(); remote.directoryPayload = payload([row(id: "0c170005-0000-4000-8000-000000000003")])
+        let model = ClubsViewModel(service: resolver(remote))
+        await model.loadDirectory()
+        _ = try await model.createClub(input: input)
+        assertWarning(model)
+        remote.directoryError = CommunitySafetyError.socialUnverified
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+    }
+}
+
+
+@MainActor
+final class ClubInitialDirectoryFailureTests: XCTestCase {
+    func testDeniedRemoteCreateNeverBecomesSuccessfulLocalSave() async throws {
+        for failure: Error in [CommunitySafetyError.signInRequired, CommunitySafetyError.accountChanged,
+            PostgrestError(code: "42501", message: "permission denied")] {
+            let remote = FakeSupabaseClubRemoteClient(); remote.createError = failure
+            let local = InMemoryClubService()
+            let service = FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: local)
+            let form = ClubCreateViewModel(); form.name = "Synthetic denied"; form.purpose = "Synthetic only"
+            let closed = await form.submit { try await service.createClub(input: $0) }
+            XCTAssertFalse(closed)
+            XCTAssertFalse(form.savedLocally, "Permission/account failures must not masquerade as offline creation")
+            XCTAssertNotNil(form.errorMessage)
+            XCTAssertTrue(form.canCreate)
+            let stored = try await local.fetchClubDirectory()
+            XCTAssertTrue(stored.createdClubs.isEmpty)
+            XCTAssertEqual(remote.createdClubRequests.count, 1)
+        }
+    }
+
+    func testInitialDeniedDirectoryRemainsEmptyAndExplainsAccessFailure() async {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.directoryError = PostgrestError(code: "42501", message: "permission denied")
+        let local = InMemoryClubService(details: InMemoryClubService.seedDetails)
+        let model = ClubsViewModel(service: FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: local))
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory, .empty)
+        XCTAssertTrue(model.errorMessage?.contains("접근 권한") == true)
+        XCTAssertFalse(model.isShowingLocalFallbackData)
+        XCTAssertFalse(model.isLoading)
+        remote.directoryError = nil
+        await model.loadDirectory()
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(model.directory, .empty, "An authoritative empty response is distinct from a read failure")
+    }
+}
+
+
+extension ClubInitialDirectoryFailureTests {
+    func testReadRetryRecoversConfirmedLocalReceiptWithoutAnotherCreate() async throws {
+        let remote = FakeSupabaseClubRemoteClient()
+        remote.directoryError = PostgrestError(code: "42501", message: "permission denied")
+        remote.createError = URLError(.notConnectedToInternet)
+        let local = InMemoryClubService()
+        let model = ClubsViewModel(service: FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: local))
+        await model.loadDirectory()
+        let form = ClubCreateViewModel(); form.name = "Synthetic local receipt"; form.purpose = "Synthetic only"
+        let closed = await form.submit { try await model.createClub(input: $0) }
+        XCTAssertFalse(closed); XCTAssertTrue(form.savedLocally)
+        XCTAssertTrue(model.directory.createdClubs.isEmpty)
+        remote.directoryError = URLError(.notConnectedToInternet)
+        await model.loadDirectory()
+        XCTAssertEqual(model.directory.createdClubs.count, 1)
+        XCTAssertTrue(model.shouldShowLocalFallbackBanner)
+        XCTAssertNotNil(model.errorMessage, "Local receipt recovery is not remote directory recovery")
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+        XCTAssertTrue(remote.joinRequests.isEmpty)
+    }
+}
+
+@MainActor
+final class ClubRequestFailureClassificationTests: XCTestCase {
+    private func exercise(_ error: Error) async -> (ClubCreateViewModel, FakeSupabaseClubRemoteClient, InMemoryClubService) {
+        let remote = FakeSupabaseClubRemoteClient(); remote.createError = error
+        let local = InMemoryClubService()
+        let service = FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: local)
+        let form = ClubCreateViewModel(); form.name = "Synthetic draft"; form.purpose = "Synthetic only"
+        let closed = await form.submit { try await service.createClub(input: $0) }
+        XCTAssertFalse(closed)
+        XCTAssertEqual(form.name, "Synthetic draft")
+        XCTAssertEqual(form.purpose, "Synthetic only")
+        XCTAssertFalse(form.isSubmitting)
+        return (form, remote, local)
+    }
+
+    func testPermissionDenialIsNotReportedAsConnectionFailure() async {
+        let (form, _, local) = await exercise(PostgrestError(code: "42501", message: "private backend detail"))
+        XCTAssertTrue(form.errorMessage?.contains("권한") == true)
+        XCTAssertFalse(form.errorMessage?.contains("연결 상태") == true)
+        XCTAssertFalse(form.errorMessage?.contains("private backend detail") == true)
+        XCTAssertFalse(form.savedLocally)
+        XCTAssertTrue(form.canCreate)
+        let localSnapshot = try? await local.fetchClubDirectory()
+        XCTAssertTrue(localSnapshot?.createdClubs.isEmpty == true)
+    }
+
+    func testMissingSDKSessionNeverBecomesLocalCreation() async {
+        let (form, _, local) = await exercise(Supabase.AuthError.sessionMissing)
+        XCTAssertTrue(form.errorMessage?.contains("로그인") == true)
+        XCTAssertFalse(form.savedLocally)
+        let localSnapshot = try? await local.fetchClubDirectory()
+        XCTAssertTrue(localSnapshot?.createdClubs.isEmpty == true)
+    }
+
+    func testServerSchemaFailureNeverBecomesLocalCreation() async {
+        for code in ["42P01", "42703", "42P17", "PGRST204"] {
+            let (form, _, local) = await exercise(PostgrestError(code: code, message: "private schema body"))
+            XCTAssertTrue(form.errorMessage?.contains("서버") == true, code)
+            XCTAssertFalse(form.errorMessage?.contains("연결 상태") == true, code)
+            XCTAssertFalse(form.savedLocally, code)
+            XCTAssertFalse(form.errorMessage?.contains("private schema body") == true)
+            let localSnapshot = try? await local.fetchClubDirectory()
+        XCTAssertTrue(localSnapshot?.createdClubs.isEmpty == true)
+        }
+    }
+
+    func testUncertainCreateRetainsDraftAndDoesNotInviteDuplicateSubmission() async {
+        let remote = FakeSupabaseClubRemoteClient(); remote.createError = URLError(.timedOut)
+        let local = InMemoryClubService()
+        let service = FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: local)
+        let form = ClubCreateViewModel(); form.name = "Synthetic timeout"; form.purpose = "Synthetic only"
+        let first = await form.submit { try await service.createClub(input: $0) }
+        XCTAssertFalse(first)
+        XCTAssertFalse(form.savedLocally)
+        XCTAssertTrue(form.errorMessage?.contains("목록") == true)
+        XCTAssertFalse(form.canCreate)
+        _ = await form.submit { try await service.createClub(input: $0) }
+        XCTAssertEqual(remote.createdClubRequests.count, 1)
+        let localSnapshot = try? await local.fetchClubDirectory()
+        XCTAssertTrue(localSnapshot?.createdClubs.isEmpty == true)
+    }
+
+    func testActualOfflineSaveRemainsExplicitlyLocal() async {
+        let (form, _, local) = await exercise(URLError(.notConnectedToInternet))
+        XCTAssertTrue(form.savedLocally)
+        let localSnapshot = try? await local.fetchClubDirectory()
+        XCTAssertEqual(localSnapshot?.createdClubs.count, 1)
+    }
+
+    func testServerDirectoryFailureIsNotHiddenBehindEmptyLocalFallback() async {
+        let remote = FakeSupabaseClubRemoteClient(); remote.directoryError = PostgrestError(code: "42P01", message: "private relation")
+        let model = ClubsViewModel(service: FallbackClubService(primary: SupabaseClubService(remoteClient: remote, currentUserID: "current-user"), fallback: InMemoryClubService()))
+        await model.loadDirectory()
+        XCTAssertTrue(model.directory.createdClubs.isEmpty)
+        XCTAssertTrue(model.errorMessage?.contains("서버") == true)
+        XCTAssertFalse(model.isShowingLocalFallbackData)
+        XCTAssertFalse(model.isLoading)
     }
 }

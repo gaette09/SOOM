@@ -5,9 +5,9 @@ struct WorkoutWeaknessCard: View {
     let tint: Color
 
     var body: some View {
-        SOOMCard {
+        WorkoutInsightDisclosure(title: "다음에 좋아질 수 있는 점", icon: "arrow.up.right", summary: insight.shortInsight) {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: insight.icon ?? insight.insightType.icon)
+                Image(soom: insight.icon ?? insight.insightType.icon)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(subtleTint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -17,7 +17,7 @@ struct WorkoutWeaknessCard: View {
 
                 VStack(alignment: .leading, spacing: SOOMLayout.RecoveryAI.textSpacing) {
                     Text("다음에 좋아질 수 있는 점")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(subtleTint)
 
                     Text(insight.title)
@@ -26,20 +26,18 @@ struct WorkoutWeaknessCard: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(insight.shortInsight)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Label(insight.suggestion, systemImage: SOOMIcon.sparkles)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
+                    Label(insight.suggestion, soomIcon: SOOMIcon.sparkles)
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("다음에 좋아질 수 있는 점")
-        .accessibilityValue("\(insight.title). \(insight.shortInsight). \(insight.suggestion)")
+
     }
 
     private var subtleTint: Color {

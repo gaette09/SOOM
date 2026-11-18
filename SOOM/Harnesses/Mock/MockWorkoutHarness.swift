@@ -38,7 +38,7 @@ final class MockWorkoutHarness: WorkoutHarness {
         let items = loadWorkouts()
         return [
             FeedPost(
-                athleteName: "정지환",
+                athleteName: "데모 사용자",
                 handle: "@soom.jh",
                 title: "한강 유산소 러닝",
                 caption: "초반은 편하게, 마지막 2km는 리듬만 살렸습니다. 회복은 괜찮고 내일은 수영으로 풀 예정입니다.",

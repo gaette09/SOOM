@@ -5,6 +5,7 @@ extension StaticRouteFallbackStyle: Codable {}
 enum FeedPostVisibility: String, Codable, Equatable {
     case privatePost = "private"
     case followers
+    case mutual
     case publicPost = "public"
 
     var shareableVisibility: ShareableWorkoutVisibility {
@@ -13,6 +14,8 @@ enum FeedPostVisibility: String, Codable, Equatable {
             return .privateOnly
         case .followers:
             return .followers
+        case .mutual:
+            return .mutual
         case .publicPost:
             return .publicFeed
         }
@@ -20,18 +23,16 @@ enum FeedPostVisibility: String, Codable, Equatable {
 }
 
 extension ShareableWorkoutVisibility {
-    /// `.followers` maps to `.privatePost`, not `.followers` — the `follows`
-    /// table doesn't exist yet (ROADMAP: feed-follows-table/
-    /// feed-follow-ui-and-visibility), so `feed_posts_select_owner_or_public`
-    /// treats a `followers`-visibility row as visible to nobody but the
-    /// owner. Posting as `.privatePost` is what that RLS actually enforces
-    /// today, so this keeps the DB row's meaning honest even if a stale
-    /// local setting still has `.followers` saved from before the picker
-    /// stopped offering it.
+    /// New followers writes require the approved-v1 server contract. Existing
+    /// legacy followers remain owner-only until an explicit visibility change.
     var feedPostVisibility: FeedPostVisibility {
         switch self {
-        case .privateOnly, .followers:
+        case .privateOnly:
             return .privatePost
+        case .followers:
+            return .followers
+        case .mutual:
+            return .mutual
         case .publicFeed:
             return .publicPost
         }
@@ -43,17 +44,26 @@ struct FeedRouteSummaryDTO: Codable, Equatable {
     let distanceText: String?
     let fallbackStyle: StaticRouteFallbackStyle?
     let routeExists: Bool
+    var startedAt: Date? = nil
+    var deviceName: String? = nil
+    var locationName: String? = nil
 
     init(
         title: String? = nil,
         distanceText: String? = nil,
         fallbackStyle: StaticRouteFallbackStyle? = nil,
-        routeExists: Bool = false
+        routeExists: Bool = false,
+        startedAt: Date? = nil,
+        deviceName: String? = nil,
+        locationName: String? = nil
     ) {
         self.title = title
         self.distanceText = distanceText
         self.fallbackStyle = fallbackStyle
         self.routeExists = routeExists
+        self.startedAt = startedAt
+        self.deviceName = deviceName
+        self.locationName = locationName
     }
 }
 
@@ -72,6 +82,9 @@ struct FeedPostDTO: Codable, Equatable, Identifiable {
     let visibility: FeedPostVisibility
     let createdAt: Date
     let updatedAt: Date?
+    var activityAt: Date? = nil
+    var audienceContract: Int? = nil
+    var sharedDetailRevision: Int64? = nil
 
     init(
         id: UUID,
@@ -120,13 +133,16 @@ struct FeedPostDTO: Codable, Equatable, Identifiable {
         case visibility
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case activityAt = "activity_at"
+        case audienceContract = "audience_contract"
+        case sharedDetailRevision = "shared_detail_revision"
     }
 }
 
-/// Insert-only payload for `feed_posts`. Deliberately separate from
-/// `FeedPostDTO` — `id`/`created_at`/`updated_at` are server-generated and
-/// must never be sent on insert.
+/// Write payload. A stable ID makes workout sharing safe to retry;
+/// timestamps remain server managed.
 struct FeedPostInsertDTO: Encodable, Equatable {
+    var id: UUID? = nil
     let userId: UUID
     let sourceWorkoutId: UUID?
     let sport: UnifiedWorkoutType
@@ -136,8 +152,10 @@ struct FeedPostInsertDTO: Encodable, Equatable {
     let durationSeconds: Int?
     let averagePaceSecondsPerKm: Int?
     let visibility: FeedPostVisibility
+    var routeSummary: FeedRouteSummaryDTO? = nil
 
     enum CodingKeys: String, CodingKey {
+        case id
         case userId = "user_id"
         case sourceWorkoutId = "source_workout_id"
         case sport
@@ -147,6 +165,7 @@ struct FeedPostInsertDTO: Encodable, Equatable {
         case durationSeconds = "duration_seconds"
         case averagePaceSecondsPerKm = "average_pace_seconds_per_km"
         case visibility
+        case routeSummary = "route_summary"
     }
 }
 
@@ -160,23 +179,33 @@ struct FeedPostBundleDTO: Equatable {
     let reactions: [FeedReactionDTO]
     let comments: [FeedCommentDTO]
     let bookmarks: [FeedBookmarkDTO]
+    let sharedDetail: WorkoutSharedDetailSnapshot?
+    let sharedDetailContractEnabled: Bool
 
     init(
         post: FeedPostDTO,
         media: [FeedPostMediaDTO] = [],
         reactions: [FeedReactionDTO] = [],
         comments: [FeedCommentDTO] = [],
-        bookmarks: [FeedBookmarkDTO] = []
+        bookmarks: [FeedBookmarkDTO] = [],
+        sharedDetail: WorkoutSharedDetailSnapshot? = nil,
+        sharedDetailContractEnabled: Bool = false
     ) {
         self.post = post
         self.media = media.sorted { $0.sortOrder < $1.sortOrder }
         self.reactions = reactions
-        self.comments = comments
+        // Reads prioritize recent comments for bounded badge hydration; the
+        // conversation always displays them in chronological order.
+        self.comments = comments.sorted {
+            $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
+        }
         self.bookmarks = bookmarks
+        self.sharedDetail = sharedDetail
+        self.sharedDetailContractEnabled = sharedDetailContractEnabled
     }
 
-    func makeFeedItem(authorName: String = "SOOM 사용자", authorHandle: String? = nil, currentUserId: UUID? = nil) -> FeedItem {
-        let visibility = post.visibility.shareableVisibility
+    func makeFeedItem(authorName: String = "SOOM 사용자", authorHandle: String? = nil, avatarPath: String? = nil, currentUserId: UUID? = nil, profilesByID: [UUID: FeedProfileDTO] = [:]) -> FeedItem {
+        let visibility = post.visibility == .followers && post.audienceContract != 1 ? .privateOnly : post.visibility.shareableVisibility
         let routePreview = StaticRoutePreview(
             imageURL: nil,
             bounds: nil,
@@ -187,8 +216,9 @@ struct FeedPostBundleDTO: Equatable {
             id: post.sourceWorkoutId ?? post.id,
             workoutType: post.sport,
             title: post.title,
-            distanceText: Self.distanceText(from: post.distanceMeters, routeSummary: post.routeSummary),
+            distanceText: Self.distanceText(from: post.distanceMeters, sport: post.sport, routeSummary: post.routeSummary),
             durationText: Self.durationText(from: post.durationSeconds),
+            averagePaceText: FeedCardFormatting.movement(sport: post.sport, distance: post.distanceMeters, seconds: post.durationSeconds.map(Double.init), pace: post.averagePaceSecondsPerKm),
             primaryMessage: post.body ?? post.title,
             growthMessage: "자세한 흐름은 운동 상세에서 확인할 수 있어요.",
             recoveryMessage: "개인 회복 코칭은 피드에 공개하지 않아요.",
@@ -197,11 +227,12 @@ struct FeedPostBundleDTO: Equatable {
             staticRoutePreview: routePreview
         )
 
-        return FeedItem(
+        var item = FeedItem(
             id: post.id,
             authorName: authorName,
             authorHandle: authorHandle,
             authorId: post.userId,
+            avatarPath: avatarPath,
             isLocalDraft: false,
             createdAt: post.createdAt,
             itemType: .workoutSession,
@@ -210,16 +241,22 @@ struct FeedPostBundleDTO: Equatable {
             sourceWorkoutId: post.sourceWorkoutId,
             caption: post.body,
             photoPlaceholders: media.compactMap(\.photoPlaceholder),
+            photos: media.compactMap(\.photoReference),
+            routePhoto: media.compactMap(\.routeReference).first,
             activityContext: post.title,
             emotionalContext: post.body,
             movementMood: nil,
             optionalShortStory: post.body,
             routeMood: post.routeSummary?.title,
             recoveryCue: nil,
-            locationHint: nil,
+            locationHint: post.routeSummary?.locationName,
             clubContext: nil,
             contextLabels: [FeedContextLabel(title: visibility.title)],
-            reactions: reactions.map(\.feedReaction),
+            reactions: reactions.map { row in
+                var reaction = row.feedReaction
+                reaction.profile = profilesByID[row.userId]
+                return reaction
+            },
             // "cheer" is the only reaction_type the app's own action bar can
             // write today — "steady"/"night"/"wind" only ever come from
             // seeded/mock data (see FeedReactionDTO.feedReaction).
@@ -229,31 +266,43 @@ struct FeedPostBundleDTO: Equatable {
             viewerHasSaved: currentUserId != nil && bookmarks.contains {
                 $0.userId == currentUserId
             },
-            comments: comments.map { $0.feedComment(currentUserId: currentUserId) },
-            microComment: comments.first?.body
+            comments: comments.map { row in
+                var comment = row.feedComment(currentUserId: currentUserId)
+                comment.profile = profilesByID[row.userId]
+                return comment
+            },
+            microComment: comments.first?.body,
+            activityDate: post.activityAt ?? post.routeSummary?.startedAt,
+            deviceName: post.routeSummary?.deviceName,
+            workoutDistanceMeters: post.distanceMeters,
+            workoutDurationSeconds: post.durationSeconds.map(Double.init)
         )
+        item.serverPostSnapshot = post
+        item.sharedDetail = sharedDetail
+        item.sharedDetailContractEnabled = sharedDetailContractEnabled
+        return item
     }
 
-    private static func distanceText(from meters: Double?, routeSummary: FeedRouteSummaryDTO?) -> String {
+    private static func distanceText(from meters: Double?, sport: UnifiedWorkoutType, routeSummary: FeedRouteSummaryDTO?) -> String {
+        if let meters, meters.isFinite, meters >= 0 { return FeedCardFormatting.distance(meters, sport: sport) }
         if let routeDistanceText = routeSummary?.distanceText, routeDistanceText.isEmpty == false {
             return routeDistanceText
         }
-        guard let meters, meters > 0 else {
-            return "거리 기록"
-        }
-        let kilometers = meters / 1_000
-        return String(format: "%.2f km", kilometers)
+        return "—"
     }
 
     private static func durationText(from seconds: Int?) -> String {
-        guard let seconds, seconds > 0 else {
-            return "시간 기록"
-        }
-        let hours = seconds / 3_600
-        let minutes = (seconds % 3_600) / 60
-        if hours > 0 {
-            return "\(hours)시간 \(minutes)분"
-        }
-        return "\(minutes)분"
+        seconds.map { FeedCardFormatting.duration(Double($0)) } ?? "—"
+    }
+}
+
+
+extension FeedPostBundleDTO {
+    /// Page hydration includes only three cheer previews. Full participant
+    /// profiles are fetched on demand when the people sheet opens.
+    var previewProfileIDs: [UUID] {
+        [post.userId] + reactions.filter { $0.reactionType == "cheer" }
+            .sorted { $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt }
+            .prefix(3).map(\.userId)
     }
 }

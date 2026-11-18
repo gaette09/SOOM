@@ -4,6 +4,11 @@ protocol RemoteAuthSessionLoading {
     func loadRemoteSession() async -> AuthSession?
 }
 
+/// Startup identity can be restored without awaiting optional profile metadata.
+protocol RemoteAuthStartupSessionLoading: RemoteAuthSessionLoading {
+    func loadStartupSession() async -> AuthSession?
+}
+
 struct AuthSessionBridge {
     private let mapper: SupabaseAppUserMapper
 

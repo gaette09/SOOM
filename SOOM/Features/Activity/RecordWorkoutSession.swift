@@ -1,21 +1,27 @@
 import Foundation
 
-struct RecordRouteCoordinate: Equatable {
+struct RecordRouteCoordinate: Equatable, Codable {
     let latitude: Double
     let longitude: Double
     let timestamp: Date?
+    let segmentIndex: Int
+    var cumulativeDistanceMeters: Double?
+    var measuredSpeedMetersPerSecond: Double?
+    var altitude: Double?
 
-    init(latitude: Double, longitude: Double, timestamp: Date? = nil) {
+    init(latitude: Double, longitude: Double, timestamp: Date? = nil, segmentIndex: Int = 0) {
         self.latitude = latitude
         self.longitude = longitude
         self.timestamp = timestamp
+        self.segmentIndex = segmentIndex
     }
 
-    init(mapCoordinate: RecordMapCoordinate, timestamp: Date? = nil) {
+    init(mapCoordinate: RecordMapCoordinate, timestamp: Date? = nil, segmentIndex: Int = 0) {
         self.init(
             latitude: mapCoordinate.latitude,
             longitude: mapCoordinate.longitude,
-            timestamp: timestamp
+            timestamp: timestamp,
+            segmentIndex: segmentIndex
         )
     }
 
@@ -23,12 +29,14 @@ struct RecordRouteCoordinate: Equatable {
         WorkoutRouteCoordinate(
             latitude: latitude,
             longitude: longitude,
-            timestamp: timestamp
+            altitude: altitude,
+            timestamp: timestamp,
+            segmentIndex: segmentIndex
         )
     }
 }
 
-struct RecordRouteCapture: Equatable {
+struct RecordRouteCapture: Equatable, Codable {
     let coordinates: [RecordRouteCoordinate]
     let distanceMeters: Double
     let recordedAt: Date
@@ -51,11 +59,21 @@ struct RecordRouteCapture: Equatable {
         coordinates.last
     }
 
-    var hasRoute: Bool {
-        coordinates.count >= 2
+    var coordinateSegments: [[RecordRouteCoordinate]] {
+        coordinates.reduce(into: []) { segments, coordinate in
+            if segments.last?.last?.segmentIndex == coordinate.segmentIndex {
+                segments[segments.count - 1].append(coordinate)
+            } else {
+                segments.append([coordinate])
+            }
+        }
     }
 
-    func appending(_ coordinate: RecordRouteCoordinate) -> RecordRouteCapture {
+    var hasRoute: Bool {
+        coordinateSegments.contains { $0.count >= 2 }
+    }
+
+    func appending(_ coordinate: RecordRouteCoordinate, distanceOverrideMeters: Double? = nil) -> RecordRouteCapture {
         guard let last = coordinates.last else {
             return RecordRouteCapture(
                 coordinates: [coordinate],
@@ -64,8 +82,10 @@ struct RecordRouteCapture: Equatable {
             )
         }
 
-        let segmentDistance = Self.distanceMeters(from: last, to: coordinate)
-        guard segmentDistance >= 0.5 else {
+        let isNewSegment = coordinate.segmentIndex != last.segmentIndex
+        let measuredDistance = distanceOverrideMeters.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+        let segmentDistance = isNewSegment ? 0 : (measuredDistance ?? Self.distanceMeters(from: last, to: coordinate))
+        guard isNewSegment || segmentDistance >= 0.5 || (measuredDistance ?? 0) > 0 else {
             return self
         }
 
@@ -100,14 +120,14 @@ struct RecordRouteCapture: Equatable {
     }
 }
 
-enum RecordWorkoutSessionState: Equatable {
+enum RecordWorkoutSessionState: String, Equatable, Codable {
     case active
     case paused
     case finished
     case cancelled
 }
 
-struct RecordWorkoutSession: Identifiable, Equatable {
+struct RecordWorkoutSession: Identifiable, Equatable, Codable {
     let id: UUID
     let sport: RecordSportMode
     let workoutType: UnifiedWorkoutType
@@ -123,6 +143,13 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     var endedCoordinate: RecordRouteCoordinate?
     var currentSpeedMetersPerSecond: Double?
     var maxSpeedMetersPerSecond: Double?
+    var accumulatedPausedSeconds: TimeInterval = 0
+    var recordingResumedAt: Date?
+    var routeSegmentIndex: Int = 0
+    var lastLocationTimestamp: Date?
+    var lastHorizontalAccuracy: Double?
+    var lastSpeedAccuracy: Double?
+    var coachCheckpoint: CoachCheckpoint?
 
     init(
         id: UUID,
@@ -152,6 +179,7 @@ struct RecordWorkoutSession: Identifiable, Equatable {
         self.capturedRoute = capturedRoute
         self.accumulatedDistanceMeters = max(0, accumulatedDistanceMeters)
         self.lastCoordinate = lastCoordinate
+        self.lastLocationTimestamp = lastCoordinate?.timestamp
         self.startedCoordinate = startedCoordinate
         self.endedCoordinate = endedCoordinate
         self.currentSpeedMetersPerSecond = currentSpeedMetersPerSecond
@@ -180,22 +208,31 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     }
 
     func elapsedTime(referenceDate: Date) -> TimeInterval {
-        let endDate = endedAt ?? pausedAt ?? referenceDate
-        return max(0, endDate.timeIntervalSince(startedAt))
+        let endDate = pausedAt ?? endedAt ?? referenceDate
+        return max(0, endDate.timeIntervalSince(startedAt) - accumulatedPausedSeconds)
+    }
+
+    func wallClockElapsedTime(referenceDate: Date) -> TimeInterval {
+        max(0, (endedAt ?? referenceDate).timeIntervalSince(startedAt))
     }
 
     func paused(at date: Date) -> RecordWorkoutSession {
         guard state == .active else { return self }
         var copy = self
         copy.state = .paused
-        copy.pausedAt = date
+        copy.pausedAt = max(date, recordingResumedAt ?? startedAt)
+        copy.currentSpeedMetersPerSecond = nil
         return copy
     }
 
-    func resumed() -> RecordWorkoutSession {
+    func resumed(at date: Date = Date()) -> RecordWorkoutSession {
         guard state == .paused else { return self }
         var copy = self
         copy.state = .active
+        let resumedAt = max(date, pausedAt ?? startedAt)
+        copy.accumulatedPausedSeconds += max(0, resumedAt.timeIntervalSince(pausedAt ?? resumedAt))
+        copy.recordingResumedAt = resumedAt
+        copy.routeSegmentIndex += 1
         copy.pausedAt = nil
         return copy
     }
@@ -203,7 +240,8 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     func finished(at date: Date) -> RecordWorkoutSession {
         var copy = self
         copy.state = .finished
-        copy.endedAt = date
+        copy.endedAt = max(date, startedAt)
+        if let pausedAt { copy.accumulatedPausedSeconds += max(0, date.timeIntervalSince(pausedAt)) }
         copy.pausedAt = nil
         copy.endedCoordinate = copy.lastCoordinate
         return copy
@@ -212,7 +250,8 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     func cancelled(at date: Date) -> RecordWorkoutSession {
         var copy = self
         copy.state = .cancelled
-        copy.endedAt = date
+        copy.endedAt = max(date, startedAt)
+        if let pausedAt { copy.accumulatedPausedSeconds += max(0, date.timeIntervalSince(pausedAt)) }
         copy.pausedAt = nil
         return copy
     }
@@ -220,19 +259,83 @@ struct RecordWorkoutSession: Identifiable, Equatable {
     func recordingLocation(
         _ coordinate: RecordMapCoordinate,
         at date: Date,
-        speedMetersPerSecond: Double? = nil
+        speedMetersPerSecond: Double? = nil,
+        horizontalAccuracy: Double? = nil,
+        speedAccuracy: Double? = nil,
+        altitude: Double? = nil
     ) -> RecordWorkoutSession {
-        guard state == .active else { return self }
+        guard state == .active, date >= (recordingResumedAt ?? startedAt),
+              coordinate.latitude.isFinite, (-90...90).contains(coordinate.latitude),
+              coordinate.longitude.isFinite, (-180...180).contains(coordinate.longitude),
+              lastLocationTimestamp.map({ date > $0 }) ?? true else { return self }
 
-        let routeCoordinate = RecordRouteCoordinate(mapCoordinate: coordinate, timestamp: date)
-        let nextCapture = (capturedRoute ?? RecordRouteCapture(recordedAt: date)).appending(routeCoordinate)
-        let sanitizedSpeed = speedMetersPerSecond.flatMap { $0 >= 0 ? $0 : nil }
+        // Accuracy is optional for older checkpoints and callers, but live GPS
+        // fixes must meet a stricter distance-quality threshold.
+        if let accuracy = horizontalAccuracy,
+           !accuracy.isFinite || accuracy < 0 || accuracy > 25 { return self }
+        let speedLimit: Double = sport == .cycling ? 40 : (sport == .walking ? 5 : 12)
+        let sanitizedSpeed = speedMetersPerSecond.flatMap {
+            $0.isFinite && (0...speedLimit).contains($0) ? $0 : nil
+        }
+        if let last = lastCoordinate, last.segmentIndex == routeSegmentIndex,
+           let timestamp = last.timestamp {
+            let elapsed = date.timeIntervalSince(timestamp)
+            let next = RecordRouteCoordinate(mapCoordinate: coordinate, timestamp: date)
+            let distance = RecordRouteCapture.distanceMeters(from: last, to: next)
+            let uncertainty = max(horizontalAccuracy ?? 0, lastHorizontalAccuracy ?? 0)
+            // Reject isolated jumps without advancing the accepted anchor. The
+            // next good fix then cannot add the return leg of that GPS spike.
+            if elapsed > 0 && elapsed <= 30 && distance > speedLimit * elapsed + uncertainty { return self }
+            if let speed = sanitizedSpeed, speed < 0.5,
+               distance <= max(5, uncertainty * 2) {
+                var stationary = self
+                stationary.currentSpeedMetersPerSecond = speed
+                stationary.lastSpeedAccuracy = nil
+                return stationary
+            }
+            // With no Doppler speed, movement inside the accuracy radius is
+            // uncertain; wait for a real displacement instead of adding noise.
+            if horizontalAccuracy != nil && sanitizedSpeed == nil && distance < max(3, uncertainty) { return self }
+        }
+        var segment = routeSegmentIndex
+        if let lastTimestamp = lastLocationTimestamp, date.timeIntervalSince(lastTimestamp) > 30 {
+            segment = max(segment, (lastCoordinate?.segmentIndex ?? 0) + 1)
+        }
+        var routeCoordinate = RecordRouteCoordinate(mapCoordinate: coordinate, timestamp: date, segmentIndex: segment)
+        var measuredDistance: Double?
+        let speedAccuracyLimit = sport == .cycling ? 1.5 : 0.75
+        if segment == routeSegmentIndex, let previous = lastCoordinate,
+           let timestamp = previous.timestamp, let previousSpeed = currentSpeedMetersPerSecond,
+           let speed = sanitizedSpeed, let speedAccuracy, let lastSpeedAccuracy,
+           (0...speedAccuracyLimit).contains(speedAccuracy),
+           (0...speedAccuracyLimit).contains(lastSpeedAccuracy), horizontalAccuracy != nil {
+            let interval = date.timeIntervalSince(timestamp)
+            if interval > 0 && interval <= 15 {
+                // Accurate GNSS velocity avoids accumulating each sideways GPS
+                // wobble as extra running distance. Keep the raw route points.
+                measuredDistance = (previousSpeed + speed) / 2 * interval
+            }
+        }
+        let capture = capturedRoute ?? RecordRouteCapture(recordedAt: date)
+        routeCoordinate.cumulativeDistanceMeters = capture.distanceMeters + (
+            capture.endCoordinate.flatMap { last in
+                last.segmentIndex == segment ? measuredDistance ?? RecordRouteCapture.distanceMeters(from: last, to: routeCoordinate) : 0
+            } ?? 0)
+        if let accuracy = speedAccuracy, (0...speedAccuracyLimit).contains(accuracy) {
+            routeCoordinate.measuredSpeedMetersPerSecond = sanitizedSpeed
+        }
+        routeCoordinate.altitude = altitude.flatMap { $0.isFinite ? $0 : nil }
+        let nextCapture = capture.appending(routeCoordinate, distanceOverrideMeters: measuredDistance)
         var copy = self
+        copy.lastLocationTimestamp = date
+        copy.lastHorizontalAccuracy = horizontalAccuracy
+        copy.lastSpeedAccuracy = speedAccuracy
+        copy.routeSegmentIndex = segment
         copy.capturedRoute = nextCapture
         copy.accumulatedDistanceMeters = nextCapture.distanceMeters
         copy.lastCoordinate = nextCapture.endCoordinate
         copy.startedCoordinate = nextCapture.startCoordinate
-        copy.currentSpeedMetersPerSecond = sanitizedSpeed ?? currentSpeedMetersPerSecond
+        copy.currentSpeedMetersPerSecond = sanitizedSpeed
         if let sanitizedSpeed {
             copy.maxSpeedMetersPerSecond = max(maxSpeedMetersPerSecond ?? 0, sanitizedSpeed)
         }
@@ -274,7 +377,7 @@ struct RecordActiveHUDLayout: Equatable {
         case .cycling:
             return RecordActiveHUDLayout(
                 sport: .cycling,
-                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                elapsed: RecordActiveHUDMetric(label: "운동 시간", value: elapsedText(elapsedSeconds)),
                 primaryMetric: speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
                 secondaryMetrics: [
                     distanceMetric(distanceMeters),
@@ -282,14 +385,14 @@ struct RecordActiveHUDLayout: Equatable {
                     speedMetric(label: "최대 속도", speedMetersPerSecond: session.maxSpeedMetersPerSecond),
                     unavailableMetric(label: "심박수", unit: "bpm"),
                     unavailableMetric(label: "케이던스", unit: "rpm"),
-                    RecordActiveHUDMetric(label: "경사도", value: "0", unit: "%"),
-                    RecordActiveHUDMetric(label: "상승고도", value: "0", unit: "m")
+                    unavailableMetric(label: "경사도", unit: "%"),
+                    unavailableMetric(label: "상승고도", unit: "m")
                 ]
             )
         case .running:
             return RecordActiveHUDLayout(
                 sport: .running,
-                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                elapsed: RecordActiveHUDMetric(label: "운동 시간", value: elapsedText(elapsedSeconds)),
                 primaryMetric: paceMetric(label: "현재 페이스", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
                 secondaryMetrics: [
                     distanceMetric(distanceMeters),
@@ -297,13 +400,13 @@ struct RecordActiveHUDLayout: Equatable {
                     speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
                     unavailableMetric(label: "심박수", unit: "bpm"),
                     unavailableMetric(label: "케이던스", unit: "spm"),
-                    RecordActiveHUDMetric(label: "상승고도", value: "0", unit: "m")
+                    unavailableMetric(label: "상승고도", unit: "m")
                 ]
             )
         case .walking:
             return RecordActiveHUDLayout(
                 sport: .walking,
-                elapsed: RecordActiveHUDMetric(label: "경과 시간", value: elapsedText(elapsedSeconds)),
+                elapsed: RecordActiveHUDMetric(label: "운동 시간", value: elapsedText(elapsedSeconds)),
                 primaryMetric: speedMetric(label: "현재 속도", speedMetersPerSecond: session.currentSpeedMetersPerSecond),
                 secondaryMetrics: [
                     distanceMetric(distanceMeters),
@@ -442,8 +545,14 @@ struct RecordWorkoutSessionStarter {
     ) -> RecordWorkoutSession {
         let command = makeStartCommand(sport: sport, locationState: locationState)
         let startedAt = dateProvider()
-        let initialCoordinate = locationState.coordinate.map {
-            RecordRouteCoordinate(mapCoordinate: $0, timestamp: startedAt)
+        let initialCoordinate: RecordRouteCoordinate?
+        if locationState.authorization == .authorized, let coordinate = locationState.coordinate,
+           let timestamp = locationState.locationTimestamp,
+           let accuracy = locationState.horizontalAccuracy, (0...25).contains(accuracy),
+           (0...15).contains(startedAt.timeIntervalSince(timestamp)) {
+            initialCoordinate = RecordRouteCoordinate(mapCoordinate: coordinate, timestamp: startedAt)
+        } else {
+            initialCoordinate = nil
         }
         let capture = initialCoordinate.map {
             RecordRouteCapture(coordinates: [$0], distanceMeters: 0, recordedAt: startedAt)

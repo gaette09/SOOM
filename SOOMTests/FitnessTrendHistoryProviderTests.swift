@@ -5,8 +5,9 @@ final class FitnessTrendHistoryProviderTests: XCTestCase {
     private let baseDate = Date(timeIntervalSince1970: 1_700_000_000)
 
     func testBucketsSameDayWorkoutsAndFillsRestDaysWithZero() async {
-        let day0a = makeWorkout(daysAgo: 0, durationSeconds: 1_800)
-        let day0b = makeWorkout(daysAgo: 0, durationSeconds: 1_800)
+        // Two separate sessions on one day, not two imported copies of the same session.
+        let day0a = makeWorkout(daysAgo: 0, durationSeconds: 1_800, startHour: 8)
+        let day0b = makeWorkout(daysAgo: 0, durationSeconds: 1_800, startHour: 18)
         let day2 = makeWorkout(daysAgo: 2, durationSeconds: 1_800)
 
         let store = FakeFitnessTrendWorkoutStore(workouts: [day0a, day0b, day2])
@@ -19,6 +20,19 @@ final class FitnessTrendHistoryProviderTests: XCTestCase {
         XCTAssertGreaterThan(dailyLoads[0], 0)
         XCTAssertEqual(dailyLoads[1], 0)
         XCTAssertEqual(dailyLoads[2], dailyLoads[0] * 2, accuracy: 0.01)
+    }
+
+    func testCountsMatchingImportedCopiesOnlyOnce() async {
+        let original = makeWorkout(daysAgo: 0, durationSeconds: 1_800)
+        let importedCopy = makeWorkout(daysAgo: 0, durationSeconds: 1_800)
+        let provider = SwiftDataFitnessTrendHistoryProvider(
+            store: FakeFitnessTrendWorkoutStore(workouts: [original, importedCopy]))
+
+        let dailyLoads = await provider.dailyTrainingLoads(upTo: baseDate, windowDays: 1)
+
+        let singleSessionLoad = UnifiedWorkoutToRecoveryActivityMapper().map(original).trainingLoad
+        XCTAssertGreaterThan(singleSessionLoad, 0)
+        XCTAssertEqual(dailyLoads, [singleSessionLoad])
     }
 
     func testExcludesWorkoutsMarkedExcludedFromAnalysis() async {
@@ -53,9 +67,11 @@ final class FitnessTrendHistoryProviderTests: XCTestCase {
     private func makeWorkout(
         daysAgo: Int,
         durationSeconds: TimeInterval,
-        isExcluded: Bool = false
+        isExcluded: Bool = false,
+        startHour: Int = 8
     ) -> UnifiedWorkout {
-        let startDate = Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate
+        let day = Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate
+        let startDate = Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: day) ?? day
         return UnifiedWorkout(
             id: UUID(),
             externalId: UUID().uuidString,

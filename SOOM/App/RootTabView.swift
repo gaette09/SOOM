@@ -1,4 +1,5 @@
 import SwiftData
+import Combine
 import SwiftUI
 import UIKit
 
@@ -20,7 +21,7 @@ private enum SOOMTab: String, CaseIterable, Identifiable {
         case .activity:
             return "활동"
         case .clubs:
-            return "클럽"
+            return "랭킹"
         case .profile:
             return "프로필"
         }
@@ -35,7 +36,7 @@ private enum SOOMTab: String, CaseIterable, Identifiable {
         case .activity:
             return SOOMIcon.activity
         case .clubs:
-            return SOOMIcon.clubs
+            return "medal"
         case .profile:
             return SOOMIcon.profile
         }
@@ -50,17 +51,48 @@ final class SOOMTabBarVisibility: ObservableObject {
 struct RootTabView: View {
     private let isGlobalFloatingCoachEnabled = false
 
-    @State private var selectedTab: SOOMTab = .feed
+    @ObservedObject private var socialSafety = CommunitySafetyStore.shared
+    @EnvironmentObject private var accountStorage: HealthAccountStorageController
+    @Environment(\.soomAccountPrivacyModel) private var accountPrivacy
+    @StateObject private var automaticActivitySync = AccountActivityAutomaticSyncCoordinator()
+    @ObservedObject private var watchCompanion = WatchWorkoutCompanion.shared
+    @State private var isWatchWorkoutPresented = false
+    @ObservedObject private var eventNotifications = EventNotificationCenter.shared
+    @State private var selectedTab: SOOMTab = .activity
+    @State private var tabBeforeRecording: SOOMTab = .feed
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isKeyboardPresented = false
+    @State private var tabBarSafeAreaBottom: CGFloat = 0
+    // Own the reference without subscribing the content/root to its publisher.
+    // Only SOOMBottomTabBar observes compact/expanded transitions.
+    @State private var tabBarScrollMotion = SOOMTabBarScrollMotion()
     @State private var isRecordLaunchPresented = false
-    @State private var shouldReturnToActivityAfterRecordSave = false
+    @State private var recordDismissDestination: SOOMTab?
     @State private var shouldAutoPresentRouteRecommendationOnRecordLaunch = false
     @State private var shouldShowInitialCoachPreview = true
     @State private var feedNavigationPath = NavigationPath()
+    @State private var notificationSocialTarget: NotificationSocialTarget?
+    @State private var profileNavigationPath = NavigationPath()
+    @State private var clubsNavigationPath = NavigationPath()
+    @State private var showingLogin = false
+    @State private var loginOriginUserID: UUID?
+    @State private var visitedProfile = false
+    @State private var visitedClubs = false
+    @State private var visitedActivity = false
+    @State private var socialTabBarWasHidden: Bool?
+    @State private var socialTabAtPause: SOOMTab?
+    @State private var detailPresentation = WorkoutDetailPresentationStore()
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @AppStorage("SOOM.pendingLoginDestination") private var pendingLoginDestination = ""
     @StateObject private var tabBarVisibility = SOOMTabBarVisibility()
     @EnvironmentObject private var notificationDeepLinkRouter: NotificationDeepLinkRouter
     @Namespace private var tabBarNamespace
 
     init() {
+        _selectedTab = State(initialValue: CommunitySafetyStore.shared.canUseSocial ? .feed : .activity)
         UINavigationBar.appearance().largeTitleTextAttributes = [
             .font: UIFont(name: SOOMFont.displayBoldName, size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold),
             .foregroundColor: UIColor(SOOMColor.ink)
@@ -73,8 +105,16 @@ struct RootTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            selectedContent
+            retainedContent
+                .environment(\.workoutDetailPresentationStore, detailPresentation)
+                .environment(\.soomRequestLogin, { destination in
+                    pendingLoginDestination = destination.rawValue
+                    loginOriginUserID = authViewModel.session.currentUser?.id
+                    showingLogin = true
+                })
+                .environment(\.soomOpenActivities, { selectedTab = .activity })
                 .environmentObject(tabBarVisibility)
+                .environment(\.soomTabBarScrollMotion, tabBarScrollMotion)
                 .environment(\.soomBottomOverlayInset, bottomOverlayInset)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(SOOMColor.background.ignoresSafeArea())
@@ -91,53 +131,181 @@ struct RootTabView: View {
                 SOOMBottomTabBar(
                     selectedTab: $selectedTab,
                     namespace: tabBarNamespace,
+                    scrollMotion: tabBarScrollMotion,
+                    recordMotionActive: isTabBarScrollMotionEnabled,
                     onRecordSelected: {
                         SOOMHaptics.softImpact()
-                        isRecordLaunchPresented = true
+                        tabBeforeRecording = selectedTab
+                        if watchCompanion.workout != nil { isWatchWorkoutPresented = true }
+                        else { isRecordLaunchPresented = true }
                     }
                 )
+                    // The bar scales its chrome/labels; tap slots and content inset stay fixed.
                     .padding(.horizontal, SOOMLayout.TabBar.outerHorizontalPadding)
                     .padding(.bottom, SOOMLayout.TabBar.bottomPadding)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .offset(y: SOOMLayout.TabBar.safeAreaLowering(tabBarSafeAreaBottom))
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom)))
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SOOMColor.background.ignoresSafeArea())
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { tabBarSafeAreaBottom = $0 }
+        .environment(\.soomAutomaticActivitySync, automaticActivitySync)
+        .background {
+            if let accountPrivacy {
+                AccountActivityAutomaticSyncHost(privacy: accountPrivacy, coordinator: automaticActivitySync)
+            }
+            AccountActivitySourceImportHost()
+        }
         // SOOM v1 keeps Light Mode only while the visual system stabilizes.
         .preferredColorScheme(.light)
         .environment(\.font, SOOMFont.body(15, relativeTo: .body))
+        .environment(\.soomTabBarExtraHeight, tabBarExtraHeight)
         .sensoryFeedback(.selection, trigger: selectedTab)
+        .onChange(of: selectedTab) { _, tab in
+            if tab == .profile { visitedProfile = true }
+            if tab == .clubs { visitedClubs = true }
+            if tab == .activity { visitedActivity = true }
+            tabBarScrollMotion.restore()
+        }
+        .onChange(of: socialSafety.canUseSocial) { _, allowed in
+            if allowed {
+                if let hidden = socialTabBarWasHidden, socialTabAtPause == selectedTab { tabBarVisibility.isHidden = hidden }
+                socialTabBarWasHidden = nil; socialTabAtPause = nil
+                openPendingPush()
+            }
+            if !allowed {
+                notificationDeepLinkRouter.clearLegacy();notificationSocialTarget=nil
+                if selectedTab == .feed || selectedTab == .clubs {
+                    if socialTabBarWasHidden == nil { socialTabBarWasHidden = tabBarVisibility.isHidden; socialTabAtPause = selectedTab }
+                    tabBarVisibility.isHidden = false
+                }
+            }
+        }
+        .onChange(of: socialSafety.canUseActivityPreview, initial: true) { _, allowed in
+            if allowed {
+                notificationDeepLinkRouter.resumeNativePush(currentUserID:socialSafety.viewerID,
+                    generation:socialSafety.accountGeneration,previewAllowed:true)
+            }
+            // An unverified initial gate is not account revocation. Keep a
+            // cold-launch payload until verification or generation reset.
+        }
+        .onChange(of: socialSafety.accountGeneration) { _, _ in
+            detailPresentation.clear()
+            notificationDeepLinkRouter.clear();notificationSocialTarget=nil
+            feedNavigationPath = NavigationPath(); profileNavigationPath = NavigationPath(); clubsNavigationPath = NavigationPath()
+            visitedProfile = selectedTab == .profile; visitedClubs = selectedTab == .clubs
+            socialTabBarWasHidden = nil; socialTabAtPause = nil
+        }
+        .sheet(isPresented: $showingLogin, onDismiss: {
+            if authViewModel.session.currentUser?.authProvider != .supabase, authViewModel.session.currentUser?.id == loginOriginUserID { pendingLoginDestination = "" }
+        }) {
+            NavigationStack {
+                SettingsView(category: .account)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("취소") { pendingLoginDestination = ""; showingLogin = false } } }
+            }
+        }
+        .task(id: authViewModel.session.currentUser?.id) {
+            guard let destination = SocialLoginDestination(rawValue: pendingLoginDestination),
+                  !showingLogin || authViewModel.session.currentUser?.authProvider == .supabase else { return }
+            showingLogin = false; pendingLoginDestination = ""
+            switch destination {
+            case .feed: selectedTab = .feed
+            case .clubs: selectedTab = .clubs
+            case .googleHealth: selectedTab = .profile; profileNavigationPath.append(SocialLoginDestination.googleHealth)
+            }
+        }
+        .onChange(of: feedNavigationPath.count) { _, _ in tabBarScrollMotion.restore() }
+        .onChange(of: isTabBarScrollMotionEnabled, initial: true) { _, enabled in
+            tabBarScrollMotion.isEnabled = enabled
+            tabBarScrollMotion.restore()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardPresented = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardPresented = false
+            tabBarScrollMotion.restore()
+        }
+        .task(id: accountStorage.scopeID) {
+            if !socialSafety.canUseSocial { notificationDeepLinkRouter.pendingPostId = nil;feedNavigationPath = NavigationPath() }
+            guard !ReviewDemoMode.isActive else { return }
+            watchCompanion.bind(scope: accountStorage.scopeID)
+            if watchCompanion.workout == nil,
+               let restored = try? RecordWorkoutCheckpointStore(fileURL: accountStorage.scopeDirectory.appendingPathComponent("active-workout.json")).load() {
+                WorkoutLiveActivityController.shared.submit(restored.liveState(scope: accountStorage.scopeID, at: Date()), force: true)
+                watchCompanion.setPhoneRecording(restored.state == .active || restored.state == .paused)
+            }
+            openOngoingWorkoutIfNeeded()
+        }
+        .onChange(of: watchCompanion.shouldOpenWorkout) { _, open in
+            if open { openOngoingWorkoutIfNeeded() }
+        }
+        .fullScreenCover(isPresented: $isWatchWorkoutPresented) { WatchWorkoutCompanionView() }
+        .onChange(of:eventNotifications.homeRequest) { _,request in
+            if request != nil {selectedTab = socialSafety.canUseSocial ? .feed:.activity;feedNavigationPath=NavigationPath();eventNotifications.homeRequest=nil}
+        }
+        .sheet(isPresented:$eventNotifications.showsInbox) {NavigationStack {EventNotificationInboxView().toolbar {ToolbarItem(placement:.cancellationAction){Button("닫기"){eventNotifications.showsInbox=false}}}}}
+        .onChange(of: notificationDeepLinkRouter.pendingNativePush, initial:true) { _, _ in openPendingNativePush() }
+        .onChange(of: socialSafety.canUseSocial) { _, _ in openPendingNativePush() }
+        .onChange(of: socialSafety.canUseActivityPreview) { _, _ in openPendingNativePush() }
+        .onChange(of: notificationDeepLinkRouter.pendingPush) { _,_ in openPendingPush() }
         .onChange(of: notificationDeepLinkRouter.pendingPostId) { _, newValue in
             guard let postId = newValue else { return }
+            guard socialSafety.canUseSocial else { notificationDeepLinkRouter.pendingPostId = nil; return }
             selectedTab = .feed
             feedNavigationPath.append(FeedPostRouteTarget(postId: postId))
             notificationDeepLinkRouter.pendingPostId = nil
         }
-        .animation(.easeOut(duration: SOOMMotion.Duration.normal), value: tabBarVisibility.isHidden)
+        .animation(reduceMotion ? nil : SOOMMotion.subtleSpring, value: tabBarVisibility.isHidden)
         .fullScreenCover(isPresented: $isRecordLaunchPresented, onDismiss: {
-            selectedTab = shouldReturnToActivityAfterRecordSave ? .activity : .feed
-            shouldReturnToActivityAfterRecordSave = false
+            selectedTab = recordDismissDestination ?? tabBeforeRecording
+            recordDismissDestination = nil
             shouldAutoPresentRouteRecommendationOnRecordLaunch = false
         }) {
-            NavigationStack {
-                RecordView(
-                    onDismiss: {
-                        shouldReturnToActivityAfterRecordSave = false
-                        selectedTab = .feed
-                        isRecordLaunchPresented = false
-                    },
-                    onSaveComplete: {
-                        shouldReturnToActivityAfterRecordSave = true
-                        isRecordLaunchPresented = false
-                    },
-                    onShareDraftComplete: {
-                        shouldReturnToActivityAfterRecordSave = false
-                        selectedTab = .feed
-                        isRecordLaunchPresented = false
-                    },
-                    shouldAutoPresentRouteRecommendation: shouldAutoPresentRouteRecommendationOnRecordLaunch
-                )
+            VStack(spacing: 0) {
+                if ReviewDemoMode.isActive {
+                    ReviewDemoBanner()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                NavigationStack {
+                    RecordView(
+                        onDismiss: {
+                            recordDismissDestination = nil
+                            selectedTab = tabBeforeRecording
+                            isRecordLaunchPresented = false
+                        },
+                        onSaveComplete: {
+                            recordDismissDestination = .activity
+                            isRecordLaunchPresented = false
+                        },
+                        onShareDraftComplete: {
+                            recordDismissDestination = .feed
+                            selectedTab = .feed
+                            isRecordLaunchPresented = false
+                        },
+                        shouldAutoPresentRouteRecommendation: shouldAutoPresentRouteRecommendationOnRecordLaunch
+                    )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
             }
             .preferredColorScheme(.light)
+        }
+    }
+
+    private var isTabBarScrollMotionEnabled: Bool {
+        scenePhase == .active && !reduceMotion && !voiceOverEnabled && !dynamicTypeSize.isAccessibilitySize && !isKeyboardPresented
+            && !tabBarVisibility.isHidden && !isRecordLaunchPresented && !isWatchWorkoutPresented
+    }
+
+    private func openOngoingWorkoutIfNeeded() {
+        guard watchCompanion.shouldOpenWorkout else { return }
+        watchCompanion.shouldOpenWorkout = false
+        if watchCompanion.workout != nil { isWatchWorkoutPresented = true }
+        else {
+            tabBeforeRecording = selectedTab
+            isRecordLaunchPresented = true
         }
     }
 
@@ -153,45 +321,87 @@ struct RootTabView: View {
         return selectedTab != .activity && selectedTab != .clubs
     }
 
+    // Five fixed navigation targets cannot grow as multi-line accessibility text.
+    // At accessibility sizes their names remain available via VoiceOver and the
+    // native large-content viewer, while the content itself keeps full scaling.
+    private var tabBarExtraHeight: CGFloat { 0 }
+
     private var bottomOverlayInset: CGFloat {
         guard !tabBarVisibility.isHidden else { return 0 }
-        return shouldShowFloatingCoach
-            ? SOOMLayout.TabBar.bottomOverlayInset + 72
-            : SOOMLayout.TabBar.bottomOverlayInset
+        let extra = dynamicTypeSize.isAccessibilitySize ? tabBarExtraHeight : (shouldShowFloatingCoach ? 72 : 0)
+        return max(0, SOOMLayout.TabBar.bottomOverlayInset + extra - SOOMLayout.TabBar.safeAreaLowering(tabBarSafeAreaBottom))
     }
 
-    @ViewBuilder
-    private var selectedContent: some View {
-        switch selectedTab {
-        case .feed:
-            NavigationStack(path: $feedNavigationPath) {
-                FeedViewContainer(
-                    onNavigateToClubs: { selectedTab = .clubs },
-                    onNavigateToRouteRecommendation: {
-                        SOOMHaptics.softImpact()
-                        shouldAutoPresentRouteRecommendationOnRecordLaunch = true
-                        isRecordLaunchPresented = true
-                    }
-                )
-            }
-        case .record:
-            NavigationStack {
-                RecordView()
-            }
-        case .activity:
-            NavigationStack {
-                ActivityHubView()
-            }
-        case .clubs:
-            NavigationStack {
-                ClubsView()
-            }
-        case .profile:
-            NavigationStack {
+    private var retainedContent: some View {
+        ZStack {
+            retainedFeed
+                .id("feed:\(accountStorage.scopeID):\(socialSafety.accountGeneration)")
+                .opacity(selectedTab == .feed ? 1 : 0).allowsHitTesting(selectedTab == .feed).accessibilityHidden(selectedTab != .feed).environment(\.soomProfileNavigationIsActive, selectedTab == .feed)
+            if selectedTab == .profile || visitedProfile {
+            NavigationStack(path: $profileNavigationPath) {
                 ProfileIdentityView()
+                    .accessibilityHidden(selectedTab != .profile)
+                    .navigationDestination(for: SocialLoginDestination.self) { _ in GoogleHealthConnectionView() }
+            }
+            .id("profile:\(accountStorage.scopeID):\(socialSafety.accountGeneration)")
+            .opacity(selectedTab == .profile ? 1 : 0).allowsHitTesting(selectedTab == .profile).accessibilityHidden(selectedTab != .profile).environment(\.soomProfileNavigationIsActive, selectedTab == .profile)
+            }
+            if selectedTab == .clubs || visitedClubs {
+            SocialAccessBoundary(loginDestination: .clubs, allowActivityPreview: true) { NavigationStack(path: $clubsNavigationPath) { SocialRankingView() }.accessibilityHidden(selectedTab != .clubs) }
+                .id("clubs:\(accountStorage.scopeID):\(socialSafety.accountGeneration)")
+                .opacity(selectedTab == .clubs ? 1 : 0).allowsHitTesting(selectedTab == .clubs).accessibilityHidden(selectedTab != .clubs).environment(\.soomProfileNavigationIsActive, selectedTab == .clubs)
+            }
+            if selectedTab == .activity || visitedActivity {
+                NavigationStack { ActivityHubView() }
+                    .id("activity:\(accountStorage.scopeID)")
+                    .opacity(selectedTab == .activity ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .activity).accessibilityHidden(selectedTab != .activity).environment(\.soomProfileNavigationIsActive, selectedTab == .activity)
             }
         }
     }
+
+    private func openPendingNativePush() {
+        guard let payload=notificationDeepLinkRouter.consumeNativePush(currentUserID:socialSafety.viewerID,
+            canNavigate:socialSafety.canUseSocial || socialSafety.canUseActivityPreview) else { return }
+        selectedTab = .feed
+        feedNavigationPath.append(NativeNotificationRouteTarget(payload:payload))
+    }
+
+    private func openPendingPush() {
+        guard socialSafety.canUseSocial else { return }
+        guard let target=notificationDeepLinkRouter.consumePush(currentUserID:socialSafety.viewerID) else { return }
+        selectedTab = .feed
+        switch target {
+        case .post(let id): feedNavigationPath.append(FeedPostRouteTarget(postId:id))
+        case .requests: notificationSocialTarget = .requests
+        case .profile(let id): notificationSocialTarget = .profile(id)
+        }
+    }
+
+    private var retainedFeed: some View {
+        SocialAccessBoundary(allowActivityPreview: true, allowsEarlyFeedCache: selectedTab == .feed) { NavigationStack(path: $feedNavigationPath) {
+            FeedViewContainer(
+                isActive: selectedTab == .feed,
+                onNavigateToClubs: { selectedTab = .clubs },
+                onNavigateToRouteRecommendation: {
+                    SOOMHaptics.softImpact()
+                    shouldAutoPresentRouteRecommendationOnRecordLaunch = true
+                    tabBeforeRecording = selectedTab
+                    isRecordLaunchPresented = true
+                }
+            ).accessibilityHidden(selectedTab != .feed)
+                .navigationDestination(isPresented: Binding(get: { notificationSocialTarget != nil }, set: { if !$0 { notificationSocialTarget = nil } })) {
+                    if let target = notificationSocialTarget {
+                        switch target {
+                        case .requests: FollowRequestsView()
+                        case .profile(let id): SOOMProfileDestination(userID: id)
+                        }
+                    }
+                }
+        } }
+    }
+
+
 }
 
 private struct FloatingRecoveryCoach: View {
@@ -276,7 +486,7 @@ private struct FloatingRecoveryCoach: View {
             Button {
                 collapsePreview()
             } label: {
-                Image(systemName: SOOMIcon.close)
+                Image(soom: SOOMIcon.close)
                     .font(.system(size: SOOMFont.Size.caption, weight: .bold))
                     .foregroundStyle(SOOMColor.tertiaryInk)
                     .frame(width: 28, height: 28)
@@ -648,6 +858,8 @@ private enum ActivityHubSection: String, CaseIterable, Identifiable {
 /// within one screen lifetime — hence @AppStorage instead of plain @State.
 private struct ActivityHubView: View {
     @AppStorage("activityHubSelectedSection") private var selectedSectionRawValue = ActivityHubSection.today.rawValue
+    @State private var showsManualEntry = false
+    @State private var hasVisitedLoad = false
 
     private var selectedSection: ActivityHubSection {
         ActivityHubSection(rawValue: selectedSectionRawValue) ?? .today
@@ -655,16 +867,36 @@ private struct ActivityHubView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            HStack {
+                Text("활동").font(SOOMFont.displayMedium(28, relativeTo: .title))
+                Spacer()
+                Button { showsManualEntry = true } label: {
+                    Image(soom: "plus").font(.system(size: 22)).frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("운동 직접 입력")
+                .accessibilityIdentifier("activity.manualEntry")
+            }
+            .padding(.horizontal, SOOMLayout.screenPadding).frame(minHeight: 52)
             sectionPicker
                 .padding(.horizontal, SOOMLayout.screenPadding)
-                .padding(.top, SOOMLayout.Screen.topPadding)
+                .padding(.top, 0)
 
-            switch selectedSection {
-            case .today:
-                ActivityTodaySection()
-            case .workouts:
-                ActivityView()
+            ZStack {
+                if selectedSection == .today || hasVisitedLoad {
+                    ActivityLoadTodayContainer(onAllRecords: { selectedSectionRawValue = ActivityHubSection.workouts.rawValue })
+                        .opacity(selectedSection == .today ? 1 : 0)
+                        .allowsHitTesting(selectedSection == .today)
+                        .accessibilityHidden(selectedSection != .today)
+                }
+                if selectedSection == .workouts { ActivityCalendarView() }
             }
+            .onAppear { if selectedSection == .today { hasVisitedLoad = true } }
+            .onChange(of: selectedSection) { _, next in if next == .today { hasVisitedLoad = true } }
+        }
+        .suspendsSOOMTabBarScrollMotion(when: showsManualEntry)
+        .sheet(isPresented: $showsManualEntry) {
+            ManualWorkoutEntryView(onSave: { _ in selectedSectionRawValue = ActivityHubSection.workouts.rawValue })
         }
     }
 
@@ -677,13 +909,16 @@ private struct ActivityHubView: View {
                 } label: {
                     Text(section.title)
                         .font(SOOMFont.body(13, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(selectedSection == section ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
+                        .foregroundStyle(selectedSection == section ? SOOMColor.ink : SOOMColor.secondaryInk)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, SOOMLayout.Spacing.sm)
-                        .background(selectedSection == section ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
-                        .clipShape(Capsule())
+                        .frame(minHeight: 44)
+                        .overlay(alignment: .bottom) {
+                            if selectedSection == section { RoundedRectangle(cornerRadius: 1).fill(SOOMColor.ink).frame(width: 48, height: 2) }
+                        }
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(selectedSection == section ? [.isSelected] : [])
+                .accessibilityIdentifier("activity.section.\(section.rawValue)")
             }
         }
     }
@@ -693,12 +928,13 @@ private struct ActivityHubView: View {
 /// Feed가 쓰는 것과 동일한 카드(FeedWeeklySnapshotCarousel/FeedRecoveryInsightCard)를 재사용한다.
 /// PDF 스펙의 4지표(신체에너지/스트레스/회복/운동강도) 분리 대시보드는 별도 배치(M4, 신규 모델링 필요).
 private struct ActivityTodaySection: View {
+    @EnvironmentObject private var healthStorage: HealthAccountStorageController
     @Environment(\.modelContext) private var modelContext
     @State private var weeklySnapshot: FeedWeeklySnapshot?
     @State private var recoveryInsight: FeedRecoveryInsight?
 
     var body: some View {
-        SOOMScreen {
+        SOOMScreen(tracksTabBarScroll: true) {
             if let weeklySnapshot {
                 FeedWeeklySnapshotCarousel(snapshot: weeklySnapshot)
             }
@@ -713,7 +949,7 @@ private struct ActivityTodaySection: View {
                 .accessibilityHint("회복 상세 화면으로 이동합니다.")
             }
         }
-        .task {
+        .task(id: healthStorage.dataRevision) {
             await loadTodayContent()
         }
     }
@@ -733,7 +969,7 @@ private struct ActivityTodaySection: View {
         weeklySnapshot = progress.map {
             FeedWeeklySnapshot(progress: $0, sportSummary: sportSummary(for: $0))
         }
-        recoveryInsight = recovery.map { FeedRecoveryInsight(summary: $0.summary) }
+        recoveryInsight = recovery.map { FeedRecoveryInsight(preview: $0) }
     }
 
     private func sportSummary(for progress: WeeklyWorkoutProgress) -> String {
@@ -742,900 +978,249 @@ private struct ActivityTodaySection: View {
     }
 }
 
-private struct ActivityView: View {
-    @EnvironmentObject private var dashboardViewModel: DashboardViewModel
-    @Environment(\.modelContext) private var modelContext
-    @State private var savedWorkouts: [UnifiedWorkout] = []
-    @State private var isPresentingActivityWorkoutImport = false
+/// Approved R11 frames at their original 30fps. No published animation state.
+struct SOOMRecordCharacterTimeline {
+    static let framesPerSecond = 30.0
+    static let runFrameCount = 96
+    static let totalFrameCount = 216
+    static let duration = 7.2
+    private(set) var elapsed = 0.0
+    private(set) var isActive = false
+    private var lastTimestamp: Double?
+
+    var frameIndex: Int {
+        min(Self.totalFrameCount - 1, Int((elapsed * Self.framesPerSecond + 0.0000001).rounded(.down)))
+    }
+    var isRunningClip: Bool { frameIndex < Self.runFrameCount }
+    mutating func setActive(_ active: Bool) {
+        guard active != isActive else { return }
+        isActive = active
+        lastTimestamp = nil // Background/inactive time never advances the clip.
+    }
+    mutating func advance(to timestamp: Double) {
+        guard isActive, timestamp.isFinite else { return }
+        defer { lastTimestamp = timestamp }
+        guard let lastTimestamp, timestamp >= lastTimestamp else { return }
+        elapsed = (elapsed + timestamp - lastTimestamp).truncatingRemainder(dividingBy: Self.duration)
+        // Normalize only nanosecond rounding at the full-cycle boundary.
+        if Self.duration - elapsed < 0.00000001 { elapsed = 0 }
+    }
+    static func contentsRect(for frame: Int) -> CGRect {
+        let index = max(0, min(frame, totalFrameCount - 1))
+        // 120px frame + two transparent pixels on each edge prevents texture bleed.
+        return CGRect(x: Double(index % 12 * 124 + 2) / 1488,
+                      y: Double(index / 12 * 124 + 2) / 2232,
+                      width: 120.0 / 1488, height: 120.0 / 2232)
+    }
+}
+
+private struct SOOMRecordCharacterIcon: View {
+    let isVisible: Bool
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
 
     var body: some View {
-        SOOMScreen {
-            activityCalendarSection
-            recentChangeSection
-            recentWorkoutSection
-            favoriteRoutesSection
-            statisticsSection
-            libraryManagementSection
-        }
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: $isPresentingActivityWorkoutImport) {
-            HealthKitWorkoutImportViewContainer()
-        }
-        .task {
-            await loadSavedWorkouts()
-        }
-    }
-
-    private var libraryEntries: [ActivityLibraryEntry] {
-        let dashboardEntries = dashboardViewModel.workouts.map(ActivityLibraryEntry.make)
-        let savedEntries = savedWorkouts.map(ActivityLibraryEntry.make)
-
-        return (savedEntries + dashboardEntries)
-            .sorted { $0.date > $1.date }
-    }
-
-    private var activityCalendarSection: some View {
-        ActivityCalendarSection(entries: libraryEntries)
-    }
-
-    private var recentWorkoutSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SOOMSectionHeader("최근 운동", caption: "최근 저장된 움직임을 도서관 서가처럼 모아봅니다.")
-
-            if libraryEntries.isEmpty {
-                SOOMFirstJourneyCard(
-                    prompt: .activity,
-                    actions: [
-                        SOOMFirstJourneyAction(
-                            title: "첫 운동 가져오기",
-                            subtitle: "HealthKit에서 불러온 기록은 상세 흐름의 시작점이 됩니다.",
-                            iconName: SOOMIcon.sync,
-                            action: {
-                                isPresentingActivityWorkoutImport = true
-                            }
-                        ),
-                        SOOMFirstJourneyAction(
-                            title: "route preview 보기",
-                            subtitle: "기록이 생기면 길, split, terrain이 차례로 열립니다.",
-                            iconName: SOOMIcon.map
-                        )
-                    ],
-                    footer: "0을 크게 보여주기보다, 첫 움직임이 남을 자리를 비워둡니다."
-                )
-            } else {
-                ForEach(libraryEntries.prefix(5)) { entry in
-                    recentWorkoutLink(for: entry)
-                }
-            }
-        }
-    }
-
-    private var recentChangeSection: some View {
-        SOOMCard(depth: .ambient) {
-            SOOMSectionHeader("최근 변화", caption: "숫자보다 방향을 먼저 봅니다.")
-
-            HStack(spacing: 10) {
-                ActivityDirectionPill(title: "꾸준함", value: "↑", tint: SOOMColor.accent)
-                ActivityDirectionPill(title: "회복", value: "→", tint: SOOMColor.accent)
-                ActivityDirectionPill(title: "운동 시간", value: "↑", tint: SOOMColor.accent)
-            }
-        }
-    }
-
-    private var favoriteRoutesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SOOMSectionHeader("자주 가는 코스", caption: "자주 남은 길을 도서관처럼 모아둡니다.")
-
-            HStack(spacing: 10) {
-                ActivityRouteCard(title: "한강 북단", count: "12회", tint: SOOMColor.accent)
-                ActivityRouteCard(title: "탄천", count: "8회", tint: SOOMColor.accent)
-                ActivityRouteCard(title: "북악", count: "3회", tint: SOOMColor.accent)
-            }
-        }
-    }
-
-    private var statisticsSection: some View {
-        SOOMCard(depth: .ambient) {
-            SOOMSectionHeader("통계", caption: "도서관의 작은 인덱스처럼 하단에 둡니다.")
-
-            HStack(spacing: 10) {
-                ActivityStatTile(title: "운동 횟수", value: "\(libraryEntries.count)")
-                ActivityStatTile(title: "운동 시간", value: totalDurationText)
-                ActivityStatTile(title: "총 거리", value: totalDistanceText)
-            }
-        }
-    }
-
-    private var libraryManagementSection: some View {
-        SOOMCard {
-            SOOMSectionHeader("운동 라이브러리 관리", caption: "HealthKit 가져오기, 분석 제외, 상세 분석 진입은 이곳에서 정리합니다.")
-
-            NavigationLink {
-                UnifiedWorkoutLibraryViewContainer()
-            } label: {
-                SOOMActionRow(
-                    icon: SOOMIcon.package,
-                    title: "운동 라이브러리",
-                    subtitle: "저장된 운동 기록, route 재사용, 상세 분석 진입을 확인합니다.",
-                    tint: SOOMColor.accent
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private func recentWorkoutLink(for entry: ActivityLibraryEntry) -> some View {
-        switch entry.destination {
-        case .workout(let workout):
-            NavigationLink {
-                WorkoutDeepDetailView(workout: workout, comparisonWorkouts: dashboardViewModel.workouts)
-            } label: {
-                ActivityWorkoutLibraryCard(entry: entry)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("운동 상세 흐름으로 이동합니다.")
-        case .directWorkout(let unifiedWorkout):
-            NavigationLink {
-                UnifiedWorkoutDetailDestination(
-                    unifiedWorkout: unifiedWorkout,
-                    similarCandidateProvider: SimilarWorkoutCandidateProvider(
-                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
-                        persistedRouteProvider: PersistedRouteCandidateProvider(
-                            store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
-                        )
-                    ),
-                    comparisonHistoryProvider: SwiftDataWorkoutComparisonHistoryProvider(
-                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-                    ),
-                    detailRouteContextProvider: WorkoutDetailRouteContextProvider(
-                        store: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
-                    ),
-                    relativeEffortHistoryProvider: SwiftDataRelativeEffortHistoryProvider(
-                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-                    ),
-                    achievementHistoryProvider: SwiftDataWorkoutAchievementHistoryProvider(
-                        workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext),
-                        routeStore: SwiftDataWorkoutRoutePersistenceStore(modelContext: modelContext)
-                    ),
-                    fitnessTrendHistoryProvider: SwiftDataFitnessTrendHistoryProvider(
-                        store: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-                    ),
-                    companionUpdateService: WorkoutCompanionUpdateService(
-                        workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-                    )
-                )
-            } label: {
-                ActivityWorkoutLibraryCard(entry: entry)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("운동 상세 흐름으로 이동합니다.")
-        case .library:
-            NavigationLink {
-                UnifiedWorkoutLibraryViewContainer()
-            } label: {
-                ActivityWorkoutLibraryCard(entry: entry)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("운동 라이브러리에서 저장된 운동을 확인합니다.")
-        }
-    }
-
-    private var totalDurationText: String {
-        let totalSeconds = libraryEntries.reduce(0) { $0 + $1.durationSeconds }
-        let hours = Int(totalSeconds / 3_600)
-        let minutes = Int(totalSeconds.truncatingRemainder(dividingBy: 3_600) / 60)
-
-        if hours > 0 {
-            return "\(hours)시간"
-        }
-
-        return "\(minutes)분"
-    }
-
-    private var totalDistanceText: String {
-        let totalMeters = libraryEntries.reduce(0) { $0 + ($1.distanceMeters ?? 0) }
-        guard totalMeters > 0 else { return "0 km" }
-
-        return String(format: "%.1f km", totalMeters / 1_000)
-    }
-
-    @MainActor
-    private func loadSavedWorkouts() async {
-        let store = SwiftDataUnifiedWorkoutStore(modelContext: modelContext)
-        savedWorkouts = (try? await store.fetchRecentWorkouts(days: 180)) ?? []
+        SOOMRecordCharacterNativeView(active: isVisible && scenePhase == .active,
+            reduced: reduceMotion || voiceOver || !playAnimatedImages)
+            .frame(width: 40, height: 40)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 
-private enum ActivityCalendarMode: String, CaseIterable, Identifiable {
-    case month
-    case week
-    case list
+private struct SOOMRecordCharacterNativeView: UIViewRepresentable {
+    let active: Bool
+    let reduced: Bool
+    func makeUIView(context: Context) -> SOOMRecordCharacterSurface { SOOMRecordCharacterSurface() }
+    func updateUIView(_ view: SOOMRecordCharacterSurface, context: Context) {
+        view.configure(active: active, reduced: reduced)
+    }
+    static func dismantleUIView(_ view: SOOMRecordCharacterSurface, coordinator: ()) { view.stop() }
+}
 
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .month:
-            return "월"
-        case .week:
-            return "주"
-        case .list:
-            return "목록"
+/// One shared, predecoded texture; decoding never runs on the main actor.
+private final class SOOMRecordCharacterImages: @unchecked Sendable {
+    let atlas: CGImage
+    let reducedRun: CGImage
+    let reducedCycle: CGImage
+    init?(atlas: CGImage?, run: CGImage?, cycle: CGImage?) {
+        guard let atlas, let run, let cycle else { return nil }
+        self.atlas = atlas; reducedRun = run; reducedCycle = cycle
+    }
+    static let load = Task.detached(priority: .utility) { () -> SOOMRecordCharacterImages? in
+        func decoded(_ name: String) -> CGImage? {
+            guard let image = UIImage(named: name)?.cgImage,
+                  let context = CGContext(data: nil, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            return context.makeImage()
         }
+        return SOOMRecordCharacterImages(atlas: decoded("SOOMRecordR11Atlas"),
+            run: decoded("SOOMRecordR11ReducedRun"), cycle: decoded("SOOMRecordR11ReducedCycle"))
     }
 }
 
-private enum ActivityLibraryDestination {
-    case workout(Workout)
-    case directWorkout(UnifiedWorkout)
-    case library
-}
+@MainActor private final class SOOMRecordCharacterSurface: UIView {
+    private let fallback = UIImageView(image: UIImage(systemName: "record.circle"))
+    private var images: SOOMRecordCharacterImages?
+    private var imageTask: Task<Void, Never>?
+    private var displayLink: CADisplayLink?
+    private var timeline = SOOMRecordCharacterTimeline()
+    private var requestedActive = false
+    private var reduced = false
+    private var lastFrame: Int?
+    private var showingReduced: Bool?
 
-private struct ActivityLibraryEntry: Identifiable {
-    let id: UUID
-    let title: String
-    let date: Date
-    let typeTitle: String
-    let iconName: String
-    let tint: Color
-    let distanceMeters: Double?
-    let durationSeconds: TimeInterval
-    let routePoints: [RoutePoint]
-    let destination: ActivityLibraryDestination
-
-    var distanceText: String {
-        guard let distanceMeters, distanceMeters > 0 else { return "기록 준비 중" }
-        if distanceMeters < 1_000 {
-            return "\(Int(distanceMeters)) m"
-        }
-        return String(format: "%.1f km", distanceMeters / 1_000)
-    }
-
-    var durationText: String {
-        let totalMinutes = max(0, Int(durationSeconds / 60))
-        guard totalMinutes > 0 else { return "기록 준비 중" }
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-
-        if hours > 0 {
-            return "\(hours)시간 \(minutes)분"
-        }
-
-        return "\(minutes)분"
-    }
-
-    var compactEvidence: [(title: String, value: String)] {
-        var items: [(String, String)] = []
-
-        if let distanceMeters, distanceMeters > 0 {
-            items.append(("거리", distanceText))
-        }
-
-        if durationSeconds >= 60 {
-            items.append(("시간", durationText))
-        }
-
-        items.append(("날짜", compactDateText))
-        return items
-    }
-
-    var dateText: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M.d HH:mm"
-        return formatter.string(from: date)
-    }
-
-    var compactDateText: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M.d"
-        return formatter.string(from: date)
-    }
-
-    static func make(from workout: Workout) -> ActivityLibraryEntry {
-        ActivityLibraryEntry(
-            id: workout.id,
-            title: workout.title,
-            date: workout.date,
-            typeTitle: workout.sport.title,
-            iconName: workout.sport.iconName,
-            tint: workout.sport.tint,
-            distanceMeters: workout.distanceMeters,
-            durationSeconds: workout.duration,
-            routePoints: workout.route,
-            destination: .workout(workout)
-        )
-    }
-
-    static func make(from workout: UnifiedWorkout) -> ActivityLibraryEntry {
-        ActivityLibraryEntry(
-            id: workout.id,
-            title: "\(displayName(for: workout.workoutType)) 기록",
-            date: workout.startDate,
-            typeTitle: displayName(for: workout.workoutType),
-            iconName: iconName(for: workout.workoutType),
-            tint: tint(for: workout.workoutType),
-            distanceMeters: workout.distanceMeters,
-            durationSeconds: workout.durationSeconds,
-            routePoints: [],
-            destination: destination(for: workout)
-        )
-    }
-
-    private static func destination(for workout: UnifiedWorkout) -> ActivityLibraryDestination {
-        workout.source.isImported ? .library : .directWorkout(workout)
-    }
-
-    private static func displayName(for workoutType: UnifiedWorkoutType) -> String {
-        switch workoutType {
-        case .running:
-            return "러닝"
-        case .cycling:
-            return "라이딩"
-        case .walking:
-            return "걷기"
-        case .swimming:
-            return "수영"
-        case .hiking:
-            return "하이킹"
-        case .strength:
-            return "근력"
-        case .yoga:
-            return "요가"
-        case .other:
-            return "운동"
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear; isOpaque = false; isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        fallback.contentMode = .scaleAspectFit; fallback.tintColor = .secondaryLabel
+        fallback.isUserInteractionEnabled = false; fallback.isAccessibilityElement = false
+        addSubview(fallback)
+        layer.contentsGravity = .resize
+        layer.minificationFilter = .linear; layer.magnificationFilter = .linear
+        imageTask = Task { [weak self] in
+            let images = await SOOMRecordCharacterImages.load.value
+            guard !Task.isCancelled, let self else { return }
+            self.images = images
+            self.fallback.isHidden = images != nil
+            self.updatePlayback()
         }
     }
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+    override func layoutSubviews() {
+        super.layoutSubviews(); fallback.frame = bounds.insetBy(dx: 8, dy: 8)
+    }
+    override func didMoveToWindow() { super.didMoveToWindow(); updatePlayback() }
 
-    private static func iconName(for workoutType: UnifiedWorkoutType) -> String {
-        switch workoutType {
-        case .running:
-            return SOOMIcon.run
-        case .cycling:
-            return SOOMIcon.bike
-        case .walking:
-            return "figure.walk"
-        case .swimming:
-            return SOOMIcon.swim
-        case .hiking:
-            return "figure.hiking"
-        case .strength:
-            return "dumbbell"
-        case .yoga:
-            return "figure.mind.and.body"
-        case .other:
-            return SOOMIcon.activity
+    func configure(active: Bool, reduced: Bool) {
+        requestedActive = active; self.reduced = reduced
+        updatePlayback()
+    }
+    private func updatePlayback() {
+        let active = requestedActive && !reduced && window != nil && images != nil
+        timeline.setActive(active)
+        if active, displayLink == nil {
+            let proxy = DisplayLinkTarget(owner: self)
+            let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkTarget.tick(_:)))
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 30, preferred: 30)
+            displayLink = link
+            link.add(to: .main, forMode: .common)
+        } else if !active {
+            displayLink?.invalidate(); displayLink = nil
         }
+        render()
     }
-
-    private static func tint(for workoutType: UnifiedWorkoutType) -> Color {
-        switch workoutType {
-        case .walking:
-            return SOOMColor.walk
-        case .running:
-            return SOOMColor.run
-        case .cycling:
-            return SOOMColor.bike
-        default:
-            return SOOMColor.secondaryInk
+    fileprivate func tick(_ link: CADisplayLink) {
+        timeline.advance(to: link.timestamp)
+        render()
+    }
+    private func render() {
+        guard let images else { return }
+        let frame = timeline.frameIndex
+        guard lastFrame != frame || showingReduced != reduced else { return }
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        if reduced {
+            layer.contents = timeline.isRunningClip ? images.reducedRun : images.reducedCycle
+            layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        } else {
+            if showingReduced != false { layer.contents = images.atlas }
+            layer.contentsRect = SOOMRecordCharacterTimeline.contentsRect(for: frame)
         }
+        CATransaction.commit()
+        lastFrame = frame; showingReduced = reduced
     }
-}
+    func stop() {
+        requestedActive = false; timeline.setActive(false)
+        displayLink?.invalidate(); displayLink = nil
+        imageTask?.cancel(); imageTask = nil
+    }
+    deinit { displayLink?.invalidate(); imageTask?.cancel() }
 
-private struct ActivityCalendarSection: View {
-    let entries: [ActivityLibraryEntry]
-    @State private var mode: ActivityCalendarMode = .month
-
-    var body: some View {
-        SOOMCard(depth: .primary) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("운동 도서관")
-                            .font(SOOMFont.displayMedium(24, relativeTo: .title2))
-                            .foregroundStyle(SOOMColor.ink)
-                        Text("언제, 어떤 움직임이 남았는지 먼저 봅니다.")
-                            .font(SOOMFont.body(13, relativeTo: .caption))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    HStack(spacing: 4) {
-                        ForEach(ActivityCalendarMode.allCases) { calendarMode in
-                            Button {
-                                mode = calendarMode
-                                SOOMHaptics.selection()
-                            } label: {
-                                Text(calendarMode.title)
-                                    .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                                    .foregroundStyle(mode == calendarMode ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
-                                    .padding(.horizontal, SOOMLayout.Spacing.sm)
-                                    .padding(.vertical, SOOMLayout.Spacing.sm)
-                                    .background(mode == calendarMode ? SOOMColor.selectedSurface : SOOMColor.surfaceMuted)
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                switch mode {
-                case .month:
-                    monthGrid
-                case .week:
-                    weekStrip
-                case .list:
-                    dateList
-                }
-
-                calendarLegend
-            }
+    @MainActor private final class DisplayLinkTarget: NSObject {
+        weak var owner: SOOMRecordCharacterSurface?
+        init(owner: SOOMRecordCharacterSurface) { self.owner = owner }
+        @objc func tick(_ link: CADisplayLink) {
+            guard let owner else { link.invalidate(); return }
+            owner.tick(link)
         }
-    }
-
-    private var monthGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 7), spacing: 9) {
-            ForEach(monthDays, id: \.self) { date in
-                calendarDayCell(date)
-            }
-        }
-    }
-
-    private var weekStrip: some View {
-        HStack(spacing: 7) {
-            ForEach(weekDays, id: \.self) { date in
-                calendarDayCell(date)
-            }
-        }
-    }
-
-    private var dateList: some View {
-        VStack(spacing: 8) {
-            ForEach(entries.prefix(5)) { entry in
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(entry.tint)
-                        .frame(width: 8, height: 8)
-
-                    Text(entry.dateText)
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.ink)
-
-                    Text(entry.title)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 0)
-                }
-            }
-
-            if entries.isEmpty {
-                Text("첫 운동이 저장되면 이곳에 날짜가 쌓입니다.")
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-            }
-        }
-    }
-
-    private var calendarLegend: some View {
-        HStack(spacing: 12) {
-            legendDot(title: "걷기", color: SOOMColor.walk)
-            legendDot(title: "러닝", color: SOOMColor.run)
-            legendDot(title: "라이딩", color: SOOMColor.bike)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func calendarDayCell(_ date: Date) -> some View {
-        let dayEntries = entries(on: date)
-
-        return VStack(spacing: 5) {
-            Text(dayNumber(for: date))
-                .font(SOOMFont.body(11, weight: dayEntries.isEmpty ? .regular : .bold, relativeTo: .caption2))
-                .foregroundStyle(dayEntries.isEmpty ? SOOMColor.secondaryInk : SOOMColor.ink)
-                .monospacedDigit()
-
-            HStack(spacing: 2) {
-                ForEach(Array(dayEntries.prefix(3).enumerated()), id: \.offset) { _, entry in
-                    Circle()
-                        .fill(entry.tint)
-                        .frame(width: 4.5, height: 4.5)
-                }
-            }
-            .frame(height: 6)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, SOOMLayout.Spacing.sm)
-        .background(dayEntries.isEmpty ? SOOMColor.surfaceMuted.opacity(0.55) : SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.tight, style: .continuous))
-    }
-
-    private func legendDot(title: String, color: Color) -> some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-            Text(title)
-                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.secondaryInk)
-        }
-    }
-
-    private func entries(on date: Date) -> [ActivityLibraryEntry] {
-        entries.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
-    }
-
-    private var monthDays: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        return (0..<28).compactMap { offset in
-            calendar.date(byAdding: .day, value: offset - 27, to: today)
-        }
-    }
-
-    private var weekDays: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        return (0..<7).compactMap { offset in
-            calendar.date(byAdding: .day, value: offset - 6, to: today)
-        }
-    }
-
-    private func dayNumber(for date: Date) -> String {
-        let day = Calendar.current.component(.day, from: date)
-        return "\(day)"
-    }
-}
-
-private struct ActivityWorkoutLibraryCard: View {
-    let entry: ActivityLibraryEntry
-
-    var body: some View {
-        SOOMCard(depth: .secondary) {
-            HStack(spacing: 12) {
-                ActivityCompactMediaStrip(entry: entry)
-                    .frame(width: 116, height: 82)
-
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack(spacing: 7) {
-                        Image(systemName: entry.iconName)
-                            .font(.system(size: SOOMFont.Size.caption, weight: .bold))
-                            .foregroundStyle(entry.tint)
-                            .frame(width: 24, height: 24)
-                            .background(entry.tint.opacity(0.12))
-                            .clipShape(Circle())
-
-                        Text(entry.typeTitle)
-                            .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                            .foregroundStyle(entry.tint)
-
-                        Text(entry.dateText)
-                            .font(SOOMFont.body(11, relativeTo: .caption2))
-                            .foregroundStyle(SOOMColor.secondaryInk)
-                            .lineLimit(1)
-                    }
-
-                    Text(entry.title)
-                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.ink)
-                        .lineLimit(1)
-
-                    HStack(spacing: 8) {
-                        ForEach(Array(entry.compactEvidence.enumerated()), id: \.offset) { _, item in
-                            ActivityMetricEvidence(title: item.title, value: item.value)
-                        }
-
-                        if entry.compactEvidence.count == 1 {
-                            ActivityMetricEvidence(title: "상태", value: "기록 준비 중")
-                        }
-                    }
-                }
-
-                Spacer(minLength: 0)
-            }
-            .frame(minHeight: 92)
-        }
-    }
-}
-
-private struct ActivityCompactMediaStrip: View {
-    let entry: ActivityLibraryEntry
-
-    var body: some View {
-        HStack(spacing: 5) {
-            ActivityRoutePreview(points: entry.routePoints, tint: entry.tint, showsLabel: false)
-                .frame(width: 72)
-
-            ActivityPhotoThumbnail(tint: entry.tint, showsLabel: false)
-                .frame(width: 39)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
-    }
-}
-
-private struct ActivityRoutePreview: View {
-    let points: [RoutePoint]
-    let tint: Color
-    var showsLabel: Bool = true
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                SOOMColor.routePreviewGradientStart,
-                                SOOMColor.routePreviewGradientMid,
-                                SOOMColor.routePreviewGradientEnd
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                ActivityMapTexture()
-                    .stroke(SOOMColor.white.opacity(0.55), style: StrokeStyle(lineWidth: 7, lineCap: .round))
-
-                ActivityRouteShape(points: normalizedPoints)
-                    .stroke(tint, style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
-                    .shadow(color: tint.opacity(0.16), radius: 5, x: 0, y: 3)
-                    .padding(SOOMLayout.Spacing.xl)
-
-                routeDot(at: normalizedPoints.first ?? CGPoint(x: 0.18, y: 0.72), color: SOOMColor.white, in: proxy.size)
-                routeDot(at: normalizedPoints.last ?? CGPoint(x: 0.82, y: 0.32), color: tint, in: proxy.size)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
-            .overlay(alignment: .bottomLeading) {
-                if showsLabel {
-                    Text(points.isEmpty ? "route 준비" : "route")
-                        .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.ink)
-                        .padding(.horizontal, SOOMLayout.Spacing.sm)
-                        .padding(.vertical, SOOMLayout.Spacing.xs)
-                        .background(SOOMColor.surface.opacity(0.86))
-                        .clipShape(Capsule())
-                        .padding(SOOMLayout.Spacing.sm)
-                }
-            }
-        }
-    }
-
-    private var normalizedPoints: [CGPoint] {
-        guard points.count >= 2 else {
-            return [
-                CGPoint(x: 0.12, y: 0.70),
-                CGPoint(x: 0.28, y: 0.58),
-                CGPoint(x: 0.44, y: 0.62),
-                CGPoint(x: 0.62, y: 0.42),
-                CGPoint(x: 0.85, y: 0.30)
-            ]
-        }
-
-        let latitudes = points.map(\.latitude)
-        let longitudes = points.map(\.longitude)
-        let minLatitude = latitudes.min() ?? 0
-        let maxLatitude = latitudes.max() ?? 1
-        let minLongitude = longitudes.min() ?? 0
-        let maxLongitude = longitudes.max() ?? 1
-        let latitudeRange = max(maxLatitude - minLatitude, 0.000_001)
-        let longitudeRange = max(maxLongitude - minLongitude, 0.000_001)
-
-        return points.map { point in
-            CGPoint(
-                x: 0.10 + CGFloat((point.longitude - minLongitude) / longitudeRange) * 0.80,
-                y: 0.86 - CGFloat((point.latitude - minLatitude) / latitudeRange) * 0.72
-            )
-        }
-    }
-
-    private func routeDot(at normalizedPoint: CGPoint, color: Color, in size: CGSize) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: 9, height: 9)
-            .overlay {
-                Circle().stroke(SOOMColor.ink.opacity(0.14), lineWidth: 1)
-            }
-            .position(
-                x: normalizedPoint.x * size.width,
-                y: normalizedPoint.y * size.height
-            )
-    }
-}
-
-private struct ActivityRouteShape: Shape {
-    let points: [CGPoint]
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-
-        guard let first = points.first else { return path }
-        path.move(to: CGPoint(x: rect.minX + first.x * rect.width, y: rect.minY + first.y * rect.height))
-
-        for point in points.dropFirst() {
-            path.addLine(to: CGPoint(x: rect.minX + point.x * rect.width, y: rect.minY + point.y * rect.height))
-        }
-
-        return path
-    }
-}
-
-private struct ActivityMapTexture: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX - 20, y: rect.midY * 0.82))
-        path.addCurve(
-            to: CGPoint(x: rect.maxX + 20, y: rect.midY * 1.12),
-            control1: CGPoint(x: rect.width * 0.22, y: rect.minY + rect.height * 0.30),
-            control2: CGPoint(x: rect.width * 0.70, y: rect.minY + rect.height * 0.72)
-        )
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.maxY + 12))
-        path.addCurve(
-            to: CGPoint(x: rect.maxX + 12, y: rect.minY + rect.height * 0.26),
-            control1: CGPoint(x: rect.width * 0.34, y: rect.height * 0.76),
-            control2: CGPoint(x: rect.width * 0.58, y: rect.height * 0.14)
-        )
-        return path
-    }
-}
-
-private struct ActivityPhotoThumbnail: View {
-    let tint: Color
-    var showsLabel: Bool = true
-
-    var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            tint.opacity(0.24),
-                            SOOMColor.photoThumbnailGradientStart,
-                            SOOMColor.photoThumbnailGradientEnd
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            Image(systemName: SOOMIcon.map)
-                .font(.system(size: showsLabel ? 22 : 15, weight: .semibold))
-                .foregroundStyle(SOOMColor.white.opacity(0.86))
-
-            if showsLabel {
-                Text("photo")
-                    .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                    .foregroundStyle(SOOMColor.ink)
-                    .padding(.horizontal, SOOMLayout.Spacing.sm)
-                    .padding(.vertical, SOOMLayout.Spacing.xs)
-                    .background(SOOMColor.surface.opacity(0.86))
-                    .clipShape(Capsule())
-                    .padding(SOOMLayout.Spacing.sm)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.pill, style: .continuous))
-    }
-}
-
-private struct ActivityMetricEvidence: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.tertiaryInk)
-            Text(value)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, SOOMLayout.Spacing.xs)
-    }
-}
-
-private struct ActivityDirectionPill: View {
-    let title: String
-    let value: String
-    let tint: Color
-
-    var body: some View {
-        VStack(spacing: 5) {
-            Text(title)
-                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.secondaryInk)
-            Text(value)
-                .font(SOOMFont.displayMedium(21, relativeTo: .title3))
-                .foregroundStyle(tint)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, SOOMLayout.Spacing.md)
-        .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
-    }
-}
-
-private struct ActivityRouteCard: View {
-    let title: String
-    let count: String
-    let tint: Color
-
-    var body: some View {
-        SOOMCard(depth: .ambient) {
-            VStack(alignment: .leading, spacing: 10) {
-                ActivityRoutePreview(points: [], tint: tint)
-                    .frame(height: 86)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.ink)
-                        .lineLimit(1)
-                    Text(count)
-                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                }
-            }
-        }
-    }
-}
-
-private struct ActivityStatTile: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.tertiaryInk)
-            Text(value)
-                .font(SOOMFont.body(16, weight: .bold, relativeTo: .subheadline))
-                .foregroundStyle(SOOMColor.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(SOOMLayout.Spacing.md)
-        .background(SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.medium, style: .continuous))
     }
 }
 
 private struct SOOMBottomTabBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Binding var selectedTab: SOOMTab
     let namespace: Namespace.ID
+    @ObservedObject var scrollMotion: SOOMTabBarScrollMotion
+    let recordMotionActive: Bool
+    @Environment(\.soomTabBarExtraHeight) private var tabBarExtraHeight
     let onRecordSelected: () -> Void
 
+    private var visualScale: CGFloat {
+        scrollMotion.isCompact ? SOOMTabBarScrollReducer.compactScale : 1
+    }
+
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(SOOMTab.allCases) { tab in
-                Button {
-                    if tab == .record {
-                        onRecordSelected()
-                    } else {
-                        SOOMHaptics.selection()
-                        withAnimation(SOOMMotion.quickEaseOut) {
-                            selectedTab = tab
+        GeometryReader { proxy in
+            let layout = SOOMTabBarTouchLayout(
+                containerWidth: proxy.size.width,
+                visualScale: visualScale,
+                tabCount: SOOMTab.allCases.count,
+                horizontalPadding: SOOMLayout.TabBar.containerHorizontalPadding
+            )
+            ZStack(alignment: .bottom) {
+                containerSurface
+                    .frame(width: proxy.size.width, height: containerHeight)
+                    .scaleEffect(visualScale, anchor: .bottom)
+                    .allowsHitTesting(false)
+                HStack(spacing: 0) {
+                    ForEach(SOOMTab.allCases) { tab in
+                        Button {
+                            if tab == .record {
+                                onRecordSelected()
+                            } else {
+                                guard selectedTab != tab else { return }
+                                selectedTab = tab
+                            }
+                        } label: {
+                            SOOMBottomTabItem(tab: tab, isSelected: selectedTab == tab, namespace: namespace, recordMotionActive: recordMotionActive)
+                        }
+                        .buttonStyle(LiquidTabButtonStyle(
+                            visualScale: visualScale,
+                            visualWidth: layout.visualItemWidth,
+                            targetWidth: layout.targetItemWidth
+                        ))
+                        .frame(width: layout.targetItemWidth, height: SOOMLayout.TabBar.itemHeight + tabBarExtraHeight)
+                        .accessibilityIdentifier("soom.tab." + tab.rawValue)
+                        .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                        .accessibilityHint(tab == .record ? "새 운동 기록을 엽니다." : "\(tab.title) 화면으로 이동합니다.")
+                        .accessibilityShowsLargeContentViewer {
+                            VStack { Image(soom: tab.iconName, selected: selectedTab == tab).font(.largeTitle); Text(tab.title) }
                         }
                     }
-                } label: {
-                    SOOMBottomTabItem(tab: tab, isSelected: selectedTab == tab, namespace: namespace)
                 }
-                .buttonStyle(LiquidTabButtonStyle())
-                .frame(maxWidth: .infinity)
+                .frame(width: layout.targetRowWidth, height: SOOMLayout.TabBar.itemHeight + tabBarExtraHeight)
+                .padding(.bottom, SOOMLayout.TabBar.containerVerticalPadding * visualScale)
             }
+            .frame(width: proxy.size.width, height: containerHeight, alignment: .bottom)
         }
-        .frame(height: SOOMLayout.TabBar.height)
-        .padding(.horizontal, SOOMLayout.TabBar.containerHorizontalPadding)
-        .padding(.vertical, SOOMLayout.TabBar.containerVerticalPadding)
+        .frame(height: containerHeight)
+        .animation(reduceMotion || voiceOverEnabled ? nil : .easeInOut(duration: SOOMTabBarScrollReducer.animationDuration), value: scrollMotion.isCompact)
+        .animation(reduceMotion ? nil : SOOMMotion.subtleSpring, value: selectedTab)
+    }
+
+    private var containerHeight: CGFloat {
+        SOOMLayout.TabBar.height + 2 * SOOMLayout.TabBar.containerVerticalPadding + tabBarExtraHeight
+    }
+
+    private var containerSurface: some View {
+        Color.clear
         .background {
             ZStack {
                 Capsule(style: .continuous)
@@ -1676,6 +1261,7 @@ private struct SOOMBottomTabBar: View {
                 .frame(height: SOOMLayout.TabBar.topHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.topHighlightHorizontalPadding)
                 .offset(y: 1.5)
+                .allowsHitTesting(false)
         }
         .overlay(alignment: .bottom) {
             Capsule(style: .continuous)
@@ -1683,15 +1269,21 @@ private struct SOOMBottomTabBar: View {
                 .frame(height: SOOMLayout.TabBar.bottomHighlightHeight)
                 .padding(.horizontal, SOOMLayout.TabBar.bottomHighlightHorizontalPadding)
                 .offset(y: -1)
+                .allowsHitTesting(false)
         }
         .compositingGroup()
     }
 }
 
 private struct SOOMBottomTabItem: View {
+    @Environment(\.soomTabBarExtraHeight) private var tabBarExtraHeight
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var auth: AuthViewModel
     let tab: SOOMTab
     let isSelected: Bool
     let namespace: Namespace.ID
+    let recordMotionActive: Bool
 
     var body: some View {
         standardItem
@@ -1700,6 +1292,49 @@ private struct SOOMBottomTabItem: View {
     private var standardItem: some View {
         ZStack {
             if isSelected {
+                if reduceMotion {
+                    selectionPill
+                } else {
+                    selectionPill.matchedGeometryEffect(id: "selectedLiquidTab", in: namespace)
+                }
+            }
+
+            VStack(spacing: SOOMLayout.TabBar.itemLabelSpacing) {
+                Group {
+                    if tab == .record {
+                        SOOMRecordCharacterIcon(isVisible: recordMotionActive)
+                    } else if tab == .profile, auth.session.currentUser?.avatarPath != nil {
+                        SOOMAvatarView(userID: auth.session.currentUser?.id,
+                                       avatarPath: auth.session.currentUser?.avatarPath, size: 24)
+                            .overlay(Circle().stroke(isSelected ? SOOMColor.accent : .clear, lineWidth: 1.5))
+                    } else {
+                        Image(soom: tab.iconName, selected: isSelected)
+                    }
+                }
+                    .font(.system(size: SOOMLayout.TabBar.defaultIconSize, weight: .semibold))
+                    .symbolRenderingMode(.monochrome)
+                    .frame(height: SOOMLayout.TabBar.iconHeight)
+                    .scaleEffect(reduceMotion ? 1 : (isSelected ? 1.06 : SOOMLayout.TabBar.normalIconScale))
+                    .offset(y: reduceMotion ? 0 : (isSelected ? -1 : 0))
+
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text(tab.title)
+                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                        .lineLimit(1)
+                        .opacity(isSelected ? 1 : 0.74)
+                }
+            }
+        }
+        .foregroundStyle(isSelected ? SOOMColor.accent : SOOMColor.ink.opacity(0.56))
+        .frame(maxWidth: .infinity)
+        .frame(height: SOOMLayout.TabBar.itemHeight + tabBarExtraHeight)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(tab.title)
+        .accessibilityValue(tab == .record ? "" : (isSelected ? "선택됨" : "선택 안 됨"))
+    }
+
+    private var selectionPill: some View {
                 Capsule(style: .continuous)
                     .fill(.thinMaterial)
                     .overlay {
@@ -1721,38 +1356,26 @@ private struct SOOMBottomTabItem: View {
                             .strokeBorder(SOOMColor.white.opacity(0.42), lineWidth: 1)
                     }
                     .shadow(color: SOOMColor.accent.opacity(0.07), radius: SOOMLayout.TabBar.selectedShadowRadius, x: 0, y: 3)
-                    .matchedGeometryEffect(id: "selectedLiquidTab", in: namespace)
-            }
-
-            VStack(spacing: SOOMLayout.TabBar.itemLabelSpacing) {
-                Image(systemName: tab.iconName)
-                    .font(.system(size: SOOMLayout.TabBar.defaultIconSize, weight: .semibold))
-                    .symbolRenderingMode(.monochrome)
-                    .frame(height: SOOMLayout.TabBar.iconHeight)
-                    .scaleEffect(isSelected ? SOOMLayout.TabBar.selectedIconScale : SOOMLayout.TabBar.normalIconScale)
-
-                Text(tab.title)
-                    .font(SOOMFont.body(9, weight: .bold, relativeTo: .caption2))
-                    .lineLimit(1)
-                    .opacity(isSelected ? 1 : 0.74)
-            }
-        }
-        .foregroundStyle(isSelected ? SOOMColor.accent : SOOMColor.ink.opacity(0.56))
-        .frame(maxWidth: .infinity)
-        .frame(height: SOOMLayout.TabBar.itemHeight)
-        .contentShape(RoundedRectangle(cornerRadius: SOOMLayout.TabBar.itemCornerRadius, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(tab.title)
-        .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
-        .animation(SOOMMotion.quickEaseOut, value: isSelected)
+            .allowsHitTesting(false)
     }
 }
 
 private struct LiquidTabButtonStyle: ButtonStyle {
+    @Environment(\.soomTabBarExtraHeight) private var tabBarExtraHeight
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let visualScale: CGFloat
+    let visualWidth: CGFloat
+    let targetWidth: CGFloat
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? SOOMLayout.TabBar.pressScale : 1)
-            .animation(SOOMMotion.quickEaseOut, value: configuration.isPressed)
+            .frame(width: visualWidth, height: SOOMLayout.TabBar.itemHeight + tabBarExtraHeight)
+            .scaleEffect(visualScale * (reduceMotion ? 1 : (configuration.isPressed ? SOOMLayout.TabBar.pressScale : 1)), anchor: .bottom)
+            .opacity(configuration.isPressed ? 0.76 : 1)
+            // Add the hit rectangle after every visual transform, including press.
+            .frame(width: targetWidth, height: SOOMLayout.TabBar.itemHeight + tabBarExtraHeight, alignment: .bottom)
+            .contentShape(Rectangle())
+            .animation(reduceMotion ? nil : SOOMMotion.cardPress, value: configuration.isPressed)
     }
 }
 
@@ -1791,5 +1414,257 @@ extension View {
 
     func hidesSOOMFloatingCoach() -> some View {
         modifier(SOOMFloatingCoachHiddenModifier())
+    }
+}
+
+private struct SOOMTabBarExtraHeightKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
+private extension EnvironmentValues {
+    var soomTabBarExtraHeight: CGFloat {
+        get { self[SOOMTabBarExtraHeightKey.self] }
+        set { self[SOOMTabBarExtraHeightKey.self] = newValue }
+    }
+}
+
+/// Root-owned automatic reconciliation is independent of visiting the Feed tab.
+/// A temporary receipt/network suspension stops delivery, not local collection.
+@MainActor final class AccountActivityAutomaticSyncCoordinator: ObservableObject {
+    @Published private(set) var worker: AccountActivityAutomaticSyncWorker?
+    private(set) var identity: String?
+    private var expiresAt: Date?
+    private var refreshPolicy: (() -> Void)?
+    private var configurationTask: Task<Void,Never>?
+    private var retirementTask: Task<Void,Never>?
+    private var expirationTask: Task<Void,Never>?
+    private var retirementEpoch=UUID()
+    private var epoch=UUID()
+    func configure(identity: String, expiresAt: Date, refreshPolicy: @escaping () -> Void,
+                   makeWorker: @escaping () -> AccountActivityAutomaticSyncWorker) {
+        guard self.identity != identity || (worker == nil && configurationTask == nil) else { request(); return }
+        stop()
+        let retirement=retirementTask
+        self.identity=identity;self.expiresAt=expiresAt;self.refreshPolicy=refreshPolicy
+        let token=epoch
+        if let retirement {
+            // A cancelled write can still own the durable path until its awaited
+            // transport returns. Do not race the replacement worker for that lock.
+            configurationTask=Task { @MainActor in
+                await retirement.value
+                guard !Task.isCancelled,self.epoch==token,self.identity==identity else{return}
+                self.configurationTask=nil
+                guard expiresAt>Date() else {self.refreshPolicy?();return}
+                self.worker=makeWorker();self.worker?.request();self.scheduleLeaseRenewal(token:token)
+            }
+        } else if expiresAt>Date() {worker=makeWorker();worker?.request();scheduleLeaseRenewal(token:token)}
+        else {refreshPolicy()}
+    }
+    private func scheduleLeaseRenewal(token:UUID) {
+        guard let expiresAt else{return}
+        expirationTask=Task { @MainActor in
+            // Renew only a still-running batch, before it starts receiving
+            // expired-lease failures. Idle/error states do not poll forever.
+            let seconds=min(300,max(0,expiresAt.timeIntervalSinceNow-1))
+            do {try await Task.sleep(for:.seconds(seconds))} catch {return}
+            guard !Task.isCancelled,self.epoch==token,
+                  expiresAt.timeIntervalSinceNow<=1,self.worker?.isRunning==true else{return}
+            let refresh=self.refreshPolicy
+            self.stop()
+            refresh?()
+        }
+    }
+    func request() {
+        guard let expiresAt else { return }
+        if expiresAt<=Date().addingTimeInterval(1) { refreshPolicy?(); return }
+        worker?.request()
+    }
+    func retry() { refreshPolicy?() }
+    func stop() {
+        epoch=UUID();configurationTask?.cancel();configurationTask=nil
+        expirationTask?.cancel();expirationTask=nil
+        if let retiring=worker {
+            retiring.cancel()
+            let previous=retirementTask,token=UUID();retirementEpoch=token
+            retirementTask=Task { @MainActor in
+                await previous?.value
+                await retiring.waitUntilIdle()
+                if self.retirementEpoch==token {self.retirementTask=nil}
+            }
+        }
+        worker=nil;identity=nil;expiresAt=nil;refreshPolicy=nil
+    }
+    func waitUntilConfigured() async {await configurationTask?.value}
+}
+private struct AutomaticActivitySyncEnvironmentKey: EnvironmentKey {
+    static let defaultValue: AccountActivityAutomaticSyncCoordinator? = nil
+}
+extension EnvironmentValues {
+    var soomAutomaticActivitySync: AccountActivityAutomaticSyncCoordinator? {
+        get {self[AutomaticActivitySyncEnvironmentKey.self]}
+        set {self[AutomaticActivitySyncEnvironmentKey.self]=newValue}
+    }
+}
+private struct AccountActivityAutomaticSyncHost: View {
+    @ObservedObject var privacy: AccountPrivacyModel
+    @ObservedObject var coordinator: AccountActivityAutomaticSyncCoordinator
+    @ObservedObject private var safety=CommunitySafetyStore.shared
+    @EnvironmentObject private var storage: HealthAccountStorageController
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scene
+    private var context: AccountActivitySyncContext? {
+        guard ProfileOnlyPrivacyReleaseGate.productionReady,AccountActivitySyncReleaseGate.productionReady,
+              !ReviewDemoMode.isActive,scene == .active,privacy.canContinue,
+              let receipt=privacy.receipt,receipt.policyVersion==2,receipt.isSelected,
+              let owner=storage.userID,owner==safety.viewerID,
+              modelContext.container === storage.container,
+              !HealthCloudJournal.isRetired(modelContext),HealthCloudJournal.accountID(for:modelContext)==owner else {return nil}
+        return .init(ownerID:owner,scopeID:storage.scopeID,generation:safety.accountGeneration,retired:false)
+    }
+    private var identity:String? {
+        guard let context,let revision=privacy.receipt?.revision else{return nil}
+        return "\(context.ownerID):\(context.generation):\(revision):\(ObjectIdentifier(storage.container))"
+    }
+    var body: some View {
+        Color.clear.frame(width:0,height:0).accessibilityHidden(true)
+            .onChange(of:identity,initial:true) {_,_ in configure()}
+            .task(id: identity) {
+                // Details have their own consent and queue. Recheck them on a fresh
+                // profile/foreground lease without coupling to source import success.
+                guard identity != nil else { return }
+                await WorkoutExistingDetailRefreshRetry.run(storage: storage)
+            }
+            .onChange(of:storage.dataRevision) {_,_ in coordinator.request()}
+            .onReceive(NotificationCenter.default.publisher(for:HealthCloudJournal.didCommit)) {event in
+                guard let owner=event.object as? UUID,owner==storage.userID else{return}
+                coordinator.request()
+            }
+            .onDisappear {coordinator.stop()}
+    }
+    private func configure() {
+        guard let identity,let expected=context,let receipt=privacy.receipt,
+              let client=SupabaseClientProvider(environment:AuthEnvironmentLoader().load()).makeClient(),
+              client.auth.currentSession?.user.id==expected.ownerID else {coordinator.stop();return}
+        let expiration=Date().addingTimeInterval(300)
+        let grant=AccountActivityStagingAuthorization(ownerID:expected.ownerID,
+            evidenceReference:"profile-only-v2:\(receipt.revision)",earliestActivity:.distantPast,
+            expiresAt:expiration,permitsOwnerPrivateStaging:true)
+        let revision=receipt.revision
+        coordinator.configure(identity:identity,expiresAt:expiration,refreshPolicy:{Task {await privacy.load()}}) {
+            let current:()->AccountActivitySyncContext? = {
+                guard self.privacy.receipt?.revision==revision,self.context==expected,
+                      client.auth.currentSession?.user.id==expected.ownerID else{return nil}
+                return expected
+            }
+            let transport=SupabaseAccountActivityStageTransport(client:client,currentContext:current,
+                currentProfileRevision:{current() == nil ? nil : revision})
+            let directory=storage.scopeDirectory.appendingPathComponent("activity-sync-v2",isDirectory:true)
+            let engine=AccountActivitySyncCandidate(transport:transport,
+                outbox:AccountActivityStageOutbox(directory:directory.appendingPathComponent("outbox",isDirectory:true)),
+                authorization:{current() == nil ? nil : grant})
+            return AccountActivityAutomaticSyncWorker(queue:AccountActivityAutomaticQueue(directory:directory),
+                orchestrator:AccountActivitySyncOrchestrator(engine:engine),currentContext:current,
+                snapshot:{try AccountActivityLocalSnapshot.read(context:modelContext,expected:expected)})
+        }
+    }
+}
+
+struct AccountActivityAutomaticSyncStatusView: View {
+    @ObservedObject var coordinator: AccountActivityAutomaticSyncCoordinator
+    var body: some View {
+        if let worker=coordinator.worker {
+            AutomaticActivityWorkerStatus(worker:worker,retry:coordinator.retry)
+        } else if ProfileOnlyPrivacyReleaseGate.productionReady {
+            Text("프로필 공개범위를 확인한 뒤 운동 자동 반영을 이어갑니다. 원본은 기기에 그대로 보관돼요.")
+                .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+        }
+    }
+}
+private struct AutomaticActivityWorkerStatus: View {
+    @ObservedObject var worker:AccountActivityAutomaticSyncWorker
+    let retry:()->Void
+    var body: some View {
+        VStack(alignment:.leading,spacing:8) {
+            Text("운동 요약 자동 반영").font(.headline)
+            if worker.isRunning {ProgressView("저장된 운동을 반영하는 중")}
+            else if worker.pendingCount==0 && worker.rejectedCanonicalIDs.isEmpty && worker.lastError==nil {
+                Text("이 기기에 저장된 운동 요약의 반영을 확인했어요.").font(.footnote)
+            } else {
+                Text("대기 \(worker.pendingCount)개 · 확인 필요 \(worker.rejectedCanonicalIDs.count)개").font(.footnote)
+                Text("기록 원본은 유지돼요. 연결과 공개범위를 다시 확인한 뒤 이어서 반영할 수 있어요.").font(.footnote)
+                Button("자동 반영 다시 확인",action:retry).accessibilityIdentifier("activity.autoSync.retry")
+            }
+            Text("다른 서비스에만 있는 이전 운동은 해당 연결 화면에서 가져온 뒤 반영해요.")
+                .font(.caption).foregroundStyle(SOOMColor.secondaryInk)
+        }.accessibilityIdentifier("activity.autoSync.status")
+    }
+}
+
+/// Source collection does not depend on social verification or visiting a tab.
+/// Each source retains its own OS permission and explicit import-range setting.
+private struct AccountActivitySourceImportHost: View {
+    @EnvironmentObject private var storage:HealthAccountStorageController
+    @EnvironmentObject private var auth:AuthViewModel
+    @Environment(\.scenePhase) private var scene
+    private var activeIdentity:String? {
+        guard ProfileOnlyPrivacyReleaseGate.productionReady,!ReviewDemoMode.isActive,scene == .active,
+              auth.session.currentUser?.authProvider == .supabase,
+              let owner=storage.userID,owner==auth.session.currentUser?.id else{return nil}
+        return "\(owner):\(ObjectIdentifier(storage.container))"
+    }
+    var body:some View {
+        Color.clear.frame(width:0,height:0).accessibilityHidden(true)
+            .task(id:activeIdentity) {
+                guard activeIdentity != nil else{return}
+                async let health:Void=HealthKitAutomaticImport.run(storage:storage)
+                async let google:Void=GoogleHealthAutomaticImport.run(storage:storage)
+                _ = await (health,google)
+            }
+    }
+}
+
+
+/// Detailed measurements remain a separate, existing-consent-only queue.
+/// A successful summary batch must not hide a pending detail refresh.
+struct WorkoutExistingDetailRefreshStatusView: View {
+    @EnvironmentObject private var storage: HealthAccountStorageController
+    @State private var pendingCount = 0
+    @State private var countIdentity: String?
+    @State private var retrying = false
+    @State private var retryTask: Task<Void, Never>?
+    private var identity: String { "\(storage.userID?.uuidString ?? "none"):\(storage.scopeID):\(ObjectIdentifier(storage.container))" }
+    var body: some View {
+        Group {
+            if ProfileOnlyPrivacyReleaseGate.productionReady && !ReviewDemoMode.isActive && countIdentity == identity && (pendingCount > 0 || retrying) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("기존 공유 상세 보완").font(.headline)
+                    if retrying { ProgressView("상세 보완 상태를 확인하는 중") }
+                    Text("상세 보완 대기 \(pendingCount)개").font(.footnote)
+                    Text("운동 요약과 별도로 확인해요. 이미 동의하고 공유한 상세만 보완하며, 새 공유 동의나 공개범위는 만들지 않아요. 원본은 그대로 유지됩니다.")
+                        .font(.caption).foregroundStyle(SOOMColor.secondaryInk)
+                    Button("상세 보완 다시 확인") { retry() }
+                        .disabled(retrying).accessibilityIdentifier("activity.detailRefresh.retry")
+                }.accessibilityIdentifier("activity.detailRefresh.status")
+            }
+        }
+        .onChange(of: identity, initial: true) { _, _ in
+            retryTask?.cancel(); retryTask = nil; retrying = false; refreshCount()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WorkoutExistingDetailRefreshPending.didChange)) { event in
+            guard event.object as? UUID == storage.userID else { return }
+            refreshCount()
+        }
+        .onDisappear { retryTask?.cancel(); retryTask = nil; retrying = false }
+    }
+    private func refreshCount() {
+        countIdentity = identity
+        pendingCount = storage.userID.map { WorkoutExistingDetailRefreshPending.count(ownerID: $0) } ?? 0
+    }
+    private func retry() {
+        guard !retrying, storage.userID != nil else { return }
+        let expected = identity
+        retrying = true
+        retryTask = Task { @MainActor in
+            await WorkoutExistingDetailRefreshRetry.run(storage: storage)
+            guard !Task.isCancelled, identity == expected else { return }
+            refreshCount(); retrying = false; retryTask = nil
+        }
     }
 }

@@ -107,10 +107,12 @@ struct WorkoutComparisonInsightBuilder {
         }
 
         let delta = currentDistance - baselineDistance
+        let isSimilar = (delta * 10).rounded() == 0
         return WorkoutComparisonMetricRow(
             title: "거리",
-            valueText: signedDistance(delta),
-            detailText: delta >= 0 ? "이전 비슷한 운동보다 조금 더 길게 움직였어요." : "오늘은 거리보다 리듬을 확인한 기록이에요."
+            valueText: isSimilar ? "비슷함" : signedDistance(delta),
+            detailText: isSimilar ? "이전 기록과 비슷한 거리를 움직였어요." :
+                delta > 0 ? "이전 비슷한 운동보다 조금 더 길게 움직였어요." : "오늘은 거리보다 리듬을 확인한 기록이에요."
         )
     }
 
@@ -138,10 +140,12 @@ struct WorkoutComparisonInsightBuilder {
         }
 
         let delta = baselinePace - currentPace
+        let isSimilar = delta.rounded() == 0
         return WorkoutComparisonMetricRow(
             title: title,
-            valueText: signedPace(delta, suffix: "/km"),
-            detailText: delta >= 0 ? "페이스가 이전보다 조금 더 가볍게 이어졌어요." : "오늘은 빠른 페이스보다 안정적인 움직임을 확인했어요."
+            valueText: isSimilar ? "비슷함" : signedPace(delta, suffix: "/km"),
+            detailText: isSimilar ? "이전 기록과 비슷한 페이스를 유지했어요." :
+                delta > 0 ? "페이스가 이전보다 조금 더 가볍게 이어졌어요." : "오늘은 빠른 페이스보다 안정적인 움직임을 확인했어요."
         )
     }
 
@@ -152,10 +156,12 @@ struct WorkoutComparisonInsightBuilder {
         }
 
         let delta = (baselinePace - currentPace) / 10
+        let isSimilar = delta.rounded() == 0
         return WorkoutComparisonMetricRow(
             title: "100m 페이스",
-            valueText: signedPace(delta, suffix: "/100m"),
-            detailText: delta >= 0 ? "100m 리듬이 이전보다 조금 더 가벼웠어요." : "오늘은 물속 리듬을 차분히 확인한 세션이에요."
+            valueText: isSimilar ? "비슷함" : signedPace(delta, suffix: "/100m"),
+            detailText: isSimilar ? "이전 기록과 비슷한 100m 리듬을 이어갔어요." :
+                delta > 0 ? "100m 리듬이 이전보다 조금 더 가벼웠어요." : "오늘은 물속 리듬을 차분히 확인한 세션이에요."
         )
     }
 
@@ -166,10 +172,12 @@ struct WorkoutComparisonInsightBuilder {
         }
 
         let delta = currentSpeed - baselineSpeed
+        let isSimilar = (delta * 10).rounded() == 0
         return WorkoutComparisonMetricRow(
             title: "평균 속도",
-            valueText: signedSpeed(delta),
-            detailText: delta >= 0 ? "평균 속도가 이전보다 조금 더 안정적이었어요." : "오늘은 속도보다 편안한 리듬을 만든 운동이에요."
+            valueText: isSimilar ? "비슷함" : signedSpeed(delta),
+            detailText: isSimilar ? "이전 기록과 비슷한 평균 속도로 움직였어요." :
+                delta > 0 ? "평균 속도가 이전보다 조금 더 안정적이었어요." : "오늘은 속도보다 편안한 리듬을 만든 운동이에요."
         )
     }
 
@@ -181,10 +189,12 @@ struct WorkoutComparisonInsightBuilder {
         }
 
         let delta = currentElevation - baselineElevation
+        let isSimilar = delta.rounded() == 0
         return WorkoutComparisonMetricRow(
             title: "상승 고도",
-            valueText: signedMeters(delta),
-            detailText: delta >= 0 ? "오르막 자극이 이전보다 조금 더 있었어요." : "오늘은 고도 부담이 비교적 가벼운 흐름이에요."
+            valueText: isSimilar ? "비슷함" : signedMeters(delta),
+            detailText: isSimilar ? "이전 기록과 비슷한 상승 고도를 기록했어요." :
+                delta > 0 ? "오르막 자극이 이전보다 조금 더 있었어요." : "오늘은 고도 부담이 비교적 가벼운 흐름이에요."
         )
     }
 

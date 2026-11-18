@@ -12,6 +12,7 @@ struct DailyRecoverySnapshotMapper {
             explanation: snapshot.explanation,
             dataQuality: makeDataQualityString(from: snapshot.dataQuality),
             activityCount: snapshot.activityCount,
+            activityCountKnown: snapshot.activityCountKnown,
             checkInId: snapshot.checkInId,
             createdAt: snapshot.createdAt,
             updatedAt: snapshot.updatedAt
@@ -29,6 +30,7 @@ struct DailyRecoverySnapshotMapper {
             explanation: record.explanation,
             dataQuality: makeDataQuality(from: record.dataQuality),
             activityCount: record.activityCount,
+            activityCountKnown: record.activityCountKnown,
             checkInId: record.checkInId,
             createdAt: record.createdAt,
             updatedAt: record.updatedAt

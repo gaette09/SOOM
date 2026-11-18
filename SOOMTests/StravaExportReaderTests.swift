@@ -1,4 +1,5 @@
 import XCTest
+import ZIPFoundation
 @testable import SOOM
 
 final class StravaExportReaderTests: XCTestCase {
@@ -30,6 +31,85 @@ final class StravaExportReaderTests: XCTestCase {
     // prove Elapsed Time / Distance parsing; batch 5's pipeline tests reuse
     // this same fixture for the file-present/no-file/corrupted-file split.
     private static let elapsedAndDistanceFixture = "UEsDBBQAAAAIAGFSHF3DRC9hrgAAAAwBAAAOAAAAYWN0aXZpdGllcy5jc3Zdjk0OgkAMRveeogdodITwt8Sg0YUuCBcYoSGNMJBhMHJ7h5kYjYs2bfryvua14SebBS4F5p+5kIa+2032P1u1jITHTo4TNVCxPRU8GalqwhN3pCy8SYQQe8znFiIIRBDjddCKVQvlrHCtfSoERpZC6b1M0y7LsjRNt+34coLACWIvOA89QaUlK9JQckPoWhhbhUDHh45PPH/Qw4MUrB9BRZPxqYGlw7/UuyNd6htQSwMECgAAAAAAYVIcXQAAAAAAAAAAAAAAAAsAAABhY3Rpdml0aWVzL1BLAwQKAAAAAABhUhxddjHpwicAAAAnAAAAFQAAAGFjdGl2aXRpZXMvYnJva2VuLmdweHRoaXMgaXMgbm90IHhtbCBhdCBhbGwsIGp1c3QgcGxhaW4gdGV4dFBLAwQUAAAACABhUhxd2UtbYY0AAAAJAQAAFQAAAGFjdGl2aXRpZXMvOTk5ODg4LmdweLOxr8jNUShLLSrOzM+zVTLUM1BSSM1Lzk/JzEu3VQoNcdO1ULK347JJL6hAVmWopJBclJpYkl9kqxTs7+8bklpcUqxkx6WgYFNSlA2iIazi1HQIB8ItKFHISSyxVTI21zM1MABalQM2zshczwDM1cep2BBVsSFexUaoio0Qim30EY4Cs4Fe0wf6zY4LAFBLAQIeAxQAAAAIAGFSHF3DRC9hrgAAAAwBAAAOAAAAAAAAAAEAAACkgQAAAABhY3Rpdml0aWVzLmNzdlBLAQIeAwoAAAAAAGFSHF0AAAAAAAAAAAAAAAALAAAAAAAAAAAAEADtQdoAAABhY3Rpdml0aWVzL1BLAQIeAwoAAAAAAGFSHF12MenCJwAAACcAAAAVAAAAAAAAAAEAAACkgQMBAABhY3Rpdml0aWVzL2Jyb2tlbi5ncHhQSwECHgMUAAAACABhUhxd2UtbYY0AAAAJAQAAFQAAAAAAAAABAAAApIFdAQAAYWN0aXZpdGllcy85OTk4ODguZ3B4UEsFBgAAAAAEAAQA+wAAAB0CAAAAAA=="
+
+    func testOptionalDeviceColumnSurvivesLazyFileExtraction() throws {
+        let csv = "Activity ID,Activity Date,Activity Name,Activity Type,Elapsed Time,Distance,Filename,Device\n1,2026-08-05T00:00:00Z,Morning Run,Run,1800,5000,activities/one.gpx,Apple Watch Series 6\n"
+        let archive = try StravaExportReader().open(StravaSyntheticZIP.make(csv: csv, files: ["activities/one.gpx": Data("test route".utf8)]))
+        XCTAssertEqual(archive.entries.first?.deviceName, "Apple Watch Series 6")
+        XCTAssertEqual(try archive.readEntry(at: 0).deviceName, "Apple Watch Series 6")
+        let oldCSV = StravaSyntheticZIP.csv(rows: [["2", "2026-08-05", "Ride", "60", "100", ""]])
+        XCTAssertNil(try StravaExportReader().open(StravaSyntheticZIP.make(csv: oldCSV)).entries.first?.deviceName)
+    }
+
+    func testArchiveOpensMetadataWithoutExtractingActivityFiles() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [["1", "2026-08-05T00:00:00Z", "Ride", "60", "100", "activities/one.fit"]])
+        let zip = try StravaSyntheticZIP.make(csv: csv, files: ["activities/one.fit": Data(repeating: 1, count: 128)])
+        let archive = try StravaExportReader().open(zip)
+        XCTAssertEqual(archive.expandedBytes, Data(csv.utf8).count)
+        XCTAssertTrue(archive.entries.allSatisfy { $0.data == nil })
+        XCTAssertEqual(try archive.readEntry(at: 0).data?.count, 128)
+        XCTAssertEqual(archive.expandedBytes, Data(csv.utf8).count + 128)
+    }
+
+    func testCSVAndCompressedArchiveHaveIndependentBounds() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [["1", "2026-08-05", "Ride", "60", "100", ""]])
+        let zip = try StravaSyntheticZIP.make(csv: csv)
+        XCTAssertThrowsError(try StravaExportReader(maximumArchiveBytes: zip.count - 1).open(zip)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .archiveTooLarge(maximumBytes: zip.count - 1))
+        }
+        XCTAssertThrowsError(try StravaExportReader(maximumCSVBytes: 16).open(zip)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .csvTooLarge(maximumBytes: 16))
+        }
+    }
+
+    func testCumulativeExpansionLimitStopsBeforeNextFile() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [
+            ["1", "2026-08-05", "Ride", "60", "100", "activities/a.fit"],
+            ["2", "2026-08-06", "Ride", "60", "100", "activities/b.fit"]])
+        let zip = try StravaSyntheticZIP.make(csv: csv, files: ["activities/a.fit": Data(repeating: 1, count: 100), "activities/b.fit": Data(repeating: 2, count: 100)])
+        let limit = Data(csv.utf8).count + 150
+        let archive = try StravaExportReader(maximumExpandedBytes: limit).open(zip)
+        XCTAssertEqual(try archive.readEntry(at: 0).data?.count, 100)
+        XCTAssertThrowsError(try archive.readEntry(at: 1)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .expansionLimitExceeded(maximumBytes: limit))
+        }
+    }
+
+    func testNestedManifestResolvesItsRelativeActivityPath() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [["1", "2026-08-05", "Ride", "60", "100", "activities/a.gpx"]])
+        let zip = try StravaSyntheticZIP.make(csv: csv, files: ["activities/a.gpx": Data("synthetic".utf8)], prefix: "export/")
+        XCTAssertEqual(try StravaExportReader().open(zip).readEntry(at: 0).data, Data("synthetic".utf8))
+    }
+
+    func testUnsafeRowPathsAndAmbiguousManifestsAreRejected() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [["1", "2026-08-05", "Ride", "60", "100", "../outside.gpx"]])
+        let zip = try StravaSyntheticZIP.make(csv: csv)
+        XCTAssertThrowsError(try StravaExportReader().open(zip).readEntry(at: 0)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .unsafePath)
+        }
+        let ambiguous = try StravaSyntheticZIP.make(csv: csv, files: ["nested/activities.csv": Data(csv.utf8)])
+        XCTAssertThrowsError(try StravaExportReader().open(ambiguous)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .ambiguousManifest)
+        }
+    }
+
+    func testRepeatedMetricHeadersUseTrailingRawValuesWithoutRejectingManifest() throws {
+        let csv = "Activity ID,Activity Date,Activity Type,Elapsed Time,Distance,Filename,Elapsed Time,Distance\n1,2026-08-05,Ride,60,0.1,,60,100\n"
+        let entry = try XCTUnwrap(StravaExportReader().open(StravaSyntheticZIP.make(csv: csv)).entries.first)
+        XCTAssertEqual(entry.distanceMeters, 100)
+        XCTAssertEqual(entry.elapsedTimeSeconds, 60)
+    }
+
+    func testManifestChecksumMismatchIsRejected() throws {
+        let csv = StravaSyntheticZIP.csv(rows: [["1", "2026-08-05", "Ride", "60", "100", ""]])
+        var zip = try StravaSyntheticZIP.make(csv: csv)
+        let directory = try XCTUnwrap(zip.range(of: Data([0x50, 0x4b, 0x01, 0x02])))
+        // Change the declared CRC, leaving the valid compressed payload intact.
+        zip[directory.lowerBound + 16] ^= 0xff
+        XCTAssertThrowsError(try StravaExportReader().open(zip)) {
+            XCTAssertEqual($0 as? StravaExportReaderError, .corruptEntry)
+        }
+    }
 
     private func data(fromBase64 base64: String) throws -> Data {
         try XCTUnwrap(Data(base64Encoded: base64))
@@ -133,5 +213,29 @@ final class StravaExportReaderTests: XCTestCase {
                 return
             }
         }
+    }
+}
+
+// Every byte is generated from test-owned strings; no user export files are read.
+enum StravaSyntheticZIP {
+    static func csv(rows: [[String]]) -> String {
+        let header = "Activity ID,Activity Date,Activity Type,Elapsed Time,Distance,Filename"
+        return header + "\n" + rows.map { row in
+            row.map { "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }.joined(separator: ",")
+        }.joined(separator: "\n") + "\n"
+    }
+
+    static func make(csv: String, files: [String: Data] = [:], prefix: String = "") throws -> Data {
+        let archive = try Archive(accessMode: .create)
+        var contents = files
+        contents["activities.csv"] = Data(csv.utf8)
+        for path in contents.keys.sorted() {
+            let bytes = contents[path]!
+            try archive.addEntry(with: prefix + path, type: .file, uncompressedSize: Int64(bytes.count),
+                                 modificationDate: Date(timeIntervalSince1970: 1_600_000_000), compressionMethod: .deflate) { position, size in
+                bytes.subdata(in: Int(position)..<min(Int(position) + size, bytes.count))
+            }
+        }
+        return try XCTUnwrap(archive.data)
     }
 }

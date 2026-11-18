@@ -35,9 +35,12 @@
                ReferencedContainer = "container:SOOM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "NO"><BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "ED0BE07E3255569491239A91" BuildableName = "SOOMUITests.xctest" BlueprintName = "SOOMUITests" ReferencedContainer = "container:SOOM.xcodeproj"></BuildableReference></BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
+      systemAttachmentLifetime = "keepAlways"
+      userAttachmentLifetime = "keepAlways"
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
@@ -55,6 +58,7 @@
                ReferencedContainer = "container:SOOM.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference skipped = "NO" parallelizable = "NO"><BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "ED0BE07E3255569491239A91" BuildableName = "SOOMUITests.xctest" BlueprintName = "SOOMUITests" ReferencedContainer = "container:SOOM.xcodeproj"></BuildableReference></TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

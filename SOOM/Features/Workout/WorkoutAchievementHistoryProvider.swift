@@ -35,7 +35,7 @@ struct SwiftDataWorkoutAchievementHistoryProvider: WorkoutAchievementHistoryProv
         // wide enough to cover the window even when viewing an older workout.
         let fetchDays = max(lookbackMonths * 31 + 31, 1)
 
-        guard let workouts = try? await workoutStore.fetchRecentWorkouts(days: fetchDays) else { return [:] }
+        guard let workouts = try? await workoutStore.fetchCanonicalRecentWorkouts(days: fetchDays) else { return [:] }
 
         let candidateIds = workouts
             .filter { $0.id != workoutId }

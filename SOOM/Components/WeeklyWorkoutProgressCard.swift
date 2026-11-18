@@ -8,7 +8,7 @@ struct WeeklyWorkoutProgressCard: View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
                 HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                    Image(systemName: progress.trendType.icon)
+                    Image(soom: progress.trendType.icon)
                         .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                         .foregroundStyle(tint)
                         .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

@@ -1,0 +1,26 @@
+{
+  "images": [
+    {
+      "filename": "soom_mtb.png",
+      "idiom": "universal",
+      "scale": "1x"
+    },
+    {
+      "filename": "soom_mtb@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "filename": "soom_mtb@3x.png",
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "soom",
+    "version": 1
+  },
+  "properties": {
+    "template-rendering-intent": "template"
+  }
+}

@@ -31,7 +31,7 @@ enum HealthKitConnectionStatus {
         case .notRequested:
             return "HealthKit 연결 안 됨"
         case .authorized:
-            return "운동 데이터 접근 허용됨"
+            return "최근 운동 기록을 읽었어요"
         case .accessLimited:
             return "운동 데이터 접근 확인 필요"
         }
@@ -44,7 +44,7 @@ enum HealthKitConnectionStatus {
         case .notRequested:
             return "Apple 건강 앱의 운동 기록을 읽기 위한 준비 상태입니다."
         case .authorized:
-            return "최근 운동 기록을 읽어올 수 있는 상태입니다."
+            return "경로·심박·파워 등 항목별 읽기 허용 상태는 건강 앱 설정에서 확인할 수 있어요."
         case .accessLimited:
             return "권한 상태를 확인하고 필요한 데이터 접근을 다시 허용해 주세요."
         }

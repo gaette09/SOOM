@@ -26,7 +26,7 @@ struct WorkoutGrowthMetricsCard: View {
 
     private func metricRow(_ metric: WorkoutGrowthMetric) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: metric.trend.icon)
+            Image(soom: metric.trend.icon)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(metric.trend.color(tint: tint))
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
@@ -37,7 +37,7 @@ struct WorkoutGrowthMetricsCard: View {
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(metric.title)
-                        .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.ink)
 
                     Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
@@ -48,7 +48,7 @@ struct WorkoutGrowthMetricsCard: View {
                 }
 
                 Text(metric.comparisonText)
-                    .font(SOOMFont.body(13, relativeTo: .caption))
+                    .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }

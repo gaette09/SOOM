@@ -88,6 +88,31 @@ final class SupabaseAppUserMapperTests: XCTestCase {
         XCTAssertNil(mapper.map(snapshot: snapshot))
     }
 
+    func testAppleIdentityIsPreservedWithoutChangingSupabaseAuthProvider() throws {
+        let snapshot = SupabaseAuthSessionSnapshot(
+            isConfigured: true, hasSession: true, userId: UUID().uuidString, email: nil,
+            checkedAt: fixedDate, status: .signedIn,
+            appleUserIdentifier: "apple-subject", linkedAuthProviders: ["apple"]
+        )
+        let user = try XCTUnwrap(SupabaseAppUserMapper().map(snapshot: snapshot))
+
+        XCTAssertEqual(user.authProvider, .supabase)
+        XCTAssertTrue(user.isLinkedToApple)
+        XCTAssertEqual(user.appleUserIdentifier, "apple-subject")
+        let restored = try JSONDecoder().decode(AppUser.self, from: JSONEncoder().encode(user))
+        XCTAssertEqual(restored, user)
+    }
+
+    func testOldSerializedAppUserDoesNotInventAppleIdentity() throws {
+        let data = Data(#"{"id":"11111111-1111-1111-1111-111111111111","displayName":"Old user","authProvider":"supabase","createdAt":0}"#.utf8)
+        let user = try JSONDecoder().decode(AppUser.self, from: data)
+
+        XCTAssertNil(user.appleUserIdentifier)
+        XCTAssertNil(user.linkedAuthProviders)
+        XCTAssertNil(user.avatarPath)
+        XCTAssertFalse(user.isLinkedToApple)
+    }
+
     func testMapperDoesNotUseRecoveryCalculator() {
         let mapper = SupabaseAppUserMapper(now: { self.fixedDate })
         let snapshot = SupabaseAuthSessionSnapshot(
@@ -100,5 +125,23 @@ final class SupabaseAppUserMapperTests: XCTestCase {
         )
 
         XCTAssertNil(mapper.map(snapshot: snapshot))
+    }
+
+    func testPrivateAvatarPathSurvivesRemoteRestoreAndProfileJSONMapping() throws {
+        let id = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let path = id.uuidString.lowercased() + "/22222222-2222-2222-2222-222222222222.jpg"
+        let snapshot = SupabaseAuthSessionSnapshot(isConfigured: true, hasSession: true,
+            userId: id.uuidString, email: nil, checkedAt: fixedDate, status: .signedIn, avatarPath: path)
+        let user = try XCTUnwrap(SupabaseAppUserMapper().map(snapshot: snapshot))
+        XCTAssertEqual(user.avatarPath, path)
+        XCTAssertEqual(try JSONDecoder().decode(AppUser.self, from: JSONEncoder().encode(user)).avatarPath, path)
+        let profile = try JSONDecoder().decode(FeedProfileDTO.self, from: Data("""
+            {"id":"\(id.uuidString)","display_name":"사용자","handle":null,"avatar_path":"\(path)"}
+            """.utf8))
+        XCTAssertEqual(profile.avatarPath, path)
+        let oldProfile = try JSONDecoder().decode(FeedProfileDTO.self, from: Data("""
+            {"id":"\(id.uuidString)","display_name":"사용자","handle":null}
+            """.utf8))
+        XCTAssertNil(oldProfile.avatarPath)
     }
 }

@@ -12,6 +12,7 @@ final class DailyRecoverySnapshotRecord {
     var explanation: String?
     var dataQuality: String
     var activityCount: Int
+    var activityCountKnown: Bool = false
     var checkInId: UUID?
     var createdAt: Date
     var updatedAt: Date
@@ -26,6 +27,7 @@ final class DailyRecoverySnapshotRecord {
         explanation: String? = nil,
         dataQuality: String,
         activityCount: Int,
+        activityCountKnown: Bool = false,
         checkInId: UUID? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -39,6 +41,7 @@ final class DailyRecoverySnapshotRecord {
         self.explanation = explanation
         self.dataQuality = dataQuality
         self.activityCount = max(activityCount, 0)
+        self.activityCountKnown = activityCountKnown
         self.checkInId = checkInId
         self.createdAt = createdAt
         self.updatedAt = updatedAt

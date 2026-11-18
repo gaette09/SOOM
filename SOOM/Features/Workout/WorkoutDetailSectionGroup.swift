@@ -18,7 +18,7 @@ struct WorkoutDetailSectionGroup: Identifiable, Equatable {
         id: .core,
         title: "오늘 핵심",
         caption: "운동 결과를 먼저 짧게 정리해요.",
-        priority: 0,
+        priority: 1,
         isCollapsibleReady: false
     )
 
@@ -26,15 +26,15 @@ struct WorkoutDetailSectionGroup: Identifiable, Equatable {
         id: .growth,
         title: "성장 흐름",
         caption: "최근 기록과 오늘 운동의 리듬을 비교해요.",
-        priority: 1,
-        isCollapsibleReady: false
+        priority: 2,
+        isCollapsibleReady: true
     )
 
     static let sensorData = WorkoutDetailSectionGroup(
         id: .sensorData,
         title: "운동 데이터",
-        caption: "센서와 zone 데이터를 보조 지표로 확인해요.",
-        priority: 2,
+        caption: "측정된 심박·속도·고도를 실제 운동 시간에 맞춰 확인해요.",
+        priority: 0,
         isCollapsibleReady: false
     )
 
@@ -47,9 +47,9 @@ struct WorkoutDetailSectionGroup: Identifiable, Equatable {
     )
 
     static let ordered: [WorkoutDetailSectionGroup] = [
+        .sensorData,
         .core,
         .growth,
-        .sensorData,
         .recovery
     ]
 }

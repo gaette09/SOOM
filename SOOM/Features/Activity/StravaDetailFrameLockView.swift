@@ -173,7 +173,7 @@ private struct StravaFrameLockTopNavView: View {
 
     private func frameLockIconButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: systemName)
+            Image(soom: systemName)
                 .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
                 .foregroundStyle(iconColor)
                 .frame(width: FrameLock.navTouchTargetHeight, height: FrameLock.navTouchTargetHeight)

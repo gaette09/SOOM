@@ -11,13 +11,14 @@ struct CheckInHistoryView: View {
         SOOMScreen {
             header
 
-            if viewModel.isLoading {
+            if viewModel.isLoading && viewModel.checkIns.isEmpty {
                 loadingCard
-            } else if let errorMessage = viewModel.errorMessage {
+            } else if let errorMessage = viewModel.errorMessage, viewModel.checkIns.isEmpty {
                 errorCard(errorMessage)
             } else if viewModel.checkIns.isEmpty {
                 emptyCard
             } else {
+                if let errorMessage = viewModel.errorMessage { errorCard(errorMessage) }
                 historyList
             }
         }
@@ -64,24 +65,12 @@ struct CheckInHistoryView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                ProgressView()
-                    .tint(SOOMColor.recovery)
-                    .accessibilityHidden(true)
-
-                Text("컨디션 기록을 불러오는 중")
-                    .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                    .foregroundStyle(SOOMColor.ink)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("컨디션 기록을 불러오는 중")
+        SOOMSkeleton(layout: .list, label: "컨디션 기록 불러오는 중")
     }
 
     private var emptyCard: some View {
         SOOMCard {
-            Image(systemName: SOOMIcon.recovery)
+            Image(soom: SOOMIcon.recovery)
                 .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                 .foregroundStyle(SOOMColor.recovery)
                 .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -108,12 +97,16 @@ struct CheckInHistoryView: View {
 }
 
 private struct CheckInHistoryRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let checkIn: RecoveryCheckIn
 
     var body: some View {
         SOOMCard {
-            HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                Image(systemName: SOOMIcon.calendarClock)
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: SOOMLayout.Metrics.actionRowSpacing))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing))
+            layout {
+                Image(soom: SOOMIcon.calendarClock)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(SOOMColor.recovery)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -138,7 +131,7 @@ private struct CheckInHistoryRow: View {
 
                 Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
 
-                Image(systemName: SOOMIcon.chevronRight)
+                Image(soom: SOOMIcon.chevronRight)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(SOOMColor.tertiaryInk)
                     .accessibilityHidden(true)
@@ -150,16 +143,11 @@ private struct CheckInHistoryRow: View {
     }
 
     private var metricGrid: some View {
-        VStack(alignment: .leading, spacing: SOOMLayout.Metrics.tagSpacing) {
-            HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                metricPill(title: "피로감", value: checkIn.fatigueLevel, tint: SOOMColor.warning)
-                metricPill(title: "수면감", value: checkIn.sleepQuality, tint: SOOMColor.recovery)
-            }
-
-            HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
-                metricPill(title: "근육통", value: checkIn.muscleSoreness, tint: SOOMColor.run)
-                metricPill(title: "기분", value: checkIn.moodLevel, tint: SOOMColor.bike)
-            }
+        SOOMAdaptiveSummaryGrid {
+            metricPill(title: "피로감", value: checkIn.fatigueLevel, tint: SOOMColor.warning)
+            metricPill(title: "수면감", value: checkIn.sleepQuality, tint: SOOMColor.recovery)
+            metricPill(title: "근육통", value: checkIn.muscleSoreness, tint: SOOMColor.run)
+            metricPill(title: "기분", value: checkIn.moodLevel, tint: SOOMColor.bike)
         }
     }
 
@@ -186,7 +174,7 @@ private struct CheckInHistoryRow: View {
             Text("\(value)/5")
                 .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
         }
-        .foregroundStyle(tint)
+        .foregroundStyle(SOOMColor.ink)
         .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
         .padding(.vertical, SOOMLayout.Metrics.tagVerticalPadding)
         .frame(maxWidth: .infinity)

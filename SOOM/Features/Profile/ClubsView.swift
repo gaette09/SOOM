@@ -1,9 +1,16 @@
 import SwiftUI
+#if DEBUG && targetEnvironment(simulator)
+import Supabase
+#endif
 
 struct ClubsView: View {
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
     @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var clubViewModel: ClubsViewModel
     @State private var isCreateSheetPresented = false
+    #if DEBUG && targetEnvironment(simulator)
+    @State private var qaControl = UXClubFixtureControl()
+    #endif
 
     @MainActor
     init() {
@@ -19,15 +26,29 @@ struct ClubsView: View {
         clubViewModel.directory
     }
 
+    private var directoryIsEmpty: Bool {
+        directory.joinedClubs.isEmpty && directory.createdClubs.isEmpty && directory.recommendedClubs.isEmpty
+    }
+
     var body: some View {
-        SOOMScreen {
+        SOOMScreen(tracksTabBarScroll: true) {
             ClubHomeHeader(onCreate: { isCreateSheetPresented = true })
 
-            if clubViewModel.isShowingLocalFallbackData {
+            if clubViewModel.shouldShowLocalFallbackBanner {
                 ClubLocalFallbackBanner()
             }
 
-            if directory.joinedClubs.isEmpty && directory.createdClubs.isEmpty && directory.recommendedClubs.isEmpty {
+            if let error = clubViewModel.errorMessage {
+                ClubRetryCard(message: error) {
+                    #if DEBUG && targetEnvironment(simulator)
+                    qaControl.allowDirectoryRetry = true
+                    #endif
+                    Task { await clubViewModel.loadDirectory() }
+                }
+            }
+            if clubViewModel.isLoading && directoryIsEmpty {
+                SOOMSkeleton(layout: .workout, label: "클럽 목록을 불러오는 중").accessibilityIdentifier("clubs.loading")
+            } else if clubViewModel.errorMessage == nil && directoryIsEmpty {
                 ClubEmptyStateView(
                     recommendedClubs: directory.recommendedClubs,
                     viewModel: clubViewModel,
@@ -36,40 +57,58 @@ struct ClubsView: View {
             } else {
                 ClubHomeSection(title: "내 클럽", caption: "여러 클럽 안에서 이번 주 내 위치를 봅니다.") {
                     ForEach(directory.joinedClubs) { detail in
+                        ClubSafetyRow(clubID: detail.id, isLocalFallback: clubViewModel.isShowingLocalFallbackData) {
                         NavigationLink {
                             ClubDashboardDetailView(viewModel: clubViewModel, clubId: detail.id)
                         } label: {
                             ClubHomeCard(summary: detail.summary)
                         }
                         .buttonStyle(.plain)
+                        }
                     }
                 }
 
                 ClubHomeSection(title: "내가 만든 클럽", caption: "운영보다 소속감과 주간 기여를 먼저 보여줍니다.") {
                     ForEach(directory.createdClubs) { detail in
+                        ClubSafetyRow(clubID: detail.id, isLocalFallback: clubViewModel.isShowingLocalFallbackData) {
                         NavigationLink {
                             ClubDashboardDetailView(viewModel: clubViewModel, clubId: detail.id)
                         } label: {
                             ClubHomeCard(summary: detail.summary, isOwned: true)
                         }
                         .buttonStyle(.plain)
+                        }
                     }
                 }
 
                 ClubHomeSection(title: "추천 클럽", caption: "비슷한 리듬의 온라인 클럽을 가볍게 둘러봅니다.") {
                     ForEach(directory.recommendedClubs) { summary in
+                        ClubSafetyRow(clubID: summary.id, isLocalFallback: clubViewModel.isShowingLocalFallbackData) {
                         NavigationLink {
                             ClubDashboardDetailView(viewModel: clubViewModel, clubId: summary.id)
                         } label: {
                             ClubRecommendedCard(summary: summary)
                         }
                         .buttonStyle(.plain)
+                        }
                     }
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .task(id: authViewModel.session.currentUser?.id) {
+            if ReviewDemoMode.isActive {
+                #if DEBUG && targetEnvironment(simulator)
+                if ProcessInfo.processInfo.environment["SOOM_SYNTHETIC_UI_TESTS"] == "1",
+                   let scenario = ProcessInfo.processInfo.environment["SOOM_UX_CLUB_STATE"] {
+                    clubViewModel.configure(service: UXClubServiceFixture(wrapped: ReviewDemoCommunityStore.shared.clubs, scenario: scenario, control: qaControl))
+                } else { clubViewModel.configure(service: ReviewDemoCommunityStore.shared.clubs) }
+                #else
+                clubViewModel.configure(service: ReviewDemoCommunityStore.shared.clubs)
+                #endif
+                await clubViewModel.loadDirectory()
+                return
+            }
             clubViewModel.configure(service: ClubServiceResolver.makeDefaultService(
                 currentUserID: authViewModel.session.currentUser?.authProvider == .supabase
                     ? authViewModel.session.currentUser?.id
@@ -78,62 +117,171 @@ struct ClubsView: View {
             ))
             await clubViewModel.loadDirectory()
         }
+        .onChange(of: safetyStore.revision) { _, _ in
+            Task { await clubViewModel.loadDirectory() }
+        }
+        .suspendsSOOMTabBarScrollMotion(when: isCreateSheetPresented)
         .sheet(isPresented: $isCreateSheetPresented) {
             ClubCreateSheet { input in
-                Task {
-                    await clubViewModel.createClub(input: input)
-                    isCreateSheetPresented = false
+                try await clubViewModel.createClub(input: input)
+            }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+private struct ClubSafetyRow<Content: View>: View {
+    let clubID: String
+    let isLocalFallback: Bool
+    @ViewBuilder let content: () -> Content
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
+    @State private var identity: CommunityClubIdentity?
+    @State private var verifiedAccountGeneration: Int?
+    @State private var hasVerified = false
+    @State private var identityRetryRevision = 0
+
+    var body: some View {
+        Group {
+            if (ReviewDemoMode.isActive || UUID(uuidString: clubID) != nil),
+               !hasVerified || verifiedAccountGeneration != safetyStore.accountGeneration {
+                SOOMSkeleton(layout: .summary, label: "클럽 공개 범위 확인 중")
+            } else if (ReviewDemoMode.isActive || UUID(uuidString: clubID) != nil), identity == nil {
+                VStack(alignment: .leading, spacing: SOOMLayout.Spacing.sm) {
+                    Text("클럽 정보를 확인하지 못했어요. 다시 불러와 주세요.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("다시 확인") {
+                        hasVerified = false
+                        identity = nil
+                        identityRetryRevision += 1
+                    }
+                    .accessibilityIdentifier("club.identity.retry.\(clubID)")
+                    .frame(minHeight: 44)
+                }
+            } else if identity.map({ safetyStore.isBlocked($0.ownerID) }) != true {
+                HStack(alignment: .top, spacing: SOOMLayout.Spacing.sm) {
+                    content()
+                    if let identity,
+                       verifiedAccountGeneration == safetyStore.accountGeneration,
+                       identity.ownerID != safetyStore.viewerID {
+                        CommunitySafetyMenu(
+                            target: CommunityReportTarget(kind: .club, id: identity.id),
+                            authorID: identity.ownerID,
+                            authorName: "클럽 운영자"
+                        )
+                    }
                 }
             }
-                .presentationDetents([.height(520)])
-                .presentationDragIndicator(.visible)
+        }
+        .task(id: "\(clubID):\(safetyStore.revision):\(isLocalFallback):\(identityRetryRevision)") {
+            guard (ReviewDemoMode.isActive || UUID(uuidString: clubID) != nil) else { identity = nil; return }
+            let generation = safetyStore.accountGeneration
+            let result = try? await safetyStore.verifiedClubIdentity(clubID: clubID)
+            guard !Task.isCancelled, generation == safetyStore.accountGeneration else { return }
+            identity = result
+            verifiedAccountGeneration = generation
+            hasVerified = true
         }
     }
 }
 
 private struct ClubDashboardDetailView: View {
     @ObservedObject var viewModel: ClubsViewModel
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
+    @State private var verifiedIdentity: CommunityClubIdentity?
+    @State private var isVerifyingIdentity = true
+    @State private var verifiedAccountGeneration: Int?
     let clubId: String
     @State private var rankingCategory: ClubRankingCategory = .distance
     @State private var isMembershipSheetPresented = false
 
-    private var detail: ClubDetail {
-        viewModel.detail(for: clubId) ?? .soomRiders
+    private var detail: ClubDetail? {
+        viewModel.detail(for: clubId)
     }
 
     private var ranking: [ClubRankingEntry] {
         viewModel.ranking(for: clubId)
     }
 
-    private var challenges: [ClubChallenge] {
-        viewModel.selectedClub?.id == clubId && !viewModel.challenges.isEmpty
-            ? viewModel.challenges
-            : detail.challenges
+    var body: some View {
+        Group {
+            if (ReviewDemoMode.isActive || UUID(uuidString: clubId) != nil) && isVerifyingIdentity {
+                ScrollView { SOOMSkeleton(layout: .detail, label: "클럽 상세 확인 중").padding(SOOMLayout.screenPadding) }
+            } else if (ReviewDemoMode.isActive || UUID(uuidString: clubId) != nil) && (verifiedIdentity == nil
+                || verifiedAccountGeneration != safetyStore.accountGeneration
+                || verifiedIdentity.map { safetyStore.isBlocked($0.ownerID) } == true) {
+                CommunityContentUnavailableView()
+            } else if let detail {
+                clubContent(detail: detail)
+            } else if viewModel.isLoading {
+                ScrollView { SOOMSkeleton(layout: .detail, label: "클럽 상세 확인 중").padding(SOOMLayout.screenPadding) }
+            } else if let error = viewModel.errorMessage {
+                ClubRetryCard(message: error) { Task { await viewModel.openClub(clubId: clubId) } }.padding()
+            } else {
+                CommunityContentUnavailableView()
+            }
+        }
+        .task(id: "\(clubId):\(safetyStore.revision)") {
+            await viewModel.openClub(clubId: clubId)
+        }
+        .task(id: "identity:\(clubId):\(safetyStore.revision)") {
+            let generation = safetyStore.accountGeneration
+            let identity = try? await safetyStore.verifiedClubIdentity(clubID: clubId)
+            guard !Task.isCancelled, generation == safetyStore.accountGeneration else { return }
+            verifiedIdentity = identity
+            verifiedAccountGeneration = generation
+            isVerifyingIdentity = false
+        }
     }
 
-    var body: some View {
+    private func clubContent(detail: ClubDetail) -> some View {
         SOOMScreen {
+            if let error = viewModel.errorMessage {
+                ClubRetryCard(message: error) {
+                    Task {
+                        if viewModel.rankingError != nil { await viewModel.selectRankingMetric(rankingCategory.metric, clubId: clubId) }
+                        else { await viewModel.openClub(clubId: clubId) }
+                    }
+                }
+            }
+            if viewModel.membershipOperation != nil { ProgressView("가입 상태를 반영하는 중").accessibilityIdentifier("clubs.membership.busy") }
             ClubStatusHero(
                 detail: detail,
-                onMembershipAction: { handleMembershipAction() }
-            )
+                onMembershipAction: { handleMembershipAction(detail: detail) }
+            ).disabled(viewModel.membershipOperation != nil || viewModel.isLoading)
+            if ReviewDemoMode.isActive {
+                ClubWorkoutFeedSection(clubID: ReviewDemoCommunityStore.shared.clubID(for: clubId), membershipState: detail.membershipState)
+            } else if let id = UUID(uuidString: clubId), !viewModel.isShowingLocalFallbackData {
+                ClubWorkoutFeedSection(clubID: id, membershipState: detail.membershipState)
+            }
             ClubPurposeRulesSection(detail: detail)
             ClubMemberPreviewSection(members: detail.memberPreview)
             ClubNextGoalCard(summary: detail.motivationSummary, rankingCategory: rankingCategory)
+            if viewModel.rankingLoading && ranking.isEmpty { SOOMSkeleton(layout: .list, label: "랭킹을 확인하는 중") }
             ClubWeeklyRankingSection(
                 clubName: detail.name,
                 motivationSummary: detail.motivationSummary,
                 ranking: ranking,
                 selectedCategory: $rankingCategory
             )
-            ClubChallengesSection(challenges: challenges)
+            ClubChallengesSection(challenges: viewModel.selectedClub?.id == clubId ? viewModel.challenges : detail.challenges)
             ClubBadgeWallSection(badges: viewModel.selectedClub?.id == clubId ? viewModel.badges : detail.badges)
             ClubActivityPulseSection(pulses: detail.pulses)
         }
         .navigationTitle(detail.name)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: clubId) {
-            await viewModel.openClub(clubId: clubId)
+        .toolbar {
+            if let identity = verifiedIdentity,
+               viewModel.detail(for: clubId)?.id == clubId,
+               identity.ownerID != safetyStore.viewerID {
+                ToolbarItem(placement: .topBarTrailing) {
+                    CommunitySafetyMenu(
+                        target: CommunityReportTarget(kind: .club, id: identity.id),
+                        authorID: identity.ownerID,
+                        authorName: "클럽 운영자"
+                    )
+                }
+            }
         }
         .onChange(of: rankingCategory) { _, category in
             Task {
@@ -143,19 +291,21 @@ private struct ClubDashboardDetailView: View {
         .sheet(isPresented: $isMembershipSheetPresented) {
             ClubMembershipPlaceholderSheet(
                 state: detail.membershipState,
+                busy: viewModel.membershipOperation != nil,
+                error: viewModel.membershipError,
                 onLeave: {
                     Task {
-                        await viewModel.leaveClub(clubId: clubId)
-                        isMembershipSheetPresented = false
+                        if await viewModel.leaveClub(clubId: clubId) { isMembershipSheetPresented = false }
                     }
                 }
             )
-                .presentationDetents([.height(260)])
+                .presentationDetents([.large])
+                .interactiveDismissDisabled(viewModel.membershipOperation != nil)
                 .presentationDragIndicator(.visible)
         }
     }
 
-    private func handleMembershipAction() {
+    private func handleMembershipAction(detail: ClubDetail) {
         switch detail.membershipState {
         case .recommended:
             Task {
@@ -210,7 +360,7 @@ private struct ClubHomeHeader: View {
             }
             Spacer()
             Button(action: onCreate) {
-                Image(systemName: SOOMIcon.record)
+                Image(soom: SOOMIcon.record)
                     .font(.system(size: SOOMFont.Size.headline, weight: .bold))
                     .foregroundStyle(SOOMColor.white)
                     .frame(width: 44, height: 44)
@@ -219,6 +369,7 @@ private struct ClubHomeHeader: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("클럽 만들기")
+            .accessibilityIdentifier("clubs.create.open")
         }
     }
 }
@@ -235,7 +386,7 @@ private struct ClubLocalFallbackBanner: View {
             SOOMActionRow(
                 icon: "wifi.slash",
                 title: "이 기기에 저장된 클럽 정보를 보고 있어요",
-                subtitle: "서버 연결이 확인되면 자동으로 실제 데이터로 갱신돼요.",
+                subtitle: "온라인 클럽과 동기화되지 않은 로컬 정보입니다.",
                 tint: SOOMColor.warning
             )
         }
@@ -263,7 +414,7 @@ private struct ClubHomeCard: View {
     var body: some View {
         SOOMCard(depth: .secondary) {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowSpacing) {
-                Image(systemName: SOOMIcon.clubs)
+                Image(soom: SOOMIcon.clubs)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 44, height: 44)
@@ -294,7 +445,7 @@ private struct ClubHomeCard: View {
                     Text(summary.tagline)
                         .font(SOOMFont.body(13, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     HStack {
                         Text(summary.contributionText)
@@ -307,7 +458,7 @@ private struct ClubHomeCard: View {
                     }
                 }
 
-                Image(systemName: SOOMIcon.chevronRight)
+                Image(soom: SOOMIcon.chevronRight)
                     .font(.caption.weight(.bold))
                     .foregroundStyle(SOOMColor.tertiaryInk)
                     .accessibilityHidden(true)
@@ -324,7 +475,7 @@ private struct ClubRecommendedCard: View {
 
     var body: some View {
         HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
-            Image(systemName: SOOMIcon.sparkles)
+            Image(soom: SOOMIcon.sparkles)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 36, height: 36)
@@ -339,7 +490,7 @@ private struct ClubRecommendedCard: View {
                 Text("\(summary.sport) · \(summary.memberText) · \(summary.contributionText)")
                     .font(SOOMFont.body(12, relativeTo: .caption))
                     .foregroundStyle(SOOMColor.secondaryInk)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer()
@@ -396,7 +547,7 @@ private struct ClubStatusHero: View {
                 }
 
                 HStack(spacing: SOOMLayout.Metrics.gridSpacing) {
-                    ClubStatTile(title: "내 순위", value: "\(detail.weeklyRank)위", icon: SOOMIcon.medal, tint: SOOMColor.accent)
+                    ClubStatTile(title: "내 순위", value: detail.weeklyRankText, icon: SOOMIcon.medal, tint: SOOMColor.accent)
                     ClubStatTile(title: "멤버", value: "\(detail.memberCount)명", icon: SOOMIcon.people, tint: SOOMColor.ink)
                     ClubStatTile(title: "이번 주", value: "\(detail.activeMembersThisWeek)명", icon: SOOMIcon.trendUp, tint: SOOMColor.accent)
                 }
@@ -418,7 +569,7 @@ private struct ClubStatusHero: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(detail.name)
-        .accessibilityValue("이번 주 \(detail.weeklyRank)위, 기여 거리 \(String(format: "%.1f", detail.contributionDistanceKm))킬로미터, 클럽 목표 \(detail.goalPercentText)")
+        .accessibilityValue("이번 주 순위 \(detail.weeklyRankText), 기여 거리 \(String(format: "%.1f", detail.contributionDistanceKm))킬로미터, 클럽 목표 \(detail.goalPercentText)")
     }
 }
 
@@ -445,7 +596,7 @@ private struct ClubMotivationSummaryStrip: View {
             Text(summary.motivationLine)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(SOOMLayout.Spacing.md)
@@ -477,11 +628,11 @@ private struct ClubMiniMotivationTile: View {
             Text(value)
                 .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
                 .foregroundStyle(tint)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
             Text(caption)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
                 .minimumScaleFactor(0.78)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -524,18 +675,18 @@ private struct ClubStatTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(tint)
             Text(value)
                 .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
                 .foregroundStyle(SOOMColor.ink)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
                 .minimumScaleFactor(0.82)
             Text(title)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
                 .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SOOMLayout.Spacing.md)
@@ -556,7 +707,7 @@ private struct ClubPurposeRulesSection: View {
             Text(detail.purpose)
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.ink)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .fixedSize(horizontal: false, vertical: true)
 
             LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.gridSpacing) {
@@ -573,14 +724,14 @@ private struct ClubRuleChip: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: SOOMIcon.checkCircle)
+            Image(soom: SOOMIcon.checkCircle)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(SOOMColor.accent)
                 .accessibilityHidden(true)
             Text(title)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
@@ -624,7 +775,7 @@ private struct ClubMemberAvatarCard: View {
             Text(member.name)
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.ink)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(member.role)
                 .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
@@ -633,12 +784,12 @@ private struct ClubMemberAvatarCard: View {
                 .padding(.vertical, SOOMLayout.Spacing.xs)
                 .background(member.tone.color.opacity(0.10))
                 .clipShape(Capsule())
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(member.activityText)
                 .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 128, alignment: .leading)
         .padding(SOOMLayout.Spacing.md)
@@ -649,6 +800,8 @@ private struct ClubMemberAvatarCard: View {
 }
 
 private struct ClubWeeklyRankingSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var selectorLayout: AnyLayout { dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: SOOMLayout.Metrics.tagSpacing)) }
     let clubName: String
     let motivationSummary: ClubMotivationSummary
     let ranking: [ClubRankingEntry]
@@ -658,12 +811,13 @@ private struct ClubWeeklyRankingSection: View {
         SOOMCard {
             SOOMSectionHeader("\(clubName) 내 이번 주 랭킹", caption: rankingCaption)
 
-            HStack(spacing: SOOMLayout.Metrics.tagSpacing) {
+            selectorLayout {
                 ForEach(ClubRankingCategory.allCases) { category in
                     Button {
                         selectedCategory = category
                     } label: {
                         Text(category.title)
+                            .frame(minHeight: 44)
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(selectedCategory == category ? SOOMColor.selectedInk : SOOMColor.secondaryInk)
                             .padding(.horizontal, SOOMLayout.Metrics.tagHorizontalPadding)
@@ -721,7 +875,7 @@ private struct ClubNextGoalCard: View {
     var body: some View {
         SOOMCard(depth: .secondary) {
             HStack(alignment: .top, spacing: SOOMLayout.Metrics.rowSpacing) {
-                Image(systemName: SOOMIcon.trendUp)
+                Image(soom: SOOMIcon.trendUp)
                     .font(.headline.weight(.bold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 42, height: 42)
@@ -736,12 +890,12 @@ private struct ClubNextGoalCard: View {
                     Text(summary.nextGoalText)
                         .font(SOOMFont.body(18, weight: .bold, relativeTo: .headline))
                         .foregroundStyle(SOOMColor.ink)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                         .minimumScaleFactor(0.82)
                     Text(nextActionText)
                         .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.secondaryInk)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -864,11 +1018,11 @@ private struct ClubChallengesSection: View {
                             Text(challenge.subtitle)
                                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                                 .foregroundStyle(SOOMColor.secondaryInk)
-                                .lineLimit(1)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(challenge.nextActionLine)
                                 .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                                 .foregroundStyle(SOOMColor.accent)
-                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
@@ -939,7 +1093,7 @@ private struct ClubBadgeWallSection: View {
             LazyVGrid(columns: columns, spacing: SOOMLayout.Metrics.gridSpacing) {
                 ForEach(badges) { badge in
                     VStack(alignment: .leading, spacing: 9) {
-                        Image(systemName: badge.icon)
+                        Image(soom: badge.icon)
                             .font(.title3.weight(.bold))
                             .foregroundStyle(badge.state.tint)
                             .frame(width: 34, height: 34)
@@ -948,7 +1102,7 @@ private struct ClubBadgeWallSection: View {
                         Text(badge.title)
                             .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                             .foregroundStyle(SOOMColor.ink)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(badge.subtitle)
                             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                             .foregroundStyle(badge.state.tint)
@@ -956,7 +1110,7 @@ private struct ClubBadgeWallSection: View {
                             .padding(.vertical, SOOMLayout.Spacing.xs)
                             .background(badge.state.tint.opacity(0.10))
                             .clipShape(Capsule())
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(SOOMLayout.Metrics.pillPadding)
@@ -981,7 +1135,7 @@ private struct ClubActivityPulseSection: View {
             VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                 ForEach(pulses) { pulse in
                     HStack(spacing: SOOMLayout.Metrics.rowSpacing) {
-                        Image(systemName: pulse.icon)
+                        Image(soom: pulse.icon)
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(pulse.tone.color)
                             .frame(width: 34, height: 34)
@@ -1024,7 +1178,7 @@ private struct ClubEmptyStateView: View {
             )
 
             Button(action: onCreate) {
-                Label("클럽 만들기", systemImage: SOOMIcon.record)
+                Label("클럽 만들기", soomIcon: SOOMIcon.record)
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
@@ -1050,21 +1204,15 @@ private struct ClubEmptyStateView: View {
 
 private struct ClubCreateSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var purpose = ""
-    @State private var sportFocus = "자전거"
-    @State private var visibility: ClubVisibility = .open
-    let onCreate: (ClubCreateInput) -> Void
-
-    private var canCreate: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !purpose.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    @StateObject private var viewModel = ClubCreateViewModel()
+    @ObservedObject private var safetyStore = CommunitySafetyStore.shared
+    let onCreate: (ClubCreateInput) async throws -> ClubDomain
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
             HStack {
-                Image(systemName: SOOMIcon.clubs)
+                Image(soom: SOOMIcon.clubs)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 44, height: 44)
@@ -1075,40 +1223,46 @@ private struct ClubCreateSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: SOOMIcon.close)
+                    Image(soom: SOOMIcon.close)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(SOOMColor.secondaryInk)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
+                        .background(SOOMColor.surfaceMuted, in: Circle())
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("닫기")
+                .accessibilityIdentifier("clubs.sheet.close")
+                .disabled(viewModel.isSubmitting)
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("클럽 만들기")
                     .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
                     .foregroundStyle(SOOMColor.ink)
-                Text("지금 만든 클럽은 이 기기에서 먼저 저장돼요. 초대와 멤버 관리는 곧 더 자세히 연결됩니다.")
+                Text("온라인에 공개 클럽을 만들어요. 서버 연결이 어려워 기기에만 저장된 경우에는 따로 알려드려요.")
                     .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
-                TextField("클럽 이름", text: $name)
+                TextField("클럽 이름", text: $viewModel.name)
+                    .accessibilityIdentifier("club.create.name")
                     .textInputAutocapitalization(.never)
                     .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                     .padding(SOOMLayout.Spacing.lg)
                     .background(SOOMColor.surfaceAmbient)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
-                TextField("클럽 목적", text: $purpose)
+                TextField("클럽 목적", text: $viewModel.purpose)
+                    .accessibilityIdentifier("club.create.purpose")
                     .font(SOOMFont.body(15, relativeTo: .subheadline))
                     .padding(SOOMLayout.Spacing.lg)
                     .background(SOOMColor.surfaceAmbient)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
 
-                Picker("대표 종목", selection: $sportFocus) {
+                Picker("대표 종목", selection: $viewModel.sportFocus) {
                     Text("자전거").tag("자전거")
                     Text("러닝").tag("러닝")
                     Text("걷기").tag("걷기")
@@ -1123,42 +1277,56 @@ private struct ClubCreateSheet: View {
                 // would be permanently limited to its owner. visibility
                 // stays hardcoded to .open below.
             }
+            .disabled(viewModel.isSubmitting || viewModel.savedLocally)
+
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage).font(.caption).foregroundStyle(.red)
+                    .accessibilityIdentifier("club.create.error")
+            }
+
+            if viewModel.savedLocally {
+                Text("이 기기에만 저장했어요. 온라인 클럽이 생성되거나 다른 사용자에게 공개된 상태는 아니에요.")
+                    .font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                Button("확인") { dismiss() }.accessibilityIdentifier("club.create.localConfirm")
+            }
 
             Button {
-                let input = ClubCreateInput(
-                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                    purpose: purpose.trimmingCharacters(in: .whitespacesAndNewlines),
-                    sportFocus: sportFocus,
-                    visibility: visibility
-                )
-                onCreate(input)
-                dismiss()
+                Task {
+                    if await viewModel.submit(using: onCreate) { dismiss() }
+                }
             } label: {
-                Text("클럽 만들기")
+                Text(viewModel.isSubmitting ? "클럽 만드는 중…" : "클럽 만들기")
                     .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, SOOMLayout.Spacing.lg)
-                    .background(canCreate ? SOOMColor.accent : SOOMColor.surfaceMuted)
+                    .background(viewModel.canCreate ? SOOMColor.accent : SOOMColor.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.compactControl, style: .continuous))
             }
             .buttonStyle(.plain)
-            .disabled(!canCreate)
+            .disabled(!viewModel.canCreate)
+            .accessibilityIdentifier("club.create.submit")
         }
         .padding(SOOMLayout.screenPadding)
+        }
         .background(SOOMColor.background)
+        .interactiveDismissDisabled(viewModel.isSubmitting)
+        .onChange(of: safetyStore.accountGeneration) { _, _ in dismiss() }
     }
 }
 
 private struct ClubMembershipPlaceholderSheet: View {
     @Environment(\.dismiss) private var dismiss
     let state: ClubDetail.MembershipState
+    var busy = false
+    var error: String?
     let onLeave: (() -> Void)?
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: SOOMLayout.stackSpacing) {
             HStack {
-                Image(systemName: SOOMIcon.clubs)
+                Image(soom: SOOMIcon.clubs)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 44, height: 44)
@@ -1169,29 +1337,33 @@ private struct ClubMembershipPlaceholderSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: SOOMIcon.close)
+                    Image(soom: SOOMIcon.close)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(SOOMColor.secondaryInk)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
+                        .background(SOOMColor.surfaceMuted, in: Circle())
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("닫기")
+                .accessibilityIdentifier("clubs.sheet.close")
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(state.placeholderTitle)
                     .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
                     .foregroundStyle(SOOMColor.ink)
-                Text("클럽 상태와 세부 관리는 곧 더 자세히 연결됩니다.")
+                Text("멤버 승인·권한 변경·초대 설정은 아직 제공하지 않아요. 현재 화면에서는 가입 상태를 확인할 수 있어요.")
                     .font(SOOMFont.body(14, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if busy { ProgressView("클럽 상태를 반영하는 중") }
+            if let error { Text(error).font(.subheadline).foregroundStyle(SOOMColor.warning).accessibilityIdentifier("clubs.membership.error") }
             if (state == .joined || state == .admin), let onLeave {
                 Button {
                     onLeave()
-                    dismiss()
                 } label: {
                     Text("클럽 나가기")
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
@@ -1208,5 +1380,69 @@ private struct ClubMembershipPlaceholderSheet: View {
         }
         .padding(SOOMLayout.screenPadding)
         .background(SOOMColor.background)
+        }.disabled(busy)
     }
 }
+
+private struct ClubRetryCard: View {
+    let message: String
+    let retry: () -> Void
+    var body: some View {
+        SOOMCard {
+            Label(message, systemImage: "exclamationmark.circle").font(.subheadline).foregroundStyle(SOOMColor.warning).accessibilityIdentifier("clubs.error")
+            Button(action: retry) { Text("다시 불러오기").frame(minHeight: 44) }
+                .accessibilityIdentifier("clubs.retry")
+        }
+    }
+}
+
+#if DEBUG && targetEnvironment(simulator)
+/// Explicit synthetic QA only; never constructed by an ordinary launch or Release.
+private final class UXClubFixtureControl { var allowDirectoryRetry = false }
+private final class UXClubServiceFixture: ClubService {
+    let wrapped: any ClubService
+    let scenario: String
+    let control: UXClubFixtureControl
+    var directoryAttempts = 0
+    var joins = 0
+    var leaves = 0
+    var creations = 0
+    init(wrapped: any ClubService, scenario: String, control: UXClubFixtureControl) { self.wrapped = wrapped; self.scenario = scenario; self.control = control }
+    func fetchClubDirectory() async throws -> ClubDirectorySnapshot {
+        directoryAttempts += 1
+        if scenario == "directory" && !control.allowDirectoryRetry {
+            try await Task.sleep(for: .seconds(4)); throw ClubServiceError.clubNotFound
+        }
+        if scenario == "initial_directory_failure", !control.allowDirectoryRetry { throw ClubServiceError.clubNotFound }
+        if scenario == "empty" { return .empty }
+        if scenario == "create_refresh_failure", creations > 0, !control.allowDirectoryRetry { throw ClubServiceError.clubNotFound }
+        return try await wrapped.fetchClubDirectory()
+    }
+    func fetchClubDetail(clubId: String) async throws -> ClubDetail { try await wrapped.fetchClubDetail(clubId: clubId) }
+    func createClub(input: ClubCreateInput) async throws -> ClubDomain {
+        creations += 1
+        switch scenario {
+        case "create_permission_denied": throw PostgrestError(code: "42501", message: "Synthetic permission rejection")
+        case "create_server_schema": throw PostgrestError(code: "42P01", message: "Synthetic schema rejection")
+        case "create_timeout": throw URLError(.timedOut)
+        default: break
+        }
+        let created = try await wrapped.createClub(input: input)
+        // The receipt must retain the stored row ID. Fabricating a different ID
+        // would make an honest successful refresh look like a filtered-out row.
+        return created
+    }
+    func joinClub(clubId: String) async throws {
+        joins += 1
+        if scenario == "membership" && joins == 1 { try await Task.sleep(for: .seconds(2)); throw ClubServiceError.clubNotFound }
+        try await wrapped.joinClub(clubId: clubId)
+    }
+    func leaveClub(clubId: String) async throws {
+        leaves += 1
+        if scenario == "membership" && leaves == 1 { try await Task.sleep(for: .seconds(2)); throw ClubServiceError.clubNotFound }
+        try await wrapped.leaveClub(clubId: clubId)
+    }
+    func fetchRankings(clubId: String, metric: ClubRankingMetric) async throws -> [ClubRankingEntry] { try await wrapped.fetchRankings(clubId: clubId, metric: metric) }
+    func fetchChallenges(clubId: String) async throws -> [ClubChallenge] { try await wrapped.fetchChallenges(clubId: clubId) }
+}
+#endif

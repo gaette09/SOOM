@@ -29,6 +29,15 @@ final class DeviceTokenStoreTests: XCTestCase {
         XCTAssertEqual(store.cachedTokenHex, "abc123")
     }
 
+    func testClearRemovesCachedTokenAcrossStoreInstances() {
+        store.cache(tokenHex: "abc123")
+
+        store.clear()
+
+        XCTAssertNil(store.cachedTokenHex)
+        XCTAssertNil(DeviceTokenStore(userDefaults: userDefaults).cachedTokenHex)
+    }
+
     func testCacheTokenHexSurvivesReconstructionWithSameUserDefaults() {
         store.cache(tokenHex: "abc123")
         let reloaded = DeviceTokenStore(userDefaults: userDefaults)

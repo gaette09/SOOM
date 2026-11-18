@@ -13,11 +13,15 @@ struct SignOutDeviceTokenCleanup {
         self.store = store
     }
 
+    func deleteCachedDeviceToken() async {
+        if let tokenHex = store.cachedTokenHex {
+            try? await registrar.deleteToken(tokenHex: tokenHex)
+        }
+    }
+
     func wrapping(_ remoteSignOut: @escaping () async throws -> AuthSession) -> () async throws -> AuthSession {
         {
-            if let tokenHex = store.cachedTokenHex {
-                try? await registrar.deleteToken(tokenHex: tokenHex)
-            }
+            await deleteCachedDeviceToken()
             return try await remoteSignOut()
         }
     }

@@ -40,9 +40,9 @@ struct HealthKitWorkoutPreviewView: View {
                 caption: "읽기 권한으로 확인한 최근 운동 목록입니다."
             )
 
-            if viewModel.isLoading {
+            if viewModel.isLoading && viewModel.workouts.isEmpty {
                 loadingState
-            } else if let errorMessage = viewModel.errorMessage {
+            } else if let errorMessage = viewModel.errorMessage, viewModel.workouts.isEmpty {
                 messageState(
                     icon: SOOMIcon.health,
                     title: "운동 기록을 불러오지 못했어요",
@@ -57,6 +57,9 @@ struct HealthKitWorkoutPreviewView: View {
                     tint: SOOMColor.secondaryInk
                 )
             } else {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage).font(.footnote).foregroundStyle(.secondary)
+                }
                 VStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
                     ForEach(viewModel.workouts) { workout in
                         HealthKitWorkoutPreviewRow(workout: workout)
@@ -67,18 +70,7 @@ struct HealthKitWorkoutPreviewView: View {
     }
 
     private var loadingState: some View {
-        HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            ProgressView()
-                .tint(SOOMColor.accent)
-                .accessibilityHidden(true)
-
-            Text("최근 운동 기록을 확인하고 있어요.")
-                .font(SOOMFont.body(13, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.secondaryInk)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("운동 기록 불러오는 중")
+        SOOMSkeleton(layout: .list, label: "건강 운동 기록 불러오는 중")
     }
 
     private func messageState(icon: String, title: String, message: String, tint: Color) -> some View {
@@ -99,8 +91,7 @@ private struct HealthKitWorkoutPreviewRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            Image(systemName: icon)
-                .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
+            SOOMSportIconView(name: icon, size: SOOMLayout.RecoveryAI.iconSize)
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)
                 .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
@@ -144,7 +135,7 @@ private struct HealthKitWorkoutPreviewRow: View {
         case .swimming:
             return SOOMIcon.swim
         case .walking:
-            return SOOMIcon.run
+            return "figure.walk"
         case .other:
             return SOOMIcon.record
         }

@@ -21,7 +21,8 @@ struct HealthKitWorkoutToUnifiedWorkoutMapper {
             elevationGainMeters: nil,
             dataQuality: dataQuality(for: workout),
             createdAt: mappedAt,
-            updatedAt: mappedAt
+            updatedAt: mappedAt,
+            deviceName: workout.deviceName
         )
     }
 

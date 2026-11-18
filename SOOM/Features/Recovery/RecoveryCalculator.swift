@@ -1,18 +1,27 @@
 import Foundation
 
 struct RecoveryCalculator {
-    private let referenceDate: Date
+    private let fixedReferenceDate: Date?
+    private var referenceDate: Date { fixedReferenceDate ?? Date() }
 
-    init(referenceDate: Date = Date()) {
-        self.referenceDate = referenceDate
+    init(referenceDate: Date? = nil) {
+        self.fixedReferenceDate = referenceDate
+    }
+
+    /// Seven calendar days including today. Future and unusable sessions are not evidence.
+    func activitiesInCalculationWindow(from activities: [RecoveryActivity]) -> [RecoveryActivity] {
+        activitiesCompleted(sinceDaysAgo: 7, from: activities).filter {
+            $0.durationMinutes > 0 && $0.trainingLoad.isFinite && $0.trainingLoad >= 0
+        }
     }
 
     func calculateSummary(from activities: [RecoveryActivity]) -> RecoverySummary {
-        guard !activities.isEmpty else {
+        let eligibleActivities = activitiesInCalculationWindow(from: activities)
+        guard !eligibleActivities.isEmpty else {
             return emptySummary()
         }
 
-        let sortedActivities = activities.sorted { $0.completedAt < $1.completedAt }
+        let sortedActivities = eligibleActivities.sorted { $0.completedAt < $1.completedAt }
         let recentActivities = activitiesCompleted(sinceDaysAgo: 3, from: sortedActivities)
         let recentLoadAverage = average(recentActivities.map(\.trainingLoad))
         let effortSum = sortedActivities.reduce(0) { $0 + $1.relativeEffort }
@@ -37,7 +46,8 @@ struct RecoveryCalculator {
                 restDays: restDays
             ),
             lastUpdated: referenceDate,
-            dataQuality: .estimated
+            dataQuality: .estimated,
+            activityCountToday: sortedActivities.filter { Calendar.current.isDate($0.completedAt, inSameDayAs: referenceDate) }.count
         )
     }
 
@@ -88,7 +98,9 @@ struct RecoveryCalculator {
                 )
             ],
             lastUpdated: referenceDate,
-            dataQuality: .estimated
+            dataQuality: .estimated,
+            hasCalculatedScore: false,
+            activityCountToday: 0
         )
     }
 
@@ -131,16 +143,18 @@ struct RecoveryCalculator {
     }
 
     private func calculateHeartRateTrend(from activities: [RecoveryActivity], recentActivities: [RecoveryActivity]) -> RecoveryTrend {
-        let heartRateAverage = average(activities.map { Double($0.averageHeartRate) })
-        let recentHeartRateAverage = average(recentActivities.map { Double($0.averageHeartRate) })
+        let measuredValues = activities.filter { $0.averageHeartRate > 0 }.map { Double($0.averageHeartRate) }
+        let recentMeasuredValues = recentActivities.filter { $0.averageHeartRate > 0 }.map { Double($0.averageHeartRate) }
+        let heartRateAverage = average(measuredValues)
+        let recentHeartRateAverage = average(recentMeasuredValues)
 
         return RecoveryTrend(
             title: "평균 심박",
-            currentValue: "\(Int(heartRateAverage.rounded()))",
+            currentValue: measuredValues.isEmpty ? "-" : "\(Int(heartRateAverage.rounded()))",
             unit: "bpm",
-            changeText: heartRateChangeText(weekly: heartRateAverage, recent: recentHeartRateAverage),
-            direction: recentHeartRateAverage > heartRateAverage + 4 ? .up : .flat,
-            values: activities.map { Double($0.averageHeartRate) }
+            changeText: measuredValues.isEmpty ? "심박 기록 없음" : recentMeasuredValues.isEmpty ? "최근 심박 기록 부족" : heartRateChangeText(weekly: heartRateAverage, recent: recentHeartRateAverage),
+            direction: !recentMeasuredValues.isEmpty && recentHeartRateAverage > heartRateAverage + 4 ? .up : .flat,
+            values: measuredValues
         )
     }
 
@@ -228,8 +242,10 @@ struct RecoveryCalculator {
     }
 
     private func activitiesCompleted(sinceDaysAgo days: Int, from activities: [RecoveryActivity]) -> [RecoveryActivity] {
-        let threshold = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
-        return activities.filter { $0.completedAt >= threshold }
+        let now = referenceDate
+        let today = Calendar.current.startOfDay(for: now)
+        let threshold = Calendar.current.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        return activities.filter { $0.completedAt >= threshold && $0.completedAt <= now }
     }
 
     private func average(_ values: [Double]) -> Double {

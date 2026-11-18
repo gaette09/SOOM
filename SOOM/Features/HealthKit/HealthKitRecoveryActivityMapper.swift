@@ -27,30 +27,33 @@ struct HealthKitRecoveryActivityMapper {
     }
 
     private func durationMinutes(from duration: TimeInterval) -> Int {
-        max(Int((duration / 60).rounded()), 1)
+        guard duration.isFinite, duration > 0 else { return 0 }
+        return max(Int(min(duration / 60, Double(Int.max / 2)).rounded()), 1)
     }
 
     private func distanceKm(fromMeters meters: Double?) -> Double {
-        guard let meters else { return 0 }
+        guard let meters, meters.isFinite else { return 0 }
         return max(meters / 1_000, 0)
     }
 
     private func averageHeartRate(from heartRate: Double?) -> Int {
-        guard let heartRate else { return 0 }
+        guard let heartRate, heartRate.isFinite, heartRate > 0, heartRate < Double(Int.max / 2) else { return 0 }
         return max(Int(heartRate.rounded()), 0)
     }
 
     private func estimateRelativeEffort(for workout: HealthKitWorkout) -> Int {
+        guard workout.duration.isFinite, workout.duration > 0 else { return 0 }
         let durationScore = workout.duration / 60 * 0.65
-        let heartRateScore = max((workout.averageHeartRate ?? 120) - 100, 0) * 0.8
+        let heartRateScore = max((workout.averageHeartRate.flatMap { $0.isFinite ? $0 : nil } ?? 0) - 100, 0) * 0.8
         let estimated = durationScore + heartRateScore
         return Int(clamp(estimated, lowerBound: 1, upperBound: 100).rounded())
     }
 
     private func estimateTrainingLoad(for workout: HealthKitWorkout) -> Double {
+        guard workout.duration.isFinite, workout.duration > 0 else { return 0 }
         let durationLoad = workout.duration / 60 * 0.9
-        let heartRateLoad = max((workout.averageHeartRate ?? 120) - 100, 0) * 0.75
-        let calorieLoad = (workout.calories ?? 0) * 0.08
+        let heartRateLoad = max((workout.averageHeartRate.flatMap { $0.isFinite ? $0 : nil } ?? 0) - 100, 0) * 0.75
+        let calorieLoad = max(workout.calories.flatMap { $0.isFinite ? $0 : nil } ?? 0, 0) * 0.08
 
         // TODO: Replace this MVP estimate with TRIMP / HR zone based load once
         // HealthKit heart-rate samples and workout segments are available.

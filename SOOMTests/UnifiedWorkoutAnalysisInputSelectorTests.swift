@@ -75,11 +75,36 @@ final class UnifiedWorkoutAnalysisInputSelectorTests: XCTestCase {
         XCTAssertEqual(growthInputs.count, 1)
     }
 
+    func testConfirmedCrossSourceMetricComplementsOneAnalysisWorkout() {
+        var apple = makeWorkout(id: UUID(), type: .running, distanceMeters: nil)
+        var google = makeWorkout(id: UUID(), type: .running, distanceMeters: 10_000, source: .googleHealth)
+        // Missing values may be backfilled only after the user confirms this pair.
+        apple.preferredWorkoutID = apple.id
+        google.preferredWorkoutID = apple.id
+
+        let selected = selector.selectIncludedWorkouts([apple, google])
+
+        XCTAssertEqual(selected.count, 1)
+        XCTAssertEqual(selected.first?.distanceMeters, 10_000)
+        XCTAssertEqual(selector.selectGrowthInputs(from: [apple, google]).count, 1)
+    }
+
+    func testPendingCrossSourceRecordsDoNotBackfillAnalysis() {
+        let apple = makeWorkout(id: UUID(), type: .running, distanceMeters: nil)
+        let google = makeWorkout(id: UUID(), type: .running, distanceMeters: 10_000, source: .googleHealth)
+        let selected = selector.selectIncludedWorkouts([apple, google])
+        XCTAssertEqual(selected.count, 1)
+        XCTAssertNil(selected.first?.distanceMeters)
+        XCTAssertNil(apple.distanceMeters)
+        XCTAssertEqual(google.distanceMeters, 10_000)
+    }
+
     private func makeWorkout(
         id: UUID,
         type: UnifiedWorkoutType,
         distanceMeters: Double? = 10_000,
-        isExcluded: Bool = false
+        isExcluded: Bool = false,
+        source: UnifiedDataSource = .appleHealthKit
     ) -> UnifiedWorkout {
         let startDate = Date(timeIntervalSince1970: 1_800_000_000)
         let endDate = startDate.addingTimeInterval(45 * 60)
@@ -87,7 +112,7 @@ final class UnifiedWorkoutAnalysisInputSelectorTests: XCTestCase {
         return UnifiedWorkout(
             id: id,
             externalId: id.uuidString,
-            source: .appleHealthKit,
+            source: source,
             workoutType: type,
             startDate: startDate,
             endDate: endDate,

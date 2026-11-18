@@ -9,7 +9,7 @@ struct WorkoutAchievementCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: SOOMIcon.medal)
+                Image(soom: SOOMIcon.medal)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

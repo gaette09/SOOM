@@ -72,7 +72,7 @@ struct TrendCard: View {
 
                 Spacer()
 
-                Label(changeText, systemImage: trendDirection.icon)
+                Label(changeText, soomIcon: trendDirection.icon)
                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                     .foregroundStyle(trendDirection.tint)
             }

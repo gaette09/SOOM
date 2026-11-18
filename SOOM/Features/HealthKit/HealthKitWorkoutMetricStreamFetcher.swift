@@ -36,6 +36,7 @@ final class HealthKitWorkoutMetricStreamFetcher: HealthKitWorkoutMetricStreamFet
             return []
         }
 
+        let mapper = self.mapper
         return try await withCheckedThrowingContinuation { continuation in
             let predicate = HKQuery.predicateForObjects(from: workout)
             let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
@@ -51,7 +52,7 @@ final class HealthKitWorkoutMetricStreamFetcher: HealthKitWorkoutMetricStreamFet
                 }
 
                 let metricSamples = (samples as? [HKQuantitySample] ?? []).map { sample in
-                    self.mapper.map(sample, sampleType: sampleType)
+                    mapper.map(sample, sampleType: sampleType)
                 }
                 continuation.resume(returning: metricSamples)
             }
@@ -63,12 +64,25 @@ final class HealthKitWorkoutMetricStreamFetcher: HealthKitWorkoutMetricStreamFet
     func fetchZoneMetricSamples(
         for workout: HKWorkout
     ) async throws -> [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]] {
-        var result: [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]] = [:]
-
-        for sampleType in [HealthKitWorkoutMetricSampleType.heartRate, .cyclingCadence, .cyclingPower] {
-            result[sampleType] = try await fetchMetricSamples(for: workout, sampleType: sampleType)
+        try await Self.collectZoneMetrics { type in
+            try await self.fetchMetricSamples(for: workout, sampleType: type)
         }
+    }
 
+    /// A missing optional cadence/power stream must not discard fetched HR.
+    /// Failed channels remain absent; no permissions or replacement values added.
+    static func collectZoneMetrics(
+        fetch: (HealthKitWorkoutMetricSampleType) async throws -> [HealthKitWorkoutMetricSample]
+    ) async throws -> [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]] {
+        var result: [HealthKitWorkoutMetricSampleType: [HealthKitWorkoutMetricSample]] = [:]
+        var firstError: Error?
+        for sampleType in [HealthKitWorkoutMetricSampleType.heartRate, .cyclingCadence, .cyclingPower] {
+            try Task.checkCancellation()
+            do { result[sampleType] = try await fetch(sampleType) }
+            catch is CancellationError { throw CancellationError() }
+            catch { if firstError == nil { firstError = error } }
+        }
+        if result.isEmpty, let firstError { throw firstError }
         return result
     }
 }

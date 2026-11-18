@@ -19,6 +19,18 @@ struct RecordWorkoutSummary: Equatable, Identifiable {
         routeCapture?.workoutRoute(workoutId: id, createdAt: startedAt)
     }
 
+    var measuredTelemetry: WorkoutTelemetry {
+        let samples = (routeCapture?.coordinates ?? []).compactMap { point -> WorkoutTelemetrySample? in
+            guard let timestamp = point.timestamp else { return nil }
+            let sample = WorkoutTelemetrySample(timestamp: timestamp,
+                distanceMeters: point.cumulativeDistanceMeters,
+                speedMetersPerSecond: point.measuredSpeedMetersPerSecond,
+                elevationMeters: point.altitude, source: .soomLocal)
+            return sample.hasMeasurement ? sample : nil
+        }
+        return WorkoutTelemetry(workoutID: id, source: .soomLocal, samples: samples)
+    }
+
     var distanceText: String {
         guard let distanceMeters, distanceMeters > 0 else {
             return "시간 기록"
@@ -73,22 +85,34 @@ struct RecordWorkoutSaveMapper {
             dataQuality: .partial,
             isExcludedFromAnalysis: false,
             createdAt: now,
-            updatedAt: now
+            updatedAt: now,
+            deviceName: "SOOM iPhone"
         )
     }
+}
+
+enum RecordWorkoutSaveError: Error {
+    case routeNotSaved(workout: UnifiedWorkout, underlying: Error?)
 }
 
 struct RecordWorkoutSaver {
     let store: any UnifiedWorkoutStore
     var routeStore: (any WorkoutRoutePersistenceStoring)? = nil
     var mapper = RecordWorkoutSaveMapper()
+    var saveTelemetry: (@MainActor (WorkoutTelemetry) throws -> Void)? = nil
 
     func save(_ summary: RecordWorkoutSummary) async throws -> UnifiedWorkout {
         let workout = mapper.makeWorkout(from: summary)
         try await store.saveWorkout(workout)
         if let route = summary.workoutRoute {
-            try await routeStore?.saveRoute(route)
+            guard let routeStore else { throw RecordWorkoutSaveError.routeNotSaved(workout: workout, underlying: nil) }
+            do {
+                try await routeStore.saveRoute(route)
+            } catch {
+                throw RecordWorkoutSaveError.routeNotSaved(workout: workout, underlying: error)
+            }
         }
+        if !summary.measuredTelemetry.isEmpty, let saveTelemetry { try await saveTelemetry(summary.measuredTelemetry) }
         return workout
     }
 }

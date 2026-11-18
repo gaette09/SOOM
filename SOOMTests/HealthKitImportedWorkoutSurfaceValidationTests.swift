@@ -183,7 +183,7 @@ final class HealthKitImportedWorkoutSurfaceValidationTests: XCTestCase {
         XCTAssertGreaterThan(recoveryActivity.relativeEffort, 0)
     }
 
-    func testDuplicateSkippedHealthKitWorkoutDoesNotReachSurfaceValidation() async {
+    func testCrossSourceOriginalIsRetainedWhileCanonicalSurfacesCountOneWorkout() async {
         let workoutID = UUID(uuidString: "74747474-7474-7474-7474-747474747474")!
         let startDate = Date(timeIntervalSince1970: 1_800_000_000)
         let localWorkout = makeUnifiedWorkout(
@@ -216,12 +216,17 @@ final class HealthKitImportedWorkoutSurfaceValidationTests: XCTestCase {
         let processed = result.importedWorkouts.map { processedBuilder.make(from: $0) }
 
         XCTAssertEqual(result.fetchedCount, 1)
-        XCTAssertEqual(result.savedCount, 0)
-        XCTAssertEqual(result.skippedCount, 1)
-        XCTAssertTrue(processed.isEmpty)
-        XCTAssertTrue(store.savedWorkouts.isEmpty)
-        XCTAssertEqual(makeProfileAggregator().aggregate(processedWorkouts: processed), .empty)
-        XCTAssertTrue(UnifiedWorkoutAnalysisInputSelector().selectRecoveryInputs(fromProcessedWorkouts: processed).isEmpty)
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertEqual(processed.count, 1)
+        XCTAssertEqual(store.savedWorkouts.count, 1)
+        XCTAssertEqual(store.savedWorkouts.first?.source, .appleHealthKit)
+        let canonical = UnifiedWorkoutDeduplicationEngine().canonicalWorkouts([localWorkout] + store.savedWorkouts)
+        XCTAssertEqual(canonical.count, 1)
+        let raw = try? await store.fetchRecentWorkouts(days: 90)
+        XCTAssertEqual(raw?.count, 2)
+        let canonicalProcessed = canonical.map { processedBuilder.make(from: $0) }
+        XCTAssertEqual(canonicalProcessed.count, 1)
     }
 
     func testHealthKitOnlyWorkoutAppearsOnceAcrossProcessedSurfaces() async throws {
@@ -241,7 +246,8 @@ final class HealthKitImportedWorkoutSurfaceValidationTests: XCTestCase {
         let processed = result.importedWorkouts.map { processedBuilder.make(from: $0) }
 
         XCTAssertEqual(result.fetchedCount, 2)
-        XCTAssertEqual(result.savedCount, 2)
+        XCTAssertEqual(result.savedCount, 1)
+        XCTAssertEqual(result.skippedCount, 1)
         XCTAssertEqual(Set(store.savedWorkouts.map(\.id)), Set([workoutID]))
         XCTAssertEqual(store.savedWorkouts.count, 1)
         XCTAssertEqual(Set(processed.map(\.id)), Set([workoutID]))

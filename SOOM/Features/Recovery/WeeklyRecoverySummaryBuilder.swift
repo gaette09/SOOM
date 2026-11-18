@@ -105,7 +105,10 @@ final class WeeklyRecoverySummaryBuilder {
             let current = chronological[index]
             let next = chronological[index + 1]
 
-            if current.activityCount == 0 && next.score - current.score >= 4 {
+            let nextCalendarDay = Calendar.current.date(byAdding: .day, value: 1, to: current.date)
+            if current.activityCountKnown, current.activityCount == 0,
+               let nextCalendarDay, Calendar.current.isDate(nextCalendarDay, inSameDayAs: next.date),
+               next.score - current.score >= 4 {
                 return true
             }
         }
@@ -163,7 +166,7 @@ final class WeeklyRecoverySummaryBuilder {
         }
 
         if hasRestRecovery {
-            return "휴식이나 가벼운 날 이후 회복 점수가 다시 올라오는 패턴이 보였어요."
+            return "운동 기록이 없는 날 다음에 회복 점수가 다시 올라왔어요."
         }
 
         switch trendDirection {

@@ -32,6 +32,42 @@ final class RecoveryTimelineBuilderTests: XCTestCase {
         XCTAssertTrue(entries.allSatisfy { !$0.status.isEmpty })
     }
 
+    func testEmptySummaryDoesNotInventTimelineWhenStorageIsAbsentOrFails() async {
+        let empty = RecoveryCalculator().calculateSummary(from: [])
+        let missingStoreTimeline = await builder.buildTimeline(fallbackSummary: empty)
+        let failedStoreTimeline = await RecoveryTimelineBuilder(
+            snapshotStore: TimelineFailingSnapshotStore()
+        ).buildTimeline(fallbackSummary: empty)
+        XCTAssertTrue(missingStoreTimeline.isEmpty)
+        XCTAssertTrue(failedStoreTimeline.isEmpty)
+        XCTAssertTrue(builder.buildMockTimeline(endingAt: empty).isEmpty)
+    }
+
+    func testHistoryReadFailureNeverInventsPastScoresFromACalculatedSummary() async {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let summary = RecoveryCalculator(referenceDate: date).calculateSummary(from: [RecoveryActivity(
+            workoutType: .run,
+            durationMinutes: 45,
+            distanceKm: 8,
+            averageHeartRate: 136,
+            relativeEffort: 30,
+            trainingLoad: 46,
+            completedAt: date
+        )])
+        XCTAssertTrue(summary.hasCalculatedScore)
+        let entries = await RecoveryTimelineBuilder(snapshotStore: TimelineFailingSnapshotStore())
+            .buildTimeline(fallbackSummary: summary)
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    func testEmptyCurrentSummaryPreservesRealStoredHistory() async {
+        let snapshot = makeSnapshot(score: 83)
+        let entries = await RecoveryTimelineBuilder(snapshotStore: FakeDailyRecoverySnapshotStore(snapshots: [snapshot]))
+            .buildTimeline(fallbackSummary: RecoveryCalculator().calculateSummary(from: []))
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.recoveryScore, snapshot.score)
+    }
+
     func testBuildTimelineCreatesEntriesFromSnapshots() async {
         let snapshots = [
             makeSnapshot(daysAgo: 0, score: 82, status: "좋음"),
@@ -181,4 +217,12 @@ private final class FakeDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
     }
 
     func deleteSnapshot(id: UUID) async throws {}
+}
+
+private struct TimelineFailingSnapshotStore: DailyRecoverySnapshotStore {
+    func saveSnapshot(_ snapshot: DailyRecoverySnapshot) async throws { throw Failure.unavailable }
+    func fetchRecentSnapshots(days: Int) async throws -> [DailyRecoverySnapshot] { throw Failure.unavailable }
+    func fetchSnapshot(for date: Date) async throws -> DailyRecoverySnapshot? { throw Failure.unavailable }
+    func deleteSnapshot(id: UUID) async throws { throw Failure.unavailable }
+    private enum Failure: Error { case unavailable }
 }

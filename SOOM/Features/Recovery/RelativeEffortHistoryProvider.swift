@@ -21,7 +21,7 @@ struct SwiftDataRelativeEffortHistoryProvider: RelativeEffortHistoryProviding {
     }
 
     func recentRelativeEfforts(excluding workoutId: UUID, before date: Date, lookbackDays: Int) async -> [Int] {
-        guard let workouts = try? await store.fetchRecentWorkouts(days: fetchWindowDays) else { return [] }
+        guard let workouts = try? await store.fetchCanonicalRecentWorkouts(days: fetchWindowDays) else { return [] }
         let windowStart = Calendar.current.date(byAdding: .day, value: -lookbackDays, to: date) ?? date
 
         return workouts

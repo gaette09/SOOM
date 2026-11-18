@@ -124,6 +124,27 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         XCTAssertEqual(recent.first?.workoutType, .walking)
     }
 
+    @MainActor
+    func testSavedMeasurementStreamUsesCorrectedDistanceAndActualSpeedAltitude() async throws {
+        var session = RecordWorkoutSessionStarter(dateProvider: { self.startedAt })
+            .start(sport: .running, locationState: .mockCurrent)
+        session = session.recordingLocation(.init(latitude: 37.5, longitude: 127), at: startedAt,
+            speedMetersPerSecond: 2.5, horizontalAccuracy: 5, speedAccuracy: 0.1, altitude: 30)
+        session = session.recordingLocation(.init(latitude: 37.5001, longitude: 127), at: startedAt.addingTimeInterval(4),
+            speedMetersPerSecond: 2.5, horizontalAccuracy: 5, speedAccuracy: 0.1, altitude: 31)
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: session.finished(at: startedAt.addingTimeInterval(4))))
+        var savedTelemetry: WorkoutTelemetry?
+        let saver = RecordWorkoutSaver(store: FakeUnifiedWorkoutStore(), routeStore: FakeWorkoutRoutePersistenceStore(),
+            saveTelemetry: { savedTelemetry = $0 })
+        let workout = try await saver.save(summary)
+        XCTAssertEqual(savedTelemetry?.workoutID, workout.id)
+        XCTAssertEqual(savedTelemetry?.samples.last?.distanceMeters ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(savedTelemetry?.samples.last?.speedMetersPerSecond, 2.5)
+        XCTAssertEqual(savedTelemetry?.samples.last?.elevationMeters, 31)
+        XCTAssertEqual(summary.workoutRoute?.coordinates.last?.altitude, 31)
+        XCTAssertNil(savedTelemetry?.samples.last?.heartRateBPM)
+    }
+
     func testDiscardDoesNotStoreWorkout() async throws {
         let store = FakeUnifiedWorkoutStore()
         _ = RecordWorkoutSummaryBuilder.makeSummary(
@@ -307,12 +328,13 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         let state = RecordLocationState(
             authorization: .authorized,
             coordinate: RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271),
-            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate,
+            locationTimestamp: startedAt, horizontalAccuracy: 5
         )
 
         return starter.start(sport: sport, locationState: state)
-            .recordingLocation(RecordMapCoordinate(latitude: 37.5272, longitude: 126.9280), at: startedAt.addingTimeInterval(900))
-            .recordingLocation(RecordMapCoordinate(latitude: 37.5280, longitude: 126.9290), at: startedAt.addingTimeInterval(1_800))
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5267, longitude: 126.9272), at: startedAt.addingTimeInterval(10))
+            .recordingLocation(RecordMapCoordinate(latitude: 37.5268, longitude: 126.9273), at: startedAt.addingTimeInterval(20))
             .finished(at: endedAt)
     }
 
@@ -324,7 +346,8 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
         let state = RecordLocationState(
             authorization: .denied,
             coordinate: nil,
-            fallbackCoordinate: RecordLocationState.fallbackCoordinate
+            fallbackCoordinate: RecordLocationState.fallbackCoordinate,
+            locationTimestamp: startedAt, horizontalAccuracy: 5
         )
 
         return starter.start(sport: sport, locationState: state)
@@ -422,8 +445,10 @@ final class RecordWorkoutSaveFlowTests: XCTestCase {
 
 private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
     private(set) var savedWorkouts: [UnifiedWorkout] = []
+    var shouldFail = false
 
     func saveWorkout(_ workout: UnifiedWorkout) async throws {
+        if shouldFail { throw RecordingStorageFailure.expected }
         savedWorkouts.removeAll { $0.id == workout.id }
         savedWorkouts.append(workout)
     }
@@ -461,8 +486,10 @@ private final class FakeUnifiedWorkoutStore: UnifiedWorkoutStore {
 
 private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceStoring {
     private var routesByWorkoutId: [UUID: WorkoutRoute] = [:]
+    var shouldFail = false
 
     func saveRoute(_ route: WorkoutRoute) async throws {
+        if shouldFail { throw RecordingStorageFailure.expected }
         routesByWorkoutId[route.workoutId] = route
     }
 
@@ -482,3 +509,60 @@ private final class FakeWorkoutRoutePersistenceStore: WorkoutRoutePersistenceSto
         routesByWorkoutId.removeAll()
     }
 }
+
+extension RecordWorkoutSaveFlowTests {
+    func testRouteFailureReportsAlreadySavedWorkoutAndRetryUsesSameIdentity() async throws {
+        let workouts = FakeUnifiedWorkoutStore()
+        let routes = FakeWorkoutRoutePersistenceStore()
+        routes.shouldFail = true
+        let saver = RecordWorkoutSaver(store: workouts, routeStore: routes)
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: finishedRouteSession(sport: .running)))
+        do {
+            _ = try await saver.save(summary)
+            XCTFail("Route failure must not be reported as a complete save")
+        } catch RecordWorkoutSaveError.routeNotSaved(let saved, _) {
+            XCTAssertEqual(saved.id, summary.id)
+            XCTAssertEqual(workouts.savedWorkouts.count, 1)
+            XCTAssertEqual(saved.durationSeconds, summary.durationSeconds)
+        }
+        let missingRoute = try await routes.fetchRoute(workoutId: summary.id)
+        XCTAssertNil(missingRoute)
+        routes.shouldFail = false
+        let retry = try await saver.save(summary)
+        let savedRoute = try await routes.fetchRoute(workoutId: summary.id)
+        XCTAssertEqual(workouts.savedWorkouts.count, 1)
+        XCTAssertEqual(retry.id, summary.id)
+        XCTAssertNotNil(savedRoute)
+    }
+
+    func testMissingRouteStoreCannotClaimFullRouteSave() async throws {
+        let workouts = FakeUnifiedWorkoutStore()
+        let saver = RecordWorkoutSaver(store: workouts)
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: finishedRouteSession(sport: .cycling)))
+        do {
+            _ = try await saver.save(summary)
+            XCTFail("Captured route requires a route store")
+        } catch RecordWorkoutSaveError.routeNotSaved(let workout, let underlying) {
+            XCTAssertEqual(workout.id, summary.id)
+            XCTAssertNil(underlying)
+        }
+        XCTAssertEqual(workouts.savedWorkouts.count, 1)
+    }
+
+    func testWorkoutFailureDoesNotWriteAnOrphanRoute() async throws {
+        let workouts = FakeUnifiedWorkoutStore()
+        workouts.shouldFail = true
+        let routes = FakeWorkoutRoutePersistenceStore()
+        let saver = RecordWorkoutSaver(store: workouts, routeStore: routes)
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: finishedRouteSession(sport: .walking)))
+        do {
+            _ = try await saver.save(summary)
+            XCTFail("Expected workout storage failure")
+        } catch RecordingStorageFailure.expected {}
+        let route = try await routes.fetchRoute(workoutId: summary.id)
+        XCTAssertNil(route)
+        XCTAssertTrue(workouts.savedWorkouts.isEmpty)
+    }
+}
+
+private enum RecordingStorageFailure: Error { case expected }

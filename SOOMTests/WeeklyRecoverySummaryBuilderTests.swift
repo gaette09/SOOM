@@ -128,3 +128,21 @@ private final class FakeWeeklySnapshotStore: DailyRecoverySnapshotStore {
 
     func deleteSnapshot(id: UUID) async throws {}
 }
+
+extension WeeklyRecoverySummaryBuilderTests {
+    func testRestInterpretationRequiresKnownCountAndConsecutiveCalendarDays() throws {
+        func snapshot(daysAgo: Int, score: Int, known: Bool, count: Int) -> DailyRecoverySnapshot {
+            DailyRecoverySnapshot(date: baseDate.addingTimeInterval(Double(-daysAgo) * 86_400), score: score, status: "좋음", recommendation: "기록 확인", coachMessage: "기록 확인", dataQuality: .estimated, activityCount: count, activityCountKnown: known)
+        }
+        let builder = WeeklyRecoverySummaryBuilder(snapshotStore: FakeWeeklySnapshotStore(snapshots: []))
+        let today = snapshot(daysAgo: 0, score: 90, known: true, count: 1)
+        let knownRest = snapshot(daysAgo: 1, score: 80, known: true, count: 0)
+        let unknown = snapshot(daysAgo: 1, score: 80, known: false, count: 0)
+        let activeDay = snapshot(daysAgo: 1, score: 80, known: true, count: 2)
+        let nonconsecutive = snapshot(daysAgo: 3, score: 80, known: true, count: 0)
+        XCTAssertTrue(try XCTUnwrap(builder.makeSummary(from: [today, knownRest])).coachInsight.contains("운동 기록이 없는 날"))
+        for previous in [unknown, activeDay, nonconsecutive] {
+            XCTAssertFalse(try XCTUnwrap(builder.makeSummary(from: [today, previous])).coachInsight.contains("운동 기록이 없는 날"))
+        }
+    }
+}

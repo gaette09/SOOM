@@ -5,6 +5,60 @@ import UIKit
 
 @MainActor
 struct ShareableWorkoutCardRendererTests {
+    @Test func testSharePreparationRejectsNilAndEmptyRasterWithoutPresentation() async {
+        let preparation = WorkoutShareImagePreparation()
+        let missing = await preparation.prepare { nil }
+        #expect(missing == nil)
+        #expect(preparation.errorMessage != nil)
+        #expect(!preparation.isPreparing)
+        let empty = await preparation.prepare { UIImage() }
+        #expect(empty == nil)
+        #expect(preparation.errorMessage != nil)
+        #expect(!preparation.isPreparing)
+    }
+
+    @Test func testSharePreparationRetryProducesAtomicTransparentImagePayload() async {
+        let preparation = WorkoutShareImagePreparation()
+        _ = await preparation.prepare { nil }
+        let image = ShareableWorkoutCardRenderer().render(card: makeCard().configured(shareType: .workout, backgroundOption: .transparent), tint: SOOMColor.run)
+        let payload = await preparation.prepare { image }
+        #expect(payload != nil)
+        #expect(payload?.image === image)
+        #expect(topLeftAlpha(of: payload?.image) == 0, "Export transparency stays unchanged")
+        #expect(preparation.errorMessage == nil)
+        #expect(!preparation.isPreparing)
+    }
+
+    @Test func testRepeatedShareWhileRenderingDoesNotCreateFalseFailure() async {
+        let preparation = WorkoutShareImagePreparation()
+        var continuation: CheckedContinuation<UIImage?, Never>?
+        let image = ShareableWorkoutCardRenderer().render(card: makeCard(), tint: SOOMColor.run)
+        let first = Task { await preparation.prepare { await withCheckedContinuation { continuation = $0 } } }
+        while continuation == nil { await Task.yield() }
+        let repeated = await preparation.prepare { Issue.record("Duplicate tap rendered again"); return image }
+        #expect(repeated == nil)
+        #expect(preparation.errorMessage == nil)
+        #expect(preparation.isPreparing)
+        continuation?.resume(returning: image)
+        let payload = await first.value
+        #expect(payload != nil)
+        #expect(!preparation.isPreparing)
+    }
+
+    @Test func testClosedComposerRejectsLateImageAndCanPrepareAgain() async {
+        let preparation = WorkoutShareImagePreparation()
+        var continuation: CheckedContinuation<UIImage?, Never>?
+        let image = ShareableWorkoutCardRenderer().render(card: makeCard(), tint: SOOMColor.run)
+        let pending = Task { await preparation.prepare { await withCheckedContinuation { continuation = $0 } } }
+        while continuation == nil { await Task.yield() }
+        preparation.cancel()
+        continuation?.resume(returning: image)
+        #expect(await pending.value == nil)
+        #expect(preparation.errorMessage == nil)
+        #expect(!preparation.isPreparing)
+        #expect(await preparation.prepare { image } != nil)
+    }
+
     @Test func testRendererCreatesUIImageFromShareableCard() {
         let card = makeCard()
         let image = ShareableWorkoutCardRenderer().render(card: card, tint: SOOMColor.run)
@@ -29,7 +83,7 @@ struct ShareableWorkoutCardRendererTests {
     }
 
     @Test func testRendererCanRenderTransparentShareCard() {
-        let card = makeCard().configured(
+        let card = makeCardWithStaticRoutePreview().configured(
             shareType: .route,
             backgroundOption: .transparent
         )
@@ -132,9 +186,12 @@ struct ShareableWorkoutCardRendererTests {
         #expect((image?.size.width ?? 0) > 0)
     }
 
-    @Test func testWorkoutDetailContentRendersSharePreviewSurface() {
+    @Test func testWorkoutDetailContentRendersSharePreviewSurface() throws {
         let workout = MockWorkoutHarness().loadWorkouts()[0]
+        let storage = try HealthAccountStorageController(inMemory: true, monitorNetwork: false)
         let content = makeWorkoutDetailContent(workout: workout)
+            .environmentObject(storage)
+            .environmentObject(AuthViewModel(repository: RendererSignedOutAuthRepository()))
             .frame(width: 390)
 
         let image = ShareableWorkoutCardRenderer().render(content, width: 390, scale: 1)
@@ -292,6 +349,7 @@ struct ShareableWorkoutCardRendererTests {
         let dashboardViewModel = DashboardViewModel(harness: MockWorkoutHarness())
         let content = AnalysisView(viewModel: viewModel)
             .environmentObject(dashboardViewModel)
+            .environmentObject(AuthViewModel(repository: RendererSignedOutAuthRepository()))
             .frame(width: 390)
 
         let image = ShareableWorkoutCardRenderer().render(content, width: 390, scale: 1)
@@ -320,6 +378,15 @@ struct ShareableWorkoutCardRendererTests {
         #expect(renderCallCount == 1)
     }
 
+    @Test func testLegacyAnalysisCardsUseTheSameSportSpecificMetrics() {
+        let run = AnalysisView.legacyCardMetrics(makeSparseWorkout(duration: 1800, distanceMeters: 5250))
+        #expect(run.map(\.label) == ["거리", "페이스", "총 시간"])
+        #expect(run.map(\.value) == ["5.25 km", "5:43/km", "30분 0초"])
+        let ride = AnalysisView.legacyCardMetrics(makeSparseWorkout(sport: .bike, duration: 3600, distanceMeters: 30_000))
+        #expect(ride.map(\.label) == ["거리", "평속", "총 시간"])
+        #expect(ride.map(\.value) == ["30.00 km", "30.0 km/h", "1시간 0분"])
+    }
+
     @Test func testWorkoutShareSheetBuildsActivityController() {
         let sheet = WorkoutShareSheet(activityItems: ["SOOM"])
         let controller = sheet.makeActivityViewController()
@@ -343,8 +410,9 @@ struct ShareableWorkoutCardRendererTests {
     }
 
     private func makeCardWithStaticRoutePreview() -> ShareableWorkoutCardModel {
-        ShareableWorkoutCardModel(
-            id: UUID(),
+        let id = UUID()
+        return ShareableWorkoutCardModel(
+            id: id,
             workoutType: .running,
             title: "오늘의 러닝",
             distanceText: "10.40 km",
@@ -358,7 +426,11 @@ struct ShareableWorkoutCardRendererTests {
                 imageURL: URL(string: "https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/sample"),
                 bounds: nil,
                 routeExists: true,
-                fallbackStyle: .running
+                fallbackStyle: .running,
+                routeWorkoutID: id,
+                maskedCoordinates: [ShareRouteCoordinate(latitude: 37.5, longitude: 127),
+                    ShareRouteCoordinate(latitude: 37.505, longitude: 127.002),
+                    ShareRouteCoordinate(latitude: 37.51, longitude: 127.01)]
             )
         )
     }
@@ -397,6 +469,7 @@ struct ShareableWorkoutCardRendererTests {
     }
 
     private func makeSparseWorkout(
+        sport: WorkoutSport = .run,
         avgHeartRate: Int = 0,
         duration: TimeInterval = 0,
         distanceMeters: Double = 0,
@@ -405,7 +478,7 @@ struct ShareableWorkoutCardRendererTests {
     ) -> Workout {
         Workout(
             id: UUID(),
-            sport: .run,
+            sport: sport,
             title: "조용한 러닝",
             date: Date(timeIntervalSince1970: 1_800_000_000),
             distanceMeters: distanceMeters,
@@ -502,4 +575,11 @@ private struct StaticWeeklyProgressProvider: WeeklyWorkoutProgressProviding {
     func fetchWeeklyProgress(referenceDate: Date) async throws -> WeeklyWorkoutProgress {
         progress
     }
+}
+
+private struct RendererSignedOutAuthRepository: AuthRepository {
+    func loadSession() -> AuthSession { .signedOut }
+    func continueAsLocalUser(displayName: String) -> AuthSession { .signedOut }
+    func signOut() -> AuthSession { .signedOut }
+    func updateDisplayName(_ displayName: String) -> AuthSession { .signedOut }
 }

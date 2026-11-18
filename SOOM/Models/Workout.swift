@@ -58,6 +58,17 @@ struct Workout: Identifiable {
     let zones: [HeartRateZone]
     let achievements: [String]
     let aiSummary: String
+    // Keep the original activity type when the presentation sport groups several activities together.
+    var originalWorkoutType: UnifiedWorkoutType? = nil
+
+    var comparisonWorkoutType: UnifiedWorkoutType {
+        if let originalWorkoutType { return originalWorkoutType }
+        switch sport {
+        case .swim: return .swimming
+        case .bike, .brick: return .cycling
+        case .run: return .running
+        }
+    }
 
     var formattedDistance: String {
         if sport == .swim && distanceMeters < 10_000 {
@@ -103,7 +114,8 @@ struct Workout: Identifiable {
             samples: samples,
             zones: zones,
             achievements: achievements,
-            aiSummary: aiSummary
+            aiSummary: aiSummary,
+            originalWorkoutType: originalWorkoutType
         )
     }
 }
@@ -122,6 +134,8 @@ struct WorkoutSplit: Identifiable {
     let pace: String
     let heartRate: Int?
     let power: Int?
+    var distanceMeters: Double? = nil
+    var durationSeconds: Double? = nil
 }
 
 struct WorkoutSample: Identifiable {

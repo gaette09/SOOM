@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CheckInScaleSelector: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let caption: String
     let lowText: String
@@ -11,7 +12,10 @@ struct CheckInScaleSelector: View {
         SOOMCard {
             SOOMSectionHeader(title, caption: caption)
 
-            HStack(spacing: SOOMLayout.CheckIn.optionSpacing) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: SOOMLayout.CheckIn.optionSpacing))
+                : AnyLayout(HStackLayout(spacing: SOOMLayout.CheckIn.optionSpacing))
+            layout {
                 ForEach(1...5, id: \.self) { value in
                     Button {
                         selection = value
@@ -20,9 +24,12 @@ struct CheckInScaleSelector: View {
                             Text("\(value)")
                                 .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
                             Text(label(for: value))
-                                .font(SOOMFont.body(10, weight: .bold, relativeTo: .caption2))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Image(systemName: "checkmark")
+                                .font(.caption.bold())
+                                .opacity(selection == value ? 1 : 0)
+                                .accessibilityHidden(true)
                         }
                         .foregroundStyle(selection == value ? SOOMColor.white : SOOMColor.ink)
                         .frame(maxWidth: .infinity, minHeight: SOOMLayout.CheckIn.optionMinHeight)
@@ -31,7 +38,9 @@ struct CheckInScaleSelector: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(title) \(value)점")
-                    .accessibilityValue(label(for: value))
+                    .accessibilityValue("\(label(for: value))\(selection == value ? ", 선택됨" : "")")
+                    .accessibilityAddTraits(selection == value ? .isSelected : [])
+                    .accessibilityIdentifier("checkin.scale.\(title).\(value)")
                 }
             }
         }

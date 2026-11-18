@@ -27,6 +27,17 @@ final class UnifiedWorkoutRecord {
     /// Free-text names only (batch 8) — no `profiles`/`follows` lookup, so this
     /// works regardless of Supabase login state. See feed-detail-migration-plan.md.
     var companionNames: [String] = []
+    var userTitle: String? = nil
+    var userDescription: String? = nil
+    var sharingVisibilityRaw: String? = nil
+    var isBookmarked: Bool? = nil
+    var deviceName: String? = nil
+    var locationName: String? = nil
+    var preferredWorkoutID: UUID? = nil
+    var keepSeparate: Bool? = nil
+    var resolutionRequestID: UUID? = nil
+    /// Optional for a lightweight migration of existing account databases.
+    @Attribute(.externalStorage) var telemetryData: Data? = nil
 
     init(
         id: UUID = UUID(),

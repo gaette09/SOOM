@@ -68,6 +68,15 @@ struct FeedPostMediaDTO: Codable, Equatable, Identifiable {
             tone: previewPayload?.tone ?? .city
         )
     }
+
+    var photoReference: WorkoutPhotoReference? {
+        guard mediaType == .photo, let storagePath, WorkoutPhotoPolicy.validPath(storagePath) else { return nil }
+        return WorkoutPhotoReference(id: id, storagePath: storagePath)
+    }
+    var routeReference: WorkoutPhotoReference? {
+        guard mediaType == .route, let storagePath, WorkoutPhotoPolicy.validPath(storagePath) else { return nil }
+        return WorkoutPhotoReference(id: id, storagePath: storagePath)
+    }
 }
 
 struct FeedReactionDTO: Codable, Equatable, Identifiable {
@@ -107,7 +116,7 @@ struct FeedReactionDTO: Codable, Equatable, Identifiable {
             label = "응원"
         }
 
-        return FeedReaction(id: id, symbol: symbol, label: label)
+        return FeedReaction(id: id, symbol: symbol, label: label, authorId: userId, createdAt: createdAt, reactionType: reactionType)
     }
 }
 
@@ -156,6 +165,7 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
     let userId: UUID
     let body: String
     let createdAt: Date
+    var parentCommentID: UUID? = nil
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -163,6 +173,7 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
         case userId = "user_id"
         case body
         case createdAt = "created_at"
+        case parentCommentID = "parent_comment_id"
     }
 
     func feedComment(currentUserId: UUID?) -> FeedComment {
@@ -171,7 +182,8 @@ struct FeedCommentDTO: Codable, Equatable, Identifiable {
             authorId: userId,
             body: body,
             createdAt: createdAt,
-            isViewerAuthor: userId == currentUserId
+            isViewerAuthor: userId == currentUserId,
+            parentCommentID: parentCommentID
         )
     }
 }
@@ -186,5 +198,31 @@ struct FeedCommentInsertDTO: Encodable, Equatable {
         case postId = "post_id"
         case userId = "user_id"
         case body
+    }
+}
+
+/// Separate candidate reply projection: tombstones deliberately omit author/body.
+/// Do not make the legacy feed DTO nullable or synthesize a public identity.
+struct FeedReplyThreadDTO: Decodable {
+    let id: UUID
+    let parentCommentID: UUID?
+    let userID: UUID?
+    let body: String?
+    let isDeleted: Bool
+    let createdAt: Date
+    enum CodingKeys: String, CodingKey {
+        case id, body
+        case parentCommentID = "parent_comment_id", userID = "user_id", isDeleted = "is_deleted", createdAt = "created_at"
+    }
+    func comment(viewerID: UUID?) -> FeedComment? {
+        if isDeleted {
+            // Internal placeholder only; deleted rows never render a profile action.
+            return FeedComment(id: id, authorId: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+                body: "삭제된 댓글입니다", createdAt: createdAt, isViewerAuthor: false,
+                parentCommentID: parentCommentID, isDeleted: true)
+        }
+        guard let userID, let body else { return nil }
+        return FeedComment(id: id, authorId: userID, body: body, createdAt: createdAt,
+            isViewerAuthor: userID == viewerID, parentCommentID: parentCommentID)
     }
 }

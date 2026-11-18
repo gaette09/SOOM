@@ -17,6 +17,9 @@ struct CourseRecordBuilder {
         }
 
         let courseCandidates = prioritizedCandidates(candidates, routeCandidates: routeCandidates)
+        guard !courseCandidates.isEmpty else {
+            return .insufficientData
+        }
 
         switch current.workoutType {
         case .running, .walking, .hiking:
@@ -52,7 +55,7 @@ struct CourseRecordBuilder {
         let routeOrder = Dictionary(uniqueKeysWithValues: routeCandidates.enumerated().map { index, candidate in
             (candidate.candidateWorkoutId, index)
         })
-        let scopedCandidates = routeOrder.isEmpty ? candidates : candidates.filter { routeOrder[$0.id] != nil }
+        let scopedCandidates = candidates.filter { routeOrder[$0.id] != nil }
 
         return scopedCandidates.sorted { lhs, rhs in
             let lhsRouteIndex = routeOrder[lhs.id]
@@ -99,13 +102,15 @@ struct CourseRecordBuilder {
         }
 
         let improvementSeconds = baseline.pace - currentPace
-        let displayImprovement = improvementSeconds / paceScale
+        let displayImprovement = (improvementSeconds / paceScale).rounded()
+        let isImproved = displayImprovement > 0
+        let isSimilar = displayImprovement == 0
         let bestMetric = CourseRecordMetric(
             title: metricTitle,
             valueText: paceText(currentPace / paceScale, suffix: suffix),
-            detailText: improvementSeconds >= 0
-            ? "이 코스에서 이전보다 조금 더 가벼운 리듬이었어요."
-            : "오늘은 기록보다 코스 리듬을 다시 확인한 운동이에요."
+            detailText: isSimilar ? "이 코스에서 이전과 비슷한 리듬을 이어갔어요." :
+                isImproved ? "이 코스에서 이전보다 조금 더 가벼운 리듬이었어요." :
+                "오늘은 기록보다 코스 리듬을 다시 확인한 운동이에요."
         )
         let previousMetric = CourseRecordMetric(
             title: "이전 기준",
@@ -116,10 +121,10 @@ struct CourseRecordBuilder {
         return CourseRecord(
             courseId: courseId(for: current, baseline: baseline.input, courseIdentity: courseIdentity),
             workoutId: current.id,
-            comparisonType: improvementSeconds >= 0 ? comparisonType : .stableRhythm,
+            comparisonType: isImproved ? comparisonType : .stableRhythm,
             bestMetric: bestMetric,
             previousMetric: previousMetric,
-            improvementValue: improvementSeconds >= 0 ? "\(Int(displayImprovement.rounded()))초 더 가벼움" : nil,
+            improvementValue: isImproved ? "\(Int(displayImprovement))초 더 가벼움" : nil,
             achievedAt: current.startDate
         )
     }
@@ -145,23 +150,26 @@ struct CourseRecordBuilder {
         }
 
         let delta = currentSpeed - baseline.speed
+        let displayDelta = (delta * 10).rounded()
+        let isImproved = displayDelta > 0
+        let isSimilar = displayDelta == 0
         return CourseRecord(
             courseId: courseId(for: current, baseline: baseline.input, courseIdentity: courseIdentity),
             workoutId: current.id,
-            comparisonType: delta >= 0 ? .bestSpeed : .stableRhythm,
+            comparisonType: isImproved ? .bestSpeed : .stableRhythm,
             bestMetric: CourseRecordMetric(
                 title: "평균 속도",
                 valueText: "\(String(format: "%.1f", currentSpeed)) km/h",
-                detailText: delta >= 0
-                ? "비슷한 코스에서 이전보다 조금 더 빠른 흐름이었어요."
-                : "오늘은 속도보다 코스 리듬을 차분히 확인한 운동이에요."
+                detailText: isSimilar ? "비슷한 코스에서 이전과 비슷한 속도를 유지했어요." :
+                    isImproved ? "비슷한 코스에서 이전보다 조금 더 빠른 흐름이었어요." :
+                    "오늘은 속도보다 코스 리듬을 차분히 확인한 운동이에요."
             ),
             previousMetric: CourseRecordMetric(
                 title: "이전 기준",
                 valueText: "\(String(format: "%.1f", baseline.speed)) km/h",
                 detailText: "비슷한 코스의 이전 좋은 속도 기록이에요."
             ),
-            improvementValue: delta >= 0 ? "+\(String(format: "%.1f", delta)) km/h" : nil,
+            improvementValue: isImproved ? "+\(String(format: "%.1f", delta)) km/h" : nil,
             achievedAt: current.startDate
         )
     }

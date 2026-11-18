@@ -5,4 +5,7 @@ MBX_ACCESS_TOKEN =
 OPENWEATHER_API_KEY =
 WEATHER_API_KEY = $(OPENWEATHER_API_KEY)
 
+// Set an approved public HTTPS policy URL before App Store submission.
+SOOM_PRIVACY_POLICY_URL =
+
 #include? "LocalSecrets.xcconfig"

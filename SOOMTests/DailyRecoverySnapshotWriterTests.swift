@@ -34,6 +34,18 @@ final class DailyRecoverySnapshotWriterTests: XCTestCase {
         XCTAssertEqual(snapshot.activityCount, 0)
     }
 
+    func testEmptySummaryDoesNotPersistWithOrWithoutCheckIn() async throws {
+        let store = CapturingDailyRecoverySnapshotStore()
+        let writer = DailyRecoverySnapshotWriter(snapshotStore: store)
+        let empty = RecoveryCalculator().calculateSummary(from: [])
+        let checkIn = RecoveryCheckIn(date: Date(), fatigueLevel: 4, sleepQuality: 3,
+                                      muscleSoreness: 2, moodLevel: 4, note: nil)
+        try await writer.saveTodaySnapshot(from: empty, latestCheckIn: nil, explanation: nil)
+        let personalized = RecoverySummaryComposer().compose(baseSummary: empty, latestCheckIn: checkIn)
+        try await writer.saveTodaySnapshot(from: personalized, latestCheckIn: checkIn, explanation: nil)
+        XCTAssertTrue(store.savedSnapshots.isEmpty)
+    }
+
     func testSaveTodaySnapshotPersistsSnapshotThroughStore() async throws {
         let store = CapturingDailyRecoverySnapshotStore()
         let writer = DailyRecoverySnapshotWriter(
@@ -72,5 +84,27 @@ private final class CapturingDailyRecoverySnapshotStore: DailyRecoverySnapshotSt
 
     func deleteSnapshot(id: UUID) async throws {
         savedSnapshots.removeAll { $0.id == id }
+    }
+}
+
+extension DailyRecoverySnapshotWriterTests {
+    func testActualDayCountSurvivesCheckInCompositionAndSnapshotWriting() async throws {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let summary = RecoveryCalculator(referenceDate: date).calculateSummary(from: [
+            RecoveryActivity(workoutType: .ride, durationMinutes: 30, distanceKm: 10, averageHeartRate: 0, relativeEffort: 30, trainingLoad: 35, completedAt: date),
+            RecoveryActivity(workoutType: .run, durationMinutes: 20, distanceKm: 3, averageHeartRate: 0, relativeEffort: 20, trainingLoad: 25, completedAt: date.addingTimeInterval(-86_400))
+        ])
+        let checkIn = RecoveryCheckIn(date: date, fatigueLevel: 3, sleepQuality: 3, muscleSoreness: 3, moodLevel: 3, note: nil)
+        let personalized = RecoverySummaryComposer().compose(baseSummary: summary, latestCheckIn: checkIn)
+        let store = CapturingDailyRecoverySnapshotStore()
+        let writer = DailyRecoverySnapshotWriter(snapshotStore: store, referenceDate: { date })
+        try await writer.saveTodaySnapshot(from: personalized, latestCheckIn: checkIn, explanation: nil)
+        XCTAssertEqual(store.savedSnapshots.first?.activityCount, 1)
+        XCTAssertEqual(store.savedSnapshots.first?.activityCountKnown, true)
+        let nextDayWriter = DailyRecoverySnapshotWriter(snapshotStore: store, referenceDate: { date.addingTimeInterval(86_400) })
+        let stale = nextDayWriter.makeTodaySnapshot(from: personalized, latestCheckIn: nil, explanation: nil)
+        XCTAssertFalse(stale.activityCountKnown, "Yesterday's count must not be assigned to today")
+        let legacy = writer.makeTodaySnapshot(from: .mockToday, latestCheckIn: nil, explanation: nil)
+        XCTAssertFalse(legacy.activityCountKnown)
     }
 }

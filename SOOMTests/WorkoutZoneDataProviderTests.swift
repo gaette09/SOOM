@@ -90,13 +90,14 @@ final class WorkoutZoneDataProviderTests: XCTestCase {
         XCTAssertTrue(summaries.isEmpty)
     }
 
-    func testFetchFailureReturnsEmptySafely() async throws {
+    func testFetchFailureRemainsAnErrorInsteadOfMissingMeasurements() async throws {
         let fetcher = FakeMetricStreamFetcher(result: .failure(TestError.fetchFailed))
         let provider = WorkoutZoneDataProvider(fetcher: fetcher, baselineProvider: { .empty })
 
-        let summaries = try await provider.summaries(for: makeWorkout(), sport: .bike)
-
-        XCTAssertTrue(summaries.isEmpty)
+        do {
+            _ = try await provider.summaries(for: makeWorkout(), sport: .bike)
+            XCTFail("A failed query must not become an empty success")
+        } catch { XCTAssertTrue(error is TestError) }
     }
 
     func testProviderDoesNotInvokeRecoveryCalculator() async throws {
@@ -172,5 +173,40 @@ private final class FakeMetricStreamFetcher: HealthKitWorkoutMetricStreamFetchin
         case .failure(let error):
             throw error
         }
+    }
+}
+
+extension WorkoutZoneDataProviderTests {
+    func testOptionalStreamFailureDoesNotDiscardAlreadyFetchedHeartRate() async throws {
+        let heart = makeSample(.heartRate, value: 130, start: 0, end: 120)
+        let result = try await HealthKitWorkoutMetricStreamFetcher.collectZoneMetrics { type in
+            if type == .heartRate { return [heart] }
+            throw TestError.fetchFailed
+        }
+        XCTAssertEqual(result[.heartRate], [heart]); XCTAssertNil(result[.cyclingCadence]); XCTAssertNil(result[.cyclingPower])
+        let summaries = WorkoutZoneDataProvider(baselineProvider: { .empty }).makeSummaries(from: result, sport: .run)
+        XCTAssertEqual(summaries.first?.zones.first(where: { $0.zoneIndex == 2 })?.durationSeconds, 120)
+    }
+    func testAllStreamFailuresStillThrowAndCancellationStopsBatch() async {
+        do {
+            _ = try await HealthKitWorkoutMetricStreamFetcher.collectZoneMetrics { _ in throw TestError.fetchFailed }
+            XCTFail("All failures must not appear as a successful empty query")
+        } catch {}
+        var calls = 0
+        do {
+            _ = try await HealthKitWorkoutMetricStreamFetcher.collectZoneMetrics { _ in calls += 1; throw CancellationError() }
+            XCTFail("Cancellation must propagate")
+        } catch is CancellationError { XCTAssertEqual(calls, 1) }
+        catch { XCTFail("Unexpected error") }
+    }
+}
+
+extension WorkoutZoneDataProviderTests {
+    func testCancellationIsNotAnEmptySuccessfulRead() async {
+        let fetcher = FakeMetricStreamFetcher(result: .failure(CancellationError()))
+        do {
+            _ = try await WorkoutZoneDataProvider(fetcher: fetcher).summaries(for: makeWorkout(), sport: .swim)
+            XCTFail("Cancellation must reach the detail lifecycle")
+        } catch { XCTAssertTrue(error is CancellationError) }
     }
 }

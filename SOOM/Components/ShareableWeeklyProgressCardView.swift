@@ -38,7 +38,7 @@ struct ShareableWeeklyProgressCardView: View {
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
-                Image(systemName: SOOMIcon.trendUp)
+                Image(soom: SOOMIcon.trendUp)
                     .foregroundStyle(tint)
             }
             .padding(SOOMLayout.Card.padding)
@@ -75,7 +75,7 @@ struct ShareableWeeklyProgressCardView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-            Image(systemName: SOOMIcon.chartBar)
+            Image(soom: SOOMIcon.chartBar)
                 .font(.system(size: ShareableWorkoutCardLayout.headerIconSize, weight: .bold))
                 .foregroundStyle(tint)
                 .frame(width: ShareableWorkoutCardLayout.headerIconFrame, height: ShareableWorkoutCardLayout.headerIconFrame)
@@ -84,9 +84,11 @@ struct ShareableWeeklyProgressCardView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-                Text("SOOM")
-                    .font(SOOMFont.displayMedium(15, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.ink)
+                Image("SOOMWordmarkBlack")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 69, height: 14, alignment: .leading)
+                    .accessibilityLabel("SOOM")
 
                 Text("이번 주 성장 기록")
                     .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))

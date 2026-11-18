@@ -33,6 +33,9 @@ struct FeedShareDraft: Identifiable, Codable, Equatable {
     let tags: [String]
     let visibility: FeedShareDraftVisibility
     let createdAt: Date
+    var activityDate: Date? = nil
+    var deviceName: String? = nil
+    var locationName: String? = nil
 
     func makeFeedItem(
         authorName: String = "나",
@@ -50,6 +53,7 @@ struct FeedShareDraft: Identifiable, Codable, Equatable {
             title: title,
             distanceText: Self.distanceText(distanceMeters),
             durationText: Self.durationText(durationSeconds),
+            averagePaceText: FeedCardFormatting.movement(sport: sport, distance: distanceMeters, seconds: durationSeconds, pace: averagePaceSecondsPerKm),
             primaryMessage: body,
             growthMessage: "공개 전 초안으로 보관 중이에요.",
             recoveryMessage: "개인 회복 코칭은 피드 초안에 포함하지 않아요.",
@@ -78,11 +82,13 @@ struct FeedShareDraft: Identifiable, Codable, Equatable {
             optionalShortStory: body,
             routeMood: routePreviewPayload?.distanceText,
             recoveryCue: nil,
-            locationHint: nil,
+            locationHint: locationName,
             clubContext: nil,
             contextLabels: labels,
             reactions: [],
-            microComment: nil
+            microComment: nil,
+            activityDate: activityDate,
+            deviceName: deviceName
         )
     }
 

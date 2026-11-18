@@ -27,8 +27,7 @@ struct RecommendationCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: icon)
-                    .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
+                SOOMSportIconView(name: icon, size: SOOMLayout.RecoveryAI.iconSize)
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
                     .background(tint.opacity(SOOMLayout.Metrics.actionIconBackgroundOpacity))
@@ -50,7 +49,7 @@ struct RecommendationCard: View {
                 HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
                     Text(actionLabel)
                         .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
-                    Image(systemName: SOOMIcon.chevronRight)
+                    Image(soom: SOOMIcon.chevronRight)
                         .font(.caption.weight(.bold))
                 }
                 .foregroundStyle(SOOMColor.white)

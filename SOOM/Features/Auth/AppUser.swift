@@ -30,6 +30,14 @@ struct AppUser: Identifiable, Codable, Equatable {
     var email: String?
     let authProvider: AuthProvider
     let createdAt: Date
+    var appleUserIdentifier: String?
+    var linkedAuthProviders: [String]?
+    /// Private Storage object key. A public or signed image URL is never persisted.
+    var avatarPath: String?
+
+    var isLinkedToApple: Bool {
+        authProvider == .apple || appleUserIdentifier != nil || linkedAuthProviders?.contains("apple") == true
+    }
 
     init(
         id: UUID = UUID(),
@@ -37,7 +45,10 @@ struct AppUser: Identifiable, Codable, Equatable {
         handle: String? = nil,
         email: String? = nil,
         authProvider: AuthProvider = .local,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        appleUserIdentifier: String? = nil,
+        linkedAuthProviders: [String]? = nil,
+        avatarPath: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -45,5 +56,8 @@ struct AppUser: Identifiable, Codable, Equatable {
         self.email = email
         self.authProvider = authProvider
         self.createdAt = createdAt
+        self.appleUserIdentifier = appleUserIdentifier
+        self.linkedAuthProviders = linkedAuthProviders
+        self.avatarPath = avatarPath
     }
 }

@@ -5,9 +5,9 @@ struct WorkoutSessionSummaryCard: View {
     let tint: Color
 
     var body: some View {
-        SOOMCard {
+        WorkoutInsightDisclosure(title: "오늘 운동 요약", icon: "sparkles", summary: summary.summaryText) {
             HStack(alignment: .top, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: summary.icon ?? SOOMIcon.sparkles)
+                Image(soom: summary.icon ?? SOOMIcon.sparkles)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)
@@ -17,7 +17,7 @@ struct WorkoutSessionSummaryCard: View {
 
                 VStack(alignment: .leading, spacing: SOOMLayout.RecoveryAI.textSpacing) {
                     Text("오늘 운동 요약")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(tint)
 
                     Text(summary.title)
@@ -26,7 +26,7 @@ struct WorkoutSessionSummaryCard: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(summary.summaryText)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -37,17 +37,15 @@ struct WorkoutSessionSummaryCard: View {
                     }
                     .padding(.top, SOOMLayout.Metrics.actionTextSpacing)
 
-                    Label(summary.closingMotivation, systemImage: SOOMIcon.sparkles)
-                        .font(SOOMFont.body(12, relativeTo: .caption))
+                    Label(summary.closingMotivation, soomIcon: SOOMIcon.sparkles)
+                        .font(SOOMFont.body(14, relativeTo: .subheadline))
                         .foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, SOOMLayout.Metrics.actionTextSpacing)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("오늘 운동 요약")
-        .accessibilityValue("\(summary.title). \(summary.summaryText). \(summary.closingMotivation)")
+
     }
 }
 
@@ -59,10 +57,10 @@ private struct SessionSummaryLine: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing) {
             Text(title)
-                .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
+                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(tint)
             Text(text)
-                .font(SOOMFont.body(12, relativeTo: .caption))
+                .font(SOOMFont.body(14, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }

@@ -23,11 +23,14 @@ struct SupabaseAppUserMapper {
         let email = normalizedEmail(snapshot.email)
         return AppUser(
             id: userUUID,
-            displayName: displayName(from: email, fallbackUserId: userId),
+            displayName: snapshot.displayName.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? displayName(from: email, fallbackUserId: userId),
             handle: email.map { "@\($0)" },
             email: email,
             authProvider: .supabase,
-            createdAt: now()
+            createdAt: now(),
+            appleUserIdentifier: snapshot.appleUserIdentifier,
+            linkedAuthProviders: snapshot.linkedAuthProviders,
+            avatarPath: snapshot.avatarPath
         )
     }
 

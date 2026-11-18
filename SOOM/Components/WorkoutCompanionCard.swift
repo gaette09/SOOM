@@ -13,7 +13,6 @@ struct WorkoutCompanionCard: View {
         SOOMCard {
             SOOMSectionHeader("태그")
 
-            FlowTags(tags: [sourceTag], tint: tint)
 
             if !companions.isEmpty {
                 FlowTags(tags: companions, tint: SOOMColor.secondaryInk)
@@ -28,8 +27,8 @@ struct WorkoutCompanionCard: View {
                                 .accessibilityHidden(true)
                         }
 
-                        Label(companions.isEmpty ? "함께한 사람 추가" : "함께한 사람 편집", systemImage: SOOMIcon.personAdd)
-                            .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
+                        Label(companions.isEmpty ? "함께한 사람 추가" : "함께한 사람 편집", soomIcon: SOOMIcon.personAdd)
+                            .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, SOOMLayout.Metrics.pillPadding)
@@ -45,7 +44,7 @@ struct WorkoutCompanionCard: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                    .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                     .foregroundStyle(SOOMColor.warning)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(SOOMLayout.Metrics.actionTextSpacing)
@@ -55,65 +54,86 @@ struct WorkoutCompanionCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("태그")
-        .accessibilityValue(([sourceTag] + companions).joined(separator: ", "))
+        .accessibilityValue(companions.joined(separator: ", "))
     }
 }
 
 struct WorkoutCompanionEditSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @FocusState private var nameFocused: Bool
 
     let tint: Color
-    let onSave: ([String]) async -> Void
+    @StateObject private var model: WorkoutCompanionEditor
 
-    @State private var names: [String]
-    @State private var newName = ""
-    @State private var isSaving = false
-
-    init(initialNames: [String], tint: Color, onSave: @escaping ([String]) async -> Void) {
+    init(initialNames: [String], tint: Color, canAccess: @escaping () -> Bool = { true },
+         onSave: @escaping ([String]) async -> WorkoutCompanionUpdateResult) {
         self.tint = tint
-        self.onSave = onSave
-        _names = State(initialValue: initialNames)
+        _model = StateObject(wrappedValue: WorkoutCompanionEditor(initialNames: initialNames, canAccess: canAccess, onSave: onSave))
+    }
+    init(model: WorkoutCompanionEditor, tint: Color) {
+        self.tint = tint; _model = StateObject(wrappedValue: model)
     }
 
     var body: some View {
         NavigationStack {
+            GeometryReader { viewport in
             SOOMScreen {
                 SOOMCard {
                     SOOMSectionHeader("함께한 사람", caption: "기록되지 않은 사람도 이름으로 추가할 수 있어요.")
 
-                    HStack(spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                        TextField("이름 입력", text: $newName)
+                    let layout = dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: SOOMLayout.Metrics.actionTextSpacing))
+                        : AnyLayout(HStackLayout(spacing: SOOMLayout.Metrics.actionTextSpacing))
+                    layout {
+                        TextField("이름 입력", text: $model.newName)
+                            .focused($nameFocused)
                             .textFieldStyle(.roundedBorder)
                             .onSubmit(addName)
                             .accessibilityLabel("함께한 사람 이름 입력")
 
                         Button("추가", action: addName)
+                            .frame(minHeight: 44)
                             .buttonStyle(.borderedProminent)
-                            .disabled(WorkoutCompanionNameEditing.normalized(newName) == nil)
+                            .disabled(WorkoutCompanionNameEditing.normalized(model.newName) == nil)
                     }
 
-                    if !names.isEmpty {
+                    if !model.names.isEmpty {
                         companionChips
                     }
                 }
             }
+            .disabled(model.isSaving)
+            .safeAreaInset(edge: .bottom) {
+                if let message = model.errorMessage {
+                    SOOMBoundedFeedback(maxHeight: max(80, viewport.size.height * 0.30)) {
+                        SOOMActionFeedback(title: "함께한 사람을 저장하지 못했어요", message: message + " 이름 초안은 그대로 있어요. 다시 저장해 주세요.", isError: true)
+                    }
+                        .padding(SOOMLayout.screenPadding)
+                        .background(SOOMColor.background)
+                        .accessibilityIdentifier("companions.save.failure")
+                }
+            }
+            .interactiveDismissDisabled(model.isSaving)
             .navigationTitle("함께한 사람")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer(); Button("완료") { nameFocused = false }
+                }
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    Button("취소") { dismiss() }.disabled(model.isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "저장 중" : "저장") {
+                    Button(model.isSaving ? "저장 중" : "저장") {
+                        nameFocused = false
                         Task {
-                            isSaving = true
-                            await onSave(names)
-                            isSaving = false
-                            dismiss()
+                            if await model.save() { dismiss() }
                         }
                     }
-                    .disabled(isSaving)
+                    .disabled(model.isSaving)
                 }
+            }
             }
         }
     }
@@ -124,18 +144,19 @@ struct WorkoutCompanionEditSheet: View {
             alignment: .leading,
             spacing: SOOMLayout.Metrics.tagSpacing
         ) {
-            ForEach(names, id: \.self) { name in
+            ForEach(model.names, id: \.self) { name in
                 HStack(spacing: 4) {
                     Text(name)
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                         .foregroundStyle(tint)
 
                     Button {
-                        names = WorkoutCompanionNameEditing.removing(name, from: names)
+                        model.removeName(name)
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(tint.opacity(0.6))
+                        Image(soom: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                     .accessibilityLabel("\(name) 삭제")
                 }
@@ -148,7 +169,6 @@ struct WorkoutCompanionEditSheet: View {
     }
 
     private func addName() {
-        names = WorkoutCompanionNameEditing.adding(newName, to: names)
-        newName = ""
+        model.addName()
     }
 }

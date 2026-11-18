@@ -17,8 +17,8 @@ struct EmailAuthCard: View {
         VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
             SOOMActionRow(
                 icon: "envelope",
-                title: "이메일 계정 연결",
-                subtitle: "로그인 링크 요청만 준비됐고, 현재 기록은 로컬에 유지돼요.",
+                title: "이메일로 로그인",
+                subtitle: "이메일로 받은 링크를 열면 로그인됩니다.",
                 tint: SOOMColor.accent
             )
 
@@ -52,9 +52,9 @@ struct EmailAuthCard: View {
                 .foregroundStyle(statusColor)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("계정 연결 후 데이터 동기화와 소유권 연결은 다음 단계에서 명시적으로 진행됩니다.")
+            Text("로그인 후 내 기록 동기화에서 건강 기록 전송에 동의하고 로그인 전 기록을 직접 가져올 수 있어요.")
                 .font(SOOMFont.body(11, relativeTo: .caption2))
-                .foregroundStyle(SOOMColor.tertiaryInk)
+                .foregroundStyle(SOOMColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -62,11 +62,11 @@ struct EmailAuthCard: View {
     private var statusText: String {
         if let successMessage = viewModel.successMessage { return successMessage }
         if let errorMessage = viewModel.errorMessage { return errorMessage }
-        return "Apple/Google 로그인은 준비 중이고, 비밀번호 로그인과 회원가입은 아직 연결하지 않았어요."
+        return "비밀번호 없이 이메일로 로그인 링크를 받아요."
     }
 
     private var statusColor: Color {
-        viewModel.errorMessage == nil ? SOOMColor.secondaryInk : SOOMColor.warning
+        viewModel.errorMessage == nil ? SOOMColor.secondaryInk : SOOMColor.red
     }
 }
 

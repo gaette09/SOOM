@@ -26,3 +26,12 @@ supabase/.temp/
 # from outside the repo (see SOOM-OS/CLAUDE.md for the path).
 *.p8
 *.env
+
+# Private validation, release evidence and simulator inputs
+evidence/
+**/evidence/
+BuildValidation/
+*.xcresult/
+*.xcarchive/
+*.mobileprovision
+*.p12

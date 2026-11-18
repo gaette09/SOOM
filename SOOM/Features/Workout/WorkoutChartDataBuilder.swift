@@ -30,30 +30,51 @@ enum WorkoutChartDataBuilder {
         let totalSeconds = points[points.count - 1].timestamp.timeIntervalSince(startDate)
         guard totalSeconds > 0 else { return [] }
 
-        let bucketCount = max(1, Int(totalSeconds / 60))
+        let bucketCount = Int(ceil(totalSeconds / 60))
+        var bucketDistances = Array(repeating: 0.0, count: bucketCount)
+        var bucketDurations = Array(repeating: 0.0, count: bucketCount)
+
+        // Each interval contributes proportionally to every minute it overlaps.
+        // Keeping stationary intervals also preserves elapsed time in the pace.
+        for index in 1..<points.count {
+            let previous = points[index - 1]
+            let current = points[index]
+            guard previous.segmentIndex == current.segmentIndex else { continue }
+            let intervalStart = previous.timestamp.timeIntervalSince(startDate)
+            let intervalEnd = current.timestamp.timeIntervalSince(startDate)
+            let intervalDuration = intervalEnd - intervalStart
+            guard intervalDuration > 0 else { continue }
+
+            let intervalDistance = distance(previous, current)
+            var cursor = max(0, intervalStart)
+            let end = min(totalSeconds, intervalEnd)
+            while cursor < end {
+                let bucketIndex = Int(cursor / 60)
+                let overlapEnd = min(end, Double(bucketIndex + 1) * 60)
+                let overlapDuration = overlapEnd - cursor
+                bucketDistances[bucketIndex] += intervalDistance * overlapDuration / intervalDuration
+                bucketDurations[bucketIndex] += overlapDuration
+                cursor = overlapEnd
+            }
+        }
+
         var samples: [WorkoutSample] = []
-
         for minuteIndex in 0..<bucketCount {
-            let bucketStart = startDate.addingTimeInterval(Double(minuteIndex) * 60)
-            let bucketEnd = startDate.addingTimeInterval(Double(minuteIndex + 1) * 60)
-            let bucketPoints = points.filter { $0.timestamp >= bucketStart && $0.timestamp < bucketEnd }
-
-            guard bucketPoints.count >= 2,
-                  let first = bucketPoints.first,
-                  let last = bucketPoints.last else { continue }
-
-            let distance = pathDistanceMeters(bucketPoints)
-            let duration = last.timestamp.timeIntervalSince(first.timestamp)
+            let distance = bucketDistances[minuteIndex]
+            let duration = bucketDurations[minuteIndex]
             guard distance > 0, duration > 0 else { continue }
 
-            let paceSecondsPerKm = duration / (distance / 1_000)
+            let startSeconds = Double(minuteIndex) * 60
+            let endSeconds = min(Double(minuteIndex + 1) * 60, totalSeconds)
+            let bucketStart = startDate.addingTimeInterval(startSeconds)
+            let bucketEnd = startDate.addingTimeInterval(endSeconds)
             let heartRate = averageHeartRate(in: heartRateSamples, start: bucketStart, end: bucketEnd)
 
             samples.append(
                 WorkoutSample(
-                    minute: Double(minuteIndex) + 0.5,
+                    minute: (startSeconds + endSeconds) / 120,
                     heartRate: heartRate,
-                    paceSeconds: paceSecondsPerKm,
+                    paceSeconds: duration / (distance / 1_000),
                     power: nil
                 )
             )
@@ -72,35 +93,49 @@ enum WorkoutChartDataBuilder {
         guard points.count >= 2 else { return [] }
 
         var splits: [WorkoutSplit] = []
-        var segmentStartIndex = 0
+        var splitStart = points[0].timestamp
         var cumulativeDistance = 0.0
         var nextThreshold = 1_000.0
+        // Latitude conversion and spherical distance can round an exact km down.
+        let distanceTolerance = 0.000_001
 
         for index in 1..<points.count {
-            cumulativeDistance += distance(points[index - 1], points[index])
-            guard cumulativeDistance >= nextThreshold else { continue }
+            let previous = points[index - 1]
+            let current = points[index]
+            let intervalDuration = current.timestamp.timeIntervalSince(previous.timestamp)
+            guard previous.segmentIndex == current.segmentIndex else {
+                splitStart = splitStart.addingTimeInterval(max(0, intervalDuration))
+                continue
+            }
+            guard intervalDuration > 0 else { continue }
+            let intervalDistance = distance(previous, current)
+            guard intervalDistance > 0 else { continue }
+            let intervalEndDistance = cumulativeDistance + intervalDistance
 
-            let segment = Array(points[segmentStartIndex...index])
-            guard let first = segment.first, let last = segment.last else { continue }
-            let segmentDuration = last.timestamp.timeIntervalSince(first.timestamp)
-            guard segmentDuration > 0 else { continue }
-
-            let km = splits.count + 1
-            let heartRate = averageHeartRate(in: heartRateSamples, start: first.timestamp, end: last.timestamp)
-
-            splits.append(
-                WorkoutSplit(
-                    label: "\(km) km",
-                    distance: "1.0 km",
-                    time: formattedDuration(segmentDuration),
-                    pace: formattedPace(secondsPerKm: segmentDuration),
-                    heartRate: heartRate,
-                    power: nil
-                )
-            )
-
-            segmentStartIndex = index
-            nextThreshold += 1_000
+            while nextThreshold <= intervalEndDistance + distanceTolerance {
+                let fraction = min(1, max(0, (nextThreshold - cumulativeDistance) / intervalDistance))
+                let crossingDate = previous.timestamp.addingTimeInterval(intervalDuration * fraction)
+                let splitDuration = crossingDate.timeIntervalSince(splitStart)
+                if splitDuration > 0 {
+                    let km = splits.count + 1
+                    let heartRate = averageHeartRate(in: heartRateSamples, start: splitStart, end: crossingDate)
+                    splits.append(
+                        WorkoutSplit(
+                            label: "\(km) km",
+                            distance: "1.0 km",
+                            time: formattedDuration(splitDuration),
+                            pace: formattedPace(secondsPerKm: splitDuration),
+                            heartRate: heartRate,
+                            power: nil,
+                            distanceMeters: 1000,
+                            durationSeconds: splitDuration
+                        )
+                    )
+                }
+                splitStart = crossingDate
+                nextThreshold += 1_000
+            }
+            cumulativeDistance = intervalEndDistance
         }
 
         return splits
@@ -129,6 +164,10 @@ enum WorkoutChartDataBuilder {
         var nextThreshold = bucketSize
 
         for index in 1..<points.count {
+            guard points[index - 1].segmentIndex == points[index].segmentIndex else {
+                segmentStartIndex = index
+                continue
+            }
             cumulativeDistance += distance(points[index - 1], points[index])
             guard cumulativeDistance >= nextThreshold || index == points.count - 1 else { continue }
 
@@ -163,6 +202,10 @@ enum WorkoutChartDataBuilder {
         var nextThreshold = bucketSize
 
         for index in 1..<points.count {
+            guard points[index - 1].segmentIndex == points[index].segmentIndex else {
+                segmentStartIndex = index
+                continue
+            }
             cumulativeDistance += distance(points[index - 1], points[index])
             guard cumulativeDistance >= nextThreshold || index == points.count - 1 else { continue }
 
@@ -220,7 +263,7 @@ enum WorkoutChartDataBuilder {
         var previous: WorkoutRouteCoordinate?
 
         for coordinate in route.coordinates {
-            if let previous {
+            if let previous, previous.segmentIndex == coordinate.segmentIndex {
                 cumulativeDistance += distance(
                     lat1: previous.latitude, lon1: previous.longitude,
                     lat2: coordinate.latitude, lon2: coordinate.longitude
@@ -237,15 +280,15 @@ enum WorkoutChartDataBuilder {
 
     private static func timestampedPoints(
         from route: WorkoutRoute
-    ) -> [(latitude: Double, longitude: Double, timestamp: Date)] {
+    ) -> [(latitude: Double, longitude: Double, timestamp: Date, segmentIndex: Int)] {
         route.coordinates.compactMap { coordinate in
             guard let timestamp = coordinate.timestamp else { return nil }
-            return (coordinate.latitude, coordinate.longitude, timestamp)
+            return (coordinate.latitude, coordinate.longitude, timestamp, coordinate.segmentIndex)
         }
     }
 
     private static func pathDistanceMeters(
-        _ points: [(latitude: Double, longitude: Double, timestamp: Date)]
+        _ points: [(latitude: Double, longitude: Double, timestamp: Date, segmentIndex: Int)]
     ) -> Double {
         guard points.count >= 2 else { return 0 }
         var total = 0.0
@@ -256,10 +299,11 @@ enum WorkoutChartDataBuilder {
     }
 
     private static func distance(
-        _ a: (latitude: Double, longitude: Double, timestamp: Date),
-        _ b: (latitude: Double, longitude: Double, timestamp: Date)
+        _ a: (latitude: Double, longitude: Double, timestamp: Date, segmentIndex: Int),
+        _ b: (latitude: Double, longitude: Double, timestamp: Date, segmentIndex: Int)
     ) -> Double {
-        distance(lat1: a.latitude, lon1: a.longitude, lat2: b.latitude, lon2: b.longitude)
+        guard a.segmentIndex == b.segmentIndex else { return 0 }
+        return distance(lat1: a.latitude, lon1: a.longitude, lat2: b.latitude, lon2: b.longitude)
     }
 
     private static func distance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
@@ -278,7 +322,7 @@ enum WorkoutChartDataBuilder {
         start: Date,
         end: Date
     ) -> Int? {
-        let matching = samples.filter { $0.sampleType == .heartRate && $0.startDate >= start && $0.startDate < end }
+        let matching = samples.filter { $0.value.isFinite && $0.value > 0 && $0.sampleType == .heartRate && $0.startDate >= start && $0.startDate < end }
         guard matching.isEmpty == false else { return nil }
         let average = matching.map(\.value).reduce(0, +) / Double(matching.count)
         return Int(average.rounded())

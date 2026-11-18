@@ -8,8 +8,15 @@ protocol SupabaseAuthSessionReading {
 struct SupabaseClientSessionReader: SupabaseAuthSessionReading {
     private let client: SupabaseClient
 
+    private let includesProfile: Bool
+
     init(client: SupabaseClient) {
+        self.init(client: client, includesProfile: true)
+    }
+
+    init(client: SupabaseClient, includesProfile: Bool) {
         self.client = client
+        self.includesProfile = includesProfile
     }
 
     func readCurrentSession() async throws -> SupabaseAuthSessionProbe.SessionInfo? {
@@ -17,9 +24,24 @@ struct SupabaseClientSessionReader: SupabaseAuthSessionReading {
             return nil
         }
 
+        // The SDK's existing session supplies identity. Optional network profile
+        // reads must not prevent opening that account's local records at startup.
+        let profile = SupabaseProfileStore(client: client)
+        let displayName = includesProfile
+            ? await profile.readDisplayName(expectedUserID: session.user.id)
+            : profile.cachedDisplayName(expectedUserID: session.user.id)
+        let avatarPath = includesProfile
+            ? await profile.readAvatarPath(expectedUserID: session.user.id) : nil
+        // A profile fetch must never publish a session replaced during its await.
+        guard client.auth.currentSession?.user.id == session.user.id else { return nil }
+        let appleAccount = SupabaseAppleAccountMetadata(user: session.user)
         return SupabaseAuthSessionProbe.SessionInfo(
             userId: session.user.id.uuidString,
-            email: session.user.email
+            email: session.user.email,
+            displayName: displayName ?? session.user.userMetadata["full_name"]?.stringValue,
+            appleUserIdentifier: appleAccount.userIdentifier,
+            linkedAuthProviders: appleAccount.providers,
+            avatarPath: avatarPath
         )
     }
 }
@@ -28,6 +50,10 @@ struct SupabaseAuthSessionProbe {
     struct SessionInfo: Equatable {
         let userId: String
         let email: String?
+        var displayName: String? = nil
+        var appleUserIdentifier: String? = nil
+        var linkedAuthProviders: [String]? = nil
+        var avatarPath: String? = nil
     }
 
     private let isConfigured: Bool
@@ -74,7 +100,11 @@ struct SupabaseAuthSessionProbe {
                 userId: sessionInfo.userId,
                 email: sessionInfo.email,
                 checkedAt: now(),
-                status: .signedIn
+                status: .signedIn,
+                displayName: sessionInfo.displayName,
+                appleUserIdentifier: sessionInfo.appleUserIdentifier,
+                linkedAuthProviders: sessionInfo.linkedAuthProviders,
+                avatarPath: sessionInfo.avatarPath
             )
         } catch {
             return snapshot(status: .failed, hasSession: false)
@@ -90,5 +120,22 @@ struct SupabaseAuthSessionProbe {
             checkedAt: now(),
             status: status
         )
+    }
+}
+
+/// Authenticated Supabase identity metadata, never email or a display-name guess.
+struct SupabaseAppleAccountMetadata {
+    let userIdentifier: String?
+    let providers: [String]
+
+    init(user: User) {
+        let identity = user.identities?.first { $0.provider == "apple" }
+        let subject = identity?.identityData?["sub"]?.stringValue ?? identity?.id
+        let trimmedSubject = subject?.trimmingCharacters(in: .whitespacesAndNewlines)
+        userIdentifier = trimmedSubject?.isEmpty == false ? trimmedSubject : nil
+        var linked = user.identities?.map(\.provider) ?? []
+        linked += user.appMetadata["providers"]?.arrayValue?.compactMap(\.stringValue) ?? []
+        if let provider = user.appMetadata["provider"]?.stringValue { linked.append(provider) }
+        providers = Array(Set(linked)).sorted()
     }
 }

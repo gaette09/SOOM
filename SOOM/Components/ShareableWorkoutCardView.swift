@@ -70,7 +70,7 @@ struct ShareableWorkoutCardView: View {
     }
 
     private var routeAccessibilityText: String {
-        guard card.staticRoutePreview?.routeExists == true else { return "" }
+        guard card.hasRoutePreviewPayload else { return "" }
         return "경로 미리보기 포함."
     }
 
@@ -78,8 +78,8 @@ struct ShareableWorkoutCardView: View {
     private var backgroundLayer: some View {
         switch card.backgroundOption {
         case .mapPhoto:
-            if let preview = card.staticRoutePreview, preview.routeExists {
-                StaticRoutePreviewSurface(preview: preview, tint: tint, resolvedImage: resolvedRouteImage)
+            if let geometry = card.routeGeometry {
+                StaticRoutePreviewSurface(geometry: geometry, tint: tint)
             } else {
                 ShareCardMediaPlaceholder(card: card, tint: tint)
             }
@@ -90,7 +90,7 @@ struct ShareableWorkoutCardView: View {
 
     private var storyHeader: some View {
         HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: card.shareType.icon)
+            Image(soom: card.shareType.icon)
                 .font(.system(size: SOOMFont.Size.subheadline, weight: .bold))
                 .foregroundStyle(headerForeground)
                 .accessibilityHidden(true)
@@ -104,9 +104,11 @@ struct ShareableWorkoutCardView: View {
 
             Spacer()
 
-            Text("SOOM")
-                .font(SOOMFont.displayMedium(14, relativeTo: .caption))
-                .foregroundStyle(headerForeground)
+            Image("SOOMWordmarkWhite")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 69, height: 14)
+                .accessibilityLabel("SOOM")
         }
     }
 
@@ -203,7 +205,7 @@ struct ShareableWorkoutCardView: View {
 
     @ViewBuilder
     private func transparentLayout(in size: CGSize) -> some View {
-        switch ShareTransparentCardLayoutVariant.variant(for: card.shareType) {
+        switch card.shareType == .workout && !card.hasRoutePreviewPayload ? .metricCentric : ShareTransparentCardLayoutVariant.variant(for: card.shareType) {
         case .routeCentric:
             routeCentricLayout(in: size)
         case .metricCentric:
@@ -236,8 +238,7 @@ struct ShareableWorkoutCardView: View {
         let safeWidth = size.width - inset.width * 2
 
         return transparentCanvas(size: size) {
-            Image(systemName: sportIconName)
-                .font(.system(size: size.width * 0.055, weight: .semibold))
+            SOOMSportIconView(name: sportIconName, size: size.width * 0.055)
                 .foregroundStyle(transparentSecondaryForeground.opacity(0.82))
                 .frame(width: size.width * 0.10, height: size.width * 0.10)
                 .accessibilityHidden(true)
@@ -338,20 +339,13 @@ struct ShareableWorkoutCardView: View {
     }
 
     private func routeLine(width: CGFloat, height: CGFloat, opacity: Double = 0.92) -> some View {
-        let fittedSize = ShareableWorkoutCardLayout.aspectFittedTransparentRouteSize(
-            in: CGSize(width: width, height: height)
-        )
-
-        return Group {
-            if card.shouldShowRouteVisual {
-                ShareCardRouteLine(style: .transparent, tint: tint)
-                    .frame(width: fittedSize.width, height: fittedSize.height)
-                    .frame(width: width, height: height, alignment: .center)
-                    .opacity(opacity)
-                    .accessibilityHidden(true)
-            } else {
-                Color.clear
+        Group {
+            if let geometry = card.routeGeometry {
+                ShareCardRouteLine(style: .transparent, tint: tint, geometry: geometry)
                     .frame(width: width, height: height)
+                    .opacity(opacity).accessibilityHidden(true)
+            } else {
+                Color.clear.frame(width: width, height: height)
             }
         }
     }
@@ -373,8 +367,7 @@ struct ShareableWorkoutCardView: View {
     private func transparentHeaderRow(size: CGSize, inset: CGSize, showsIcon: Bool) -> some View {
         HStack(alignment: .center, spacing: size.width * 0.035) {
             if showsIcon {
-                Image(systemName: sportIconName)
-                    .font(.system(size: size.width * 0.050, weight: .semibold))
+                SOOMSportIconView(name: sportIconName, size: size.width * 0.050)
                     .foregroundStyle(transparentForeground.opacity(0.90))
                     .frame(width: size.width * 0.075, height: size.width * 0.075)
                     .accessibilityHidden(true)
@@ -472,12 +465,12 @@ struct ShareableWorkoutCardView: View {
     }
 
     private func soomMark(fontSize: CGFloat, opacity: Double) -> some View {
-        Text("SOOM")
-            .font(SOOMFont.body(fontSize, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(transparentSecondaryForeground.opacity(opacity))
-            .lineLimit(1)
-            .minimumScaleFactor(0.70)
-            .allowsTightening(true)
+        Image("SOOMWordmarkWhite")
+            .resizable()
+            .scaledToFit()
+            .frame(width: fontSize * 5, height: fontSize)
+            .opacity(opacity)
+            .accessibilityLabel("SOOM")
     }
 
     private var transparentPaceOrSpeedLabel: String {
@@ -552,90 +545,15 @@ private extension View {
 }
 
 private struct StaticRoutePreviewSurface: View {
-    let preview: StaticRoutePreview
+    let geometry: ShareRouteGeometry
     let tint: Color
-    let resolvedImage: UIImage?
-
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            routeVisual
-                .overlay(tint.opacity(0.08))
-
-            if showsSyntheticRouteLine {
-                ShareCardRouteLine(style: .mapPhoto, tint: tint)
-                    .padding(.horizontal, 26)
-                    .padding(.vertical, 48)
-            }
-
-            Image(systemName: SOOMIcon.map)
-                .font(.system(size: 46, weight: .semibold))
-                .foregroundStyle(SOOMColor.white.opacity(0.16))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(ShareableWorkoutCardLayout.routePreviewPadding)
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var routeVisual: some View {
-        if let resolvedImage {
-            Image(uiImage: resolvedImage)
-                .resizable()
-                .scaledToFill()
-                .overlay(SOOMColor.surface.opacity(0.18))
-                .overlay(tint.opacity(0.08))
-        } else if let imageURL = preview.imageURL {
-            AsyncImage(url: imageURL) { phase in
-                switch phase {
-                case .empty:
-                    placeholderVisual
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .overlay(SOOMColor.surface.opacity(0.18))
-                        .overlay(tint.opacity(0.08))
-                case .failure:
-                    fallbackVisual
-                @unknown default:
-                    fallbackVisual
-                }
-            }
-        } else {
-            fallbackVisual
-        }
-    }
-
-    private var showsSyntheticRouteLine: Bool {
-        resolvedImage == nil && preview.imageURL == nil
-    }
-
-    private var placeholderVisual: some View {
-        fallbackVisual
-            .overlay(
-                RoundedRectangle(cornerRadius: ShareableWorkoutCardLayout.innerRadius, style: .continuous)
-                    .fill(SOOMColor.surface.opacity(0.18))
-            )
-    }
-
-    private var fallbackVisual: some View {
-        LinearGradient(
-            colors: [
-                tint.opacity(0.26),
-                SOOMColor.accentSurface,
-                SOOMColor.surfaceMuted
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-            .overlay(alignment: .trailing) {
-                Image(systemName: SOOMIcon.map)
-                    .font(.system(size: 74, weight: .semibold))
-                    .foregroundStyle(tint.opacity(0.18))
-                    .padding(.trailing, ShareableWorkoutCardLayout.routePreviewPadding)
-            }
+        LinearGradient(colors: [tint.opacity(0.26), SOOMColor.accentSurface, SOOMColor.surfaceMuted],
+            startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay {
+                ShareCardRouteLine(style: .mapPhoto, tint: tint, geometry: geometry)
+                    .padding(.horizontal, 26).padding(.vertical, 48)
+            }.accessibilityHidden(true)
     }
 }
 
@@ -722,26 +640,27 @@ private enum ShareCardRouteLineStyle: Equatable {
 private struct ShareCardRouteLine: View {
     let style: ShareCardRouteLineStyle
     let tint: Color
+    let geometry: ShareRouteGeometry
 
     var body: some View {
         ZStack {
             if style == .transparent {
-                RouteRibbonShape()
+                RecordedRouteShape(geometry: geometry)
                     .stroke(SOOMColor.black.opacity(0.24), style: StrokeStyle(lineWidth: 6.8, lineCap: .round, lineJoin: .round))
                     .blur(radius: 0.4)
             } else {
-                RouteRibbonShape()
+                RecordedRouteShape(geometry: geometry)
                     .stroke(SOOMColor.black.opacity(0.18), style: StrokeStyle(lineWidth: 5.8, lineCap: .round, lineJoin: .round))
                     .blur(radius: 0.4)
             }
 
-            RouteRibbonShape()
+            RecordedRouteShape(geometry: geometry)
                 .stroke(outerLineColor, style: StrokeStyle(lineWidth: outerLineWidth, lineCap: .round, lineJoin: .round))
 
-            RouteRibbonShape()
+            RecordedRouteShape(geometry: geometry)
                 .stroke(innerLineColor, style: StrokeStyle(lineWidth: innerLineWidth, lineCap: .round, lineJoin: .round))
 
-            RouteEndpointDots(tint: endpointColor, halo: endpointHaloColor)
+            RouteEndpointDots(tint: endpointColor, halo: endpointHaloColor, geometry: geometry)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -789,25 +708,16 @@ private struct ShareCardRouteLine: View {
     }
 }
 
-private struct RouteRibbonShape: Shape {
+private struct RecordedRouteShape: Shape {
+    let geometry: ShareRouteGeometry
     func path(in rect: CGRect) -> Path {
+        let points = geometry.fittedPoints(in: rect)
         var path = Path()
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.minY + rect.height * 0.72))
-        path.addCurve(
-            to: CGPoint(x: rect.minX + rect.width * 0.36, y: rect.minY + rect.height * 0.26),
-            control1: CGPoint(x: rect.minX + rect.width * 0.22, y: rect.minY + rect.height * 0.70),
-            control2: CGPoint(x: rect.minX + rect.width * 0.18, y: rect.minY + rect.height * 0.32)
-        )
-        path.addCurve(
-            to: CGPoint(x: rect.minX + rect.width * 0.63, y: rect.minY + rect.height * 0.46),
-            control1: CGPoint(x: rect.minX + rect.width * 0.48, y: rect.minY + rect.height * 0.18),
-            control2: CGPoint(x: rect.minX + rect.width * 0.50, y: rect.minY + rect.height * 0.52)
-        )
-        path.addCurve(
-            to: CGPoint(x: rect.minX + rect.width * 0.88, y: rect.minY + rect.height * 0.22),
-            control1: CGPoint(x: rect.minX + rect.width * 0.76, y: rect.minY + rect.height * 0.38),
-            control2: CGPoint(x: rect.minX + rect.width * 0.76, y: rect.minY + rect.height * 0.18)
-        )
+        for index in points.indices {
+            if index == 0 || geometry.points[index].segmentIndex != geometry.points[index-1].segmentIndex {
+                path.move(to: points[index])
+            } else { path.addLine(to: points[index]) }
+        }
         return path
     }
 }
@@ -815,16 +725,14 @@ private struct RouteRibbonShape: Shape {
 private struct RouteEndpointDots: View {
     let tint: Color
     let halo: Color
+    let geometry: ShareRouteGeometry
 
     var body: some View {
         GeometryReader { proxy in
-            let size = proxy.size
-            let start = CGPoint(x: size.width * 0.12, y: size.height * 0.72)
-            let end = CGPoint(x: size.width * 0.88, y: size.height * 0.22)
-
+            let points = geometry.fittedPoints(in: CGRect(origin: .zero, size: proxy.size))
             ZStack {
-                endpoint(at: start, size: 15)
-                endpoint(at: end, size: 18)
+                if let start = points.first { endpoint(at: start, size: 15) }
+                if let end = points.last { endpoint(at: end, size: 18) }
             }
         }
         .allowsHitTesting(false)
@@ -969,7 +877,7 @@ private struct ShareableMessageLine: View {
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .foregroundStyle(tint)
         }
     }
@@ -991,13 +899,13 @@ private struct ShareCardMediaPlaceholder: View {
                 endPoint: .bottomTrailing
             )
 
-            if card.shouldShowRouteVisual {
-                ShareCardRouteLine(style: .fallback, tint: tint)
+            if let geometry = card.routeGeometry {
+                ShareCardRouteLine(style: .fallback, tint: tint, geometry: geometry)
                     .padding(.horizontal, 30)
                     .padding(.vertical, 54)
             }
 
-            Image(systemName: card.shareType == .route ? SOOMIcon.map : SOOMIcon.sparkles)
+            Image(soom: card.shareType == .route ? SOOMIcon.map : SOOMIcon.sparkles)
                 .font(.system(size: 88, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.24))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)

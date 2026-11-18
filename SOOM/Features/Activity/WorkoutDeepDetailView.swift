@@ -20,6 +20,8 @@ struct WorkoutDeepDetailView: View {
     var samplesOverride: [WorkoutSample]?
     var splitsOverride: [WorkoutSplit]?
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
+    var telemetryOverride: WorkoutTelemetry?
+    var healthKitReadPresentation: HealthKitDetailReadPresentation?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
     var achievementCountOverride: Int?
@@ -27,6 +29,8 @@ struct WorkoutDeepDetailView: View {
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
     var companionUpdateAction: WorkoutCompanionUpdateAction?
+    var sharedRecord: WorkoutDetailSharedRecord? = nil
+    var sharedPostManagement: FeedPostManagement? = nil
 
     var body: some View {
         WorkoutDetailView(
@@ -44,13 +48,17 @@ struct WorkoutDeepDetailView: View {
             samplesOverride: samplesOverride,
             splitsOverride: splitsOverride,
             heartRateChartSamplesOverride: heartRateChartSamplesOverride,
+            telemetryOverride: telemetryOverride,
+            healthKitReadPresentation: healthKitReadPresentation,
             relativeEffortComparisonOverride: relativeEffortComparisonOverride,
             achievementsOverride: achievementsOverride,
             achievementCountOverride: achievementCountOverride,
             fitnessTrendOverride: fitnessTrendOverride,
             sourceUnifiedWorkout: sourceUnifiedWorkout,
             routeAttachmentAction: routeAttachmentAction,
-            companionUpdateAction: companionUpdateAction
+            companionUpdateAction: companionUpdateAction,
+            sharedRecord: sharedRecord,
+            sharedPostManagement: sharedPostManagement
         )
     }
 }

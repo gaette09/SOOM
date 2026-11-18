@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import SOOM
 
@@ -36,25 +37,25 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testUpdateDisplayNamePublishesUpdatedUser() {
+    func testUpdateDisplayNamePublishesUpdatedUser() async {
         let store = makeStore()
         _ = store.continueAsLocalUser(displayName: "이전 이름")
         let viewModel = AuthViewModel(store: store)
         viewModel.displayNameText = "새 이름"
 
-        viewModel.updateDisplayName()
+        await viewModel.updateDisplayName()
 
         XCTAssertEqual(viewModel.session.currentUser?.displayName, "새 이름")
         XCTAssertEqual(viewModel.displayNameText, "새 이름")
     }
 
-    func testInvalidDisplayNamePublishesError() {
+    func testInvalidDisplayNamePublishesError() async {
         let store = makeStore()
         _ = store.continueAsLocalUser(displayName: "SOOM 사용자")
         let viewModel = AuthViewModel(store: store)
         viewModel.displayNameText = "  "
 
-        viewModel.updateDisplayName()
+        await viewModel.updateDisplayName()
 
         XCTAssertEqual(viewModel.session.sessionState, .error)
         XCTAssertNotNil(viewModel.errorMessage)
@@ -502,6 +503,295 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.session.isLocalOnly)
     }
 
+    func testConfirmedAppleRevocationEndsOnlineSessionAndPreservesLocalWorkout() async throws {
+        for state in [AppleCredentialState.revoked, .notFound] {
+            let store = makeStore()
+            let localSession = store.continueAsLocalUser(displayName: "Local User")
+            let appleUser = makeAppleUser()
+            let schema = Schema([UnifiedWorkoutRecord.self])
+            let container = try ModelContainer(for: schema, configurations: [
+                ModelConfiguration("AppleRevocationTests-\(UUID().uuidString)", schema: schema, isStoredInMemoryOnly: true)
+            ])
+            let context = container.mainContext
+            let workout = UnifiedWorkoutRecord(
+                sourceRaw: "soomLocal", workoutTypeRaw: "running",
+                startDate: Date(timeIntervalSince1970: 1_800_000_000),
+                endDate: Date(timeIntervalSince1970: 1_800_000_060),
+                durationSeconds: 60, dataQualityRaw: "partial"
+            )
+            context.insert(workout)
+            try context.save()
+            var cleanedUserIDs: [UUID] = []
+            let viewModel = AuthViewModel(
+                repository: LocalAuthRepository(store: store),
+                appleCredentialStateReader: { subject in
+                    XCTAssertEqual(subject, "apple-subject")
+                    return state
+                },
+                appleCredentialRevocationHandler: { cleanedUserIDs.append($0); return true }
+            )
+            viewModel.applyRemoteSession(.signedIn(user: appleUser))
+
+            await viewModel.refreshAppleCredentialState()
+
+            XCTAssertEqual(cleanedUserIDs, [appleUser.id])
+            XCTAssertTrue(viewModel.session.isLocalOnly)
+            XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+            XCTAssertFalse(viewModel.isAppleSignInInProgress)
+            XCTAssertNil(viewModel.errorMessage)
+            XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<UnifiedWorkoutRecord>()), 1)
+        }
+    }
+
+    func testAuthorizedTransferredAndUnknownAppleStatesKeepRemoteSession() async {
+        for state in [AppleCredentialState.authorized, .transferred, .unknown] {
+            let appleUser = makeAppleUser()
+            var cleanupCount = 0
+            let viewModel = AuthViewModel(
+                repository: LocalAuthRepository(store: makeStore()),
+                appleCredentialStateReader: { _ in state },
+                appleCredentialRevocationHandler: { _ in cleanupCount += 1; return true }
+            )
+            viewModel.applyRemoteSession(.signedIn(user: appleUser))
+
+            await viewModel.refreshAppleCredentialState()
+
+            XCTAssertEqual(cleanupCount, 0)
+            XCTAssertEqual(viewModel.session.currentUser?.id, appleUser.id)
+            XCTAssertTrue(viewModel.session.isSignedIn)
+        }
+    }
+
+    func testAppleCredentialLookupErrorsKeepRemoteSession() async {
+        let appleUser = makeAppleUser()
+        var cleanupCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: { _ in throw URLError(.notConnectedToInternet) },
+            appleCredentialRevocationHandler: { _ in cleanupCount += 1; return true }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: appleUser))
+
+        await viewModel.refreshAppleCredentialState()
+
+        XCTAssertEqual(cleanupCount, 0)
+        XCTAssertEqual(viewModel.session.currentUser?.id, appleUser.id)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testOldRevocationResponseCannotSignOutReplacementAccount() async {
+        let suspendedRead = SuspendedAppleCredentialRead(started: expectation(description: "Apple check started"))
+        var cleanupCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: suspendedRead.read,
+            appleCredentialRevocationHandler: { _ in cleanupCount += 1; return true }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: makeAppleUser()))
+        let check = Task { await viewModel.refreshAppleCredentialState() }
+        await fulfillment(of: [suspendedRead.started], timeout: 1)
+        let replacement = AppUser(displayName: "Other account", authProvider: .supabase)
+        viewModel.applyRemoteSession(.signedIn(user: replacement))
+        suspendedRead.resume(.revoked)
+        await check.value
+
+        XCTAssertEqual(cleanupCount, 0)
+        XCTAssertEqual(viewModel.session.currentUser?.id, replacement.id)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+    }
+
+    func testOldRevocationResponseCannotSignOutNewSessionForSameAppleUser() async {
+        let suspendedRead = SuspendedAppleCredentialRead(started: expectation(description: "Apple check started"))
+        var cleanupCount = 0
+        let user = makeAppleUser()
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: suspendedRead.read,
+            appleCredentialRevocationHandler: { _ in cleanupCount += 1; return true }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: user))
+        let check = Task { await viewModel.refreshAppleCredentialState() }
+        await fulfillment(of: [suspendedRead.started], timeout: 1)
+        viewModel.applyRemoteSession(.signedIn(user: user))
+        suspendedRead.resume(.revoked)
+        await check.value
+
+        XCTAssertEqual(cleanupCount, 0)
+        XCTAssertEqual(viewModel.session.currentUser?.id, user.id)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+    }
+
+    func testAppleLinkedMetadataWithoutSubjectSupportsGuidanceButSkipsCredentialLookup() async {
+        var lookupCount = 0
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: { _ in lookupCount += 1; return .revoked },
+            appleCredentialRevocationHandler: { _ in XCTFail("Missing Apple subject must not clear a session"); return false }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: AppUser(
+            displayName: "Linked account", authProvider: .supabase, linkedAuthProviders: ["apple", "email"]
+        )))
+
+        XCTAssertTrue(viewModel.isCurrentAccountLinkedToApple)
+        await viewModel.refreshAppleCredentialState()
+
+        XCTAssertEqual(lookupCount, 0)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+    }
+
+    func testEmailOnlyAccountDoesNotTriggerAppleCredentialLookup() async {
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: { _ in XCTFail("Email-only account must not query Apple"); return .revoked },
+            appleCredentialRevocationHandler: { _ in XCTFail("Email-only account must not be disconnected"); return false }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: AppUser(displayName: "Email account", authProvider: .supabase)))
+
+        await viewModel.refreshAppleCredentialState()
+
+        XCTAssertFalse(viewModel.isCurrentAccountLinkedToApple)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+    }
+
+    func testLateAccountDeletionCannotSignOutOrAuthorizeWipeForReplacementSession() async {
+        for usesSameUser in [false, true] {
+            let deletion = SuspendedAccountDeletion(started: expectation(description: "Deletion started"))
+            let user = makeAppleUser()
+            let viewModel = AuthViewModel(
+                repository: LocalAuthRepository(store: makeStore()),
+                remoteAccountDeleteHandler: deletion.delete
+            )
+            viewModel.applyRemoteSession(.signedIn(user: user))
+            let task = Task { await viewModel.deleteAccount() }
+            await fulfillment(of: [deletion.started], timeout: 1)
+            let replacement = usesSameUser ? user : AppUser(displayName: "Replacement", authProvider: .supabase)
+            viewModel.applyRemoteSession(.signedIn(user: replacement))
+            deletion.complete()
+
+            let shouldWipeLocalData = await task.value
+
+            XCTAssertFalse(shouldWipeLocalData)
+            XCTAssertEqual(viewModel.session.currentUser?.id, replacement.id)
+            XCTAssertTrue(viewModel.session.isSignedIn)
+            XCTAssertNil(viewModel.errorMessage)
+        }
+    }
+
+    func testDeferredAppleRevocationCleanupKeepsViewAndSDKSessionAligned() async {
+        let user = makeAppleUser()
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            appleCredentialStateReader: { _ in .revoked },
+            appleCredentialRevocationHandler: { _ in false }
+        )
+        viewModel.applyRemoteSession(.signedIn(user: user))
+        await viewModel.refreshAppleCredentialState()
+        XCTAssertEqual(viewModel.session.currentUser?.id, user.id)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+        XCTAssertFalse(viewModel.isRemoteSessionTransitionInProgress)
+    }
+
+    func testSuccessfulDeletionKeepsAuthenticationClosedUntilLocalCleanupFinishes() async {
+        let store = makeStore()
+        _ = store.continueAsLocalUser(displayName: "Guest")
+        let viewModel = AuthViewModel(store: store)
+        let shouldErase = await viewModel.deleteAccount()
+        XCTAssertTrue(shouldErase)
+        XCTAssertTrue(viewModel.isAccountDeletionInProgress)
+        viewModel.continueAsLocalUser()
+        XCTAssertNil(viewModel.session.currentUser)
+        viewModel.finishAccountDeletion()
+        viewModel.continueAsLocalUser()
+        XCTAssertTrue(viewModel.session.isLocalOnly)
+        XCTAssertFalse(viewModel.isRemoteSessionTransitionInProgress)
+    }
+
+    func testLocalActionsCannotDivergeFromAnInFlightAppleSDKExchange() async {
+        let user = makeAppleUser()
+        let store = makeStore()
+        let localSession = store.continueAsLocalUser(displayName: "Guest")
+        var viewModel: AuthViewModel!
+        viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: store),
+            appleSignInHandler: { _ in
+                viewModel.signOut()
+                viewModel.continueAsLocalUser()
+                viewModel.load()
+                XCTAssertEqual(viewModel.session.currentUser?.id, localSession.currentUser?.id)
+                return .signedIn(user: user)
+            }
+        )
+        await viewModel.signInWithAppleCredential(.init(userIdentifier: "apple-subject"))
+        XCTAssertEqual(viewModel.session.currentUser?.id, user.id)
+        XCTAssertTrue(viewModel.session.isSignedIn)
+    }
+
+    private func makeAppleUser() -> AppUser {
+        AppUser(displayName: "Apple account", authProvider: .supabase, appleUserIdentifier: "apple-subject", linkedAuthProviders: ["apple"])
+    }
+
+    func testRemoteDisplayNameSaveUpdatesRemoteSessionWithoutReplacingGuestIdentity() async {
+        let store = makeStore()
+        let guest = store.continueAsLocalUser(displayName: "Guest")
+        let remoteUser = AppUser(displayName: "Remote", authProvider: .supabase)
+        var capturedID: UUID?
+        let subject = AuthViewModel(repository: LocalAuthRepository(store: store),
+            remoteDisplayNameHandler: { userID, name in capturedID = userID; return name })
+        subject.applyRemoteSession(.signedIn(user: remoteUser))
+        subject.displayNameText = "  Saved remote name  "
+        await subject.updateDisplayName()
+        XCTAssertEqual(capturedID, remoteUser.id)
+        XCTAssertEqual(subject.session.currentUser?.id, remoteUser.id)
+        XCTAssertEqual(subject.session.currentUser?.authProvider, .supabase)
+        XCTAssertEqual(subject.session.currentUser?.displayName, "Saved remote name")
+        XCTAssertEqual(store.loadSession(), guest)
+    }
+
+    func testRemoteDisplayNameFailureRetainsAccountAndEditableInput() async {
+        let store = makeStore()
+        let user = AppUser(displayName: "Remote", authProvider: .supabase)
+        let subject = AuthViewModel(repository: LocalAuthRepository(store: store),
+            remoteDisplayNameHandler: { _, _ in throw URLError(.notConnectedToInternet) })
+        subject.applyRemoteSession(.signedIn(user: user))
+        subject.displayNameText = "Pending name"
+        await subject.updateDisplayName()
+        XCTAssertEqual(subject.session.currentUser, user)
+        XCTAssertEqual(subject.displayNameText, "Pending name")
+        XCTAssertNotNil(subject.errorMessage)
+        XCTAssertNil(store.loadSession().currentUser)
+    }
+
+    func testLateRemoteNameResultCannotRenameReplacementAccount() async {
+        let started = expectation(description: "name update started")
+        var continuation: CheckedContinuation<String, Error>?
+        let subject = AuthViewModel(repository: LocalAuthRepository(store: makeStore()),
+            remoteDisplayNameHandler: { _, _ in
+                try await withCheckedThrowingContinuation { continuation = $0; started.fulfill() }
+            })
+        subject.applyRemoteSession(.signedIn(user: AppUser(displayName: "A", authProvider: .supabase)))
+        subject.displayNameText = "Old account edit"
+        let task = Task { await subject.updateDisplayName() }
+        await fulfillment(of: [started], timeout: 2)
+        let replacement = AppUser(displayName: "B", authProvider: .supabase)
+        subject.applyRemoteSession(.signedIn(user: replacement))
+        continuation?.resume(returning: "Old account edit")
+        await task.value
+        XCTAssertEqual(subject.session.currentUser, replacement)
+    }
+
+    func testSDKSessionTerminationRestoresGuestAndIgnoresStaleAccountEvents() {
+        let store = makeStore()
+        let guest = store.continueAsLocalUser(displayName: "Guest")
+        let subject = AuthViewModel(store: store)
+        let user = AppUser(displayName: "Remote", authProvider: .supabase)
+        subject.applyRemoteSession(.signedIn(user: user))
+        subject.remoteSessionDidEnd(expectedUserID: UUID())
+        XCTAssertEqual(subject.session.currentUser, user)
+        subject.remoteSessionDidEnd(expectedUserID: user.id)
+        XCTAssertEqual(subject.session.currentUser, guest.currentUser)
+        XCTAssertTrue(subject.session.isLocalOnly)
+    }
+
     private func makeStore() -> AuthSessionStore {
         let suiteName = "AuthViewModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -531,5 +821,104 @@ private final class CountingRemoteSessionLoader: RemoteAuthSessionLoading {
         loadCount += 1
         try? await Task.sleep(nanoseconds: 10_000_000)
         return session
+    }
+}
+
+@MainActor
+private final class SuspendedAppleCredentialRead {
+    let started: XCTestExpectation
+    private var continuation: CheckedContinuation<AppleCredentialState, Error>?
+
+    init(started: XCTestExpectation) { self.started = started }
+
+    func read(_ subject: String) async throws -> AppleCredentialState {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            started.fulfill()
+        }
+    }
+
+    func resume(_ state: AppleCredentialState) {
+        continuation?.resume(returning: state)
+        continuation = nil
+    }
+}
+
+@MainActor
+private final class SuspendedAccountDeletion {
+    let started: XCTestExpectation
+    private var continuation: CheckedContinuation<Void, Error>?
+
+    init(started: XCTestExpectation) { self.started = started }
+
+    func delete() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            started.fulfill()
+        }
+    }
+
+    func complete() {
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
+
+extension AuthViewModelTests {
+    func testQueuedDeletionRejectsGuestToRemoteAccountSwitchAndSameAccountRelogin() async {
+        for scenario in 0..<3 {
+            let store = makeStore()
+            let guest = store.continueAsLocalUser(displayName: "Guest")
+            var remoteCalls: [UUID] = []
+            let viewModel = AuthViewModel(
+                repository: LocalAuthRepository(store: store),
+                remoteAccountDeleteForUserHandler: { remoteCalls.append($0) }
+            )
+            let originalRemote = AppUser(displayName: "Original", authProvider: .supabase)
+            if scenario != 0 { viewModel.applyRemoteSession(.signedIn(user: originalRemote)) }
+            let confirmedTarget = viewModel.accountDeletionTarget
+            // The confirmation has already queued its Task. A session change
+            // on the same actor happens before that Task begins executing.
+            let deletion = Task { await viewModel.deleteAccount(expectedTarget: confirmedTarget) }
+            let replacement: AppUser
+            if scenario == 0 {
+                replacement = AppUser(id: guest.currentUser!.id, displayName: "New remote", authProvider: .supabase)
+            } else if scenario == 1 {
+                replacement = AppUser(displayName: "Different account", authProvider: .supabase)
+            } else {
+                replacement = originalRemote
+            }
+            viewModel.applyRemoteSession(.signedIn(user: replacement))
+
+            let shouldErase = await deletion.value
+
+            XCTAssertFalse(shouldErase)
+            XCTAssertTrue(remoteCalls.isEmpty)
+            XCTAssertEqual(viewModel.session.currentUser?.id, replacement.id)
+            XCTAssertEqual(viewModel.session.currentUser?.authProvider, .supabase)
+            XCTAssertFalse(viewModel.isAccountDeletionInProgress)
+            XCTAssertNotNil(viewModel.errorMessage)
+        }
+    }
+
+    func testConfirmedDeletionPassesOriginalOwnerToScopedRemoteHandler() async {
+        var receivedOwners: [UUID] = []
+        let viewModel = AuthViewModel(
+            repository: LocalAuthRepository(store: makeStore()),
+            remoteAccountDeleteHandler: { XCTFail("The live scoped handler must take precedence") },
+            remoteAccountDeleteForUserHandler: { receivedOwners.append($0) }
+        )
+        let owner = AppUser(displayName: "Owner", authProvider: .supabase)
+        viewModel.applyRemoteSession(.signedIn(user: owner))
+        let target = viewModel.accountDeletionTarget
+
+        let shouldErase = await viewModel.deleteAccount(expectedTarget: target)
+
+        XCTAssertTrue(shouldErase)
+        XCTAssertEqual(receivedOwners, [owner.id])
+        XCTAssertNil(viewModel.session.currentUser)
+        XCTAssertTrue(viewModel.isAccountDeletionInProgress)
+        viewModel.finishAccountDeletion()
     }
 }

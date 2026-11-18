@@ -31,6 +31,61 @@ final class WorkoutComparisonHistoryProviderTests: XCTestCase {
         XCTAssertEqual(workouts.first?.distanceMeters, workout.distanceMeters)
     }
 
+    func testPreservesOriginalActivityTypesThroughHistoryAndChartEnrichment() async {
+        let types: [UnifiedWorkoutType] = [.running, .walking, .hiking, .strength, .yoga, .other]
+        let stored = types.map { makeWorkout(daysAgo: 5, durationSeconds: 1_800, distanceMeters: 5_000, workoutType: $0) }
+        let provider = SwiftDataWorkoutComparisonHistoryProvider(store: FakeComparisonHistoryWorkoutStore(workouts: stored))
+
+        let workouts = await provider.comparisonWorkouts(excluding: UUID())
+
+        XCTAssertEqual(workouts.map(\.comparisonWorkoutType), types)
+        XCTAssertEqual(workouts.map { $0.withChartData(samples: [], splits: []).comparisonWorkoutType }, types)
+        XCTAssertEqual(workouts.map { WorkoutGrowthInput(detailWorkout: $0).workoutType }, types)
+    }
+
+    func testMixedActivityHistoryDoesNotChangeRunningGrowthMetrics() async {
+        let current = makeWorkout(daysAgo: 0, durationSeconds: 1_800, distanceMeters: 5_000)
+        let running = makeWorkout(daysAgo: 5, durationSeconds: 1_800, distanceMeters: 5_000)
+        let walking = makeWorkout(daysAgo: 2, durationSeconds: 3_600, distanceMeters: 1_000, workoutType: .walking)
+        let yoga = makeWorkout(daysAgo: 1, durationSeconds: 3_600, distanceMeters: 0, workoutType: .yoga)
+        let provider = SwiftDataWorkoutComparisonHistoryProvider(
+            store: FakeComparisonHistoryWorkoutStore(workouts: [current, running, walking, yoga])
+        )
+        let history = await provider.comparisonWorkouts(excluding: current.id)
+
+        let metrics = WorkoutGrowthMetricsBuilder().build(
+            current: WorkoutGrowthInput(detailWorkout: Workout(unifiedWorkout: current)),
+            recent: history.map { WorkoutGrowthInput(detailWorkout: $0) }
+        )
+
+        XCTAssertEqual(metrics.first { $0.metricType == .distance }?.trend, .steady)
+        XCTAssertEqual(metrics.first { $0.metricType == .pace }?.trend, .steady)
+    }
+
+    func testWalkingGrowthDoesNotCompareAgainstRunningOnlyHistory() async {
+        let current = makeWorkout(daysAgo: 0, durationSeconds: 3_600, distanceMeters: 5_000, workoutType: .walking)
+        let running = makeWorkout(daysAgo: 5, durationSeconds: 1_800, distanceMeters: 5_000)
+        let provider = SwiftDataWorkoutComparisonHistoryProvider(store: FakeComparisonHistoryWorkoutStore(workouts: [running]))
+        let history = await provider.comparisonWorkouts(excluding: current.id)
+
+        let metrics = WorkoutGrowthMetricsBuilder().build(
+            current: WorkoutGrowthInput(detailWorkout: Workout(unifiedWorkout: current)),
+            recent: history.map { WorkoutGrowthInput(detailWorkout: $0) }
+        )
+
+        XCTAssertFalse(metrics.isEmpty)
+        XCTAssertTrue(metrics.allSatisfy { $0.trend == .insufficientData })
+    }
+
+    func testLegacyWorkoutUsesPresentationSportWhenOriginalTypeIsAbsent() {
+        for type in [UnifiedWorkoutType.running, .cycling, .swimming] {
+            var workout = Workout(unifiedWorkout: makeWorkout(daysAgo: 0, durationSeconds: 1_800, distanceMeters: 5_000, workoutType: type))
+            workout.originalWorkoutType = nil
+
+            XCTAssertEqual(workout.comparisonWorkoutType, type)
+        }
+    }
+
     func testFetchFailureReturnsEmpty() async {
         let workout = makeWorkout(daysAgo: 5, durationSeconds: 1_800, distanceMeters: 5_000)
         let store = FakeComparisonHistoryWorkoutStore(workouts: [workout], shouldThrow: true)

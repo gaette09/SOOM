@@ -238,6 +238,24 @@ final class UnifiedWorkoutToRecoveryActivityMapperTests: XCTestCase {
         )
     }
 
+    func testMissingHeartRateDoesNotInventHeartRateContribution() {
+        let activity = mapper.map(makeWorkout(type: .running, durationSeconds: 1_800, averageHeartRate: nil, activeEnergyKcal: nil))
+        XCTAssertEqual(activity.relativeEffort, 20)
+        XCTAssertEqual(activity.trainingLoad, 27, accuracy: 0.001)
+        XCTAssertEqual(activity.averageHeartRate, 0)
+    }
+
+    func testEmptyWorkoutHasNoEstimatedLoadOrEffort() {
+        let workout = makeWorkout(type: .running, durationSeconds: 0, averageHeartRate: nil, activeEnergyKcal: nil)
+        let activity = mapper.map(workout)
+        XCTAssertEqual(activity.durationMinutes, 0)
+        XCTAssertEqual(activity.relativeEffort, 0)
+        XCTAssertEqual(activity.trainingLoad, 0)
+        let processed = processedMapper.map(processedBuilder.make(from: workout))
+        XCTAssertEqual(processed.relativeEffort, 0)
+        XCTAssertEqual(processed.trainingLoad, 0)
+    }
+
     private func makeWorkout(
         source: UnifiedDataSource = .appleHealthKit,
         type: UnifiedWorkoutType,

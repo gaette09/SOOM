@@ -6,7 +6,7 @@ struct DailyReadinessCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .center, spacing: SOOMLayout.RecoveryAI.iconTextSpacing) {
-                Image(systemName: state.icon ?? SOOMIcon.recovery)
+                Image(soom: state.icon ?? SOOMIcon.recovery)
                     .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(width: SOOMLayout.RecoveryAI.iconFrame, height: SOOMLayout.RecoveryAI.iconFrame)

@@ -35,9 +35,10 @@ struct HealthKitRecoveryPreviewView: View {
 
     @ViewBuilder
     private var previewContent: some View {
-        if viewModel.isLoading {
+        if let error = viewModel.errorMessage, viewModel.summary != nil { Text(error).font(.footnote).foregroundStyle(.secondary) }
+        if viewModel.isLoading && viewModel.summary == nil {
             loadingCard
-        } else if let errorMessage = viewModel.errorMessage {
+        } else if let errorMessage = viewModel.errorMessage, viewModel.summary == nil {
             messageCard(
                 icon: SOOMIcon.health,
                 title: "Recovery 미리보기를 불러오지 못했어요",
@@ -64,20 +65,7 @@ struct HealthKitRecoveryPreviewView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                ProgressView()
-                    .tint(SOOMColor.recovery)
-                    .accessibilityHidden(true)
-
-                Text("HealthKit source로 Recovery 요약을 계산하고 있어요.")
-                    .font(SOOMFont.body(13, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("HealthKit Recovery 미리보기 계산 중")
+        SOOMSkeleton(layout: .summary, label: "HealthKit 회복 요약 계산 중")
     }
 
     private func summaryCard(_ summary: RecoverySummary) -> some View {
@@ -141,7 +129,7 @@ struct HealthKitRecoveryPreviewView: View {
 
     private func previewBlock(title: String, message: String, icon: String, tint: Color) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionRowSpacing) {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .font(.system(size: SOOMLayout.RecoveryAI.iconSize, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)

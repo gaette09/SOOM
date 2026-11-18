@@ -7,7 +7,7 @@ struct SOOMIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
+            Image(soom: icon)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(SOOMColor.ink)
                 .frame(width: SOOMLayout.IconButton.size, height: SOOMLayout.IconButton.size)

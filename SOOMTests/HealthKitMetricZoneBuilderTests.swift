@@ -14,7 +14,8 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
         let summary = builder.buildHeartRateSummary(from: samples, maxHeartRate: 190)
 
         XCTAssertEqual(summary.type, .heartRate)
-        XCTAssertEqual(summary.zones.count, 3)
+        XCTAssertEqual(summary.zones.count, 5)
+        XCTAssertEqual(summary.zones.map(\.durationSeconds), [60,120,0,60,0])
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
         XCTAssertTrue(summary.insightText?.contains("Zone 2") == true)
         XCTAssertEqual(summary.dataSource.sourceType, .healthKitStream)
@@ -32,7 +33,8 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
 
         let summary = builder.buildHeartRateSummary(from: samples, baseline: baseline)
 
-        XCTAssertEqual(summary.zones.map(\.zoneIndex), [1, 2, 5])
+        XCTAssertEqual(summary.zones.map(\.zoneIndex), [1, 2, 3, 4, 5])
+        XCTAssertEqual(summary.zones.map(\.durationSeconds), [60,120,0,0,60])
         XCTAssertEqual(summary.dominantZone?.zoneIndex, 2)
         XCTAssertTrue(summary.isPersonalized)
         XCTAssertEqual(summary.baselineDescription, "최대심박 기준")
@@ -158,5 +160,24 @@ final class HealthKitMetricZoneBuilderTests: XCTestCase {
             startDate: Date(timeIntervalSince1970: start),
             endDate: Date(timeIntervalSince1970: end)
         )
+    }
+}
+
+extension HealthKitMetricZoneBuilderTests {
+    func testInstantaneousSamplesUseObservedContinuityNotInventedOneSecond() {
+        let samples = [makeSample(.heartRate, value: 100, start: 0, end: 0),
+                       makeSample(.heartRate, value: 140, start: 9, end: 9),
+                       makeSample(.heartRate, value: 170, start: 60, end: 60)]
+        let summary = builder.buildHeartRateSummary(from: samples)
+        XCTAssertEqual(summary.zones.map(\.durationSeconds), [9,0,51,0,0])
+        XCTAssertEqual(summary.zones[0].percentage, 15, accuracy: 0.001)
+        XCTAssertFalse(builder.buildHeartRateSummary(from: [samples[0]]).isAvailable)
+        XCTAssertFalse(builder.buildHeartRateSummary(from: [makeSample(.heartRate, value: .nan, start: 0, end: 20)]).isAvailable)
+    }
+    func testOverlappingHeartIntervalsAreNotDoubleCounted() {
+        let summary = builder.buildHeartRateSummary(from: [makeSample(.heartRate, value: 100, start: 0, end: 60),
+            makeSample(.heartRate, value: 140, start: 30, end: 90)])
+        XCTAssertEqual(summary.zones.reduce(0) { $0 + $1.durationSeconds }, 90)
+        XCTAssertEqual(summary.zones[0].durationSeconds, 30)
     }
 }

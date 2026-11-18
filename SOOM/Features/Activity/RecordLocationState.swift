@@ -87,6 +87,8 @@ struct RecordLocationState: Equatable {
     let coordinate: RecordMapCoordinate?
     let fallbackCoordinate: RecordMapCoordinate
     let heading: RecordHeadingState
+    let locationTimestamp: Date?
+    let horizontalAccuracy: Double?
 
     static let fallbackCoordinate = RecordMapCoordinate(latitude: 37.5266, longitude: 126.9271)
 
@@ -101,12 +103,16 @@ struct RecordLocationState: Equatable {
         authorization: RecordLocationAuthorizationState,
         coordinate: RecordMapCoordinate?,
         fallbackCoordinate: RecordMapCoordinate,
-        heading: RecordHeadingState = .unavailable
+        heading: RecordHeadingState = .unavailable,
+        locationTimestamp: Date? = nil,
+        horizontalAccuracy: Double? = nil
     ) {
         self.authorization = authorization
         self.coordinate = coordinate
         self.fallbackCoordinate = fallbackCoordinate
         self.heading = heading
+        self.locationTimestamp = locationTimestamp
+        self.horizontalAccuracy = horizontalAccuracy
     }
 
     var canShowUserLocation: Bool {

@@ -29,6 +29,7 @@ final class HealthKitManager: HealthKitManaging {
     }
 
     func requestAuthorization() async throws {
+        guard await MainActor.run(body: { !ReviewDemoMode.isActive }) else { return }
         guard isHealthDataAvailable() else {
             throw HealthKitAuthorizationError.healthDataUnavailable
         }
@@ -50,6 +51,9 @@ final class HealthKitManager: HealthKitManaging {
                 }
             }
         }
+        // Registration at cold launch can precede the user's first authorization.
+        try? await healthStore.enableBackgroundDelivery(for: HKWorkoutType.workoutType(), frequency: .immediate)
+        try? await healthStore.enableBackgroundDelivery(for: HKSeriesType.workoutRoute(), frequency: .immediate)
     }
 
     static var readTypes: Set<HKObjectType> {
@@ -62,7 +66,12 @@ final class HealthKitManager: HealthKitManaging {
             HKQuantityType.quantityType(forIdentifier: .heartRate),
             HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning),
-            HKQuantityType.quantityType(forIdentifier: .distanceCycling)
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling),
+            HKQuantityType.quantityType(forIdentifier: .distanceSwimming),
+            HKQuantityType.quantityType(forIdentifier: .stepCount),
+            HKQuantityType.quantityType(forIdentifier: .runningPower),
+            HKQuantityType.quantityType(forIdentifier: .runningSpeed),
+            HKQuantityType.quantityType(forIdentifier: .walkingSpeed)
         ]
             .compactMap { $0 }
             .forEach { types.insert($0) }
@@ -70,7 +79,8 @@ final class HealthKitManager: HealthKitManaging {
         if #available(iOS 17.0, *) {
             [
                 HKQuantityType.quantityType(forIdentifier: .cyclingCadence),
-                HKQuantityType.quantityType(forIdentifier: .cyclingPower)
+                HKQuantityType.quantityType(forIdentifier: .cyclingPower),
+                HKQuantityType.quantityType(forIdentifier: .cyclingSpeed)
             ]
                 .compactMap { $0 }
                 .forEach { types.insert($0) }

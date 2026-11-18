@@ -46,7 +46,7 @@ private struct RecoveryTimelineRow: View {
 
                     Spacer(minLength: SOOMLayout.Metrics.actionTextSpacing)
 
-                    Label(trendText, systemImage: trendIcon)
+                    Label(trendText, soomIcon: trendIcon)
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(trendTint)
                         .labelStyle(.titleAndIcon)

@@ -23,7 +23,7 @@ struct WorkoutMetricsSection: View {
             if !workout.achievements.isEmpty {
                 Divider()
                 ForEach(workout.achievements, id: \.self) { achievement in
-                    Label(achievement, systemImage: SOOMIcon.medal)
+                    Label(achievement, soomIcon: SOOMIcon.medal)
                         .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                         .foregroundStyle(SOOMColor.warning)
                 }

@@ -42,7 +42,7 @@ struct RecoveryScoreCard: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let trendText {
-                        Label(trendText, systemImage: SOOMIcon.trend)
+                        Label(trendText, soomIcon: SOOMIcon.trend)
                             .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
                             .foregroundStyle(tint)
                     }
@@ -52,7 +52,7 @@ struct RecoveryScoreCard: View {
             Divider()
                 .overlay(SOOMColor.line)
 
-            Label(recommendation, systemImage: SOOMIcon.recovery)
+            Label(recommendation, soomIcon: SOOMIcon.recovery)
                 .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
                 .foregroundStyle(SOOMColor.ink)
                 .labelStyle(.titleAndIcon)

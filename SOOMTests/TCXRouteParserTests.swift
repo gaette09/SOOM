@@ -2,6 +2,20 @@ import XCTest
 @testable import SOOM
 
 final class TCXRouteParserTests: XCTestCase {
+    func testOptInPreservesPositionlessSensorsAndKeepsStrictDefault() throws {
+        let xml = """
+        <TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities><Activity Sport="Biking"><Id>2026-08-05T00:00:00Z</Id><Lap StartTime="2026-08-05T00:00:00Z"><TotalTimeSeconds>600</TotalTimeSeconds><Calories>200</Calories><Track><Trackpoint><Time>2026-08-05T00:00:00Z</Time><HeartRateBpm><Value>145</Value></HeartRateBpm><Cadence>82</Cadence><Extensions><TPX xmlns="http://www.garmin.com/xmlschemas/ActivityExtension/v2"><Watts>210</Watts></TPX></Extensions></Trackpoint></Track></Lap></Activity></Activities></TrainingCenterDatabase>
+        """
+        let data = Data(xml.utf8)
+        XCTAssertThrowsError(try TCXRouteParser().parse(data))
+        let result = try TCXRouteParser().parse(data, allowMissingRoute: true)
+        XCTAssertTrue(result.coordinates.isEmpty)
+        XCTAssertEqual(result.summary.averageHeartRate, 145)
+        XCTAssertEqual(result.summary.averagePower, 210)
+        XCTAssertEqual(result.summary.activeEnergyKcal, 200)
+        XCTAssertNil(result.summary.averageSpeedMetersPerSecond)
+    }
+
     func testParsesSyntheticNamespacedCyclingRouteAcrossLapsInDocumentOrder() throws {
         let route = try TCXRouteParser().parse(Self.cyclingFixture)
         XCTAssertEqual(route.coordinateCount, 3)

@@ -85,3 +85,15 @@ final class WorkoutZoneBuilderTests: XCTestCase {
         XCTAssertFalse(summary.dataSource.description.contains("위험"))
     }
 }
+
+
+extension WorkoutZoneBuilderTests {
+    func testRepeatedZoneRowsCoalesceWithoutLosingTimeOrDuplicatingIDs() {
+        let summary = WorkoutZoneBuilder().buildSummary(type: .heartRate, durations: [
+            .init(zoneIndex: 1, durationSeconds: 0), .init(zoneIndex: 2, durationSeconds: 4),
+            .init(zoneIndex: 2, durationSeconds: 5), .init(zoneIndex: 5, durationSeconds: 91)])
+        XCTAssertEqual(summary.zones.map(\.zoneIndex), [1,2,5])
+        XCTAssertEqual(summary.zones[1].percentage, 9, accuracy: 0.00001)
+        XCTAssertEqual(summary.zones.reduce(0) { $0 + $1.percentage }, 100, accuracy: 0.00001)
+    }
+}

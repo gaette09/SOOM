@@ -10,6 +10,7 @@ struct DailyRecoverySnapshot: Identifiable {
     let explanation: String?
     let dataQuality: RecoveryDataQuality
     let activityCount: Int
+    let activityCountKnown: Bool
     let checkInId: UUID?
     let createdAt: Date
     let updatedAt: Date
@@ -24,6 +25,7 @@ struct DailyRecoverySnapshot: Identifiable {
         explanation: String? = nil,
         dataQuality: RecoveryDataQuality,
         activityCount: Int,
+        activityCountKnown: Bool = false,
         checkInId: UUID? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -37,6 +39,7 @@ struct DailyRecoverySnapshot: Identifiable {
         self.explanation = explanation
         self.dataQuality = dataQuality
         self.activityCount = max(activityCount, 0)
+        self.activityCountKnown = activityCountKnown
         self.checkInId = checkInId
         self.createdAt = createdAt
         self.updatedAt = updatedAt

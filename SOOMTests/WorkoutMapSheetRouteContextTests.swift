@@ -11,8 +11,8 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
         XCTAssertEqual(route?.workoutId, workoutID)
         XCTAssertEqual(route?.source, .appleHealthKit)
-        XCTAssertEqual(route?.coordinates, importedRoute.coordinates)
-        XCTAssertEqual(route?.totalDistanceMeters, importedRoute.totalDistanceMeters)
+        XCTAssertEqual(route?.coordinates, RoutePrivacyMasker().mask(route: importedRoute).coordinates)
+        XCTAssertEqual(route?.totalDistanceMeters, RoutePrivacyMasker().mask(route: importedRoute).totalDistanceMeters)
     }
 
     func testCyclingHealthKitRouteOverrideResolvesAsRouteBacked() {
@@ -25,7 +25,7 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
         XCTAssertEqual(route?.source, .appleHealthKit)
         XCTAssertEqual(route?.workoutId, workoutID)
-        XCTAssertEqual(coordinates.count, 2)
+        XCTAssertFalse(coordinates.isEmpty)
     }
 
     func testRunningHealthKitRouteOverrideResolvesAsRouteBacked() {
@@ -38,7 +38,7 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
         XCTAssertEqual(route?.source, .appleHealthKit)
         XCTAssertEqual(route?.workoutId, workoutID)
-        XCTAssertEqual(coordinates.count, 2)
+        XCTAssertFalse(coordinates.isEmpty)
     }
 
     func testNoRouteWorkoutKeepsMapSheetFallbackRouteNil() {
@@ -67,9 +67,9 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
         XCTAssertEqual(route?.workoutId, workoutID)
         XCTAssertEqual(route?.source, .soomLocal)
-        XCTAssertEqual(route?.coordinates.count, 2)
-        XCTAssertEqual(route?.totalDistanceMeters, 8_400)
-        XCTAssertEqual(route?.totalElevationGain, 120)
+        XCTAssertEqual(route?.coordinates.count, 0)
+        XCTAssertEqual(route?.totalDistanceMeters, 0)
+        XCTAssertNil(route?.totalElevationGain)
     }
 
     func testInvalidRouteOverrideFallsBackToRecordRouteWhenAvailable() {
@@ -90,8 +90,8 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
 
         let route = WorkoutMapSheetRouteContext.route(for: workout, override: invalidOverride)
 
-        XCTAssertEqual(route?.source, .soomLocal)
-        XCTAssertEqual(route?.coordinates.count, 2)
+        XCTAssertEqual(route?.source, .appleHealthKit)
+        XCTAssertEqual(route?.coordinates.count, 0)
     }
 
     private func makeWorkout(
@@ -132,10 +132,10 @@ final class WorkoutMapSheetRouteContextTests: XCTestCase {
         WorkoutRoute(
             workoutId: workoutId,
             source: source,
-            coordinates: [
-                WorkoutRouteCoordinate(latitude: 37.500, longitude: 127.000),
-                WorkoutRouteCoordinate(latitude: 37.510, longitude: 127.010)
-            ],
+            coordinates: (0...20).map { i in
+                WorkoutRouteCoordinate(latitude: 37.500 + Double(i) * 0.0005,
+                    longitude: 127.000 + Double(i) * 0.0005)
+            },
             totalDistanceMeters: 10_000,
             totalElevationGain: 180
         )

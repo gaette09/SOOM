@@ -1,7 +1,17 @@
 import SwiftUI
+import SwiftData
 import HealthKit
 
 struct WorkoutDetailView: View {
+    @Environment(\.workoutManagement) private var management
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var auth: AuthViewModel
+    @EnvironmentObject private var mapStorage: HealthAccountStorageController
+    @Environment(\.modelContext) private var mapContext
+    @State private var approvedMapRepair = ApprovedWorkoutMapRepair()
+    @Environment(\.workoutDetailVisitStore) private var inheritedVisit
+    @State private var visitReveals = WorkoutDetailPresentationStore()
+    @State private var heroPhotos: [WorkoutPhotoReference] = []
     let workout: Workout
     var comparisonWorkouts: [Workout] = []
     var healthKitWorkout: HKWorkout?
@@ -16,6 +26,8 @@ struct WorkoutDetailView: View {
     var samplesOverride: [WorkoutSample]?
     var splitsOverride: [WorkoutSplit]?
     var heartRateChartSamplesOverride: [WorkoutDistanceChartSample]?
+    var telemetryOverride: WorkoutTelemetry?
+    var healthKitReadPresentation: HealthKitDetailReadPresentation?
     var relativeEffortComparisonOverride: RelativeEffortComparison?
     var achievementsOverride: [WorkoutAchievement]?
     var achievementCountOverride: Int?
@@ -23,61 +35,89 @@ struct WorkoutDetailView: View {
     var sourceUnifiedWorkout: UnifiedWorkout? = nil
     var routeAttachmentAction: ActivityDetailGPXRouteImportAction?
     var companionUpdateAction: WorkoutCompanionUpdateAction?
+    var sharedRecord: WorkoutDetailSharedRecord? = nil
+    var sharedPostManagement: FeedPostManagement? = nil
 
     var body: some View {
-        Group {
-            if detailMapRoute != nil {
-                WorkoutMapSheetScaffold(workout: workout, routeOverride: detailMapRoute, navigationTitle: "운동 상세", achievements: achievementsOverride ?? []) {
-                    detailContent(showsHeader: false, presentationStyle: .mapSheet)
-                }
-            } else {
-                SOOMScreen {
-                    detailContent(showsHeader: true, presentationStyle: .standalone)
-                }
-                .navigationTitle("운동 상세")
-                .navigationBarTitleDisplayMode(.inline)
-            }
+        WorkoutDetailSurface(workout: sharedRecord == nil ? workout : sharedRecord?.layoutIdentity,
+            route: sharedRecord == nil ? displayMapGeometry : sharedRecord?.route, achievements: achievementsOverride ?? [],
+            photos: sharedRecord?.item.photos ?? heroPhotos, sharedPostManagement: sharedPostManagement, actions: {
+            if sharedRecord != nil {
+                if let sharedPostManagement { FeedPostManagementButtons(model: sharedPostManagement, onDelete: { dismiss() }) }
+            } else if let management { WorkoutManagementButtons(model: management, onDelete: { dismiss() }) }
+        }, content: {
+            detailContent(showsHeader: true, presentationStyle: (presentationRoute?.coordinates.count ?? 0) > 1 ? .mapSheet : .standalone)
+        })
+        .environment(\.workoutDetailVisitStore, inheritedVisit ?? visitReveals)
+        .task(id: sourceUnifiedWorkout?.id) { await loadHeroPhotos() }
+        .onReceive(NotificationCenter.default.publisher(for: WorkoutRecordManagement.didChange)) { _ in
+            Task { await loadHeroPhotos() }
         }
-        .hidesSOOMTabBar()
     }
 
+    @MainActor
+    private func loadHeroPhotos() async {
+        heroPhotos = []
+        guard sharedRecord == nil else { return }
+        if ReviewDemoMode.isActive {
+            if let workoutID = sourceUnifiedWorkout?.id {
+                heroPhotos = (try? await ReviewDemoPhotoStore.shared.load(workoutID: workoutID, ownerID: ReviewDemoMode.userID)) ?? []
+            }
+            return
+        }
+        guard let workoutID = sourceUnifiedWorkout?.id,
+              let ownerID = auth.session.currentUser?.id,
+              let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient() else { return }
+        let photos = try? await WorkoutPhotoService(client: client).load(workoutID: workoutID, ownerID: ownerID)
+        guard !Task.isCancelled, auth.session.currentUser?.id == ownerID,
+              sourceUnifiedWorkout?.id == workoutID else { return }
+        heroPhotos = photos ?? []
+    }
 
     @ViewBuilder
     private func detailContent(
         showsHeader: Bool,
         presentationStyle: WorkoutDetailPresentationStyle
     ) -> some View {
-        WorkoutDetailContent(
-            workout: workout,
-            showsHeader: showsHeader,
-            presentationStyle: presentationStyle,
-            sessionSummary: sessionSummary,
-            growthSummary: growthSummary,
-            growthMetrics: growthMetrics,
-            comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
-            courseRecord: courseRecordOverride ?? courseRecord,
-            courseProgression: courseProgressionOverride ?? courseProgression,
-            terrainInsight: terrainInsightOverride ?? terrainInsight,
-            splitInsight: splitInsight,
-            climbInsight: climbInsightOverride ?? climbInsight,
-            weaknessInsight: weaknessInsight,
-            recoveryImpact: recoveryImpact,
-            shareableCard: shareableCard,
-            mapRoute: detailMapRoute,
-            sourceUnifiedWorkout: sourceUnifiedWorkout,
-            routeAttachmentAction: routeAttachmentAction,
-            companionUpdateAction: companionUpdateAction,
-            healthKitWorkout: healthKitWorkout,
-            zoneDataProvider: zoneDataProvider,
-            splitDataProvider: splitDataProvider,
-            samplesOverride: samplesOverride,
-            splitsOverride: splitsOverride,
-            heartRateChartSamplesOverride: heartRateChartSamplesOverride,
-            relativeEffortComparisonOverride: relativeEffortComparisonOverride,
-            achievementsOverride: achievementsOverride,
-            achievementCountOverride: achievementCountOverride,
-            fitnessTrendOverride: fitnessTrendOverride
-        )
+        if let sharedRecord {
+            // No personal builders, source UUID lookup, HealthKit or history access.
+            WorkoutDetailContent(workout: workout, showsHeader: showsHeader,
+                presentationStyle: presentationStyle, sharedRecord: sharedRecord)
+        } else {
+            WorkoutDetailContent(
+                workout: workout,
+                showsHeader: showsHeader,
+                presentationStyle: presentationStyle,
+                sessionSummary: sessionSummary,
+                growthSummary: growthSummary,
+                growthMetrics: growthMetrics,
+                comparisonInsight: comparisonInsightOverride ?? comparisonInsight,
+                courseRecord: courseRecordOverride ?? courseRecord,
+                courseProgression: courseProgressionOverride ?? courseProgression,
+                terrainInsight: terrainInsightOverride ?? terrainInsight,
+                splitInsight: splitInsight,
+                climbInsight: climbInsightOverride ?? climbInsight,
+                weaknessInsight: weaknessInsight,
+                recoveryImpact: recoveryImpact,
+                shareableCard: shareableCard,
+                mapRoute: detailMapRoute,
+                sourceUnifiedWorkout: sourceUnifiedWorkout,
+                routeAttachmentAction: routeAttachmentAction,
+                companionUpdateAction: companionUpdateAction,
+                healthKitWorkout: healthKitWorkout,
+                zoneDataProvider: zoneDataProvider,
+                splitDataProvider: splitDataProvider,
+                samplesOverride: samplesOverride,
+                splitsOverride: splitsOverride,
+                heartRateChartSamplesOverride: heartRateChartSamplesOverride,
+                telemetryOverride: telemetryOverride,
+                healthKitReadPresentation: healthKitReadPresentation,
+                relativeEffortComparisonOverride: relativeEffortComparisonOverride,
+                achievementsOverride: achievementsOverride,
+                achievementCountOverride: achievementCountOverride,
+                fitnessTrendOverride: fitnessTrendOverride
+            )
+        }
     }
 
     private var shareableCard: ShareableWorkoutCardModel {
@@ -86,7 +126,7 @@ struct WorkoutDetailView: View {
             sessionSummary: sessionSummary,
             growthSummary: growthSummary,
             recoveryImpact: recoveryImpact,
-            route: detailMapRoute
+            route: sourceUnifiedWorkout?.routeMissingReason == .indoorNoLocationData ? nil : detailMapRoute
         )
     }
 
@@ -111,7 +151,7 @@ struct WorkoutDetailView: View {
         let currentInput = WorkoutGrowthInput(detailWorkout: workout)
         let comparableWorkouts = comparisonWorkouts
             .filter { $0.id != workout.id }
-            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.comparisonWorkoutType == currentInput.workoutType }
             .filter { $0.date <= workout.date }
 
         let currentRoute = route(for: workout)
@@ -138,7 +178,7 @@ struct WorkoutDetailView: View {
         let currentInput = WorkoutGrowthInput(detailWorkout: workout)
         let comparableWorkouts = comparisonWorkouts
             .filter { $0.id != workout.id }
-            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.comparisonWorkoutType == currentInput.workoutType }
             .filter { $0.date <= workout.date }
 
         let currentRoute = route(for: workout)
@@ -164,7 +204,7 @@ struct WorkoutDetailView: View {
         let currentInput = WorkoutGrowthInput(detailWorkout: workout)
         let comparableWorkouts = comparisonWorkouts
             .filter { $0.id != workout.id }
-            .filter { UnifiedWorkoutType(detailSport: $0.sport) == currentInput.workoutType }
+            .filter { $0.comparisonWorkoutType == currentInput.workoutType }
             .filter { $0.date <= workout.date }
 
         let currentRoute = route(for: workout)
@@ -206,16 +246,20 @@ struct WorkoutDetailView: View {
         return insight.isVisible ? insight : nil
     }
 
+    var insightWorkout: Workout {
+        workout.withChartData(samples: samplesOverride ?? workout.samples, splits: splitsOverride ?? workout.splits)
+    }
+
     private var growthSummary: WorkoutGrowthSummary {
         WorkoutGrowthSummaryBuilder().build(
-            current: workout,
+            current: insightWorkout,
             recentWorkouts: comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts
         )
     }
 
     private var weaknessInsight: WorkoutWeaknessInsight {
         WorkoutWeaknessInsightBuilder().build(
-            current: workout,
+            current: insightWorkout,
             recentWorkouts: comparisonWorkouts.isEmpty ? [workout] : comparisonWorkouts
         )
     }
@@ -224,8 +268,27 @@ struct WorkoutDetailView: View {
         WorkoutRecoveryImpactBuilder().build(workout: workout)
     }
 
+    /// Keep original geometry for private calculations and owner-only RPC
+    /// preparation. Rendering always crosses the masked surface/map boundary.
+    private var presentationRoute: WorkoutRoute? {
+        let source = sharedRecord == nil ? detailMapRoute : sharedRecord?.route
+        return source.map { RoutePrivacyMasker().mask(route: $0) }
+    }
+
+    private var displayMapGeometry: WorkoutRoute? {
+        guard sharedRecord == nil else { return sharedRecord?.route }
+        let original = detailMapRoute
+        guard original?.workoutId == ApprovedWorkoutMapRepair.targetID else { return original }
+        return approvedMapRepair.resolve(original, viewerID: auth.session.currentUser?.id,
+            storage: mapStorage, context: mapContext)
+    }
+
     private var detailMapRoute: WorkoutRoute? {
-        detailRouteOverride ?? route(for: workout)
+        if let override = detailRouteOverride {
+            guard override.workoutId == workout.id else { return nil }
+            return override
+        }
+        return route(for: workout)
     }
 
     private func route(for workout: Workout) -> WorkoutRoute? {
@@ -236,7 +299,7 @@ struct WorkoutDetailView: View {
         }
 
         return WorkoutRoute(
-            workoutId: workout.id,
+            id: workout.id, workoutId: workout.id,
             source: .soomLocal,
             coordinates: coordinates,
             totalDistanceMeters: workout.distanceMeters,
@@ -276,7 +339,7 @@ struct ClubDetailView: View {
             SOOMCard {
                 SOOMSectionHeader("예정 모임")
                 ForEach(club.upcoming, id: \.self) { event in
-                    Label(event, systemImage: SOOMIcon.calendar)
+                    Label(event, soomIcon: SOOMIcon.calendar)
                 }
             }
             .font(SOOMFont.body(15, relativeTo: .subheadline))
@@ -290,12 +353,12 @@ struct ClubDetailView: View {
     }
 }
 
-private extension WorkoutGrowthInput {
+extension WorkoutGrowthInput {
     init(detailWorkout workout: Workout) {
         self.init(
             id: workout.id,
             source: .soomLocal,
-            workoutType: UnifiedWorkoutType(detailSport: workout.sport),
+            workoutType: workout.comparisonWorkoutType,
             startDate: workout.date,
             durationMinutes: Int(workout.duration / 60),
             distanceKm: workout.distanceMeters > 0 ? workout.distanceMeters / 1_000 : nil,
@@ -305,18 +368,5 @@ private extension WorkoutGrowthInput {
             elevationGainMeters: Double(workout.elevationGain),
             activeEnergyKcal: Double(workout.activeCalories)
         )
-    }
-}
-
-private extension UnifiedWorkoutType {
-    init(detailSport sport: WorkoutSport) {
-        switch sport {
-        case .swim:
-            self = .swimming
-        case .bike, .brick:
-            self = .cycling
-        case .run:
-            self = .running
-        }
     }
 }

@@ -19,18 +19,22 @@ final class CheckInHistoryViewModel: ObservableObject {
 
     @MainActor
     func load() async {
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
 
         do {
             let fetchedCheckIns = try await store.fetchRecentCheckIns(days: days)
+            try Task.checkCancellation()
             checkIns = fetchedCheckIns.sorted { $0.date > $1.date }
+        } catch is CancellationError {
+            // Cancellation is not a failure or a replacement for cached data.
         } catch {
-            checkIns = []
+            guard !Task.isCancelled else { return }
             errorMessage = "컨디션 기록을 불러오지 못했습니다."
         }
 
-        isLoading = false
     }
 
     @MainActor

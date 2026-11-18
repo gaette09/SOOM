@@ -2,53 +2,73 @@ import SwiftUI
 
 struct FeedWeeklySnapshotCarousel: View {
     let snapshot: FeedWeeklySnapshot
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        TabView {
-            summaryCard
-            sportCard
-        }
-        .tabViewStyle(.page(indexDisplayMode: .automatic))
-        .frame(height: 174)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("이번 주 운동 요약 카드")
-    }
-
-    private var summaryCard: some View {
         SOOMCard(depth: .primary) {
-            Text("이번 주 운동")
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.tertiaryInk)
-            Text(snapshot.progress.trendType.title)
-                .font(SOOMFont.displayMedium(22, relativeTo: .title3))
-                .foregroundStyle(SOOMColor.ink)
-            HStack(spacing: 10) {
-                metric("거리", String(format: "%.1f km", snapshot.progress.totalDistanceKm))
-                metric("시간", durationText)
-                metric("운동", "\(snapshot.progress.workoutCount)회")
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("이번 주 운동")
+                        .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                        .foregroundStyle(SOOMColor.ink)
+                    Text(snapshot.progress.trendType.title)
+                        .font(SOOMFont.body(13, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                let layout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 18))
+                    : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+                layout {
+                    metric("거리", value: String(format: "%.1f", snapshot.progress.totalDistanceKm), unit: "km")
+                    metric("시간", value: durationText, unit: nil)
+                    metric("운동", value: "\(snapshot.progress.workoutCount)", unit: "회")
+                }
+
+                Divider().overlay(SOOMColor.line)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(snapshot.sportSummary)
+                        .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.ink)
+                    Text(snapshot.progress.averagePaceOrSpeedText)
+                        .font(SOOMFont.body(13, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                    Text(snapshot.progress.motivationText)
+                        .font(SOOMFont.body(13, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("이번 주 운동 요약")
+        .accessibilityIdentifier("today.weeklyWorkoutCard")
     }
 
-    private var sportCard: some View {
-        SOOMCard(depth: .ambient) {
-            Label("운동 종목", systemImage: SOOMIcon.activity)
-                .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.accent)
-            Text(snapshot.sportSummary)
-                .font(SOOMFont.displayMedium(20, relativeTo: .title3))
-                .foregroundStyle(SOOMColor.ink)
-            Text(snapshot.progress.averagePaceOrSpeedText)
-                .font(SOOMFont.body(14, weight: .bold, relativeTo: .subheadline))
+    private func metric(_ title: String, value: String, unit: String?) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(SOOMFont.body(12, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
-            Text(snapshot.progress.motivationText)
-                .font(SOOMFont.body(13, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.secondaryInk)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(value)
+                    .font(SOOMFont.displayMedium(28, relativeTo: .title))
+                    .foregroundStyle(SOOMColor.ink)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                if let unit {
+                    Text(unit)
+                        .font(SOOMFont.body(12, relativeTo: .caption))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                }
+            }
         }
-    }
-
-    private func metric(_ title: String, _ value: String) -> some View {
-        SOOMMetricPill(title, value, tint: SOOMColor.accent)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value + (unit.map { " " + $0 } ?? ""))
     }
 
     private var durationText: String {
@@ -66,7 +86,7 @@ struct FeedStreakCard: View {
     var body: some View {
         SOOMCard(depth: .ambient) {
             HStack(spacing: 12) {
-                Image(systemName: "flame.fill")
+                Image(soom: "flame.fill")
                     .font(.system(size: SOOMFont.Size.headline, weight: .bold))
                     .foregroundStyle(SOOMColor.accent)
                     .frame(width: 40, height: 40)
@@ -102,35 +122,63 @@ struct FeedStreakCard: View {
 
 struct FeedRecoveryInsightCard: View {
     let insight: FeedRecoveryInsight
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SOOMCard(depth: .ambient) {
-            HStack(alignment: .top, spacing: 12) {
-                SOOMMetricRing(score: insight.score, title: "Recovery", tint: SOOMColor.recovery)
-                    .frame(width: 66, height: 66)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Recovery Insight")
-                        .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.recovery)
-                    Text(insight.status)
-                        .font(SOOMFont.displayMedium(18, relativeTo: .headline))
-                        .foregroundStyle(SOOMColor.ink)
-                    Text(insight.recommendation)
-                        .font(SOOMFont.body(13, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                        .lineLimit(2)
+        SOOMCard(depth: .primary) {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("회복 점수")
+                    .font(SOOMFont.body(16, weight: .bold, relativeTo: .headline))
+                    .foregroundStyle(SOOMColor.ink)
+
+                let layout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+                    : AnyLayout(HStackLayout(alignment: .center, spacing: 24))
+                layout {
+                    if let score = insight.score {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text("\(score)")
+                                .font(SOOMFont.display(60, relativeTo: .largeTitle))
+                                .foregroundStyle(SOOMColor.ink)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                            Text("점")
+                                .font(SOOMFont.body(14, relativeTo: .subheadline))
+                                .foregroundStyle(SOOMColor.secondaryInk)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(insight.status)
+                            .font(SOOMFont.body(20, weight: .bold, relativeTo: .title3))
+                            .foregroundStyle(SOOMColor.ink)
+                        Text(insight.score == nil ? "운동 기록이 쌓이면 점수를 확인할 수 있어요." : "최근 운동을 바탕으로 한 회복 추정")
+                            .font(SOOMFont.body(13, relativeTo: .subheadline))
+                            .foregroundStyle(SOOMColor.secondaryInk)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-            if let coachMessage = insight.coachMessage {
-                Label(coachMessage, systemImage: SOOMIcon.sparkles)
-                    .font(SOOMFont.body(12, weight: .bold, relativeTo: .caption))
-                    .foregroundStyle(SOOMColor.accentInk)
-                    .lineLimit(2)
+
+                Text(insight.recommendation)
+                    .font(SOOMFont.body(15, relativeTo: .body))
+                    .foregroundStyle(SOOMColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let coachMessage = insight.coachMessage {
+                    Divider().overlay(SOOMColor.line)
+                    Text(coachMessage)
+                        .font(SOOMFont.body(13, relativeTo: .subheadline))
+                        .foregroundStyle(SOOMColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Recovery Insight")
-        .accessibilityValue("\(insight.score)점, \(insight.status). \(insight.recommendation)")
+        .accessibilityLabel("회복 점수")
+        .accessibilityValue(insight.accessibilityValue)
+        .accessibilityIdentifier("today.recoveryScoreCard")
     }
 }
 

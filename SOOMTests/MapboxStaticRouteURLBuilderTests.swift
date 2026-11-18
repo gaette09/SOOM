@@ -11,8 +11,9 @@ final class MapboxStaticRouteURLBuilderTests: XCTestCase {
         XCTAssertTrue(urlString.hasPrefix("https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/geojson("))
         XCTAssertTrue(urlString.contains("LineString"))
         XCTAssertTrue(urlString.contains("320x400@2x"))
+        XCTAssertTrue(urlString.contains("padding=64"))
         XCTAssertTrue(urlString.contains("access_token=test-token"))
-        XCTAssertTrue(urlString.contains("%232F7D5B"))
+        XCTAssertTrue(urlString.contains("%237541EE"))
         XCTAssertTrue(urlString.contains("stroke-width"))
     }
 
@@ -24,6 +25,7 @@ final class MapboxStaticRouteURLBuilderTests: XCTestCase {
         let urlString = url?.absoluteString ?? ""
         XCTAssertTrue(urlString.contains("/mapbox/light-v11/static/"))
         XCTAssertTrue(urlString.contains("500x625@2x"))
+        XCTAssertTrue(urlString.contains("padding=100"))
     }
 
     func testMissingTokenDoesNotBuildURL() {
@@ -68,5 +70,43 @@ final class MapboxStaticRouteURLBuilderTests: XCTestCase {
             ],
             totalDistanceMeters: 2_400
         )
+    }
+}
+
+
+extension MapboxStaticRouteURLBuilderTests {
+    func testLongRouteFitsAPIURLLimitWithoutJoiningPauseSegments() {
+        let points = (0..<6000).map { index in
+            WorkoutRouteCoordinate(latitude: 37.5 + Double(index) * 0.000001,
+                                   longitude: 127 + sin(Double(index) / 300) * 0.01,
+                                   segmentIndex: index < 3000 ? 0 : 1)
+        }
+        let route = WorkoutRoute(workoutId: UUID(), source: .soomLocal, coordinates: points, totalDistanceMeters: 10000)
+        let url = MapboxStaticRouteURLBuilder(accessToken: "synthetic-token").buildURL(for: route)
+        XCTAssertNotNil(url)
+        XCTAssertLessThanOrEqual(url?.absoluteString.utf8.count ?? Int.max, 8192)
+        XCTAssertTrue(url?.absoluteString.contains("MultiLineString") == true)
+    }
+
+    func testInvalidCoordinatesAndOversizedImagesDoNotMakeARequest() {
+        let route = WorkoutRoute(workoutId: UUID(), source: .soomLocal,
+            coordinates: [.init(latitude: .nan, longitude: 127), .init(latitude: 37, longitude: 127)], totalDistanceMeters: 10)
+        XCTAssertNil(MapboxStaticRouteURLBuilder(accessToken: "synthetic").buildURL(for: route))
+        XCTAssertNil(MapboxStaticRouteURLBuilder(accessToken: "synthetic").buildURL(for: sampleRoute, width: 1281))
+    }
+    func testPauseSegmentsProduceSeparateLinesInsteadOfAnInventedConnector() {
+        let route = WorkoutRoute(workoutId: UUID(), source: .soomLocal, coordinates: [
+            .init(latitude: 37.5, longitude: 127, segmentIndex: 0),
+            .init(latitude: 37.5001, longitude: 127, segmentIndex: 0),
+            .init(latitude: 37.6, longitude: 127, segmentIndex: 1),
+            .init(latitude: 37.6001, longitude: 127, segmentIndex: 1)
+        ], totalDistanceMeters: 22)
+        let result = MapboxStaticRouteURLBuilder(accessToken: "test-token").buildURL(for: route)
+        XCTAssertTrue(result?.absoluteString.contains("MultiLineString") == true)
+        let isolated = WorkoutRoute(workoutId: UUID(), source: .soomLocal, coordinates: [
+            .init(latitude: 37.5, longitude: 127, segmentIndex: 0),
+            .init(latitude: 37.6, longitude: 127, segmentIndex: 1)
+        ], totalDistanceMeters: 0)
+        XCTAssertNil(MapboxStaticRouteURLBuilder(accessToken: "test-token").buildURL(for: isolated))
     }
 }

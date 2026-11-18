@@ -31,7 +31,7 @@ struct WorkoutDistanceChartCard: View {
                     .foregroundStyle(SOOMColor.ink)
 
                 if showsInfoIcon {
-                    Image(systemName: "info.circle")
+                    Image(soom: "info.circle")
                         .font(.system(size: SOOMFont.Size.caption, weight: .medium))
                         .foregroundStyle(SOOMColor.tertiaryInk)
                         .accessibilityHidden(true)

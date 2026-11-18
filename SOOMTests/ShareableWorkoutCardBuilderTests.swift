@@ -110,7 +110,9 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
             imageURL: URL(string: "https://api.mapbox.com/styles/v1/\(SOOMMapboxConfiguration.staticImagesStyleID)/static/sample"),
             bounds: nil,
             routeExists: true,
-            fallbackStyle: .running
+            fallbackStyle: .running,
+            routeWorkoutID: growthInput.id,
+            maskedCoordinates: [ShareRouteCoordinate(latitude: 37.5, longitude: 127), ShareRouteCoordinate(latitude: 37.51, longitude: 127.01)]
         )
 
         let card = builder.build(
@@ -453,9 +455,9 @@ final class ShareableWorkoutCardBuilderTests: XCTestCase {
         let routeCard = baseCard.configured(shareType: .route, backgroundOption: .mapPhoto)
         let clubCard = baseCard.configured(shareType: .club, backgroundOption: .mapPhoto)
 
-        XCTAssertEqual(routeCard.storyHeadline, "한강 북단")
-        XCTAssertEqual(routeCard.storyInterpretation, "좋은 바람이 있던 날")
-        XCTAssertEqual(routeCard.storySupportingText, "10.4km · 강변 코스")
+        XCTAssertEqual(routeCard.storyHeadline, "나의 코스")
+        XCTAssertEqual(routeCard.storyInterpretation, "기록한 운동 경로")
+        XCTAssertEqual(routeCard.storySupportingText, "10.4km · 52m")
         XCTAssertEqual(clubCard.storyHeadline, "SOOM Riders")
         XCTAssertEqual(clubCard.storyInterpretation, "이번 주 12위")
         XCTAssertEqual(clubCard.storySupportingText, "42.6km 기여")

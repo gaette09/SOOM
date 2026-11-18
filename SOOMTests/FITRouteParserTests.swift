@@ -154,6 +154,20 @@ final class FITRouteParserTests: XCTestCase {
         }
     }
 
+    func testOptInPreservesIndoorSessionSummaryWithoutWeakeningDefaultRouteContract() throws {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let data = FITTestFileBuilder().addSessionDefinition().addSession(sport: 2, startTime: date,
+            elapsedSeconds: 600, calories: 200, averageHeartRate: 145, averageCadence: 82, averagePower: 210).makeData()
+        XCTAssertThrowsError(try parser.parse(data))
+        let result = try parser.parse(data, allowMissingRoute: true)
+        XCTAssertTrue(result.coordinates.isEmpty)
+        XCTAssertEqual(result.summary.startDate, date)
+        XCTAssertEqual(result.summary.averageHeartRate, 145)
+        XCTAssertEqual(result.summary.averagePower, 210)
+        XCTAssertEqual(result.summary.activeEnergyKcal, 200)
+        XCTAssertNil(result.summary.averageSpeedMetersPerSecond)
+    }
+
     func testSingleCoordinateFails() {
         let data = FITTestFileBuilder()
             .addRecordDefinition()
@@ -184,7 +198,7 @@ final class FITRouteParserTests: XCTestCase {
     }
 }
 
-private struct FITTestFileBuilder {
+struct FITTestFileBuilder {
     private var records = Data()
 
     init(rawDataRecords: Data = Data()) {

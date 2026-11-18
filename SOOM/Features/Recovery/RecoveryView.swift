@@ -15,11 +15,15 @@ struct RecoveryView: View {
             header
 
             if let recovery = viewModel.summary {
+                if let errorMessage = viewModel.errorMessage { errorCard(errorMessage) }
+                if let message = viewModel.snapshotErrorMessage { errorCard(message, title: "회복 이력을 저장하지 못했어요") }
                 recoveryContent(recovery)
             } else if let errorMessage = viewModel.errorMessage {
                 errorCard(errorMessage)
-            } else {
+            } else if viewModel.isLoading {
                 loadingCard
+            } else {
+                insufficientRecoveryDataCard
             }
         }
         .task {
@@ -35,15 +39,41 @@ struct RecoveryView: View {
         }
         .navigationTitle("회복")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button { isShowingCheckIn = true } label: { Image(systemName: "square.and.pencil") }
+                    .accessibilityLabel("컨디션 기록하기").accessibilityIdentifier("recovery.checkin.quick")
+                NavigationLink { CheckInHistoryViewContainer() } label: { Image(systemName: "clock.arrow.circlepath") }
+                    .accessibilityLabel("컨디션 기록 보기").accessibilityIdentifier("recovery.history.quick")
+            }
+        }
     }
 
     @ViewBuilder
     private func recoveryContent(_ recovery: RecoverySummary) -> some View {
-        coreRecoverySection(recovery)
-
-        supportingInterpretationSection(recovery)
+        if recovery.hasCalculatedScore {
+            coreRecoverySection(recovery)
+            supportingInterpretationSection(recovery)
+        } else {
+            insufficientRecoveryDataCard
+            morningCheckInSection
+            if !viewModel.timelineEntries.isEmpty { timelineSection(recovery) }
+            if viewModel.weeklySummary != nil { weeklySummarySection }
+        }
         managementActionSection
-        dataQualityFootnote(recovery)
+    }
+
+    private var insufficientRecoveryDataCard: some View {
+        SOOMCard {
+            SOOMActionRow(
+                icon: "heart.text.square",
+                title: "회복 점수를 계산할 데이터가 부족해요",
+                subtitle: "최근 운동 기록을 가져오거나 추가하면 회복 흐름을 확인할 수 있어요. 컨디션 기록은 점수 계산과 별도로 남길 수 있어요.",
+                tint: SOOMColor.recovery
+            )
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("recovery.insufficientData")
     }
 
     private var header: some View {
@@ -72,25 +102,13 @@ struct RecoveryView: View {
                 tint: SOOMColor.recovery
             )
 
-            VStack(alignment: .leading, spacing: SOOMLayout.RecoveryScreen.supportingCardSpacing) {
-                CoachMessageCard(
-                    coachName: recovery.coachMessage.coachName,
-                    message: recovery.coachMessage.message,
-                    subtitle: recovery.coachMessage.subtitle,
-                    icon: SOOMIcon.sparkles,
-                    tint: SOOMColor.orange
-                )
-
-                explanationCard(recovery)
-
-                RecommendationCard(
-                    title: recovery.recommendationCard.title,
-                    description: recovery.recommendationCard.description,
-                    actionLabel: recovery.recommendationCard.actionLabel,
-                    icon: recovery.recommendationCard.icon,
-                    tint: SOOMColor.bike
-                )
-            }
+            RecommendationCard(
+                title: recovery.recommendationCard.title,
+                description: recovery.recommendationCard.description,
+                actionLabel: recovery.recommendationCard.actionLabel,
+                icon: recovery.recommendationCard.icon,
+                tint: SOOMColor.bike
+            )
         }
     }
 
@@ -139,7 +157,7 @@ struct RecoveryView: View {
             if let latestCheckIn = viewModel.latestCheckIn {
                 RecoverySection(
                     title: "오늘 컨디션 기록",
-                    caption: "점수는 그대로, 코칭만 보완"
+                    caption: viewModel.summary?.hasCalculatedScore == true ? "점수는 그대로, 코칭만 보완" : "오늘의 컨디션 기록"
                 ) {
                     CheckInSummaryCard(checkIn: latestCheckIn)
                 }
@@ -161,6 +179,13 @@ struct RecoveryView: View {
     private func supportingInterpretationSection(_ recovery: RecoverySummary) -> some View {
         VStack(alignment: .leading, spacing: SOOMLayout.RecoveryScreen.sectionGroupSpacing) {
             morningCheckInSection
+            RecoverySection(title: "해석과 근거", caption: "오늘 상태를 해석한 이유와 자료 품질") {
+                CoachMessageCard(coachName: recovery.coachMessage.coachName,
+                    message: recovery.coachMessage.message, subtitle: recovery.coachMessage.subtitle,
+                    icon: SOOMIcon.sparkles, tint: SOOMColor.orange)
+                explanationCard(recovery)
+                dataQualityFootnote(recovery)
+            }
             trendSection(recovery)
             timelineSection(recovery)
             weeklySummarySection
@@ -299,35 +324,17 @@ struct RecoveryView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.Metrics.actionRowSpacing) {
-                ProgressView()
-                    .tint(SOOMColor.recovery)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: SOOMLayout.SectionHeader.spacing) {
-                    Text("회복 데이터를 불러오는 중")
-                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.ink)
-
-                    Text("오늘의 컨디션 요약을 준비하고 있습니다.")
-                        .font(SOOMFont.body(12, relativeTo: .caption))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("회복 데이터를 불러오는 중")
+        SOOMSkeleton(layout: .summary, label: "회복 요약 불러오는 중")
     }
 
-    private func errorCard(_ message: String) -> some View {
+    private func errorCard(_ message: String, title: String = "회복 데이터를 불러오지 못했습니다.") -> some View {
         SOOMCard {
-            SOOMSectionHeader("회복 데이터를 불러오지 못했습니다.", caption: message)
-            Text("잠시 후 다시 시도해 주세요.")
+            SOOMSectionHeader(title, caption: message)
+            Button("다시 시도") { Task { await viewModel.reload() } }
                 .font(SOOMFont.body(13, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.secondaryInk)
+                .disabled(viewModel.isLoading)
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     private func dataQualityFootnote(_ recovery: RecoverySummary) -> some View {

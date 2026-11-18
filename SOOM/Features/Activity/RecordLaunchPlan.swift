@@ -2,7 +2,7 @@ import CoreLocation
 import CoreGraphics
 import Foundation
 
-enum RecordSportMode: String, CaseIterable, Identifiable, Equatable {
+enum RecordSportMode: String, CaseIterable, Identifiable, Equatable, Codable {
     case cycling
     case running
     case walking
@@ -89,22 +89,21 @@ struct RecordWeatherSnapshot: Equatable {
     }
 
     var pillText: String {
+        guard !isFallback else { return "실시간 날씨 정보 없음" }
         if let windText {
             return "\(temperatureText) · \(conditionText) · \(windText)"
         }
         return "\(temperatureText) · \(conditionText)"
     }
 
-    static let fallbackClear = RecordWeatherSnapshot(
-        temperatureCelsius: 26,
-        condition: .clear,
-        wind: RecordWeatherWind(speedMps: 2.1),
-        observedAt: Date(timeIntervalSince1970: 1_750_000_000),
-        source: "fallback",
+    static let unavailable = RecordWeatherSnapshot(
+        temperatureCelsius: nil,
+        condition: .unknown,
+        wind: nil,
+        observedAt: .distantPast,
+        source: "unavailable",
         isFallback: true
     )
-
-    static let mockClear = fallbackClear
 }
 
 enum RecordWeatherCondition: String, Equatable {
@@ -128,7 +127,7 @@ enum RecordWeatherCondition: String, Equatable {
         case .storm:
             return "폭풍"
         case .unknown:
-            return "날씨"
+            return "날씨 정보 없음"
         }
     }
 
@@ -145,7 +144,7 @@ enum RecordWeatherCondition: String, Equatable {
         case .storm:
             return "cloud.bolt.rain.fill"
         case .unknown:
-            return "cloud.sun.fill"
+            return "questionmark.circle"
         }
     }
 
@@ -183,6 +182,7 @@ struct RecordWeatherWind: Equatable {
 }
 
 enum RecordAirQualityLevel: String, Equatable {
+    case unknown
     case good
     case moderate
     case bad
@@ -190,6 +190,8 @@ enum RecordAirQualityLevel: String, Equatable {
 
     var label: String {
         switch self {
+        case .unknown:
+            return "정보 없음"
         case .good:
             return "좋음"
         case .moderate:
@@ -209,8 +211,10 @@ enum RecordAirQualityLevel: String, Equatable {
             self = .moderate
         case 4:
             self = .bad
-        default:
+        case 5:
             self = .veryBad
+        default:
+            self = .unknown
         }
     }
 }
@@ -236,8 +240,8 @@ struct RecordAirQualitySnapshot: Equatable {
         aqi: nil,
         pm10: nil,
         pm25: nil,
-        pm10Level: .moderate,
-        pm25Level: .moderate
+        pm10Level: .unknown,
+        pm25Level: .unknown
     )
 }
 
@@ -290,31 +294,19 @@ struct RecordWeatherDetailSnapshot: Equatable {
     }
 
     static func make(from snapshot: RecordWeatherSnapshot) -> RecordWeatherDetailSnapshot {
-        let temperature = snapshot.temperatureText
-        let hourlyForecasts = [
-            RecordHourlyWeather(id: "now", timeLabel: "지금", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
-            RecordHourlyWeather(id: "plus-1", timeLabel: "1시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
-            RecordHourlyWeather(id: "plus-2", timeLabel: "2시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius),
-            RecordHourlyWeather(id: "plus-3", timeLabel: "3시간", iconName: snapshot.conditionIconName, temperatureCelsius: snapshot.temperatureCelsius)
-        ]
-        let dailyForecasts = [
-            RecordDailyWeather(id: "today", dayLabel: "오늘", iconName: snapshot.conditionIconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 2 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 2 }, conditionLabel: snapshot.conditionText),
-            RecordDailyWeather(id: "tomorrow", dayLabel: "내일", iconName: RecordWeatherCondition.cloudy.iconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 3 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 1 }, conditionLabel: "가벼운 흐림"),
-            RecordDailyWeather(id: "plus-2", dayLabel: "모레", iconName: RecordWeatherCondition.clear.iconName, minTempCelsius: snapshot.temperatureCelsius.map { $0 - 1 }, maxTempCelsius: snapshot.temperatureCelsius.map { $0 + 3 }, conditionLabel: "맑음")
-        ]
-
-        return RecordWeatherDetailSnapshot(
-            locationName: "현재 위치 근처",
-            temperatureText: temperature,
+        // A current observation cannot supply forecasts, apparent temperature, or air quality.
+        RecordWeatherDetailSnapshot(
+            locationName: snapshot.isFallback ? "위치 기반 날씨 정보 없음" : "현재 위치 근처",
+            temperatureText: snapshot.temperatureText,
             conditionText: snapshot.conditionText,
             conditionIconName: snapshot.conditionIconName,
-            feelsLikeText: temperature,
+            feelsLikeText: "정보 없음",
             windText: snapshot.windText ?? "바람 정보 없음",
             airQuality: .fallback,
-            hourlyForecasts: hourlyForecasts,
-            dailyForecasts: dailyForecasts,
+            hourlyForecasts: [],
+            dailyForecasts: [],
             updatedAt: snapshot.observedAt,
-            isFallback: snapshot.isFallback
+            isFallback: true
         )
     }
 }
@@ -334,7 +326,7 @@ extension RecordWeatherService {
 struct FallbackRecordWeatherService: RecordWeatherService {
     let snapshot: RecordWeatherSnapshot
 
-    init(snapshot: RecordWeatherSnapshot = .fallbackClear) {
+    init(snapshot: RecordWeatherSnapshot = .unavailable) {
         self.snapshot = snapshot
     }
 
@@ -425,11 +417,11 @@ struct URLSessionRecordWeatherService: RecordWeatherService {
             temperatureText: snapshot.temperatureText,
             conditionText: snapshot.conditionText,
             conditionIconName: snapshot.conditionIconName,
-            feelsLikeText: payload.current.feelsLike.map { "\(Int($0.rounded()))°" } ?? snapshot.temperatureText,
+            feelsLikeText: payload.current.feelsLike.map { "\(Int($0.rounded()))°" } ?? "정보 없음",
             windText: snapshot.windText ?? "바람 정보 없음",
             airQuality: airQuality,
-            hourlyForecasts: hourlyForecasts.isEmpty ? RecordWeatherDetailSnapshot.make(from: snapshot).hourlyForecasts : hourlyForecasts,
-            dailyForecasts: dailyForecasts.isEmpty ? RecordWeatherDetailSnapshot.make(from: snapshot).dailyForecasts : dailyForecasts,
+            hourlyForecasts: hourlyForecasts,
+            dailyForecasts: dailyForecasts,
             updatedAt: snapshot.observedAt,
             isFallback: false
         )
@@ -627,7 +619,7 @@ private struct OpenWeatherAirPollutionResponse: Decodable {
 enum RecordWeatherServiceFactory {
     static func make(
         apiKey: String? = configuredAPIKey(),
-        fallback: RecordWeatherSnapshot = .fallbackClear
+        fallback: RecordWeatherSnapshot = .unavailable
     ) -> RecordWeatherService {
         guard let key = usableAPIKey(apiKey) else {
             return FallbackRecordWeatherService(snapshot: fallback)
@@ -702,7 +694,7 @@ enum RecordWeatherResolver {
         for locationState: RecordLocationState,
         service: any RecordWeatherService,
         apiKey: String? = RecordWeatherServiceFactory.configuredAPIKey(),
-        fallback: RecordWeatherSnapshot = .fallbackClear
+        fallback: RecordWeatherSnapshot = .unavailable
     ) async -> RecordWeatherSnapshot {
         guard RecordWeatherFetchPolicy.shouldAttemptLiveFetch(locationState: locationState, apiKey: apiKey),
               let coordinate = locationState.coordinate else {
@@ -721,17 +713,20 @@ enum RecordWeatherResolver {
 }
 
 enum RecordWeatherRecommendationCopy {
+    static let unavailableGuidance = "실시간 날씨를 확인할 수 없어요. 주변 환경을 확인하고 운동을 시작해요."
+
     static func prefix(for weather: RecordWeatherSnapshot) -> String? {
+        guard !weather.isFallback else { return nil }
         switch weather.condition {
         case .rain, .storm:
             return "비가 오면 짧게, 미끄럼만 조심해요"
         case .snow:
             return "길이 미끄러울 수 있어 짧게 시작해요"
         case .clear:
-            if let speed = weather.wind?.speedMps, speed >= 6 {
-                return "맑지만 바람이 강해요"
-            }
-            return "맑고 바람이 약해요"
+            guard let speed = weather.wind?.speedMps else { return "날씨가 맑아요" }
+            if speed >= 6 { return "맑지만 바람이 강해요" }
+            if speed < 2.5 { return "맑고 바람이 약해요" }
+            return "맑고 바람은 보통이에요"
         case .cloudy:
             if let speed = weather.wind?.speedMps, speed >= 6 {
                 return "흐리고 바람이 강해요"
@@ -752,6 +747,14 @@ struct RecordRouteRecommendation: Equatable {
     let durationText: String
     let reason: String
     let coordinates: [RecordMapCoordinate]
+
+    static let unavailable = RecordRouteRecommendation(
+        title: "추천 코스 없음",
+        distanceText: "",
+        durationText: "",
+        reason: "아직 추천 코스 정보가 없어요.",
+        coordinates: []
+    )
 
     static let mockHanRiver = RecordRouteRecommendation(
         title: "한강 가벼운 코스",
@@ -799,6 +802,7 @@ struct RecordLaunchRecommendation: Equatable {
     }
 
     func compactText(for sport: RecordSportMode, weather: RecordWeatherSnapshot) -> String {
+        guard !weather.isFallback else { return "실시간 날씨 정보 없음" }
         let sportText: String
         switch sport {
         case .cycling:
@@ -817,6 +821,7 @@ struct RecordLaunchRecommendation: Equatable {
     }
 
     func guidanceText(for sport: RecordSportMode, weather: RecordWeatherSnapshot) -> String {
+        guard !weather.isFallback else { return RecordWeatherRecommendationCopy.unavailableGuidance }
         let sportText: String
         switch sport {
         case .cycling:
@@ -1151,8 +1156,8 @@ enum RecordReadyWaveInteractionState: CaseIterable, Equatable {
 
 enum RecordReadyLaunchVisualLayout {
     static let coordinateSpaceName = "record-ready-launch-control"
-    static let containerHeight: CGFloat = 214
-    static let buttonDiameter: CGFloat = 104
+    static let containerHeight: CGFloat = 320
+    static let buttonDiameter: CGFloat = 88
     static let interactiveHitDiameter: CGFloat = buttonDiameter
     static let maxInteractiveHitDiameter: CGFloat = 112
     static let usesCircleContentShape = true
@@ -1208,17 +1213,17 @@ enum RecordReadyRadialHapticEvent: Equatable {
 }
 
 enum RecordReadyRadialLayout {
-    static let radius: CGFloat = 106
-    static let hitRadius: CGFloat = 42
+    static let radius: CGFloat = 174
+    static let hitRadius: CGFloat = 34
     static let touchRevealMinimumDistance: CGFloat = 0
     static let sportIconInitialScale: CGFloat = 0.30
     static let sportIconFinalScale: CGFloat = 1.0
     static let hoveredScale: CGFloat = 1.14
 
     static let sportAngles: [RecordSportMode: Double] = [
-        .cycling: 150,
+        .cycling: 128,
         .running: 90,
-        .walking: 30
+        .walking: 52
     ]
 
     static let revealDelays: [RecordSportMode: Double] = [
@@ -1314,6 +1319,14 @@ struct RecordRouteCatalogOption: Identifiable, Equatable {
     let route: RecordRouteRecommendation
     let tag: String
 
+    // No route provider is connected yet. Fixture routes must never become live suggestions.
+    static func availableOptions(for sport: RecordSportMode) -> [RecordRouteCatalogOption] {
+        []
+    }
+
+    static let emptyStateTitle = "아직 추천 코스 정보가 없어요"
+    static let emptyStateMessage = "주변 환경을 확인하고 익숙한 길에서 운동을 시작해 보세요. 운동한 경로는 기록에 저장돼요."
+
     static func mockOptions(for sport: RecordSportMode) -> [RecordRouteCatalogOption] {
         [
             RecordRouteCatalogOption(
@@ -1382,6 +1395,18 @@ struct RecordLaunchPlan: Equatable {
     let usesMapboxWhenConfigured: Bool
     let requiresLocationPermissionOnEntry: Bool
 
+    static let initial = RecordLaunchPlan(
+        defaultSport: .cycling,
+        recommendation: RecordLaunchRecommendation(
+            recoveryLabel: "회복 데이터 없음",
+            title: "주변 환경을 확인하고 시작해요",
+            subtitle: "종목을 고르고 편안한 강도로 운동을 시작해요."
+        ),
+        route: .unavailable,
+        usesMapboxWhenConfigured: true,
+        requiresLocationPermissionOnEntry: false
+    )
+
     static let mockToday = RecordLaunchPlan(
         defaultSport: .cycling,
         recommendation: RecordLaunchRecommendation(
@@ -1393,4 +1418,15 @@ struct RecordLaunchPlan: Equatable {
         usesMapboxWhenConfigured: true,
         requiresLocationPermissionOnEntry: false
     )
+}
+
+
+/// Location authorization deliberately is not a start gate; the session records available data only.
+enum RecordStartEligibility: Equatable {
+    case ready, alreadyRecording, watchActive, storageNotReady
+    static func evaluate(hasActiveSession: Bool, watchWorkoutActive: Bool, storageReady: Bool) -> Self {
+        if hasActiveSession { return .alreadyRecording }
+        if watchWorkoutActive { return .watchActive }
+        return storageReady ? .ready : .storageNotReady
+    }
 }

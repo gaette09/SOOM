@@ -49,7 +49,7 @@ struct ShareableWorkoutCardBuilder {
             recoveryMessage: recoveryMessage(from: recoveryImpact),
             footerText: footerText(for: visibility),
             visibility: visibility,
-            staticRoutePreview: staticRoutePreview
+            staticRoutePreview: processedWorkout.routeMissingReason != .indoorNoLocationData && staticRoutePreview?.routeWorkoutID == processedWorkout.id ? staticRoutePreview : nil
         )
     }
 
@@ -197,6 +197,8 @@ struct ShareableWorkoutCardBuilder {
             return "SOOM · 공유 전 미리보기"
         case .followers:
             return "SOOM · 팔로워 공유 예정"
+        case .mutual:
+            return "SOOM · 맞팔 공유 예정"
         case .publicFeed:
             return "SOOM · 공개 피드 공유 예정"
         }

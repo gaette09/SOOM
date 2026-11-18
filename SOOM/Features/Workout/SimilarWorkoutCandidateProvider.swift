@@ -132,7 +132,7 @@ struct SimilarWorkoutCandidateProvider: SimilarWorkoutCandidateProviding {
     }
 
     private func comparableWorkouts(for current: UnifiedWorkout) async throws -> [UnifiedWorkout] {
-        let workouts = try await store.fetchRecentWorkouts(days: recentDays)
+        let workouts = try await store.fetchCanonicalRecentWorkouts(days: recentDays)
         return Array(
             workouts
                 .filter { $0.id != current.id }

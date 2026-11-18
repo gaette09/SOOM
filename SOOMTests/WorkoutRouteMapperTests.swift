@@ -99,3 +99,23 @@ final class WorkoutRouteMapperTests: XCTestCase {
         )
     }
 }
+
+extension WorkoutRouteMapperTests {
+    func testSegmentMetadataRoundTripsAndLegacyPayloadDefaultsToOneSegment() throws {
+        let coordinates = [
+            WorkoutRouteCoordinate(latitude: 37.5, longitude: 127, segmentIndex: 0),
+            WorkoutRouteCoordinate(latitude: 37.5001, longitude: 127, segmentIndex: 0),
+            WorkoutRouteCoordinate(latitude: 37.6, longitude: 127, segmentIndex: 1),
+            WorkoutRouteCoordinate(latitude: 37.6001, longitude: 127, segmentIndex: 1)
+        ]
+        let route = WorkoutRoute(workoutId: UUID(), source: .soomLocal, coordinates: coordinates, totalDistanceMeters: 22)
+        let restored = mapper.makeRoute(from: mapper.makeRecord(from: route))
+        XCTAssertEqual(restored.coordinates, coordinates)
+        XCTAssertEqual(restored.coordinateSegments.map(\.count), [2, 2])
+        let data = try XCTUnwrap(mapper.encodeCoordinates(coordinates)?.data(using: .utf8))
+        var payload = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+        for index in payload.indices { payload[index].removeValue(forKey: "segmentIndex") }
+        let legacy = String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
+        XCTAssertEqual(mapper.decodeCoordinates(legacy).map(\.segmentIndex), [0, 0, 0, 0])
+    }
+}

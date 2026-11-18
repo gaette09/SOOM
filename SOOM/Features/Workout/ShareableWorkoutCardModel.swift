@@ -165,6 +165,10 @@ enum ShareCardComposerLayout {
         .targets
     ]
 
+    static func availableCardTypes(for card: ShareableWorkoutCardModel) -> [ShareCardType] {
+        cardOrder.filter { $0 != .route || card.hasRoutePreviewPayload }
+    }
+
     static func cardType(at index: Int) -> ShareCardType {
         guard cardOrder.indices.contains(index) else { return cardOrder[0] }
         return cardOrder[index]
@@ -186,6 +190,7 @@ enum ShareCardLayoutVariant: String, CaseIterable, Equatable {
 enum ShareableWorkoutVisibility: String, Equatable {
     case privateOnly
     case followers
+    case mutual
     case publicFeed
 
     var title: String {
@@ -193,9 +198,11 @@ enum ShareableWorkoutVisibility: String, Equatable {
         case .privateOnly:
             return "나만 보기"
         case .followers:
-            return "팔로워"
+            return "승인된 팔로워"
+        case .mutual:
+            return "맞팔공개"
         case .publicFeed:
-            return "공개 피드"
+            return "전체공개"
         }
     }
 }
@@ -203,6 +210,17 @@ enum ShareableWorkoutVisibility: String, Equatable {
 struct ShareCardMetric: Equatable {
     let label: String
     let value: String
+}
+
+struct ShareImageSourceKey: Equatable {
+    let workoutID: UUID
+    let workoutType: UnifiedWorkoutType
+    let distance: String
+    let duration: String
+    let movement: String?
+    let routeWorkoutID: UUID?
+    let routeIsAvailable: Bool
+    let maskedCoordinates: [ShareRouteCoordinate]
 }
 
 struct ShareableWorkoutCardModel: Identifiable, Equatable {
@@ -225,9 +243,22 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
     let activeEnergyText: String?
     let layoutVariant: ShareCardLayoutVariant
 
-    var hasRoutePreviewPayload: Bool {
-        staticRoutePreview?.routeExists == true
+    /// Only actual image inputs identify a source change. Remote URL encoding
+    /// order and unused metadata must not dismiss the active composer.
+    var imageSourceKey: ShareImageSourceKey {
+        ShareImageSourceKey(workoutID: id, workoutType: workoutType, distance: distanceText,
+            duration: durationText, movement: averagePaceText,
+            routeWorkoutID: staticRoutePreview?.routeWorkoutID, routeIsAvailable: hasRoutePreviewPayload,
+            maskedCoordinates: staticRoutePreview?.maskedCoordinates ?? [])
     }
+
+    var routeGeometry: ShareRouteGeometry? {
+        guard let preview = staticRoutePreview, preview.routeExists,
+              preview.routeWorkoutID == id else { return nil }
+        return ShareRouteGeometry(coordinates: preview.maskedCoordinates)
+    }
+    var hasRoutePreviewPayload: Bool { routeGeometry != nil }
+    var canExportShareImage: Bool { shareType != .route || hasRoutePreviewPayload }
 
     var isRouteBasedWorkout: Bool {
         switch workoutType {
@@ -239,7 +270,7 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
     }
 
     var shouldShowRouteVisual: Bool {
-        hasRoutePreviewPayload || (isRouteBasedWorkout && (shareType == .workout || shareType == .route))
+        hasRoutePreviewPayload
     }
 
     var shouldShowRouteLineInTransparentExport: Bool {
@@ -312,7 +343,7 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         case .recovery:
             return "좋음"
         case .route:
-            return "한강 북단"
+            return "나의 코스"
         case .club:
             return "SOOM Riders"
         }
@@ -325,7 +356,7 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         case .recovery:
             return "밀어도 되는 날"
         case .route:
-            return "좋은 바람이 있던 날"
+            return "기록한 운동 경로"
         case .club:
             return "이번 주 12위"
         }
@@ -342,7 +373,7 @@ struct ShareableWorkoutCardModel: Identifiable, Equatable {
         case .recovery:
             return "82"
         case .route:
-            return "\(compactDistanceText) · 강변 코스"
+            return "\(compactDistanceText) · \(compactDurationText)"
         case .club:
             return "42.6km 기여"
         }
@@ -604,6 +635,8 @@ enum ShareCardPrivacyPolicy {
             return "SOOM · \(type.title) 공유 전 미리보기"
         case .followers:
             return "SOOM · \(type.title) 팔로워 공유 예정"
+        case .mutual:
+            return "SOOM · \(type.title) 맞팔 공유 예정"
         case .publicFeed:
             return "SOOM · \(type.title) 공개 공유 예정"
         }

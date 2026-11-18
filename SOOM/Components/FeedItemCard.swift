@@ -1,313 +1,429 @@
+import SwiftData
 import SwiftUI
+import Supabase
 
 struct FeedItemCard: View {
     let item: FeedItem
     var isOwnPost: Bool = false
     var onToggleCheer: () -> Void = {}
     var onToggleSave: () -> Void = {}
-    var onSubmitComment: (String) -> Void = { _ in }
+    var onSubmitComment: (String) async throws -> Void = { _ in throw CommunitySafetyError.unavailable }
     var onDeletePost: () -> Void = {}
-
-    @State private var isComposingComment = false
-    @State private var isConfirmingDelete = false
+    var onOpen: (() -> Void)? = nil
+    var requiresPublicVisibility = false
+    var showsSocialActions = true
+    @ObservedObject private var safety = CommunitySafetyStore.shared
+    @State private var showingComments = false
+    @State private var showingCheers = false
+    @State private var opening = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, SOOMLayout.Spacing.lg)
-
-            titleBlock
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, SOOMLayout.Spacing.md)
-
-            mediaPreview
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, SOOMLayout.Spacing.md)
-
-            metricsBlock
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, SOOMLayout.Spacing.md)
-
-            actionBar
-                .padding(.horizontal, SOOMLayout.Card.padding)
-                .padding(.top, SOOMLayout.Spacing.md)
-                .padding(.bottom, SOOMLayout.Spacing.lg)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isPrivateToViewer ? SOOMColor.surfaceMuted : SOOMColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous)
-                .stroke(SOOMColor.black.opacity(0.08), lineWidth: SOOMLayout.Card.borderWidth)
-        }
-        .overlay(alignment: .topLeading) {
-            if isPrivateToViewer {
-                privateLockBadge
+        if item.previewLegacySummary {
+            PreviewLegacySummaryCard(item: item)
+        } else if let row = item.activityProjection {
+            AccountActivitySummaryCard(row: row, localViewerID: safety.viewerID)
+        } else if onOpen == nil {
+            cardContent.navigationDestination(isPresented: $opening) {
+                FeedItemDetailDestination(item: item, onSubmitComment: onSubmitComment)
             }
-        }
-        .shadow(color: SOOMColor.black.opacity(0.07), radius: 18, x: 0, y: 10)
-        .contentShape(RoundedRectangle(cornerRadius: SOOMRadius.card, style: .continuous))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(item.authorName)의 \(item.itemType.title) 피드")
-        .accessibilityValue(accessibilitySummary)
-        .confirmationDialog(
-            "이 게시물을 삭제할까요?",
-            isPresented: $isConfirmingDelete,
-            titleVisibility: .visible
-        ) {
-            Button("삭제", role: .destructive, action: onDeletePost)
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("삭제하면 되돌릴 수 없어요.")
-        }
-        .sheet(isPresented: $isComposingComment) {
-            FeedCommentComposeSheet { body in
-                onSubmitComment(body)
-            }
-            .presentationDetents([.height(260)])
-            .presentationDragIndicator(.visible)
-        }
+        } else { cardContent }
     }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 11) {
-            FeedProfileAvatar()
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 7) {
-                    Text(item.authorName)
-                        .font(SOOMFont.body(15, weight: .bold, relativeTo: .subheadline))
-                        .foregroundStyle(SOOMColor.ink)
-                        .lineLimit(1)
-
-                    Text(feedTypeText)
-                        .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(SOOMColor.tertiaryInk)
-                        .lineLimit(1)
+    private var cardContent: some View {
+        VStack(spacing: 0) {
+            if !requiresPublicVisibility, WorkoutRecordEditPolicy.owns(item, viewerID: safety.viewerID), let id = item.sourceWorkoutId {
+                OwnedFeedWorkoutCard(item: item, sourceID: id, onOpen: openDetail)
+            } else {
+                RemoteFeedWorkoutCard(item: item, onOpen: openDetail, requiresPublicVisibility: requiresPublicVisibility)
+            }
+            if !item.isLocalDraft && showsSocialActions {
+                if !visibleCheers.isEmpty {
+                    Button { showingCheers = true } label: {
+                        HStack(spacing: 10) {
+                            HStack(spacing: -8) {
+                                ForEach(Array(visibleCheers.prefix(3))) { cheer in
+                                    SOOMAvatarView(userID: cheer.authorId, avatarPath: cheer.profile?.avatarPath, size: 28)
+                                        .overlay(Circle().stroke(SOOMColor.surface, lineWidth: 2))
+                                }
+                            }
+                            Text("\(visibleCheers.count)명이 화이팅하고 있어요")
+                                .font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                            Spacer(minLength: 0)
+                        }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.plain).padding(.horizontal, 16).padding(.top, 8)
+                    .accessibilityLabel("화이팅한 사람 \(visibleCheers.count)명 보기")
                 }
+                HStack {
+                    Button(action: onToggleCheer) {
+                        Image(soom: item.viewerHasCheered ? "hand.thumbsup.fill" : SOOMIcon.thumbsUp)
+                            .font(.system(size: 25)).frame(maxWidth: .infinity, minHeight: 48)
+                    }
+                    .disabled(item.previewLegacyReadContext != nil || !safety.canUseSocial)
+                    .accessibilityLabel(item.viewerHasCheered ? "응원 취소" : "응원")
+                    .accessibilityAddTraits(item.viewerHasCheered ? [.isSelected] : [])
+                    Button { showingComments = true } label: {
+                        TimelineView(.periodic(from: .now, by: 60)) { context in
+                            Image(soom: SOOMIcon.comment).font(.system(size: 25))
+                                .overlay(alignment: .topTrailing) {
+                                    if !item.comments.isEmpty {
+                                        let isNew = item.hasRecentComment(now: context.date)
+                                        Circle().fill(SOOMColor.accent)
+                                            .frame(width: isNew ? 15 : 8, height: isNew ? 15 : 8)
+                                            .overlay {
+                                                if isNew { Text("n").font(.system(size: 10, weight: .bold)).foregroundStyle(.white) }
+                                            }.offset(x: 7, y: -5)
+                                    }
+                                }
+                        }.frame(maxWidth: .infinity, minHeight: 48)
+                    }
+                    .accessibilityLabel("댓글 \(item.comments.count)개")
+                    Button(action: onToggleSave) {
+                        Image(soom: item.viewerHasSaved ? SOOMIcon.bookmarkFilled : SOOMIcon.bookmark)
+                            .font(.system(size: 24)).frame(maxWidth: .infinity, minHeight: 48)
+                    }.accessibilityLabel(item.viewerHasSaved ? "저장 취소" : "기록 저장")
+                }.buttonStyle(.plain).foregroundStyle(SOOMColor.ink).padding(.horizontal, 16).padding(.vertical, 10)
+            }
+            Rectangle().fill(SOOMColor.surfaceMuted).frame(height: 6)
+        }
+        .background(SOOMColor.surface)
+        .padding(.horizontal, -SOOMLayout.screenPadding)
+        .sheet(isPresented: $showingComments) {
+            FeedCommentsSheet(item: item, onSubmit: onSubmitComment)
+        }
+        .sheet(isPresented: $showingCheers) { FeedCheersSheet(item: item) }
+    }
+    private var visibleCheers: [FeedReaction] {
+        item.orderedCheers.filter { $0.authorId.map { !safety.isBlocked($0) } ?? false }
+    }
+    private func openDetail() {
+        SOOMHaptics.selection()
+        if let onOpen { onOpen() } else { opening = true }
+    }
+}
 
-                HStack(spacing: 5) {
-                    Text(relativeTimeText)
+private struct OwnedFeedWorkoutCard: View {
+    let item: FeedItem
+    let onOpen: () -> Void
+    @Query private var records: [UnifiedWorkoutRecord]
+    @Query private var routes: [PersistedWorkoutRoute]
+    @Environment(\.modelContext) private var context
+    @EnvironmentObject private var auth: AuthViewModel
+    @EnvironmentObject private var storage: HealthAccountStorageController
+    @State private var achievements: [WorkoutAchievement] = []
+    @State private var relatedRoute: WorkoutRoute?
+    @State private var routeProjection = WorkoutCardRouteProjection()
+    init(item: FeedItem, sourceID: UUID, onOpen: @escaping () -> Void) {
+        self.item = item
+        self.onOpen = onOpen
+        _records = Query(filter: #Predicate<UnifiedWorkoutRecord> { $0.id == sourceID })
+        _routes = Query(filter: #Predicate<PersistedWorkoutRoute> { $0.workoutId == sourceID })
+    }
+    var body: some View {
+        if let record = records.first {
+            WorkoutManagementHost(workout: UnifiedWorkoutPersistenceMapper().makeWorkout(from: record)) { workout, management in
+                FeedWorkoutArticle(item: item, workout: workout,
+                    route: displayedRoute,
+                    achievements: achievements, onOpen: onOpen) {
+                        WorkoutManagementButtons(model: management, includesBookmark: false)
+                    }
+                    .task(id: WorkoutCardLoadIdentity(account: auth.accountDeletionTarget, scopeID: storage.scopeID,
+                        workoutID: workout.id, workoutUpdatedAt: workout.updatedAt, routeUpdatedAt: routes.first?.updatedAt,
+                        dataRevision: storage.dataRevision, routeContent: routes.first.map(WorkoutRouteReadSnapshot.init))) {
+                        await loadAchievements(workout)
+                    }
+                    .task(id: WorkoutCardRegionLoadIdentity(account: auth.accountDeletionTarget, scopeID: storage.scopeID,
+                        workoutID: workout.id, routeUpdatedAt: routes.first?.updatedAt, locationName: workout.locationName)) {
+                        let expectedScope = storage.scopeID
+                        let expectedAccount = auth.accountDeletionTarget
+                        _ = await WorkoutRegionEnricher.resolveAndPersist(workoutID: workout.id, context: context,
+                            scopeID: expectedScope, isCurrent: {
+                                storage.scopeID == expectedScope && storage.container === context.container
+                                    && auth.accountDeletionTarget == expectedAccount
+                            })
+                    }
+            }
+        } else { RemoteFeedWorkoutCard(item: item, onOpen: onOpen) }
+    }
+    private func loadAchievements(_ workout: UnifiedWorkout) async {
+        let expectedScope = storage.scopeID
+        let expectedAccount = auth.accountDeletionTarget
+        let loadedRoute = try? await WorkoutTelemetryStore(modelContext: context).resolvedRoute(for: workout)
+        guard !Task.isCancelled, storage.scopeID == expectedScope,
+              storage.container === context.container, auth.accountDeletionTarget == expectedAccount else { return }
+        relatedRoute = loadedRoute
+        // The primary route does not wait for optional achievement history.
+        let loaded = await WorkoutCardAchievementLoader.load(workout: workout,
+            route: loadedRoute ?? displayedRoute, context: context)
+        guard !Task.isCancelled, storage.scopeID == expectedScope,
+              storage.container === context.container, auth.accountDeletionTarget == expectedAccount else { return }
+        achievements = loaded
+        relatedRoute = loadedRoute
+    }
+    private var displayedRoute: WorkoutRoute? {
+        let own = routeProjection.route(routes.first, context: context)
+        return (relatedRoute?.coordinates.count ?? 0) > (own?.coordinates.count ?? 0) ? relatedRoute : own
+    }
+}
+
+/// Bind a measured article height to the viewport and text layout, rather than
+/// comparing an inset article's width with the outer scroll viewport.
+/// Geometry only: no content, media, authority or observable publications.
+struct FeedCardGeometryScope: Equatable {
+    let viewerID: UUID?
+    let generation: Int
+    let safetyRevision: Int
+}
+struct FeedCardGeometryKey: Hashable {
+    let cardID: UUID
+    let width: CGFloat
+    let font: String
+    let kind: String
+}
+@MainActor final class FeedCardGeometryStore {
+    private struct Entry { let height: CGFloat; let order: UInt64 }
+    private var entries: [FeedCardGeometryKey: Entry] = [:]
+    private var scope: FeedCardGeometryScope?
+    private var sequence: UInt64 = 0
+    let maximumCount: Int
+    var count: Int { entries.count }
+    init(maximumCount: Int = 256) { self.maximumCount = max(0, maximumCount) }
+    func reset(to next: FeedCardGeometryScope) {
+        guard scope != next else { return }
+        entries.removeAll(); scope = next
+    }
+    func height(for key: FeedCardGeometryKey, scope expected: FeedCardGeometryScope) -> CGFloat? {
+        guard scope == expected, key.width.isFinite, key.width > 0 else { return nil }
+        return entries[key]?.height
+    }
+    @discardableResult func record(_ height: CGFloat, for key: FeedCardGeometryKey,
+                                  scope expected: FeedCardGeometryScope) -> Bool {
+        guard maximumCount > 0, key.width.isFinite, key.width > 0,
+              height.isFinite, height >= 44 else { return false }
+        // A verified row can be measured before the host's initial onChange.
+        // Initialize once only; an old callback can never reset a newer scope.
+        if scope == nil { scope = expected }
+        guard scope == expected else { return false }
+        if let old = entries[key]?.height, abs(old - height) < 0.5 { return false }
+        sequence &+= 1
+        entries[key] = Entry(height: height, order: sequence)
+        while entries.count > maximumCount, let oldest = entries.min(by: { $0.value.order < $1.value.order })?.key {
+            entries[oldest] = nil
+        }
+        return true
+    }
+}
+private struct FeedCardGeometryStoreKey: EnvironmentKey {
+    static let defaultValue: FeedCardGeometryStore? = nil
+}
+extension EnvironmentValues {
+    var soomFeedCardGeometryStore: FeedCardGeometryStore? {
+        get { self[FeedCardGeometryStoreKey.self] }
+        set { self[FeedCardGeometryStoreKey.self] = newValue }
+    }
+}
+
+struct SOOMFeedCardLayoutReservation<LayoutToken: Equatable>: Equatable {
+    private var measured = SOOMContentHeightReservation()
+    private var token: LayoutToken?
+    mutating func record(_ size: CGSize, viewportWidth: CGFloat?, layoutToken: LayoutToken) -> Bool {
+        let width = viewportWidth ?? size.width
+        guard size.width.isFinite, size.width > 0, size.height.isFinite, size.height > 0,
+              width.isFinite, width > 0 else { return false }
+        let changed = measured.record(CGSize(width: width, height: size.height))
+        guard changed || (measured.verifiedSize != nil && token != layoutToken) else { return false }
+        token = layoutToken
+        return true
+    }
+    func height(forViewportWidth width: CGFloat?, layoutToken: LayoutToken) -> CGFloat? {
+        guard token == layoutToken else { return nil }
+        return measured.height(forViewportWidth: width)
+    }
+}
+
+private struct RemoteFeedWorkoutCard: View {
+    let item: FeedItem
+    let onOpen: () -> Void
+    var requiresPublicVisibility = false
+    @Environment(\.soomFeedRevalidationRevision) private var revalidationRevision
+    @Environment(\.soomFeedIsActive) private var feedIsActive
+    @ObservedObject private var safety = CommunitySafetyStore.shared
+    @StateObject private var management: FeedPostManagement
+    @Environment(\.soomScrollViewportWidth) private var viewportWidth
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var heightReservation = SOOMFeedCardLayoutReservation<DynamicTypeSize>()
+    @Environment(\.soomFeedCardGeometryStore) private var cardGeometry
+    private var geometryScope: FeedCardGeometryScope {
+        .init(viewerID: safety.viewerID, generation: safety.accountGeneration, safetyRevision: safety.revision)
+    }
+    private var geometryKey: FeedCardGeometryKey? {
+        guard let width = viewportWidth, width.isFinite, width > 0 else { return nil }
+        return .init(cardID: item.id, width: width, font: String(describing: dynamicTypeSize), kind: "legacy")
+    }
+    private var reservedHeight: CGFloat? {
+        guard let geometryKey else { return nil }
+        return cardGeometry?.height(for: geometryKey, scope: geometryScope)
+    }
+    private struct AppearanceKey: Equatable {
+        let revision: Int
+        let safetyRevision: Int
+        let isActive: Bool
+    }
+    @State private var verifiedAppearanceKey: AppearanceKey?
+    #if DEBUG
+    @State private var appearanceEvents: [String] = []
+    private func recordAppearanceEvent(_ label: String) {
+        guard ProcessInfo.processInfo.environment["SOOM_FEED_SCROLL_READ_QA"] == "1" else { return }
+        appearanceEvents = Array((appearanceEvents + [label]).suffix(12))
+    }
+    #endif
+    private var appearanceKey: AppearanceKey {
+        AppearanceKey(revision: revalidationRevision, safetyRevision: safety.revision, isActive: feedIsActive)
+    }
+    init(item: FeedItem, onOpen: @escaping () -> Void, requiresPublicVisibility: Bool = false) {
+        self.item = item; self.onOpen = onOpen
+        self.requiresPublicVisibility = requiresPublicVisibility
+        _management = StateObject(wrappedValue: FeedPostManagement(item: item))
+    }
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+            Group {
+                if (item.isLocalDraft && !requiresPublicVisibility) || management.canRetainArticle {
+                    let value = item.isLocalDraft ? item : management.item
+                    FeedWorkoutArticle(item: value, onOpen: onOpen) {
+                        EmptyView()
+                    }
+                    // Keep article/photo state during a short access check,
+                    // but expose none of it until this appearance is authorized.
+                    .opacity(contentPermitted ? 1 : 0)
+                    .allowsHitTesting(contentPermitted)
+                    .accessibilityHidden(!contentPermitted)
+                    .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                        guard contentPermitted else { return }
+                        var next = heightReservation
+                        if next.record(size, viewportWidth: viewportWidth, layoutToken: dynamicTypeSize) { heightReservation = next }
+                        if let geometryKey { cardGeometry?.record(size.height, for: geometryKey, scope: geometryScope) }
+                    }
+                } else {
+                    Color.clear.frame(maxWidth: .infinity, minHeight: pendingHeight)
                 }
-                .font(SOOMFont.body(12, relativeTo: .caption))
-                .foregroundStyle(SOOMColor.secondaryInk)
-                .lineLimit(1)
             }
-
-            Spacer(minLength: 8)
-
-            if isOwnPost {
-                Button {
-                    isConfirmingDelete = true
-                } label: {
-                    Image(systemName: SOOMIcon.more)
-                        .font(.system(size: SOOMFont.Size.body, weight: .semibold))
-                        .foregroundStyle(SOOMColor.secondaryInk)
-                        .frame(width: 30, height: 30)
+                if !contentPermitted {
+                    if let reservedHeight {
+                        AccountActivityPendingCard(minimumHeight: reservedHeight, reservedHeight: reservedHeight,
+                            unavailable: !management.isWorking && !management.isCheckingAccess && management.hasLoaded && verifiedAppearanceKey == appearanceKey) {
+                                Task { await verifyAppearance() }
+                            }
+                    } else if management.isWorking || management.isCheckingAccess || !management.hasLoaded || verifiedAppearanceKey != appearanceKey {
+                        if management.showsAccessProgress { AccountActivityWorkoutPlaceholder(minimumHeight: pendingHeight, hasKnownMedia: !item.photos.isEmpty || item.recordImageURL != nil ? true : nil) }
+                    } else {
+                        VStack(spacing: 8) {
+                            Text("표시할 수 없는 기록입니다.").font(.subheadline).foregroundStyle(.secondary)
+                            Button("다시 시도") { Task { await verifyAppearance() } }.frame(minHeight: 44)
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("피드 더보기")
+            }
+            .frame(height: contentPermitted ? nil : reservedHeight)
+            .animation(nil, value: contentPermitted)
+            if let notice = management.notice { Text(notice).font(.footnote).foregroundStyle(.secondary) }
+        }
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            if ReviewDemoMode.isActive, ProcessInfo.processInfo.environment["SOOM_FEED_SCROLL_READ_QA"] == "1" {
+                VStack(alignment: .trailing) {
+                    Text("access=\(management.appearanceStatistics.accessReads);full=\(management.appearanceStatistics.fullArticleReads);visible=\(contentPermitted)")
+                        .accessibilityIdentifier("feed.reads.\(item.id.uuidString)")
+                    Text("events=" + appearanceEvents.joined(separator: ","))
+                }.font(.system(size: 8)).allowsHitTesting(false)
+            }
+        }
+        #endif
+        .task(id: appearanceKey) {
+            #if DEBUG
+            recordAppearanceEvent("task:r\(revalidationRevision):a\(feedIsActive):f\(management.appearanceStatistics.fullArticleReads)")
+            #endif
+            if !feedIsActive { management.invalidateAppearanceVerification(); return }
+            await verifyAppearance()
+        }
+        // Lazy row disappearance is not a new feed visit. The active/safety/
+        // revalidation key invalidates on real lifecycle or permission changes.
+        .onChange(of: item) { old, value in
+            management.adoptIfIdle(value)
+            if old.serverPostSnapshot != value.serverPostSnapshot
+                || old.sharedDetailContractEnabled != value.sharedDetailContractEnabled
+                || old.permittedSharedDetail != value.permittedSharedDetail {
+                #if DEBUG
+                recordAppearanceEvent("item:r\(revalidationRevision):a\(feedIsActive):f\(management.appearanceStatistics.fullArticleReads)")
+                #endif
+                verifiedAppearanceKey = nil
+                management.invalidateAppearanceVerification()
+                Task { await verifyAppearance() }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: FeedPostManagement.didChange)) { note in
+            if note.userInfo?["postID"] as? UUID == item.id {
+                verifiedAppearanceKey = nil
+                management.invalidateAppearanceVerification()
+                Task { await verifyAppearance() }
             }
         }
     }
 
-    private var titleBlock: some View {
-        Text(feedTitle)
-            .font(SOOMFont.displayMedium(19, relativeTo: .headline))
-            .foregroundStyle(SOOMColor.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.86)
+    private var contentPermitted: Bool {
+        (item.isLocalDraft && !requiresPublicVisibility)
+            || (verifiedAppearanceKey == appearanceKey && feedIsActive && management.canDisplayContent
+                && (!requiresPublicVisibility || management.item.visibility == .publicFeed))
     }
 
-    @ViewBuilder
-    private var mediaPreview: some View {
-        switch item.cardData {
-        case .workoutSession(let card):
-            FeedReferenceMediaPreview(
-                routeStyle: card.staticRoutePreview?.fallbackStyle ?? StaticRouteFallbackStyle(workoutType: card.workoutType),
-                routeExists: card.staticRoutePreview?.routeExists == true,
-                distanceText: card.distanceText,
-                routeLabel: item.routeMood ?? "\(card.workoutType.feedShortTitle) route",
-                photos: item.photoPlaceholders,
-                tint: tint
-            )
-        case .weeklyProgress:
-            FeedReferenceMediaPreview(
-                routeStyle: .generic,
-                routeExists: false,
-                distanceText: "이번 주",
-                routeLabel: item.routeMood ?? "반복된 루틴",
-                photos: item.photoPlaceholders,
-                tint: tint
-            )
+    @MainActor private func verifyAppearance() async {
+        guard !item.isLocalDraft, feedIsActive else { return }
+        let key = appearanceKey
+        await management.refreshForVisiblePresentation(revalidationRevision: key.revision)
+        guard !Task.isCancelled, key == appearanceKey else { return }
+        // Mark a finished failed check too, so it shows the existing retry UI.
+        verifiedAppearanceKey = key
+    }
+
+    private var pendingHeight: CGFloat {
+        if cardGeometry != nil {
+            return reservedHeight ?? SOOMContentHeightReservation.initialHeight(hasKnownMedia: !item.photos.isEmpty || item.recordImageURL != nil)
+        }
+        return heightReservation.height(forViewportWidth: viewportWidth, layoutToken: dynamicTypeSize)
+            ?? SOOMContentHeightReservation.initialHeight(hasKnownMedia: !item.photos.isEmpty || item.recordImageURL != nil)
+    }
+}
+
+extension FeedItem {
+    var recordTitle: String {
+        switch cardData {
+        case .workoutSession(let card): return card.title
+        case .weeklyProgress(let card): return card.weekLabel
         }
     }
-
-    @ViewBuilder
-    private var metricsBlock: some View {
-        switch item.cardData {
-        case .workoutSession(let card):
-            FeedReferenceMetricGrid(metrics: [
-                FeedReferenceMetric(label: "거리", value: card.distanceText),
-                FeedReferenceMetric(label: "시간", value: card.durationText),
-                FeedReferenceMetric(label: speedOrPaceLabel(for: card), value: card.averagePaceText ?? "-"),
-                FeedReferenceMetric(label: "획득 고도", value: card.elevationGainText ?? "-")
-            ])
-        case .weeklyProgress(let card):
-            FeedReferenceMetricGrid(metrics: [
-                FeedReferenceMetric(label: "운동", value: card.workoutCountText),
-                FeedReferenceMetric(label: "거리", value: card.totalDistanceText),
-                FeedReferenceMetric(label: "시간", value: card.totalDurationText)
-            ])
+    var recordWorkoutType: UnifiedWorkoutType {
+        switch cardData { case .workoutSession(let card): return card.workoutType; case .weeklyProgress: return .other }
+    }
+    var recordSportIcon: String {
+        switch recordWorkoutType {
+        case .running: return SOOMIcon.run
+        case .cycling: return SOOMIcon.bike
+        case .swimming: return SOOMIcon.swim
+        case .walking, .hiking: return "figure.walk"
+        case .strength: return "dumbbell"
+        case .yoga: return "figure.mind.and.body"
+        case .other: return SOOMIcon.activity
         }
     }
-
-    private var actionBar: some View {
-        HStack(spacing: 8) {
-            Button(action: onToggleCheer) {
-                FeedReferenceAction(
-                    icon: item.viewerHasCheered ? "hands.clap.fill" : "hands.clap",
-                    title: "응원",
-                    isProminent: item.viewerHasCheered
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(item.isLocalDraft)
-            .accessibilityAddTraits(item.viewerHasCheered ? [.isSelected] : [])
-
-            Spacer()
-
-            Button {
-                isComposingComment = true
-            } label: {
-                FeedReferenceAction(icon: SOOMIcon.comment, title: "댓글")
-            }
-            .buttonStyle(.plain)
-            .disabled(item.isLocalDraft)
-
-            Spacer()
-            Button(action: onToggleSave) {
-                FeedReferenceAction(
-                    icon: item.viewerHasSaved ? "bookmark.fill" : "bookmark",
-                    title: "저장",
-                    isProminent: item.viewerHasSaved
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(item.isLocalDraft)
-            .accessibilityAddTraits(item.viewerHasSaved ? [.isSelected] : [])
-        }
-        .padding(.top, SOOMLayout.Spacing.md)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(SOOMColor.line.opacity(0.12))
-                .frame(height: 1)
-        }
+    var recordSport: String {
+        switch cardData { case .workoutSession(let card): return card.workoutType.shareDisplayName; case .weeklyProgress: return "주간 운동" }
     }
-
-    private var tint: Color {
-        switch item.cardData {
-        case .workoutSession(let card):
-            return card.workoutType.feedTint
-        case .weeklyProgress:
-            return SOOMColor.accent
-        }
+    var recordImageURL: URL? {
+        if case .workoutSession(let card) = cardData { return card.staticRoutePreview?.imageURL }
+        return nil
     }
-
-    /// RLS already guarantees a `.privateOnly` item can only ever be the
-    /// viewer's own post (nobody else's private post is fetchable at all —
-    /// see SupabaseFeedRemoteClient.fetchFeedPosts), but `isOwnPost` is
-    /// checked too rather than trusting that alone, matching how this
-    /// screen never leans on RLS as the only line of defense.
-    private var isPrivateToViewer: Bool {
-        isOwnPost && item.visibility == .privateOnly
+    var recordMetrics: [WorkoutCardMetric] {
+        FeedCardFormatting.metrics(self)
     }
-
-    private var privateLockBadge: some View {
-        Image(systemName: "lock.fill")
-            .font(.system(size: 10, weight: .bold))
-            .foregroundStyle(SOOMColor.secondaryInk)
-            .frame(width: 24, height: 24)
-            .background(SOOMColor.surface)
-            .clipShape(Circle())
-            .overlay {
-                Circle().stroke(SOOMColor.black.opacity(0.08), lineWidth: 1)
-            }
-            .padding(8)
-            .accessibilityHidden(true)
-    }
-
-    private var feedTypeText: String {
-        switch item.cardData {
-        case .workoutSession(let card):
-            return card.workoutType.feedShortTitle
-        case .weeklyProgress:
-            return "주간 기록"
-        }
-    }
-
-    private var feedTitle: String {
-        switch item.cardData {
-        case .workoutSession(let card):
-            return item.activityContext.isEmpty ? card.title : item.activityContext
-        case .weeklyProgress(let card):
-            return item.activityContext.isEmpty ? card.weekLabel : item.activityContext
-        }
-    }
-
-    private var feedBody: String {
-        let source = item.caption ?? item.optionalShortStory ?? item.emotionalContext ?? fallbackMessage
-        return trimmedCopy(source, limit: 54)
-    }
-
-    private var fallbackMessage: String {
-        switch item.cardData {
-        case .workoutSession(let card):
-            return card.primaryMessage
-        case .weeklyProgress(let card):
-            return card.progressMessage
-        }
-    }
-
-    private var relativeTimeText: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: item.createdAt, relativeTo: Date(timeIntervalSince1970: 1_800_480_000))
-    }
-
-    private var accessibilitySummary: String {
-        let privacyPrefix = isPrivateToViewer ? "나만 보기. " : ""
-        switch item.cardData {
-        case .workoutSession(let card):
-            return "\(privacyPrefix)\(feedTitle). \(card.distanceText), \(card.durationText). \(feedBody)"
-        case .weeklyProgress(let card):
-            return "\(privacyPrefix)\(feedTitle). \(card.workoutCountText), \(card.totalDistanceText), \(card.totalDurationText). \(feedBody)"
-        }
-    }
-
-    private func trimmedCopy(_ value: String, limit: Int) -> String {
-        let line = value.split(separator: "\n", maxSplits: 1).first.map(String.init) ?? value
-        guard line.count > limit else {
-            return line
-        }
-        return "\(line.prefix(limit))..."
-    }
-
-    private func speedOrPaceLabel(for card: ShareableWorkoutCardModel) -> String {
-        switch card.workoutType {
-        case .running:
-            return "페이스"
-        case .cycling, .walking, .hiking:
-            return "속도"
-        case .swimming:
-            return "페이스"
-        case .strength, .yoga, .other:
-            return "페이스"
-        }
-    }
-
 }
 
 struct FeedProfileAvatar: View {
@@ -316,7 +432,7 @@ struct FeedProfileAvatar: View {
             .fill(SOOMColor.surfaceMuted)
             .frame(width: 40, height: 40)
             .overlay {
-                Image(systemName: SOOMIcon.profile)
+                Image(soom: SOOMIcon.profile)
                     .font(.system(size: SOOMFont.Size.headline, weight: .regular))
                     .foregroundStyle(SOOMColor.tertiaryInk)
             }
@@ -453,8 +569,7 @@ private struct FeedReferenceRoutePreview: View {
             WorkoutDetailMapView(
                 route: route,
                 fallbackStyle: routeStyle,
-                tint: tint,
-                routeLineWidth: SOOMRouteRenderingStyle.feedLineWidth
+                tint: tint
             )
                 .allowsHitTesting(false)
 
@@ -471,7 +586,7 @@ private struct FeedReferenceRoutePreview: View {
                 HStack {
                     Spacer()
 
-                    Label(photoCountText, systemImage: "camera")
+                    Label(photoCountText, soomIcon: "camera")
                         .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
                         .foregroundStyle(SOOMColor.ink.opacity(0.78))
                         .labelStyle(.titleAndIcon)
@@ -730,7 +845,7 @@ private struct FeedReferenceAction: View {
     var isProminent = false
 
     var body: some View {
-        Label(title, systemImage: icon)
+        Label(title, soomIcon: icon)
             .font(SOOMFont.body(11, weight: .bold, relativeTo: .caption2))
             .foregroundStyle(isProminent ? SOOMColor.ink : SOOMColor.secondaryInk)
             .labelStyle(.titleAndIcon)
@@ -788,4 +903,42 @@ extension UnifiedWorkoutType {
         FeedItemCard(item: FeedMockData.items[0])
     }
     .preferredColorScheme(.light)
+}
+
+private struct PreviewLegacySummaryCard: View {
+    let item: FeedItem
+    @ObservedObject private var safety = CommunitySafetyStore.shared
+    @Environment(\.scenePhase) private var phase
+    @Environment(\.soomFeedRevalidationRevision) private var refreshRevision
+    @Environment(\.soomFeedIsActive) private var feedActive
+    @State private var verified: FeedItem?
+    private var refreshKey: String { "\(item.id):\(safety.accountGeneration):\(safety.revision):\(refreshRevision):\(phase == .active):\(feedActive)" }
+    private var readable: Bool {
+        guard let receipt = item.previewLegacyReadContext else { return false }
+        return feedActive && phase == .active && safety.canUseActivityPreview && safety.viewerID == receipt.viewerID
+            && safety.accountGeneration == receipt.generation && safety.revision == receipt.safetyRevision
+            && !safety.isBlocked(item.authorId)
+    }
+    var body: some View {
+        SOOMCard {
+            if readable, let item = verified {
+                Text("공개 운동 요약").font(.headline)
+                if case .workoutSession(let card) = item.cardData { Text(card.title).font(.subheadline) }
+                if let date = item.activityDate { Text(date, style: .date).font(.caption) }
+                if let seconds = item.workoutDurationSeconds { Text("운동 시간 \(Int(seconds / 60))분") }
+                if let distance = item.workoutDistanceMeters { Text(String(format: "거리 %.2f km", distance / 1000)) }
+                Text("읽기 전용 · 댓글과 응원은 제공하지 않아요.").font(.caption).foregroundStyle(.secondary)
+            } else { Text("공개 범위를 다시 확인하고 있어요.").font(.caption) }
+        }
+        .task(id: refreshKey) { await revalidate() }
+    }
+    @MainActor private func revalidate() async {
+        verified = nil
+        guard readable, let receipt = item.previewLegacyReadContext,
+              let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient() else { return }
+        let key = refreshKey
+        let current = try? await SupabaseFeedRemoteClient(client: client).previewLegacySummaryCard(postID: item.id, context: receipt)
+        guard !Task.isCancelled, refreshKey == key, readable, current?.id == item.id, current?.authorId == item.authorId else { return }
+        verified = current
+    }
 }

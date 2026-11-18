@@ -6,7 +6,7 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
     func testOrderedGroupsFollowWorkoutDetailReadingFlow() {
         XCTAssertEqual(
             WorkoutDetailSectionGroup.ordered.map(\.id),
-            [.core, .growth, .sensorData, .recovery]
+            [.sensorData, .core, .growth, .recovery]
         )
     }
 
@@ -20,12 +20,12 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
     func testGroupTitlesStayShortAndScannable() {
         let titles = WorkoutDetailSectionGroup.ordered.map(\.title)
 
-        XCTAssertEqual(titles, ["오늘 핵심", "성장 흐름", "운동 데이터", "회복 해석"])
+        XCTAssertEqual(titles, ["운동 데이터", "오늘 핵심", "성장 흐름", "회복 해석"])
         XCTAssertTrue(titles.allSatisfy { $0.count <= 6 })
     }
 
-    func testGroupsAreFutureReadyWithoutEnablingCollapse() {
-        XCTAssertTrue(WorkoutDetailSectionGroup.ordered.allSatisfy { !$0.isCollapsibleReady })
+    func testGrowthInterpretationSupportsCollapse() {
+        XCTAssertEqual(WorkoutDetailSectionGroup.ordered.filter(\.isCollapsibleReady).map(\.id), [.growth])
     }
 
     func testActivityDetailDistanceCopyAvoidsZeroKilometerPlaceholder() {
@@ -124,7 +124,7 @@ final class ClubUIFoundationTests: XCTestCase {
 
     func testMembershipStateProvidesPlaceholderActions() {
         XCTAssertEqual(ClubDetail.soomRiders.membershipState.actionTitle, "가입됨")
-        XCTAssertEqual(ClubDetail.recoveryCrew.membershipState.actionTitle, "관리")
+        XCTAssertEqual(ClubDetail.recoveryCrew.membershipState.actionTitle, "관리 준비 중")
         XCTAssertTrue(ClubDetail.MembershipState.recommended.placeholderTitle.contains("가입"))
     }
 
@@ -171,3 +171,4 @@ final class ClubUIFoundationTests: XCTestCase {
         XCTAssertTrue(states.contains(.rare))
     }
 }
+

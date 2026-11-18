@@ -19,6 +19,23 @@ final class RecoveryRealDataPreviewViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isLoading)
     }
 
+    func testPreviewUsesFixedWindowAndExcludesOldAndFutureWorkouts() async {
+        let viewModel = RecoveryRealDataPreviewViewModel(
+            provider: UnifiedWorkoutRecoveryPreviewProvider(
+                store: FakeRealDataPreviewWorkoutStore(workouts: [
+                    makeWorkout(daysAgo: 0), makeWorkout(daysAgo: 7), makeWorkout(daysAgo: -1)
+                ]),
+                calculator: RecoveryCalculator(referenceDate: baseDate)
+            )
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.usedWorkoutCount, 1)
+        XCTAssertEqual(viewModel.summary?.hasCalculatedScore, true)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testEmptyDataPublishesInsufficientDataWithoutError() async {
         let viewModel = RecoveryRealDataPreviewViewModel(
             provider: UnifiedWorkoutRecoveryPreviewProvider(
@@ -85,19 +102,39 @@ final class RecoveryRealDataPreviewViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testComparisonDoesNotPresentAnEmptyOfficialFallbackScore() async {
+        let viewModel = RecoveryRealDataPreviewViewModel(
+            provider: UnifiedWorkoutRecoveryPreviewProvider(
+                store: FakeRealDataPreviewWorkoutStore(workouts: [makeWorkout(daysAgo: 0)]),
+                calculator: RecoveryCalculator(referenceDate: baseDate)
+            ),
+            officialProvider: FakeOfficialRecoveryDataProvider(
+                summary: RecoveryCalculator(referenceDate: baseDate).calculateSummary(from: [])
+            )
+        )
+
+        await viewModel.load()
+
+        XCTAssertFalse(viewModel.hasInsufficientWorkoutData)
+        XCTAssertNotNil(viewModel.summary)
+        XCTAssertNil(viewModel.comparison)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     private var baseDate: Date {
-        Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 21, hour: 7)) ?? Date()
+        Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 21, hour: 7))!
     }
 
     private func makeWorkout(daysAgo: Int, isExcluded: Bool = false) -> UnifiedWorkout {
-        let startDate = Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate
+        let endDate = Calendar.current.date(byAdding: .day, value: -daysAgo, to: baseDate) ?? baseDate
+        let startDate = endDate.addingTimeInterval(-3_600)
         return UnifiedWorkout(
             id: UUID(),
             externalId: UUID().uuidString,
             source: .appleHealthKit,
             workoutType: .cycling,
             startDate: startDate,
-            endDate: startDate.addingTimeInterval(3_600),
+            endDate: endDate,
             durationSeconds: 3_600,
             distanceMeters: 28_000,
             activeEnergyKcal: 520,

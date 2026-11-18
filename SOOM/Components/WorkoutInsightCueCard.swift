@@ -20,7 +20,7 @@ struct WorkoutInsightCueCard: View {
         SOOMCard {
             VStack(alignment: .leading, spacing: SOOMLayout.Card.contentSpacing) {
                 HStack(alignment: .center, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-                    Image(systemName: icon)
+                    Image(soom: icon)
                         .font(.system(size: SOOMLayout.IconButton.iconSize - 2, weight: .semibold))
                         .foregroundStyle(tint)
                         .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)

@@ -42,7 +42,7 @@ extension OnboardingStep {
             kind: .locationPermission,
             iconName: SOOMIcon.map,
             title: "위치를 허용하면 경로가 함께 남아요",
-            message: "달리거나 라이딩할 때 route를 그려서 보여드려요. 지금 허용하지 않아도 기록을 시작할 때 언제든 다시 물어볼게요."
+            message: "달리거나 라이딩할 때 이동한 경로를 보여드려요. 지금 허용하지 않아도 기록을 시작할 때 언제든 다시 물어볼게요."
         ),
         OnboardingStep(
             id: 4,
@@ -59,6 +59,7 @@ struct OnboardingView: View {
     let locationPermissionRequester: any OnboardingLocationPermissionRequesting
     let onComplete: () -> Void
 
+    @ObservedObject private var demoController = ReviewDemoController.shared
     @State private var currentStep = 0
     @State private var isRequestingHealthKitPermission = false
     private let steps = OnboardingStep.all
@@ -88,8 +89,25 @@ struct OnboardingView: View {
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
 
-            bottomControl
-                .padding(SOOMLayout.screenPadding)
+            VStack(spacing: 8) {
+                bottomControl
+                if ReviewDemoAccessPolicy.canStart {
+                Button("데모 체험 / Try Demo") { demoController.start() }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .foregroundStyle(SOOMColor.accent)
+                    .accessibilityIdentifier("reviewDemo.start")
+                    .disabled(isRequestingHealthKitPermission)
+                Text("계정·권한 없이 모든 화면을 샘플 데이터로 체험해요.\nExplore with sample data. No login or permissions required.")
+                    .font(.caption)
+                    .foregroundStyle(SOOMColor.secondaryInk)
+                    .multilineTextAlignment(.center)
+                }
+                if let error = demoController.errorMessage {
+                    Text(error).font(.caption).foregroundStyle(SOOMColor.warning)
+                }
+            }
+            .padding(SOOMLayout.screenPadding)
         }
         .background(SOOMColor.background)
     }
@@ -146,7 +164,7 @@ private struct OnboardingStepView: View {
         VStack(spacing: SOOMLayout.Spacing.xl) {
             Spacer()
 
-            Image(systemName: step.iconName)
+            Image(soom: step.iconName)
                 .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(SOOMColor.accent)
                 .frame(width: 96, height: 96)

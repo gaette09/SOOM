@@ -9,6 +9,7 @@ final class RecoveryViewModel: ObservableObject {
     @Published private(set) var weeklySummary: WeeklyRecoverySummary?
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var snapshotErrorMessage: String?
 
     private let provider: any RecoveryDataProvider
     private let checkInStore: any RecoveryCheckInStore
@@ -45,13 +46,7 @@ final class RecoveryViewModel: ObservableObject {
 
     @MainActor
     func load() async {
-        guard summary == nil, !isLoading else {
-            await refreshCheckInPersonalization()
-            await saveTodaySnapshotIfPossible()
-            await refreshTimeline()
-            await refreshWeeklySummary()
-            return
-        }
+        guard !isLoading else { return }
         await reload()
     }
 
@@ -59,13 +54,18 @@ final class RecoveryViewModel: ObservableObject {
     func reload() async {
         isLoading = true
         errorMessage = nil
+        snapshotErrorMessage = nil
 
         do {
             let fetchedSummary = try await provider.fetchRecoverySummary()
             baseSummary = fetchedSummary
             summary = fetchedSummary
         } catch {
-            errorMessage = "회복 데이터를 불러오지 못했습니다."
+            errorMessage = "회복 데이터를 새로 불러오지 못했어요. 표시 중인 이전 결과는 오늘의 이력으로 저장하지 않았어요."
+            await refreshTimeline()
+            await refreshWeeklySummary()
+            isLoading = false
+            return
         }
 
         await refreshCheckInPersonalization()
@@ -128,7 +128,8 @@ final class RecoveryViewModel: ObservableObject {
 
     @MainActor
     private func saveTodaySnapshotIfPossible() async {
-        guard let snapshotWriter, let summary else {
+        snapshotErrorMessage = nil
+        guard let snapshotWriter, let summary, summary.hasCalculatedScore else {
             return
         }
 
@@ -144,7 +145,7 @@ final class RecoveryViewModel: ObservableObject {
                 explanation: explanation.explanation
             )
         } catch {
-            // Snapshot persistence is a historical aid. It should never block Recovery.
+            snapshotErrorMessage = "회복 결과는 계산했지만 오늘의 이력을 저장하지 못했어요. 다시 시도해 주세요."
         }
     }
 }

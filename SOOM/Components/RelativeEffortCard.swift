@@ -10,7 +10,7 @@ struct RelativeEffortCard: View {
     var body: some View {
         SOOMCard {
             HStack(alignment: .firstTextBaseline) {
-                Text("운동 강도")
+                Text("기존 상대 강도")
                     .font(SOOMFont.displayMedium(17, relativeTo: .headline))
                     .foregroundStyle(SOOMColor.ink)
                 Spacer()
@@ -22,6 +22,8 @@ struct RelativeEffortCard: View {
             Text(subtitle)
                 .font(SOOMFont.body(13, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
+
+            Text("활동 부하(AU)와는 다른 지표예요.").font(.caption2).foregroundStyle(SOOMColor.secondaryInk)
 
             tierBar
                 .frame(height: 10)
@@ -38,7 +40,7 @@ struct RelativeEffortCard: View {
             .foregroundStyle(SOOMColor.tertiaryInk)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("운동 강도")
+        .accessibilityLabel("기존 상대 강도 · 활동 부하와 별도")
         .accessibilityValue("\(comparison.todayEffort), \(subtitle)")
     }
 

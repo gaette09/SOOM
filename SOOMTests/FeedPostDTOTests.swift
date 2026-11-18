@@ -1,7 +1,334 @@
 import XCTest
+import SwiftUI
 @testable import SOOM
 
 final class FeedPostDTOTests: XCTestCase {
+    @MainActor
+    func testProjectionPendingSkeletonReservesItsWholeHeightInsteadOfOverlappingNeighbors() throws {
+        let suite = "Placeholder-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let auth = AuthViewModel(store: AuthSessionStore(userDefaults: defaults))
+        for width: CGFloat in [320, 393] {
+            for textSize: DynamicTypeSize in [.large, .accessibility3] {
+                func size<V: View>(_ view: V) throws -> CGSize {
+                    let renderer = ImageRenderer(content: view.frame(width: width).environment(\.dynamicTypeSize, textSize).environmentObject(auth))
+                    return try XCTUnwrap(renderer.uiImage).size
+                }
+                let oldIntrinsic = try size(SOOMSkeleton(layout: .feed).padding(24))
+                let old = try size(Color.clear.frame(minHeight: 224).overlay { SOOMSkeleton(layout: .feed).padding(24) })
+                XCTAssertLessThan(old.height, oldIntrinsic.height, "Retain the original overlay overflow reproduction")
+                let compact = try size(AccountActivityWorkoutPlaceholder())
+                let media = try size(AccountActivityWorkoutPlaceholder(hasKnownMedia: true))
+                XCTAssertEqual(media.height - compact.height, 260, accuracy: 1, "Only confirmed media reserves the existing 260pt media slot")
+                XCTAssertEqual(try size(AccountActivityWorkoutPlaceholder(hasKnownMedia: false)), compact)
+                for reserved: CGFloat in [224, 300, 700] {
+                    for known: Bool? in [nil, false, true] {
+                        let current = try size(AccountActivityPendingCard(minimumHeight: reserved, hasKnownMedia: known, unavailable: false, retry: {}))
+                        XCTAssertGreaterThanOrEqual(current.height, known == true ? media.height : compact.height)
+                        XCTAssertGreaterThanOrEqual(current.height, reserved)
+                    }
+                }
+                let renderer = ImageRenderer(content: AccountActivityWorkoutPlaceholder().frame(width: width).environmentObject(auth).environment(\.dynamicTypeSize, textSize))
+                let attachment = XCTAttachment(image: try XCTUnwrap(renderer.uiImage)); attachment.name = "SAFE shared workout placeholder \(width) \(textSize)"; attachment.lifetime = .keepAlways; add(attachment)
+                let mediaRenderer = ImageRenderer(content: AccountActivityWorkoutPlaceholder(hasKnownMedia: true).frame(width: width).environmentObject(auth).environment(\.dynamicTypeSize, textSize))
+                let mediaAttachment = XCTAttachment(image: try XCTUnwrap(mediaRenderer.uiImage)); mediaAttachment.name = "SAFE known-media shared placeholder \(width) \(textSize)"; mediaAttachment.lifetime = .keepAlways; add(mediaAttachment)
+            }
+        }
+    }
+
+    @MainActor
+    func testProjectionMediaOrderingPreservesLegacyPrecedenceAndFallback() async throws {
+        let owner = UUID(), postID = UUID(), photoID = UUID()
+        let nativePhoto = WorkoutPhotoReference(id: UUID(), storagePath: "native-test")
+        let post = FeedPostDTO(id: postID, userId: owner, sport: .running, title: "검증", createdAt: Date())
+        var item = FeedPostBundleDTO(post: post).makeFeedItem(currentUserId: owner)
+        var nativeReads = 0
+        let emptyLegacy = try await AccountActivityCardMediaLoader.load(ownerID: owner,
+            linked: { item }, native: { nativeReads += 1; return [nativePhoto] }, isCurrent: { true })
+        XCTAssertNotNil(emptyLegacy.linked); XCTAssertTrue(emptyLegacy.photos.isEmpty); XCTAssertEqual(nativeReads, 0)
+        item = FeedPostBundleDTO(post: post, media: [.init(id: photoID, postId: postID, mediaType: .photo, storagePath: WorkoutPhotoPolicy.path(ownerID: owner, postID: postID, photoID: photoID), sortOrder: 0)]).makeFeedItem(currentUserId: owner)
+        let allowedLegacy = try await AccountActivityCardMediaLoader.load(ownerID: owner,
+            linked: { item }, native: { nativeReads += 1; return [nativePhoto] }, isCurrent: { true })
+        XCTAssertEqual(allowedLegacy.photos.map(\.id), [photoID]); XCTAssertEqual(nativeReads, 0)
+        for fails in [false, true] {
+            let fallback = try await AccountActivityCardMediaLoader.load(ownerID: owner,
+                linked: { if fails { throw URLError(.timedOut) }; return nil },
+                native: { nativeReads += 1; return [nativePhoto] }, isCurrent: { true })
+            XCTAssertNil(fallback.linked); XCTAssertEqual(fallback.photos.map(\.id), [nativePhoto.id])
+        }
+        XCTAssertEqual(nativeReads, 2)
+    }
+
+    @MainActor
+    func testProjectionMediaLateAccountChangeRejectsBeforeNativeOrPublication() async {
+        var current = true, nativeReads = 0
+        do {
+            _ = try await AccountActivityCardMediaLoader.load(ownerID: UUID(),
+                linked: { current = false; return nil }, native: { nativeReads += 1; return [] }, isCurrent: { current })
+            XCTFail("An old-account result must not be published")
+        } catch {}
+        XCTAssertEqual(nativeReads, 0)
+        current = true
+        do {
+            _ = try await AccountActivityCardMediaLoader.load(ownerID: UUID(), linked: { nil },
+                native: { current = false; return [] }, isCurrent: { current })
+            XCTFail("An account change during native read must reject the result")
+        } catch {}
+    }
+
+    func testOwnCardRequiresMatchingAuthAndJournalBeforeAnyLocalRead() {
+        let owner = UUID(), other = UUID()
+        var queries = 0
+        func attempt(auth: UUID?, journal: UUID?, access: Bool) {
+            guard AccountActivityOwnRecordAccess.allowsLocalCard(ownerID: owner, authOwnerID: auth,
+                journalOwnerID: journal, recordAccessAllowed: access) else { return }
+            queries += 1
+        }
+        attempt(auth: other, journal: owner, access: true)
+        attempt(auth: owner, journal: other, access: true)
+        attempt(auth: nil, journal: owner, access: true)
+        attempt(auth: owner, journal: owner, access: false)
+        XCTAssertEqual(queries, 0, "Wrong account, another owner's row or unverified context must never reach local reads")
+        attempt(auth: owner, journal: owner, access: true)
+        XCTAssertEqual(queries, 1)
+    }
+
+    func testWorkoutCardMetricsMatchAcrossLocalAndSharedRecords() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        for sport in [UnifiedWorkoutType.running, .cycling, .swimming, .walking, .hiking, .strength, .yoga, .other] {
+            let workout = UnifiedWorkout(id: UUID(), externalId: nil, source: .manual, workoutType: sport,
+                startDate: start, endDate: start.addingTimeInterval(1805), durationSeconds: 1805,
+                distanceMeters: 5250, activeEnergyKcal: nil, averageHeartRate: nil, maxHeartRate: nil,
+                averageSpeedMetersPerSecond: nil, elevationGainMeters: nil, dataQuality: .estimated,
+                createdAt: start, updatedAt: start)
+            let post = FeedPostDTO(id: UUID(), userId: UUID(), sport: sport, title: "같은 운동",
+                distanceMeters: 5250, durationSeconds: 1805, createdAt: start)
+            let shared = FeedPostBundleDTO(post: post).makeFeedItem().recordMetrics
+            let local = FeedCardFormatting.metrics(workout)
+            XCTAssertEqual(shared.map(\.label), local.map(\.label), "\(sport)")
+            XCTAssertEqual(shared.map(\.value), local.map(\.value), "\(sport)")
+            XCTAssertEqual(local.first?.label, "거리")
+            XCTAssertEqual(local.last?.label, "총 시간")
+            XCTAssertEqual(local.last?.value, "30분 5초")
+            XCTAssertEqual(local.count, 3)
+        }
+    }
+
+    func testProjectionMetricsUseTheActivityCardFormattingForEverySport() {
+        let owner = UUID()
+        for sport in [UnifiedWorkoutType.running, .cycling, .swimming, .walking, .hiking, .strength, .yoga, .other] {
+            let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: owner,
+                sport: sport.rawValue, activityAt: "2026-11-13T08:00:00Z", durationSeconds: 1805,
+                distanceMeters: 5250, revision: 1, readPolicy: .profileOnlyV2)
+            let card = AccountActivityWorkoutCardPresentation(row: row)
+            let date = Date(timeIntervalSince1970: 1_790_000_000)
+            let local = UnifiedWorkout(id: row.canonicalID, externalId: nil, source: .manual, workoutType: sport,
+                startDate: date, endDate: date.addingTimeInterval(1805), durationSeconds: 1805,
+                distanceMeters: 5250, activeEnergyKcal: nil, averageHeartRate: nil, maxHeartRate: nil,
+                averageSpeedMetersPerSecond: nil, elevationGainMeters: nil, dataQuality: .estimated,
+                createdAt: date, updatedAt: date)
+            XCTAssertEqual(card.sport, sport)
+            XCTAssertEqual(card.metrics.map(\.label), FeedCardFormatting.metrics(local).map(\.label))
+            XCTAssertEqual(card.metrics.map(\.value), FeedCardFormatting.metrics(local).map(\.value))
+            XCTAssertEqual(card.row, row, "Presentation must not change card/canonical/owner/policy identity")
+        }
+    }
+
+    @MainActor
+    func testActivityAndProjectionCardSnapshotsMatchForIdenticalAuthorizedFields() throws {
+        let date = Date(timeIntervalSince1970: 1_790_000_000)
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(),
+            sport: "running", activityAt: "2026-11-13T08:00:00Z", durationSeconds: 1805,
+            distanceMeters: 5250, revision: 1, readPolicy: .profileOnlyV2)
+        let local = UnifiedWorkout(id: row.canonicalID, externalId: nil, source: .manual, workoutType: .running,
+            startDate: date, endDate: date.addingTimeInterval(1805), durationSeconds: 1805,
+            distanceMeters: 5250, activeEnergyKcal: nil, averageHeartRate: nil, maxHeartRate: nil,
+            averageSpeedMetersPerSecond: nil, elevationGainMeters: nil, dataQuality: .estimated,
+            createdAt: date, updatedAt: date)
+        let suite = "CardParity-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let auth = AuthViewModel(store: AuthSessionStore(userDefaults: defaults))
+        for size in [DynamicTypeSize.large, .accessibility3] {
+            func render(_ metrics: [WorkoutCardMetric], name: String) throws -> Data {
+                let view = WorkoutRecordCard(title: "러닝 기록", description: nil, date: date, sport: .running,
+                    author: "같은 작성자", metrics: metrics, photosAreKnown: true, photos: []) { EmptyView() }
+                    .frame(width: 393).fixedSize(horizontal: false, vertical: true)
+                    .environmentObject(auth).environment(\.colorScheme, .light).environment(\.dynamicTypeSize, size)
+                let renderer = ImageRenderer(content: view); renderer.scale = 1
+                let image = try XCTUnwrap(renderer.uiImage)
+                let attachment = XCTAttachment(image: image); attachment.name = "\(name)-\(size)"
+                attachment.lifetime = .keepAlways; add(attachment)
+                return try XCTUnwrap(image.pngData())
+            }
+            XCTAssertEqual(try render(FeedCardFormatting.metrics(local), name: "ACTIVITY-SHARED-CARD"),
+                try render(AccountActivityWorkoutCardPresentation(row: row).metrics, name: "FEED-SHARED-CARD"))
+        }
+    }
+
+    func testProjectionOwnRecordGateRejectsWrongAccountStaleVerificationAndRetiredContainers() {
+        let owner = UUID(), other = UUID()
+        func allowed(viewer: UUID?, storage: UUID?, verified: Bool = true, same: Bool = true, retired: Bool = false) -> Bool {
+            AccountActivityOwnRecordAccess.allows(ownerID: owner, viewerID: viewer, storageOwnerID: storage,
+                verified: verified, sameContainer: same, retired: retired)
+        }
+        XCTAssertTrue(allowed(viewer: owner, storage: owner))
+        XCTAssertFalse(allowed(viewer: other, storage: owner))
+        XCTAssertFalse(allowed(viewer: owner, storage: other))
+        XCTAssertFalse(allowed(viewer: nil, storage: owner))
+        XCTAssertFalse(allowed(viewer: owner, storage: owner, verified: false), "A changed generation invalidates the verified key")
+        XCTAssertFalse(allowed(viewer: owner, storage: owner, same: false))
+        XCTAssertFalse(allowed(viewer: owner, storage: owner, retired: true))
+    }
+
+    func testProjectionOwnDetailRequiresAnExistingExactCanonicalRecord() {
+        let id = UUID()
+        XCTAssertTrue(AccountActivityOwnRecordAccess.matches(canonicalID: id, recordID: id))
+        XCTAssertFalse(AccountActivityOwnRecordAccess.matches(canonicalID: id, recordID: nil))
+        XCTAssertFalse(AccountActivityOwnRecordAccess.matches(canonicalID: id, recordID: UUID()))
+    }
+
+    func testProjectionSummaryDetailReusesExactMetricsWithoutLegacyOrLocalAuthority() {
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(),
+            sport: "running", activityAt: "2026-01-01T00:00:00Z", durationSeconds: 1805,
+            distanceMeters: 5250, revision: 1, readPolicy: .profileOnlyV2)
+        let record = AccountActivitySummaryDetailPresentation(row: row, author: nil).sharedRecord
+        XCTAssertEqual(record.item.id, row.cardID)
+        XCTAssertEqual(record.item.activityProjection, row)
+        XCTAssertNil(record.item.sourceWorkoutId)
+        XCTAssertNil(record.item.serverPostSnapshot)
+        XCTAssertNil(record.item.permittedSharedDetail)
+        XCTAssertFalse(record.item.sharedDetailContractEnabled)
+        XCTAssertFalse(record.item.isLocalDraft)
+        XCTAssertFalse(record.item.isOwnerLocalWorkout)
+        XCTAssertNil(record.item.deviceName); XCTAssertNil(record.item.locationHint); XCTAssertNil(record.item.caption)
+        XCTAssertTrue(record.item.photos.isEmpty); XCTAssertTrue(record.item.comments.isEmpty); XCTAssertTrue(record.item.reactions.isEmpty)
+        XCTAssertNil(record.route); XCTAssertNil(record.telemetry)
+        XCTAssertEqual(record.metrics.map(\.value), AccountActivityWorkoutCardPresentation(row: row).metrics.map(\.value))
+        XCTAssertEqual(record.item.activityDate, row.cursor?.activityAt)
+        XCTAssertEqual(record.item.recordWorkoutType.rawValue, row.sport)
+    }
+
+    func testSummaryDetailAcceptsOnlyAlreadyAuthorizedNativePhotoIdentity() {
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(),
+            sport: "running", activityAt: "2026-01-01T00:00:00Z", durationSeconds: 600,
+            distanceMeters: 1000, revision: 1, readPolicy: .profileOnlyV2)
+        let id = UUID()
+        let allowed = WorkoutPhotoReference(id: id, storagePath: WorkoutPhotoPolicy.path(ownerID: row.ownerID, postID: row.cardID, photoID: id), nativeCardID: row.cardID)
+        var legacy = allowed; legacy.nativeCardID = nil
+        var wrongCard = allowed; wrongCard.nativeCardID = UUID()
+        let presentation = AccountActivitySummaryDetailPresentation(row: row, author: nil, photos: [allowed, legacy, wrongCard])
+        XCTAssertEqual(presentation.sharedRecord.item.photos, [allowed])
+        XCTAssertNil(presentation.sharedRecord.item.sourceWorkoutId)
+        XCTAssertNil(presentation.sharedRecord.route)
+    }
+
+    func testMissingLegacySnapshotAndMissingOwnSourceUsesSummaryWithoutNewAuthority() {
+        XCTAssertFalse(AccountActivityDetailFallbackPolicy.usesLegacyDetail(hasAuthorizedSnapshot: false, hasExactOwnSource: false))
+        XCTAssertTrue(AccountActivityDetailFallbackPolicy.usesLegacyDetail(hasAuthorizedSnapshot: true, hasExactOwnSource: false))
+        XCTAssertTrue(AccountActivityDetailFallbackPolicy.usesLegacyDetail(hasAuthorizedSnapshot: false, hasExactOwnSource: true))
+        XCTAssertNil(AccountActivityDetailFallbackPolicy.headerVisibility(.followers, profileOnlyContext: true))
+        XCTAssertEqual(AccountActivityDetailFallbackPolicy.headerVisibility(.followers, profileOnlyContext: false), .followers)
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(), sport: "running",
+            activityAt: "2026-01-01T00:00:00Z", durationSeconds: 600, distanceMeters: 1000, revision: 1, readPolicy: .profileOnlyV2)
+        let postID = UUID(), photoID = UUID()
+        let allowed = WorkoutPhotoReference(id: photoID, storagePath: WorkoutPhotoPolicy.path(ownerID: row.ownerID, postID: postID, photoID: photoID))
+        let wrongOwner = WorkoutPhotoReference(id: photoID, storagePath: WorkoutPhotoPolicy.path(ownerID: UUID(), postID: postID, photoID: photoID))
+        let granted = AccountActivitySummaryDetailPresentation(row: row, author: nil, photos: [allowed, wrongOwner], authorizedLegacyPhotoPostID: postID)
+        XCTAssertEqual(granted.sharedRecord.item.photos, [allowed])
+        XCTAssertTrue(AccountActivitySummaryDetailPresentation(row: row, author: nil, photos: [allowed]).sharedRecord.item.photos.isEmpty)
+        XCTAssertTrue(AccountActivitySummaryDetailPresentation(row: row, author: nil, photos: [allowed], authorizedLegacyPhotoPostID: UUID()).sharedRecord.item.photos.isEmpty)
+        XCTAssertNil(granted.sharedRecord.item.serverPostSnapshot); XCTAssertNil(granted.sharedRecord.item.sourceWorkoutId)
+    }
+
+    func testSummaryDetailReceiptRejectsAnotherViewerAndAccountGeneration() throws {
+        let owner = UUID(), viewer = UUID()
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: owner,
+            sport: "running", activityAt: "2026-01-01T00:00:00Z", durationSeconds: 600,
+            distanceMeters: 1000, revision: 1, readPolicy: .profileOnlyV2)
+        let receipt = AccountActivityCardEnvelope(version: 2, viewerID: viewer, row: row, releaseReady: true)
+        XCTAssertThrowsError(try receipt.validateForProduction(expectedCardID: row.cardID, requestViewerID: viewer,
+            currentViewerID: UUID(), requestGeneration: 1, currentGeneration: 1, latestPermittedDate: Date(),
+            expectedOwnerID: owner, expectedPolicy: .profileOnlyV2))
+        XCTAssertThrowsError(try receipt.validateForProduction(expectedCardID: row.cardID, requestViewerID: viewer,
+            currentViewerID: viewer, requestGeneration: 1, currentGeneration: 2, latestPermittedDate: Date(),
+            expectedOwnerID: owner, expectedPolicy: .profileOnlyV2))
+    }
+
+    func testProjectionSummaryDoesNotInventMissingDistanceOrMovement() {
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(),
+            sport: "running", activityAt: "2026-11-13T08:00:00Z", durationSeconds: 0,
+            distanceMeters: nil, revision: 1, readPolicy: .profileOnlyV2)
+        XCTAssertEqual(AccountActivityWorkoutCardPresentation(row: row).metrics.map(\.value), ["—", "—", "0초"])
+    }
+
+    func testProjectionSwimmingUsesTheSameMetersAnd100MeterPace() {
+        let row = AccountActivityFeedRow(cardID: UUID(), canonicalID: UUID(), ownerID: UUID(),
+            sport: "swimming", activityAt: "2026-11-13T08:00:00Z", durationSeconds: 600,
+            distanceMeters: 500, revision: 1, readPolicy: .profileOnlyV2)
+        XCTAssertEqual(AccountActivityWorkoutCardPresentation(row: row).metrics.map(\.value), ["500 m", "2:00/100m", "10분 0초"])
+    }
+
+    func testCardRegionDistinguishesUnresolvedRouteAndMissingManualLocation() {
+        XCTAssertEqual(FeedCardFormatting.region("수지구, 경기도", hasRoute: true), "수지구, 경기도")
+        XCTAssertEqual(FeedCardFormatting.region("집 근처", hasRoute: false), "집 근처")
+        XCTAssertEqual(FeedCardFormatting.region(nil, hasRoute: true), "경로의 지역명 확인 전")
+        XCTAssertEqual(FeedCardFormatting.region("  ", hasRoute: false), "지역 미입력")
+    }
+
+    func testMissingOrInvalidSharedMetricsUseTheSameEmptyValue() {
+        let post = FeedPostDTO(id: UUID(), userId: UUID(), sport: .running, title: "기록", createdAt: Date())
+        XCTAssertEqual(FeedPostBundleDTO(post: post).makeFeedItem().recordMetrics.map(\.value), ["—", "—", "—"])
+        XCTAssertEqual(FeedCardFormatting.distance(.infinity), "—")
+        XCTAssertEqual(FeedCardFormatting.distance(-1), "—")
+    }
+
+    func testFeedUsesWorkoutDateAndMetadataWhileKeepingPostSortDate() throws {
+        let activityDate = Date(timeIntervalSince1970: 1_790_000_000)
+        let postDate = activityDate.addingTimeInterval(86400)
+        let metadata = FeedRouteSummaryDTO(routeExists: false, startedAt: activityDate,
+            deviceName: "시험 웨어러블", locationName: "수지구")
+        let post = FeedPostDTO(id: UUID(), userId: UUID(), sport: .running, title: "시험 러닝",
+            distanceMeters: 10_000, durationSeconds: 4260, routeSummary: metadata, createdAt: postDate)
+        let item = FeedPostBundleDTO(post: post).makeFeedItem()
+        XCTAssertEqual(item.activityDate, activityDate)
+        XCTAssertEqual(item.createdAt, postDate)
+        XCTAssertEqual(item.deviceName, "시험 웨어러블")
+        XCTAssertEqual(item.locationHint, "수지구")
+        guard case .workoutSession(let card) = item.cardData else { return XCTFail() }
+        XCTAssertEqual(card.averagePaceText, "7:06/km")
+        let old = try JSONDecoder().decode(FeedRouteSummaryDTO.self, from: Data("{\"routeExists\":false}".utf8))
+        XCTAssertNil(old.startedAt)
+        XCTAssertNil(old.deviceName)
+    }
+
+    func testMovementShowsSportUnitsAndDoesNotInventMissingValues() {
+        XCTAssertEqual(FeedCardFormatting.movement(sport: .cycling, distance: 30_000, seconds: 3600), "30.0 km/h")
+        XCTAssertEqual(FeedCardFormatting.movement(sport: .swimming, distance: 1000, seconds: 1200), "2:00/100m")
+        XCTAssertNil(FeedCardFormatting.movement(sport: .running, distance: nil, seconds: 300))
+        XCTAssertNil(FeedCardFormatting.movement(sport: .running, distance: 0, seconds: 300))
+        XCTAssertNil(FeedCardFormatting.movement(sport: .running, distance: 1000, seconds: .infinity))
+    }
+    func testKoreanCardDateAndRegionMatchDetailPresentation() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 9 * 3600))
+        let evening = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 9, day: 20, hour: 18, minute: 30)))
+        let midnight = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 9, day: 21, hour: 0, minute: 5)))
+        XCTAssertEqual(WorkoutCardDateFormatter.label(evening, calendar: calendar), "2026-09-20 오후6:30")
+        XCTAssertEqual(WorkoutCardDateFormatter.label(midnight, calendar: calendar), "2026-09-21 오전12:05")
+        XCTAssertEqual(FeedCardFormatting.region("Gimpo-si, Gyeonggi", hasRoute: true), "김포시, 경기도")
+        XCTAssertEqual(FeedCardFormatting.region("Seoul", hasRoute: false), "서울")
+    }
+
+    func testSportSpecificCardLabelsAndSwimPace() {
+        XCTAssertEqual(FeedCardFormatting.movementLabel(.running), "페이스")
+        XCTAssertEqual(FeedCardFormatting.movementLabel(.cycling), "평속")
+        XCTAssertEqual(FeedCardFormatting.movementLabel(.swimming), "페이스")
+        XCTAssertEqual(FeedCardFormatting.movement(sport: .swimming, distance: 100, seconds: 150), "2:30/100m")
+        XCTAssertEqual(FeedCardFormatting.distance(750, sport: .swimming), "750 m")
+    }
+
     func testDefaultVisibilityIsPrivate() {
         let post = makePost()
 
@@ -332,7 +659,7 @@ final class FeedPostDTOTests: XCTestCase {
         // would make a `followers`-visibility row visible to nobody but the
         // owner. Posting it as `.privatePost` keeps the DB row honest about
         // what the RLS actually enforces.
-        XCTAssertEqual(ShareableWorkoutVisibility.followers.feedPostVisibility, .privatePost)
+        XCTAssertEqual(ShareableWorkoutVisibility.followers.feedPostVisibility, .followers)
     }
 
     private func makePost(
@@ -371,5 +698,23 @@ final class FeedPostDTOTests: XCTestCase {
             body: body,
             createdAt: Date(timeIntervalSince1970: timestamp)
         )
+    }
+}
+
+final class FeedReplyThreadDTOTests: XCTestCase {
+    func testDeletedRootDoesNotExposeIdentityOrBody() throws {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let data = Data(#"{"id":"20000000-0000-0000-0000-000000000001","parent_comment_id":null,"user_id":null,"body":null,"is_deleted":true,"created_at":"2026-11-11T00:00:00Z"}"#.utf8)
+        let row = try decoder.decode(FeedReplyThreadDTO.self, from: data)
+        let result = try XCTUnwrap(row.comment(viewerID: UUID()))
+        XCTAssertTrue(result.isDeleted)
+        XCTAssertNil(result.profile)
+        XCTAssertFalse(result.isViewerAuthor)
+        XCTAssertEqual(result.body, "삭제된 댓글입니다")
+    }
+    func testMalformedLiveReplyDoesNotInventIdentity() throws {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let data = Data(#"{"id":"20000000-0000-0000-0000-000000000001","parent_comment_id":null,"user_id":null,"body":"text","is_deleted":false,"created_at":"2026-11-11T00:00:00Z"}"#.utf8)
+        XCTAssertNil(try decoder.decode(FeedReplyThreadDTO.self, from: data).comment(viewerID: nil))
     }
 }

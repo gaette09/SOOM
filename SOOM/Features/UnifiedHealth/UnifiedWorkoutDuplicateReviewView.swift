@@ -1,25 +1,53 @@
 import SwiftUI
 
 struct UnifiedWorkoutDuplicateReviewView: View {
+    @Environment(\.soomBottomOverlayInset) private var bottomOverlayInset
     @StateObject private var viewModel: UnifiedWorkoutDuplicateReviewViewModel
+    @State private var pendingMerge: UnifiedWorkoutDuplicateCandidate?
+    @State private var pendingPrimaryID: UUID?
+    @State private var isMergeConfirmationPresented = false
 
     init(viewModel: UnifiedWorkoutDuplicateReviewViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
+        GeometryReader { viewport in
         SOOMScreen {
             header
 
+            if let error = viewModel.errorMessage, !viewModel.candidates.isEmpty { errorCard(error) }
             if viewModel.isLoading && viewModel.candidates.isEmpty {
                 loadingCard
-            } else if let errorMessage = viewModel.errorMessage {
+            } else if let errorMessage = viewModel.errorMessage, viewModel.candidates.isEmpty {
                 errorCard(errorMessage)
             } else if viewModel.candidates.isEmpty {
                 emptyCard
             } else {
                 summaryCard
                 candidateList
+            }
+        }
+        .confirmationDialog("겹치는 기록을 합칠까요?", isPresented: $isMergeConfirmationPresented, titleVisibility: .visible) {
+            Button("원본 보관하고 합치기") {
+                guard let candidate = pendingMerge, let id = pendingPrimaryID else { return }
+                pendingMerge = nil; pendingPrimaryID = nil
+                Task { await viewModel.resolve(candidate, primaryID: id) }
+            }
+            Button("취소", role: .cancel) { pendingMerge = nil; pendingPrimaryID = nil }
+        } message: {
+            Text(mergePreview)
+        }
+
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let message = viewModel.resolutionMessage {
+                SOOMBoundedFeedback(maxHeight: max(80, viewport.size.height * 0.40)) {
+                    SOOMActionFeedback(title: viewModel.resolutionTitle, message: (viewModel.resolutionSelection.map { $0 + "\n" } ?? "") + message)
+                }
+                    .padding(SOOMLayout.screenPadding)
+                    .padding(.bottom, bottomOverlayInset)
+                    .background(SOOMColor.background)
+                    .accessibilityIdentifier("duplicates.resolution.feedback")
             }
         }
         .navigationTitle("중복 후보 검토")
@@ -29,6 +57,7 @@ struct UnifiedWorkoutDuplicateReviewView: View {
         }
         .refreshable {
             await viewModel.loadDuplicateCandidates()
+        }
         }
     }
 
@@ -47,19 +76,7 @@ struct UnifiedWorkoutDuplicateReviewView: View {
     }
 
     private var loadingCard: some View {
-        SOOMCard {
-            HStack(spacing: SOOMLayout.SectionHeader.spacing) {
-                ProgressView()
-                    .tint(SOOMColor.recovery)
-                    .accessibilityHidden(true)
-
-                Text("중복 후보를 확인하는 중이에요.")
-                    .font(SOOMFont.body(15, relativeTo: .subheadline))
-                    .foregroundStyle(SOOMColor.secondaryInk)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("중복 후보 확인 중")
+        SOOMSkeleton(layout: .workout, label: "중복 후보 확인 중")
     }
 
     private var emptyCard: some View {
@@ -69,7 +86,7 @@ struct UnifiedWorkoutDuplicateReviewView: View {
                 caption: "가져온 기록이 늘어나면 여기에서 확인할 수 있어요."
             )
 
-            Label("이 화면은 검토용이며 운동 기록을 자동으로 삭제하거나 병합하지 않습니다.", systemImage: SOOMIcon.checkCircle)
+            Label("원본은 보관하고, 같은 운동은 대표 기록 하나로 표시할 수 있어요.", soomIcon: SOOMIcon.checkCircle)
                 .font(SOOMFont.body(13, relativeTo: .caption))
                 .foregroundStyle(SOOMColor.secondaryInk)
         }
@@ -80,7 +97,7 @@ struct UnifiedWorkoutDuplicateReviewView: View {
         SOOMCard {
             SOOMActionRow(
                 icon: SOOMIcon.sync,
-                title: "중복 후보를 불러오지 못했어요",
+                title: viewModel.errorTitle,
                 subtitle: message,
                 tint: SOOMColor.warning
             )
@@ -91,8 +108,8 @@ struct UnifiedWorkoutDuplicateReviewView: View {
     private var summaryCard: some View {
         SOOMCard {
             SOOMSectionHeader(
-                "최근 30일 중복 후보",
-                caption: "자동 병합 없이 검토용 후보만 표시합니다."
+                "최근 90일 중복 후보",
+                caption: "거리·시간의 기준이 될 기록을 선택하세요. 없는 경로와 측정값만 다른 기기에서 보완합니다."
             )
 
             HStack(spacing: SOOMLayout.Metrics.compactListSpacing) {
@@ -101,7 +118,7 @@ struct UnifiedWorkoutDuplicateReviewView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("최근 30일 중복 후보")
+        .accessibilityLabel("최근 90일 중복 후보")
         .accessibilityValue("후보 \(viewModel.candidates.count)개, 최고 신뢰도 \(highestConfidenceText)")
     }
 
@@ -113,9 +130,31 @@ struct UnifiedWorkoutDuplicateReviewView: View {
             )
 
             ForEach(Array(viewModel.candidates.enumerated()), id: \.offset) { _, candidate in
-                UnifiedWorkoutDuplicateCandidateRow(candidate: candidate)
+                VStack(spacing: 8) {
+                    UnifiedWorkoutDuplicateCandidateRow(candidate: candidate)
+                    ForEach([candidate.primaryWorkout, candidate.duplicateWorkout]) { workout in
+                        Button("\(workout.recordingSourceLabel) 기록을 대표로 사용") {
+                            pendingPrimaryID = workout.id; pendingMerge = candidate; isMergeConfirmationPresented = true
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .background(SOOMColor.accentSurface, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    Button("각각 다른 운동으로 유지") { Task { await viewModel.resolve(candidate, primaryID: nil) } }
+                        .frame(minHeight: 44)
+                }
+                .disabled(viewModel.isResolving)
             }
         }
+    }
+
+    private var mergePreview: String {
+        guard let candidate = pendingMerge, let selected = pendingPrimaryID else { return "" }
+        let copies = [candidate.primaryWorkout, candidate.duplicateWorkout].map { original in
+            var value = original; value.preferredWorkoutID = selected; return value
+        }
+        guard let group = UnifiedWorkoutDeduplicationEngine().canonicalGroups(copies).first else { return "" }
+        let evidence = UnifiedWorkoutProvenance(group: group)
+        return "거리·시간 기준: \(group.workout.recordingSourceLabel)\n\(FeedCardFormatting.distance(group.workout.distanceMeters)) · \(FeedCardFormatting.duration(group.workout.durationSeconds))\n평균 심박: \(group.workout.averageHeartRate.map { String(format: "%.0f bpm", $0) } ?? "미수집") · \(evidence.source(for: \.averageHeartRate)?.recordingSourceLabel ?? "출처 없음")\n선택 원본의 유효한 GPS·측정값을 우선하고 누락만 보완합니다. 충돌 값은 더하거나 평균내지 않습니다. \(ImportedWorkoutPublication.usesLegacyPublication ? "원본 ID와 측정값은 보관하며 보완용 피드는 비공개로 전환합니다." : "원본 ID와 측정값은 보관합니다. 운동 요약은 프로필 공개 설정을 따르며, 이미 별도 카드인 기록의 병합·분리는 확인이 필요할 수 있어요.")"
     }
 
     private var highestConfidenceText: String {
@@ -176,7 +215,7 @@ private struct UnifiedWorkoutDuplicateCandidateRow: View {
                         .foregroundStyle(SOOMColor.ink)
 
                     ForEach(candidate.reasons, id: \.self) { reason in
-                        Label(reason.localizedDuplicateReason, systemImage: SOOMIcon.checkCircle)
+                        Label(reason.localizedDuplicateReason, soomIcon: SOOMIcon.checkCircle)
                             .font(SOOMFont.body(13, relativeTo: .caption))
                             .foregroundStyle(SOOMColor.secondaryInk)
                     }
@@ -203,8 +242,7 @@ private struct UnifiedWorkoutDuplicateCandidateRow: View {
         tint: Color
     ) -> some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.compactListSpacing) {
-            Image(systemName: workout.workoutType.iconName)
-                .font(.system(size: SOOMFont.Size.headline, weight: .semibold))
+            SOOMSportIconView(name: workout.workoutType.iconName, size: SOOMFont.Size.headline)
                 .foregroundStyle(tint)
                 .frame(width: 34, height: 34)
                 .background(tint.opacity(0.10))
@@ -329,8 +367,10 @@ private extension UnifiedWorkoutType {
             return "dumbbell"
         case .yoga:
             return "figure.mind.and.body"
-        case .running, .other:
+        case .running:
             return SOOMIcon.run
+        case .other:
+            return SOOMIcon.activity
         }
     }
 }
@@ -342,6 +382,8 @@ private extension UnifiedDataSource {
             return "Apple Health"
         case .garmin:
             return "Garmin"
+        case .googleHealth:
+            return "Google Health"
         case .strava:
             return "Strava"
         case .samsungHealth:
@@ -380,12 +422,12 @@ private extension String {
             return "같은 source와 external ID입니다."
         case "same workout type":
             return "운동 타입이 같습니다."
-        case "start time within 5 minutes":
-            return "시작 시간이 5분 이내로 가깝습니다."
-        case "duration difference within 5%":
-            return "운동 시간이 5% 이내로 유사합니다."
-        case "distance difference within 10%":
-            return "거리가 10% 이내로 유사합니다."
+        case "start and end within 10 minutes":
+            return "시작·종료가 10분 이내이며 짧은 기록의 85% 이상이 겹칩니다."
+        case "duration difference within 25%":
+            return "운동 시간 차이가 25% 이내입니다."
+        case "distance difference within 25%":
+            return "거리 차이가 25% 이내입니다."
         case "cross-source duplicate candidate":
             return "서로 다른 source에서 들어온 중복 후보입니다."
         case "average heart rate is similar":

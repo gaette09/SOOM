@@ -15,12 +15,19 @@ struct AuthSessionRestorer {
         self.policy = policy
     }
 
+    private func loadStartupSession() async -> AuthSession? {
+        if let startupLoader = remoteSessionLoader as? any RemoteAuthStartupSessionLoading {
+            return await startupLoader.loadStartupSession()
+        }
+        return await remoteSessionLoader?.loadRemoteSession()
+    }
+
     func restore() async -> AuthSession {
         let localSession = repository.loadSession()
 
         switch policy {
         case .preferRemoteIfAvailable:
-            guard let remoteSession = await remoteSessionLoader?.loadRemoteSession(),
+            guard let remoteSession = await loadStartupSession(),
                   remoteSession.isSignedIn
             else {
                 return localSession
@@ -31,7 +38,7 @@ struct AuthSessionRestorer {
             return localSession
 
         case .remoteOnlyFuture:
-            guard let remoteSession = await remoteSessionLoader?.loadRemoteSession(),
+            guard let remoteSession = await loadStartupSession(),
                   remoteSession.isSignedIn
             else {
                 return .signedOut

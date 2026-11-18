@@ -268,6 +268,46 @@ final class RecoveryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.timelineEntries.first?.recoveryScore, expectedSummary.score)
     }
 
+    func testEmptyToCalculatedToEmptyDoesNotPersistFallbackScore() async throws {
+        let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let calculator = RecoveryCalculator(referenceDate: referenceDate)
+        let empty = calculator.calculateSummary(from: [])
+        let calculated = calculator.calculateSummary(from: [RecoveryActivity(
+            workoutType: .run,
+            durationMinutes: 45,
+            distanceKm: 8,
+            averageHeartRate: 136,
+            relativeEffort: 30,
+            trainingLoad: 46,
+            completedAt: referenceDate
+        )])
+        let provider = MutableRecoveryDataProvider(summary: empty)
+        let store = CountingRecoverySnapshotStore()
+        let viewModel = RecoveryViewModel(
+            provider: provider,
+            checkInStore: FakeCheckInStore(checkIns: [makeCheckIn(date: referenceDate, fatigue: 5)]),
+            timelineBuilder: RecoveryTimelineBuilder(snapshotStore: store),
+            snapshotWriter: DailyRecoverySnapshotWriter(snapshotStore: store, referenceDate: { referenceDate })
+        )
+        await viewModel.load()
+        XCTAssertEqual(viewModel.summary?.hasCalculatedScore, false)
+        XCTAssertNotNil(viewModel.latestCheckIn)
+        XCTAssertEqual(store.saveCount, 0)
+        XCTAssertTrue(viewModel.timelineEntries.isEmpty)
+
+        provider.summary = calculated
+        await viewModel.reload()
+        XCTAssertEqual(viewModel.summary?.hasCalculatedScore, true)
+        XCTAssertEqual(viewModel.summary?.score, calculated.score)
+        XCTAssertEqual(store.saveCount, 1)
+
+        provider.summary = empty
+        await viewModel.reload()
+        XCTAssertEqual(viewModel.summary?.hasCalculatedScore, false)
+        XCTAssertEqual(store.saveCount, 1, "An empty refresh must not overwrite real history with fallback 72")
+        XCTAssertEqual(store.snapshots.first?.score, calculated.score)
+    }
+
     func testReloadUpsertsSameDaySnapshot() async throws {
         let container = try makeSnapshotContainer()
         let referenceDate = Date(timeIntervalSince1970: 1_800_000_000)
@@ -308,6 +348,7 @@ final class RecoveryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.summary?.status, expectedSummary.status)
         XCTAssertEqual(viewModel.summary?.recommendation, expectedSummary.recommendation)
         XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNotNil(viewModel.snapshotErrorMessage)
     }
 
     private func makeCheckIn(
@@ -413,4 +454,46 @@ private struct FailingDailyRecoverySnapshotStore: DailyRecoverySnapshotStore {
 
 private enum TestError: Error {
     case expectedFailure
+}
+
+private final class MutableRecoveryDataProvider: RecoveryDataProvider {
+    var summary: RecoverySummary
+    var shouldFail = false
+    init(summary: RecoverySummary) { self.summary = summary }
+    func fetchRecoverySummary() async throws -> RecoverySummary {
+        if shouldFail { throw TestError.expectedFailure }
+        return summary
+    }
+}
+
+private final class CountingRecoverySnapshotStore: DailyRecoverySnapshotStore {
+    private(set) var saveCount = 0
+    private(set) var snapshots: [DailyRecoverySnapshot] = []
+    func saveSnapshot(_ snapshot: DailyRecoverySnapshot) async throws {
+        saveCount += 1
+        snapshots = [snapshot]
+    }
+    func fetchRecentSnapshots(days: Int) async throws -> [DailyRecoverySnapshot] { snapshots }
+    func fetchSnapshot(for date: Date) async throws -> DailyRecoverySnapshot? { snapshots.first }
+    func deleteSnapshot(id: UUID) async throws { snapshots.removeAll { $0.id == id } }
+}
+
+
+extension RecoveryViewModelTests {
+    func testReloadFailureRetainsVisibleResultWithoutSavingStaleSnapshot() async {
+        let provider = MutableRecoveryDataProvider(summary: .mockToday)
+        let snapshots = CountingRecoverySnapshotStore()
+        let viewModel = RecoveryViewModel(provider: provider, checkInStore: FakeCheckInStore(checkIns: []), timelineBuilder: RecoveryTimelineBuilder(snapshotStore: snapshots), snapshotWriter: DailyRecoverySnapshotWriter(snapshotStore: snapshots))
+        await viewModel.load()
+        XCTAssertEqual(snapshots.saveCount, 1)
+        provider.shouldFail = true
+        await viewModel.reload()
+        XCTAssertEqual(viewModel.summary?.score, RecoverySummary.mockToday.score)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertEqual(snapshots.saveCount, 1)
+        provider.shouldFail = false
+        await viewModel.reload()
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(snapshots.saveCount, 2)
+    }
 }

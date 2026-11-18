@@ -1,6 +1,7 @@
 import Foundation
 
 final class MorningCheckInSkipStore {
+    static var accountKey = "soom.morningCheckIn.skippedDate"
     private let userDefaults: UserDefaults
     private let calendar: Calendar
     private let key: String
@@ -9,7 +10,7 @@ final class MorningCheckInSkipStore {
     init(
         userDefaults: UserDefaults = .standard,
         calendar: Calendar = .current,
-        key: String = "soom.morningCheckIn.skippedDate",
+        key: String = MorningCheckInSkipStore.accountKey,
         now: @escaping () -> Date = Date.init
     ) {
         self.userDefaults = userDefaults

@@ -1,3 +1,5 @@
+import SwiftUI
+import UIKit
 import SwiftData
 import XCTest
 @testable import SOOM
@@ -73,7 +75,7 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
         let fetched = try await fixture.store.fetchRecentWorkouts(days: 7)
 
         XCTAssertEqual(fetched.count, 1)
-        XCTAssertEqual(fetched.first?.id, updated.id)
+        XCTAssertEqual(fetched.first?.id, first.id)
         XCTAssertEqual(fetched.first?.distanceMeters, 42_000)
     }
 
@@ -261,5 +263,174 @@ final class UnifiedWorkoutStoreTests: XCTestCase {
             createdAt: startDate,
             updatedAt: startDate.addingTimeInterval(durationSeconds)
         )
+    }
+}
+
+
+extension UnifiedWorkoutStoreTests {
+    func testR2DiskStoreCardPathPerformance() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("R2-disk-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        // Keep this synthetic SQLite directory until the simulator removes its temp files.
+        // SwiftData and cancelled view tasks can outlive the test stack frame.
+        let schema = HealthAccountStorageController.schema
+        let config = ModelConfiguration(schema: schema, url: folder.appendingPathComponent("fixture.store"), cloudKitDatabase: .none)
+        let container = try ModelContainer(for: schema, configurations: [config]); retainedContainers.append(container)
+        let context = container.mainContext
+        var workouts: [UnifiedWorkout] = [], routes: [WorkoutRoute] = []
+        let now = Date()
+        for index in 0..<12 {
+            var workout = makeWorkout(source: .soomLocal, startDate: now.addingTimeInterval(-Double(index + 1) * 86400), durationSeconds: 1800)
+            workout.locationName = "Synthetic local fixture"
+            let coordinates = (0..<1800).map { i in WorkoutRouteCoordinate(latitude: 35 + Double(i) * 0.00002,
+                longitude: 128 + sin(Double(i) / 100) * 0.001, timestamp: workout.startDate.addingTimeInterval(Double(i))) }
+            let route = WorkoutRoute(workoutId: workout.id, source: .soomLocal, coordinates: coordinates, totalDistanceMeters: 10000)
+            context.insert(UnifiedWorkoutPersistenceMapper().makeRecord(from: workout))
+            context.insert(WorkoutRouteMapper().makeRecord(from: route))
+            workouts.append(workout); routes.append(route)
+        }
+        try context.save()
+        XCTAssertFalse(config.isStoredInMemoryOnly)
+        WorkoutCardPerformanceProbe.start(); defer { WorkoutCardPerformanceProbe.stop() }
+        let beat = Task { @MainActor in
+            var previous = ProcessInfo.processInfo.systemUptime, gap = 0.0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(2))
+                let next = ProcessInfo.processInfo.systemUptime; gap = max(gap, (next - previous) * 1000); previous = next
+            }
+            return gap
+        }
+        await Task.yield()
+        let start = ProcessInfo.processInfo.systemUptime
+        for _ in 0..<2 { for i in 0..<3 {
+            _ = await WorkoutCardAchievementLoader.load(workout: workouts[i], route: routes[i], context: context)
+        } }
+        let elapsed = (ProcessInfo.processInfo.systemUptime - start) * 1000
+        try? await Task.sleep(for: .milliseconds(5)); beat.cancel(); let gap = await beat.value
+        print("SOOM_R2_DISK elapsed_ms=\(elapsed) main_gap_ms=\(gap) counts=\(WorkoutCardPerformanceProbe.counts)")
+        let storage = try HealthAccountStorageController(baseDirectory: folder, guestContainer: container,
+            monitorNetwork: false, automaticallySync: false)
+        let suite = "R2-auth-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite)); defer { defaults.removePersistentDomain(forName: suite) }
+        let auth = AuthViewModel(store: AuthSessionStore(userDefaults: defaults))
+        WorkoutCardPerformanceProbe.start()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 393, height: 852))
+        let host = UIHostingController(rootView: AnyView(EmptyView())); window.rootViewController = host; window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        let viewStart = ProcessInfo.processInfo.systemUptime
+        for tick in 0..<3 {
+            var value = workouts[0]; value.userTitle = "Synthetic render \(tick)"
+            host.rootView = AnyView(ScrollView { ActivityWorkoutRow(workout: value) }
+                .environmentObject(auth).environmentObject(storage).modelContainer(container))
+            host.view.frame = window.bounds; window.layoutIfNeeded(); host.view.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(80))
+        }
+        print("SOOM_R2_CARD elapsed_including_240ms_wait=\((ProcessInfo.processInfo.systemUptime-viewStart)*1000) counts=\(WorkoutCardPerformanceProbe.counts)")
+        for index in 12..<180 {
+            var value = makeWorkout(source: .soomLocal, startDate: now.addingTimeInterval(-Double(index + 1)*86400))
+            value.locationName = "Synthetic local fixture"
+            context.insert(UnifiedWorkoutPersistenceMapper().makeRecord(from: value))
+        }
+        try context.save()
+        func drain() async throws {
+            for _ in 0..<500 {
+                if (WorkoutCardPerformanceProbe.counts["activeAchievements"] ?? 0) == 0 { return }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            XCTFail("Synthetic card tasks did not finish")
+        }
+        try await drain()
+        for surface in ["profile", "calendar", "profile"] {
+            host.rootView = AnyView(EmptyView()); try await Task.sleep(for: .milliseconds(30)); try await drain()
+            WorkoutCardPerformanceProbe.start()
+            let started = ProcessInfo.processInfo.systemUptime
+            if surface == "profile" {
+                host.rootView = AnyView(ProfileIdentityView(initialSection: .activities).environmentObject(auth).environmentObject(storage).modelContainer(container))
+            } else {
+                host.rootView = AnyView(ActivityCalendarView().environmentObject(auth).environmentObject(storage).modelContainer(container))
+            }
+            window.layoutIfNeeded(); host.view.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(400))
+            try await drain()
+            print("SOOM_R2_SURFACE name=\(surface) elapsed_including_400ms_wait=\((ProcessInfo.processInfo.systemUptime-started)*1000) counts=\(WorkoutCardPerformanceProbe.counts)")
+        }
+        let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
+        let attachment = XCTAttachment(image: image); attachment.name = "R2 synthetic real disk profile activity cards local map fallback"; attachment.lifetime = .keepAlways; add(attachment)
+        host.rootView = AnyView(EmptyView()); try await Task.sleep(for: .milliseconds(50)); try await drain()
+    }
+}
+
+
+extension UnifiedWorkoutStoreTests {
+    func testR2RouteProjectionChecksContentsScopeDeletionAndBudget() async throws {
+        let first = try makeFixture(referenceDate: Date()), second = try makeFixture(referenceDate: Date())
+        let mapper = WorkoutRouteMapper(), id = UUID()
+        let points = [WorkoutRouteCoordinate(latitude: 35, longitude: 128), WorkoutRouteCoordinate(latitude: 35.02, longitude: 128.02)]
+        let record = mapper.makeRecord(from: WorkoutRoute(workoutId: id, source: .soomLocal, coordinates: points, totalDistanceMeters: 3000))
+        let cache = WorkoutCardRouteProjection()
+        WorkoutCardPerformanceProbe.start(); defer { WorkoutCardPerformanceProbe.stop() }
+        XCTAssertEqual(cache.route(record, context: first.container.mainContext)?.coordinates, points)
+        _ = cache.route(record, context: first.container.mainContext)
+        XCTAssertEqual(WorkoutCardPerformanceProbe.counts["routeDecode"], 1)
+        let changed = [WorkoutRouteCoordinate(latitude: 36, longitude: 129), WorkoutRouteCoordinate(latitude: 36.02, longitude: 129.02)]
+        let unchangedTime = record.updatedAt
+        record.encodedCoordinates = mapper.encodeCoordinates(changed)
+        XCTAssertEqual(cache.route(record, context: first.container.mainContext)?.coordinates, changed)
+        XCTAssertEqual(record.updatedAt, unchangedTime)
+        XCTAssertEqual(WorkoutCardPerformanceProbe.counts["routeDecode"], 2)
+        _ = cache.route(record, context: second.container.mainContext)
+        XCTAssertEqual(WorkoutCardPerformanceProbe.counts["routeDecode"], 3, "Same UUID in another container cannot hit this cache")
+        XCTAssertNil(cache.route(nil, context: second.container.mainContext))
+        _ = cache.route(record, context: second.container.mainContext)
+        NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
+        try await Task.sleep(for: .milliseconds(30))
+        XCTAssertEqual(cache.retainedPointCount, 0)
+        let huge = Array(repeating: points[0], count: 10_001)
+        record.encodedCoordinates = mapper.encodeCoordinates(huge)
+        XCTAssertEqual(cache.route(record, context: first.container.mainContext)?.coordinates.count, 10_001)
+        XCTAssertEqual(cache.retainedPointCount, 0)
+        let before = WorkoutCardPerformanceProbe.counts["routeDecode", default: 0]
+        _ = cache.route(record, context: first.container.mainContext)
+        XCTAssertEqual(WorkoutCardPerformanceProbe.counts["routeDecode"], before + 1)
+        let route = WorkoutRoute(workoutId: id, source: .soomLocal, coordinates: huge, totalDistanceMeters: 3000)
+        XCTAssertEqual(cache.preview(route), RoutePrivacyMasker().mask(route: route))
+        XCTAssertEqual(cache.retainedPointCount, 0, "Oversized input remains exact without cache retention")
+    }
+
+    func testR2AliasRouteAndAsyncAchievementsMatchExistingHistory() async throws {
+        let schema = HealthAccountStorageController.schema
+        let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        retainedContainers.append(container)
+        let context = container.mainContext, now = Date(), mapper = WorkoutRouteMapper()
+        var target = makeWorkout(source: .soomLocal, startDate: now.addingTimeInterval(-3600), durationSeconds: 1800)
+        target.preferredWorkoutID = target.id
+        var sibling = makeWorkout(source: .strava, startDate: target.startDate, durationSeconds: 1800)
+        sibling.preferredWorkoutID = target.id
+        for workout in [target, sibling] { context.insert(UnifiedWorkoutPersistenceMapper().makeRecord(from: workout)) }
+        let points = (0..<900).map { i in WorkoutRouteCoordinate(latitude: 35 + Double(i)*0.00003, longitude: 128,
+            timestamp: target.startDate.addingTimeInterval(Double(i)*2)) }
+        context.insert(mapper.makeRecord(from: WorkoutRoute(workoutId: sibling.id, source: .strava, coordinates: points, totalDistanceMeters: 4000)))
+        for index in 1...5 {
+            let old = makeWorkout(source: .soomLocal, startDate: target.startDate.addingTimeInterval(-Double(index)*86400), durationSeconds: 1800)
+            context.insert(UnifiedWorkoutPersistenceMapper().makeRecord(from: old))
+            let coordinates = points.enumerated().map { i, point in WorkoutRouteCoordinate(latitude: 35 + Double(i)*0.00002,
+                longitude: point.longitude, timestamp: old.startDate.addingTimeInterval(Double(i)*2)) }
+            context.insert(mapper.makeRecord(from: WorkoutRoute(workoutId: old.id, source: .soomLocal, coordinates: coordinates, totalDistanceMeters: 3000)))
+        }
+        try context.save()
+        let resolved = try await WorkoutTelemetryStore(modelContext: context).resolvedRoute(for: target)
+        let route = try XCTUnwrap(resolved)
+        XCTAssertEqual(route.workoutId, target.id); XCTAssertEqual(route.coordinates, points)
+        let provider = SwiftDataWorkoutAchievementHistoryProvider(workoutStore: SwiftDataUnifiedWorkoutStore(modelContext: context),
+            routeStore: SwiftDataWorkoutRoutePersistenceStore(modelContext: context))
+        let history = await provider.recentBestEfforts(excluding: target.id, workoutType: target.workoutType, before: target.startDate, lookbackMonths: WorkoutAchievementConfig.lookbackMonths)
+        let expected = WorkoutAchievementBuilder.build(todayEfforts: WorkoutSegmentBestEffortFinder.bestEfforts(from: route), historicalEffortsByDuration: history, workoutType: target.workoutType).markers
+        let actual = await WorkoutCardAchievementLoader.load(workout: target, route: route, context: context)
+        XCTAssertFalse(expected.isEmpty)
+        XCTAssertEqual(actual.map(\.durationMinutes), expected.map(\.durationMinutes))
+        XCTAssertEqual(actual.map(\.rank), expected.map(\.rank)); XCTAssertEqual(actual.map(\.valueText), expected.map(\.valueText))
+        XCTAssertEqual(actual.map(\.coordinate), expected.map(\.coordinate))
+        let cancelled = Task { await WorkoutCardAchievementLoader.load(workout: target, route: route, context: context) }
+        cancelled.cancel(); let dropped = await cancelled.value; XCTAssertTrue(dropped.isEmpty)
     }
 }

@@ -179,7 +179,9 @@ struct ProfileWorkoutAggregator {
             patterns.append(ProfileMovementPattern(title: "걷기 중심", subtitle: "몸의 리듬을 부드럽게 만듦", icon: "figure.walk", isPrimary: patterns.isEmpty))
         }
 
-        patterns.append(ProfileMovementPattern(title: "회복 친화형", subtitle: "무리보다 지속을 먼저 둠", icon: "leaf.fill", isPrimary: patterns.isEmpty))
+        if patterns.isEmpty {
+            patterns.append(ProfileMovementPattern(title: "성향 자료 부족", subtitle: "운동 성향을 보여줄 기록이 더 필요해요", icon: SOOMIcon.sparkles, isPrimary: true))
+        }
         return Array(patterns.prefix(4))
     }
 
@@ -242,8 +244,10 @@ struct ProfileWorkoutAggregator {
                 )
             },
             badges: badges(from: aggregate),
-            signatureRoutes: ProfileIdentitySystem.foundation.signatureRoutes,
-            connections: ProfileIdentitySystem.foundation.connections,
+            // A route identity provider is not connected yet. Workout totals
+            // cannot establish which places represent this user.
+            signatureRoutes: [],
+            connections: [],
             emptyStateCopy: "아직 나의 운동 리듬을 만드는 중입니다. 첫 운동을 기록하면 대표 종목과 성향이 생겨요."
         )
     }
@@ -312,8 +316,8 @@ struct ProfileWorkoutAggregator {
                 id: "club-contribution",
                 title: "첫 클럽 기여",
                 subtitle: "Club 연결 예정",
-                state: aggregate.workoutCount > 0 ? "준비됨" : "대기",
-                progress: aggregate.workoutCount > 0 ? 0.35 : 0,
+                state: "대기",
+                progress: 0,
                 isRare: true
             )
         ]

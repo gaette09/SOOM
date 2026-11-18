@@ -13,6 +13,7 @@ final class HealthKitWorkoutLookupProvider: HealthKitWorkoutLookingUp {
     }
 
     func lookupWorkout(externalId: String) async -> HKWorkout? {
+        guard await MainActor.run(body: { !ReviewDemoMode.isActive }) else { return nil }
         guard HKHealthStore.isHealthDataAvailable(),
               let uuid = UUID(uuidString: externalId) else {
             return nil

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HealthKitWorkoutImportView: View {
     @StateObject private var viewModel: HealthKitWorkoutImportViewModel
+    @State private var showingPublicImportConfirmation = false
 
     init(viewModel: HealthKitWorkoutImportViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -16,9 +17,17 @@ struct HealthKitWorkoutImportView: View {
             if let result = viewModel.lastResult {
                 importResultCard(result)
             }
+            if ImportedWorkoutPublication.usesLegacyPublication, let publication = viewModel.publicationResult { publicationCard(publication) }
         }
         .navigationTitle("운동 가져오기")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("새 운동을 공개 피드에 올릴까요?", isPresented: $showingPublicImportConfirmation,
+                            titleVisibility: .visible) {
+            Button("공개로 가져오기") { Task { await viewModel.importRecentWorkouts() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("새로 가져온 운동의 종목·날짜·거리·시간·지역 및 보호 처리된 경로 지도가 공개 피드에 표시됩니다. 활동에서 개별 비공개 또는 전체 비공개로 바꿀 수 있어요. 기존 운동은 공개되지 않습니다.")
+        }
     }
 
     private var header: some View {
@@ -38,14 +47,16 @@ struct HealthKitWorkoutImportView: View {
     private var importGuideCard: some View {
         SOOMCard {
             SOOMSectionHeader(
-                "읽기 전용 import",
-                caption: "가져온 기록은 아직 회복 점수나 성장 분석에 자동 반영되지 않아요."
+                "운동 기록 가져오기",
+                caption: "가져온 기록을 기기에 저장하고, 분석에 포함한 운동으로 활동과 회복 흐름을 보여줘요."
             )
 
+            Text(viewModel.importSharingDescription)
+                .font(SOOMFont.body(13, weight: .bold, relativeTo: .caption))
             VStack(alignment: .leading, spacing: SOOMLayout.Metrics.compactListSpacing) {
-                Label("HealthKit 운동을 SOOM 공통 운동 데이터로 저장합니다.", systemImage: SOOMIcon.health)
-                Label("중복 기록은 저장소 기준으로 한 번만 유지돼요.", systemImage: SOOMIcon.checkCircle)
-                Label("Deduplication과 Recovery/Growth 연결은 다음 단계에서 진행합니다.", systemImage: SOOMIcon.sync)
+                Label("Apple 건강 앱의 원본을 바꾸지 않고 SOOM에 기록을 저장해요.", soomIcon: SOOMIcon.health)
+                Label("중복 기록은 저장소 기준으로 한 번만 유지돼요.", soomIcon: SOOMIcon.checkCircle)
+                Label("운동 도서관에서 기록을 확인하고 분석 포함 여부를 관리할 수 있어요.", soomIcon: SOOMIcon.sync)
             }
             .font(SOOMFont.body(13, relativeTo: .caption))
             .foregroundStyle(SOOMColor.secondaryInk)
@@ -61,9 +72,8 @@ struct HealthKitWorkoutImportView: View {
             )
 
             Button {
-                Task {
-                    await viewModel.importRecentWorkouts()
-                }
+                if viewModel.willAutoPublish { showingPublicImportConfirmation = true }
+                else { Task { await viewModel.importRecentWorkouts() } }
             } label: {
                 HStack(spacing: SOOMLayout.SectionHeader.spacing) {
                     if viewModel.isImporting {
@@ -85,6 +95,21 @@ struct HealthKitWorkoutImportView: View {
             .disabled(viewModel.isImporting)
             .accessibilityLabel("HealthKit 운동 가져오기")
             .accessibilityHint("최근 HealthKit 운동 기록을 SOOM 분석용 데이터로 가져옵니다.")
+        }
+    }
+
+    private func publicationCard(_ result: ImportedWorkoutPublication.Result) -> some View {
+        SOOMCard {
+            Text("공개 피드 반영")
+                .font(SOOMFont.body(17, weight: .bold, relativeTo: .headline))
+            Text("공개 \(result.published)개 · 비공개 \(result.leftPrivate)개 · 반영 실패 \(result.failed)개")
+                .font(SOOMFont.body(13, relativeTo: .caption))
+            if result.failed > 0 {
+                Text("공개되지 않은 새 운동은 활동에 남아 있어요. 연결을 확인한 뒤 다시 시도해 주세요.")
+                    .font(SOOMFont.body(13, relativeTo: .caption))
+                Button("피드 공개 다시 시도") { Task { await viewModel.retryPublication() } }
+                    .disabled(viewModel.isImporting)
+            }
         }
     }
 

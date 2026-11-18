@@ -33,6 +33,8 @@ final class RecoverySummaryComposerTests: XCTestCase {
         )
 
         XCTAssertEqual(composed.score, baseSummary.score)
+        XCTAssertTrue(baseSummary.hasCalculatedScore)
+        XCTAssertTrue(composed.hasCalculatedScore)
         XCTAssertEqual(composed.status, baseSummary.status)
         XCTAssertEqual(composed.recommendation, baseSummary.recommendation)
         XCTAssertEqual(composed.trends.count, baseSummary.trends.count)
@@ -53,6 +55,26 @@ final class RecoverySummaryComposerTests: XCTestCase {
         XCTAssertEqual(composed.coachMessage.message, baseSummary.coachMessage.message)
         XCTAssertEqual(composed.insights.count, baseSummary.insights.count)
         XCTAssertEqual(composed.insights.first?.title, baseSummary.insights.first?.title)
+    }
+
+    func testEmptyInputScoreRemainsUnavailableAfterCheckInPersonalization() {
+        let baseSummary = RecoveryCalculator().calculateSummary(from: [])
+        let checkIns: [RecoveryCheckIn?] = [
+            nil,
+            makeCheckIn(),
+            makeCheckIn(fatigue: 5)
+        ]
+
+        for checkIn in checkIns {
+            let composed = composer.compose(
+                baseSummary: baseSummary,
+                latestCheckIn: checkIn
+            )
+
+            XCTAssertFalse(composed.hasCalculatedScore)
+            XCTAssertEqual(composed.score, baseSummary.score)
+            XCTAssertEqual(composed.status, baseSummary.status)
+        }
     }
 
     private func makeCheckIn(

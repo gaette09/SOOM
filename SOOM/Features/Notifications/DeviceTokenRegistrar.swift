@@ -20,7 +20,7 @@ private struct DeviceTokenUpsertDTO: Encodable, Equatable {
 /// environment config) — device token registration silently no-ops rather
 /// than crashing the app over a non-critical feature.
 struct NoopDeviceTokenRegistrar: DeviceTokenRegistering {
-    func upsert(tokenHex: String, userId: UUID) async throws {}
+    func upsert(tokenHex: String, userId: UUID) async throws { throw DeviceRegistrationError.accountChanged }
     func deleteToken(tokenHex: String) async throws {}
 }
 
@@ -32,11 +32,24 @@ struct SupabaseDeviceTokenRegistrar: DeviceTokenRegistering {
     }
 
     func upsert(tokenHex: String, userId: UUID) async throws {
-        let request = DeviceTokenUpsertDTO(userId: userId, token: tokenHex)
-        try await client
-            .from("device_tokens")
-            .upsert(request, onConflict: "user_id,token")
-            .execute()
+        let session = try await client.auth.session
+        guard session.user.id == userId, !Task.isCancelled else { throw DeviceRegistrationError.accountChanged }
+        struct Registration: Encodable { let p_actor: UUID; let p_token: String;let p_environment:String }
+        #if DEBUG
+        let environment="development"
+        #else
+        let environment="production"
+        #endif
+        do {
+            let saved:Bool = try await client.rpc("soom_register_push_v2", params: Registration(p_actor: userId, p_token: tokenHex,p_environment:environment)).execute().value
+            guard saved else { throw DeviceRegistrationError.accountChanged }
+            await EventNotificationCenter.shared.registrationSucceeded(token:tokenHex,userID:userId)
+        } catch let error as PostgrestError where error.code == "PGRST202" {
+            // Old server remains usable, but never claim extended delivery ready.
+            guard !Task.isCancelled else { throw CancellationError() }
+            try await client.from("device_tokens").upsert(DeviceTokenUpsertDTO(userId: userId, token: tokenHex), onConflict: "user_id,token").execute()
+            throw DeviceRegistrationError.extendedServiceUnavailable
+        }
     }
 
     /// Scoped to the current session's user (not the userId this token was

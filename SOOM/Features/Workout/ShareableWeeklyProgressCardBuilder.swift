@@ -90,6 +90,8 @@ struct ShareableWeeklyProgressCardBuilder {
             return "SOOM · 주간 성장 미리보기"
         case .followers:
             return "SOOM · 팔로워 주간 공유 예정"
+        case .mutual:
+            return "SOOM · 맞팔 공유 예정"
         case .publicFeed:
             return "SOOM · 공개 주간 공유 예정"
         }

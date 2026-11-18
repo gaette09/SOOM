@@ -6,7 +6,10 @@ struct HealthKitWorkoutImportResult: Equatable {
     let skippedCount: Int
     let failedCount: Int
     let importedWorkouts: [UnifiedWorkout]
-    let message: String
+    var message: String
+    var cardUpdates: [UnifiedWorkout] = []
+    var refreshedWorkouts: [UnifiedWorkout] = []
+    var detailWarningCount: Int = 0
 
     static func success(importedWorkouts: [UnifiedWorkout], fetchedCount: Int) -> HealthKitWorkoutImportResult {
         HealthKitWorkoutImportResult(

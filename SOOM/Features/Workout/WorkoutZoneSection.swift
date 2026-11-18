@@ -38,12 +38,16 @@ struct WorkoutZoneSection: View {
                 if isLoadingStream {
                     streamStatusRow("HealthKit 강도 데이터를 확인하고 있어요.")
                 } else if didFailLoadingStream {
-                    streamStatusRow("실제 강도 데이터를 찾지 못해 기존 요약으로 보여드려요.")
+                    streamStatusRow("측정 데이터를 불러오지 못했어요. 기존 요약이 있으면 유지합니다.")
                 }
 
                 VStack(spacing: SOOMLayout.stackSpacing) {
                     ForEach(visibleSummaries, id: \.type.rawValue) { summary in
-                        WorkoutZoneCard(summary: summary, tint: sport.tint)
+                        if isLoadingStream && !summary.isAvailable {
+                            SOOMSkeleton(layout: .chart, label: "존 분석 불러오는 중")
+                        } else {
+                            WorkoutZoneCard(summary: summary, tint: sport.tint)
+                        }
                     }
                 }
             }
@@ -62,7 +66,7 @@ struct WorkoutZoneSection: View {
             return "실제 HealthKit stream을 우선 확인해요"
         }
         if didFailLoadingStream {
-            return "데이터가 없으면 기존 요약을 안전하게 사용해요"
+            return "조회 실패와 기록 없음을 구분해요"
         }
         return "강도와 리듬을 가볍게 확인해요"
     }

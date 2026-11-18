@@ -30,7 +30,7 @@ struct CourseRecordCard: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: SOOMLayout.Metrics.actionTextSpacing) {
-            Image(systemName: iconName)
+            Image(soom: iconName)
                 .font(.system(size: SOOMLayout.IconButton.iconSize, weight: .semibold))
                 .foregroundStyle(toneTint)
                 .frame(width: SOOMLayout.Metrics.actionIconFrame, height: SOOMLayout.Metrics.actionIconFrame)

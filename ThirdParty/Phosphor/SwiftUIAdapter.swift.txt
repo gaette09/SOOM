@@ -1,0 +1,58 @@
+import SwiftUI
+import UIKit
+
+/// Phosphor paths are bundled as native symbol assets, so callers retain Image's
+/// font, imageScale, renderingMode and resizable behavior. Existing icon keys stay
+/// stable for persisted models; only this boundary translates their visual design.
+extension Image {
+    init(soom name: String, selected: Bool = false) {
+        if SOOMPhosphorCatalog.isBrandSymbol(name) {
+            self.init(systemName: name)
+        } else {
+            self.init(SOOMPhosphorCatalog.assetName(for: name, selected: selected))
+        }
+    }
+}
+
+extension UIImage {
+    convenience init?(soom name: String, withConfiguration configuration: UIImage.Configuration? = nil) {
+        if SOOMPhosphorCatalog.isBrandSymbol(name) {
+            self.init(systemName: name, withConfiguration: configuration)
+        } else {
+            self.init(named: SOOMPhosphorCatalog.assetName(for: name), in: .main, with: configuration)
+        }
+    }
+}
+
+extension Label where Title == Text, Icon == Image {
+    init(_ titleKey: LocalizedStringKey, soomIcon name: String) {
+        self.init { Text(titleKey) } icon: { Image(soom: name) }
+    }
+
+    @_disfavoredOverload
+    init<S: StringProtocol>(_ title: S, soomIcon name: String) {
+        self.init { Text(title) } icon: { Image(soom: name) }
+    }
+}
+
+extension Button where Label == SwiftUI.Label<Text, Image> {
+    init(_ titleKey: LocalizedStringKey, soomIcon name: String, role: ButtonRole? = nil, action: @escaping () -> Void) {
+        self.init(role: role, action: action) { SwiftUI.Label(titleKey, soomIcon: name) }
+    }
+
+    @_disfavoredOverload
+    init<S: StringProtocol>(_ title: S, soomIcon name: String, role: ButtonRole? = nil, action: @escaping () -> Void) {
+        self.init(role: role, action: action) { SwiftUI.Label(title, soomIcon: name) }
+    }
+}
+
+extension ContentUnavailableView where Label == SwiftUI.Label<Text, Image>, Description == Text?, Actions == EmptyView {
+    init(_ titleKey: LocalizedStringKey, soomIcon name: String, description: Text? = nil) {
+        self.init { SwiftUI.Label(titleKey, soomIcon: name) } description: { description } actions: { EmptyView() }
+    }
+
+    @_disfavoredOverload
+    init<S: StringProtocol>(_ title: S, soomIcon name: String, description: Text? = nil) {
+        self.init { SwiftUI.Label(title, soomIcon: name) } description: { description } actions: { EmptyView() }
+    }
+}

@@ -20,11 +20,15 @@ enum WorkoutSegmentBestEffortFinder {
     static let candidateDurationsMinutes = [1, 5, 10]
 
     static func bestEfforts(from route: WorkoutRoute) -> [WorkoutBestEffort] {
-        let points = timestampedPoints(from: route)
-        guard points.count >= 2 else { return [] }
-
+        #if DEBUG
+        WorkoutCardPerformanceProbe.hit("bestEfforts")
+        #endif
+        let segments = route.coordinateSegments.map { coordinates in
+            timestampedPoints(from: WorkoutRoute(workoutId: route.workoutId, source: route.source, coordinates: coordinates, totalDistanceMeters: route.totalDistanceMeters))
+        }
         return candidateDurationsMinutes.compactMap { minutes in
-            bestEffort(forDurationMinutes: minutes, points: points)
+            segments.compactMap { bestEffort(forDurationMinutes: minutes, points: $0) }
+                .max { $0.averageMetersPerSecond < $1.averageMetersPerSecond }
         }
     }
 
@@ -32,6 +36,7 @@ enum WorkoutSegmentBestEffortFinder {
         forDurationMinutes minutes: Int,
         points: [(coordinate: WorkoutRouteCoordinate, timestamp: Date, cumulativeDistance: Double)]
     ) -> WorkoutBestEffort? {
+        guard points.count >= 2 else { return nil }
         let targetDuration = TimeInterval(minutes * 60)
 
         var bestSpeed: Double = 0
