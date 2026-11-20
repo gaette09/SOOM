@@ -245,6 +245,7 @@ struct FeedRoutePlaybackScope: Equatable {
             var hash = Hasher()
             hash.combine(route.privacyMaskApplied)
             hash.combine(route.privacyMaskRadiusMeters)
+            hash.combine(route.hasAuthoritativeShareMask)
             hash.combine(route.coordinates.count)
             for point in route.coordinates {
                 hash.combine(point.latitude); hash.combine(point.longitude)
@@ -299,6 +300,7 @@ struct FeedStaticRouteImage: View {
     var onOpen: (() -> Void)? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.workoutCardRouteViewport) private var viewport
+    @Environment(\.soomFeedScrollMotionGate) private var liveScrollMotionGate
     @Environment(\.soomFeedRoutePlaybackHistory) private var feedPlaybackHistory
     @Environment(\.soomFeedRoutePlaybackScope) private var feedPlaybackScope
     @State private var playbackKey: FeedRoutePlaybackHistory.Key?
@@ -392,7 +394,7 @@ struct FeedStaticRouteImage: View {
         if Feed68ScrollProbe.enabled && ProcessInfo.processInfo.environment["SOOM_FEED68_MOTION_OFF"] == "1" { return false }
         #endif
         return WorkoutCardRoutePlaybackGate.isEligible(visible: sufficientlyVisible, active: viewport.active,
-            reduceMotion: reduceMotion || viewport.reduceMotion || viewport.isScrolling, lowPower: lowPower, renderer: MapboxAccessTokenAvailability.hasUsableToken,
+            reduceMotion: reduceMotion || viewport.reduceMotion || viewport.isScrolling || liveScrollMotionGate?.isScrolling == true, lowPower: lowPower, renderer: MapboxAccessTokenAvailability.hasUsableToken,
             route: (cachedPreview ?? (isAlreadyPrivacyMasked ? route : RoutePrivacyMasker().mask(route: route))).coordinates.count > 1)
     }
     private func schedulePlayback() {
@@ -464,6 +466,22 @@ extension EnvironmentValues {
     var workoutCardRouteViewport: WorkoutCardRouteViewport {
         get { self[WorkoutCardRouteViewportKey.self] }
         set { self[WorkoutCardRouteViewportKey.self] = newValue }
+    }
+}
+
+/// Main-actor, feed-instance-local motion fence. SwiftUI/hosting environment
+/// values propagate later than a scroll event; playback checks this reference
+/// synchronously before each tick so it cannot animate during that gap.
+@MainActor final class FeedScrollMotionGate {
+    var isScrolling = false
+}
+private struct FeedScrollMotionGateKey: EnvironmentKey {
+    static let defaultValue: FeedScrollMotionGate? = nil
+}
+extension EnvironmentValues {
+    var soomFeedScrollMotionGate: FeedScrollMotionGate? {
+        get { self[FeedScrollMotionGateKey.self] }
+        set { self[FeedScrollMotionGateKey.self] = newValue }
     }
 }
 

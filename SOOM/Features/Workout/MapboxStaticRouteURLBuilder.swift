@@ -31,7 +31,12 @@ struct MapboxStaticRouteURLBuilder {
         let encodedToken = accessToken.addingPercentEncoding(withAllowedCharacters: Self.geoJSONAllowedCharacters) ?? accessToken
         // Static Images requests have an 8,192-character limit. Simplify each
         // pause segment independently, retaining endpoints and route corners.
-        for tolerance in [0.0, 0.00001, 0.00002, 0.00005, 0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01] {
+        // A replacement chord can reenter a hidden endpoint area even
+        // when every point in the original segment is safe. No chord
+        // simplification for a server-checked path; fall back if oversized.
+        let tolerances = route.hasAuthoritativeShareMask ? [0.0]
+            : [0.0, 0.00001, 0.00002, 0.00005, 0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01]
+        for tolerance in tolerances {
             guard let encodedGeoJSON = encodedGeoJSON(from: route, tolerance: tolerance) else { return nil }
             let padding = max(48, min(width, height) / 5)
             let urlString = "https://api.mapbox.com/styles/v1/\(style)/static/geojson(\(encodedGeoJSON))/auto/\(width)x\(height)@2x?padding=\(padding)&access_token=\(encodedToken)"

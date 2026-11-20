@@ -10,6 +10,11 @@ final class WorkoutDetailSectionGroupTests: XCTestCase {
         )
     }
 
+    func testSharedDetailsLimitSectionsToSensorData() {
+        XCTAssertEqual(WorkoutDetailSectionGroup.ordered.filter { $0.isVisible(inSharedDetail: true) }.map(\.id), [.sensorData])
+        XCTAssertEqual(WorkoutDetailSectionGroup.ordered.filter { $0.isVisible(inSharedDetail: false) }, WorkoutDetailSectionGroup.ordered)
+    }
+
     func testGroupPrioritiesIncreaseWithReadingOrder() {
         let priorities = WorkoutDetailSectionGroup.ordered.map(\.priority)
 

@@ -381,7 +381,7 @@ private final class Fixture: AccountActivityFeedTransport {
     var ownRowsOnly = false
     var foreignOwnerOnFinalPage = false
     var switchDuringPage = false
-    let item = FeedMockData.items[0]
+    var item = FeedMockData.items[0]
     let card = UUID()
     let viewer = UUID()
     var epoch = 1
@@ -545,5 +545,75 @@ private final class RefreshRaceFixture: AccountActivityFeedTransport {
         do { try await task.value; XCTFail("Cancellation must propagate") }
         catch { XCTAssertTrue(error is CancellationError) }
         XCTAssertEqual(navigations, 0)
+    }
+}
+
+@MainActor extension AccountActivityFeedAdapterTests {
+    func testHistoryGalleryWithoutHintUsesFreshAuthorizedLegacyHeartRate() async throws {
+        let t = Fixture()
+        t.readPolicy = .profileOnlyV2; t.responseVersion = 2
+        let row = try await detail68Row(t)
+        let start = Date(timeIntervalSince1970: 1_767_225_600)
+        var post = FeedPostDTO(id: t.item.id, userId: t.item.authorId, sourceWorkoutId: nil, sport: .running,
+            title: "Synthetic history", body: nil, distanceMeters: 5000, durationSeconds: 1800, averagePaceSecondsPerKm: nil,
+            averageHeartRate: nil, routeSummary: nil, visibility: .mutual, createdAt: start, updatedAt: nil)
+        post.sharedDetailRevision = 1
+        t.item.serverPostSnapshot = post
+        t.item.sharedDetail = .init(postID: t.item.id, revision: 1,
+            payload: .init(durationSeconds: 1800, distanceMeters: 5000, samples: [
+                .init(seconds: 5, heartRateBPM: 120), .init(seconds: 35, heartRateBPM: 131)
+            ]))
+        t.item.sharedDetailContractEnabled = true
+        let pre = t.cardCalls
+        let fresh = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+            expectedOwnerID: row.ownerID, existingHint: nil, isCurrent: { true }
+        ) { try await AccountActivityLinkedLegacyDetailAdapter(syntheticTransport: t).loadIfLinked(row: row) }
+        XCTAssertEqual(t.cardCalls - pre, 2)
+        XCTAssertEqual(t.postsRequested, [t.item.id])
+        let record = WorkoutDetailSharedRecord(item: try XCTUnwrap(fresh))
+        let telemetry = try XCTUnwrap(record.telemetry)
+        let workout = record.measurementWorkout
+        let points = WorkoutTelemetryChartBuilder.points(telemetry, channel: .heartRate, start: workout.startDate, end: workout.endDate)
+        XCTAssertEqual(points.map(\.value), [120.0, 131.0])
+        XCTAssertTrue(telemetry.heartRateZones.isEmpty)
+    }
+
+    func testHistoryGalleryWithoutHintDoesNotLoadUnlinkedOrRevokedLegacy() async throws {
+        let t = Fixture()
+        let row = try await detail68Row(t)
+        t.noLink = true
+        let result = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+            expectedOwnerID: row.ownerID, existingHint: nil, isCurrent: { true }
+        ) { try await AccountActivityLinkedLegacyDetailAdapter(syntheticTransport: t).loadIfLinked(row: row) }
+        XCTAssertNil(result)
+        XCTAssertTrue(t.postsRequested.isEmpty)
+        t.noLink = false; t.revokeAfterPost = true
+        do {
+            _ = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+                expectedOwnerID: row.ownerID, existingHint: nil, isCurrent: { true }
+            ) { try await AccountActivityLinkedLegacyDetailAdapter(syntheticTransport: t).loadIfLinked(row: row) }
+            XCTFail("Must not expose underlying post after receipt revoked")
+        } catch { XCTAssertEqual(error as? AccountActivityAdapterError, .changedDuringRead) }
+    }
+
+    func testHistoryGalleryDiscardsFreshPayloadAfterScopeChangeWrongOwnerOrChangedHint() async throws {
+        let t = Fixture()
+        var current = true
+        let stateChange = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+            expectedOwnerID: t.item.authorId, existingHint: nil, isCurrent: { current }
+        ) { current = false; return t.item }
+        XCTAssertNil(stateChange)
+        let wrongOwner = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+            expectedOwnerID: UUID(), existingHint: nil, isCurrent: { true }
+        ) { t.item }
+        XCTAssertNil(wrongOwner)
+        var changedHint = t.item
+        changedHint = .init(id:UUID(),authorName:t.item.authorName,authorHandle:nil,authorId:t.item.authorId,
+            createdAt:t.item.createdAt,itemType:t.item.itemType,visibility:t.item.visibility,cardData:t.item.cardData,
+            caption:nil, photos:[],activityContext:t.item.activityContext)
+        let wrongPost = try await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+            expectedOwnerID: t.item.authorId, existingHint: changedHint, isCurrent: { true }
+        ) { t.item }
+        XCTAssertNil(wrongPost)
     }
 }

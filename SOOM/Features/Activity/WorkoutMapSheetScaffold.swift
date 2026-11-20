@@ -104,10 +104,15 @@ struct WorkoutMapSheetScaffold<SheetContent: View>: View {
                                     .accessibilityHint("두 번 탭하여 사진 확대 화면을 엽니다")
                                     .accessibilityIdentifier("workout.detail.heroPhoto." + photo.id.uuidString)
                             }
+                            .ignoresSafeArea(.container, edges: .top)
                             .tag(photo.id)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
+                    // UIPageViewController otherwise insets its pages below the
+                    // status bar even though the hero frame extends above it.
+                    // Only media ignores safe areas; controls and sheet retain them.
+                    .ignoresSafeArea(.container, edges: .top)
                     .background(Color.black)
                     .frame(width: proxy.size.width, height: photoViewportHeight)
                     .clipped()

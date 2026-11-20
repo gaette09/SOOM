@@ -122,7 +122,7 @@ struct CommunityReportSheet: View {
                         .disabled(!viewModel.canSubmit)
                         .accessibilityIdentifier("community.report.submit")
                     } footer: {
-                        Text(ReviewDemoMode.isActive ? "데모 신고는 체험 세션 안에서만 처리됩니다." : "신고 내용은 운영팀의 검토에 사용돼요. 문의: support@example.com")
+                        Text(ReviewDemoMode.isActive ? "데모 신고는 체험 세션 안에서만 처리됩니다." : "신고 내용은 운영팀의 검토에 사용돼요. 문의: support@example.invalid")
                     }
                 }
             }

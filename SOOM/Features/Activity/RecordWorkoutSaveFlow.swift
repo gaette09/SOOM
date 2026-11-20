@@ -10,6 +10,7 @@ struct RecordWorkoutSummary: Equatable, Identifiable {
     let distanceMeters: Double?
     let capturedRoute: Bool
     let routeCapture: RecordRouteCapture?
+    var measuredPauseEvents: [WorkoutTelemetryEvent] = []
 
     var isTimeOnly: Bool {
         distanceMeters == nil
@@ -28,7 +29,7 @@ struct RecordWorkoutSummary: Equatable, Identifiable {
                 elevationMeters: point.altitude, source: .soomLocal)
             return sample.hasMeasurement ? sample : nil
         }
-        return WorkoutTelemetry(workoutID: id, source: .soomLocal, samples: samples)
+        return WorkoutTelemetry(workoutID: id, source: .soomLocal, samples: samples, events: measuredPauseEvents)
     }
 
     var distanceText: String {
@@ -55,7 +56,8 @@ enum RecordWorkoutSummaryBuilder {
             durationSeconds: session.elapsedTime(referenceDate: endedAt),
             distanceMeters: session.accumulatedDistanceMeters > 0 ? session.accumulatedDistanceMeters : nil,
             capturedRoute: session.capturedRoute?.hasRoute == true,
-            routeCapture: session.capturedRoute?.hasRoute == true ? session.capturedRoute : nil
+            routeCapture: session.capturedRoute?.hasRoute == true ? session.capturedRoute : nil,
+            measuredPauseEvents: session.measuredPauseEvents ?? []
         )
     }
 }

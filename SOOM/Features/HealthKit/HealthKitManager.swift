@@ -68,6 +68,7 @@ final class HealthKitManager: HealthKitManaging {
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning),
             HKQuantityType.quantityType(forIdentifier: .distanceCycling),
             HKQuantityType.quantityType(forIdentifier: .distanceSwimming),
+            HKQuantityType.quantityType(forIdentifier: .swimmingStrokeCount),
             HKQuantityType.quantityType(forIdentifier: .stepCount),
             HKQuantityType.quantityType(forIdentifier: .runningPower),
             HKQuantityType.quantityType(forIdentifier: .runningSpeed),

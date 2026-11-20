@@ -12,6 +12,18 @@ struct WorkoutTelemetry: Codable, Equatable {
     var summaryMetrics: [WorkoutTelemetrySummaryMetric] = []
     var fetchedAt: Date = Date()
     var events: [WorkoutTelemetryEvent] = []
+    // Ephemeral and intentionally excluded from storage/cloud and viewer payloads.
+    // Never reconstruct from a current account setting or a workout peak.
+    var recordedHeartRateZoneBasis: WorkoutHeartRateZoneBasis? = nil
+    // Owner screen only; not part of CodingKeys or any storage/upload format.
+    var ownerExpandedCondensedHeartRate = false
+    // Owner-only presentation evidence, never storage serialization or shared aggregates.
+    var historicalCalculatedHeartRateZones: [WorkoutTelemetryZone] = []
+    var historicalFrozenOriginalZones = false
+
+    private enum CodingKeys: String, CodingKey {
+        case workoutID, source, samples, intervals, splits, heartRateZones, summaryMetrics, fetchedAt, events
+    }
 
     var isEmpty: Bool {
         samples.isEmpty && intervals.isEmpty && splits.isEmpty && heartRateZones.isEmpty && summaryMetrics.isEmpty && events.isEmpty
@@ -102,6 +114,10 @@ struct WorkoutTelemetry: Codable, Equatable {
             }
         }
         if result.heartRateZones.isEmpty { result.heartRateZones = other.heartRateZones }
+        if result.historicalCalculatedHeartRateZones.isEmpty {
+            result.historicalCalculatedHeartRateZones = other.historicalCalculatedHeartRateZones
+        }
+        result.ownerExpandedCondensedHeartRate = ownerExpandedCondensedHeartRate || other.ownerExpandedCondensedHeartRate
         if result.events.isEmpty { result.events = other.events }
         let existingKeys = Set(result.summaryMetrics.map(\.key))
         result.summaryMetrics += other.summaryMetrics.filter { !existingKeys.contains($0.key) }
@@ -333,6 +349,12 @@ struct WorkoutSplitDisplay {
         guard let value = value(distance: distance, seconds: seconds), value.isFinite else { return "—" }
         return isCycling ? String(format: "%.1f %@", value, unit) : Self.duration(value) + unit
     }
+    func poolPaceText(distance: Double?, seconds: Double) -> String? {
+        guard isLapTiming, let distance, distance.isFinite, distance > 0, seconds.isFinite, seconds > 0 else { return nil }
+        let normalized = seconds / distance * 100
+        guard normalized.isFinite, normalized < Double(Int.max / 2) else { return nil }
+        return Self.duration(normalized) + "/100m"
+    }
     func distanceText(_ meters: Double?) -> String? {
         guard let meters, meters.isFinite, meters >= 0 else { return nil }
         if isLapTiming { return String(format: "%.0f m", meters) }
@@ -343,5 +365,97 @@ struct WorkoutSplitDisplay {
         guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max / 2) else { return "—" }
         let total = Int(seconds.rounded())
         return total >= 3600 ? String(format: "%d:%02d:%02d", total/3600,total/60%60,total%60) : String(format: "%d:%02d",total/60,total%60)
+    }
+}
+
+struct WorkoutHeartRateZoneBasis: Equatable {
+    let workoutID: UUID
+    let capturedAt: Date
+    let maximumBPM: Double
+
+    func maximum(for workout: UnifiedWorkout) -> Double? {
+        guard workoutID == workout.id, capturedAt <= workout.startDate,
+              workout.startDate.timeIntervalSince(capturedAt) <= 300,
+              maximumBPM.isFinite, (80...240).contains(maximumBPM) else { return nil }
+        return maximumBPM
+    }
+}
+
+/// SOOM grouping of complete, original pool laps; does not mirror Apple Fitness.
+enum SOOMSwimSetDeriver {
+    struct SetRow: Equatable {
+        let start: Date
+        let end: Date
+        let lapCount: Int
+        let distanceMeters: Double
+        let swimmingSeconds: Double
+        let gapBeforeNextSet: Double?
+        var elapsedSeconds: Double { end.timeIntervalSince(start) }
+        var pacePer100m: Double { swimmingSeconds * 100 / distanceMeters }
+    }
+
+    static func derive(_ telemetry: WorkoutTelemetry, for workout: UnifiedWorkout,
+                       now: Date = Date()) -> [SetRow] {
+        guard workout.workoutType == .swimming, workout.source == .appleHealthKit,
+              telemetry.source == .appleHealthKit, telemetry.workoutID == workout.id,
+              workout.endDate <= now, workout.startDate < workout.endDate,
+              let total = workout.distanceMeters, total.isFinite, total > 0,
+              (1...512).contains(telemetry.splits.count) else { return [] }
+        let ordered = telemetry.splits.sorted { ($0.startDate, $0.endDate) < ($1.startDate, $1.endDate) }
+        var laps: [WorkoutTelemetrySplit] = []
+        for lap in ordered {
+            let duration = lap.endDate.timeIntervalSince(lap.startDate)
+            guard lap.provenance == .healthKitLapEvent, lap.startDate >= workout.startDate,
+                  lap.endDate <= workout.endDate, duration.isFinite, duration > 0,
+                  lap.durationSeconds.isFinite, abs(lap.durationSeconds - duration) <= 0.001,
+                  let distance = lap.distanceMeters, distance.isFinite, distance > 0 else { return [] }
+            if let prev = laps.last {
+                if lap.startDate == prev.startDate && lap.endDate == prev.endDate {
+                    guard lap.distanceMeters == prev.distanceMeters,
+                          lap.durationSeconds == prev.durationSeconds else { return [] }
+                    continue // Same physical lap reported twice; ignore display label differences.
+                }
+                guard lap.startDate >= prev.endDate else { return [] }
+            }
+            laps.append(lap)
+        }
+        let measuredDistance = laps.reduce(0.0) { $0 + ($1.distanceMeters ?? 0) }
+        // Check coverage against the independent workout summary, not lap count or pool length.
+        guard abs(measuredDistance - total) <= min(2, max(0.2, total * 0.002)),
+              let first = laps.first, let last = laps.last else { return [] }
+        let stateEvents = telemetry.events.filter { $0.type == "pause" || $0.type == "resume" }
+            .sorted { $0.timestamp < $1.timestamp }
+        var pendingPause: Date?
+        var pausePairs: [DateInterval] = []
+        for event in stateEvents {
+            if event.type == "pause" { if pendingPause == nil { pendingPause = event.timestamp } }
+            else if let start = pendingPause, start < event.timestamp {
+                pausePairs.append(.init(start: start, end: event.timestamp)); pendingPause = nil
+            }
+        }
+        // A pause crossing a lap implies ambiguous swim timing; don't calculate
+        // swimming pace from that lap as if the pause had not occurred.
+        guard !pausePairs.contains(where: { p in
+            laps.contains { p.start < $0.endDate && p.end > $0.startDate }
+        }), pendingPause.map({ $0 >= last.endDate }) ?? true else { return [] }
+        func row(_ group: ArraySlice<WorkoutTelemetrySplit>, gap: Double?) -> SetRow {
+            SetRow(start: group.first!.startDate, end: group.last!.endDate, lapCount: group.count,
+                distanceMeters: group.reduce(0) { $0 + ($1.distanceMeters ?? 0) },
+                swimmingSeconds: group.reduce(0) { $0 + $1.durationSeconds }, gapBeforeNextSet: gap)
+        }
+        var result: [SetRow] = []
+        var groupStart = 0
+        var previous = first
+        for (index, lap) in laps.dropFirst().enumerated() {
+            let gap = lap.startDate.timeIntervalSince(previous.endDate)
+            let recordedPause = gap > 0 && pausePairs.contains { $0.start >= previous.endDate && $0.end <= lap.startDate }
+            if gap >= 15 || recordedPause {
+                result.append(row(laps[groupStart...index], gap: gap))
+                groupStart = index + 1
+            }
+            previous = lap
+        }
+        result.append(row(laps[groupStart...], gap: nil))
+        return result
     }
 }

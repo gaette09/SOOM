@@ -16,9 +16,16 @@ struct SocialRankingView: View {
     @State private var accountSnapshot: AccountActivityRankingDisplay?
     @State private var snapshot: SocialRankingSnapshot?
     @State private var loading = false
+    @State private var activeKey: String?
     @State private var error: String?
     @State private var selected: SocialRankingRow?
     private var requestKey: String { "\(period.rawValue):\(sport.rawValue):\(metric.rawValue):\(safety.accountGeneration):\(safety.revision)" }
+
+    private var rankingAvailable: Bool {
+        previewEnabled || AccountActivityReadPolicy.deployed.rankingProductionReady || SocialRankingReleaseGate.productionReady
+    }
+    private var showsCurrentResult: Bool { activeKey == requestKey }
+    private var usesAccountRanking: Bool { previewEnabled || AccountActivityReadPolicy.deployed.rankingProductionReady }
 
     @Environment(\.soomOpenProfile) private var openRootProfile
     var body: some View {
@@ -41,7 +48,7 @@ struct SocialRankingView: View {
                     Spacer()
                     Text("비교 기간").font(.caption).foregroundStyle(.secondary)
                 }
-                if let snapshot {
+                if showsCurrentResult, let snapshot {
                     Text(periodLabel(snapshot))
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -58,50 +65,40 @@ struct SocialRankingView: View {
                 Divider()
                 Text("이번 기간의 기록").font(.headline)
                 Picker("집계 기준", selection: $metric) { ForEach(SocialRankingMetric.allCases) { Text($0.title).tag($0) } }.pickerStyle(.segmented)
-                Text(accountSnapshot == nil ? "전체 공개 계정의 공개 공유 운동만 집계 · 한국 시간 기준\n중복 검증을 마친 기록부터 반영하며 이전 운동은 자동 포함되지 않습니다.\n클럽은 출시 후 업데이트로 제공됩니다. 기존 클럽 데이터는 보존됩니다." : "계정 전환 확인을 마친 운동 기준 · 한국 시간\n참여 정책 검토 중이며 이전 공유 집계와 구분됩니다. 클럽 데이터는 보존됩니다.")
+                Text(usesAccountRanking
+                     ? "랭킹 기준을 충족한 공개 프로필의 운동을 합산해요. 기간은 한국 시간 기준이에요."
+                     : "공개 공유한 운동 중 중복 확인을 마친 기록만 집계해요. 기간은 한국 시간 기준이에요.")
                     .font(.caption).foregroundStyle(.secondary)
-                if snapshot != nil, let error { Text(error).font(.caption).foregroundStyle(.red) }
-                if !pendingEntries.isEmpty {
+                if showsCurrentResult, snapshot != nil, let error { Text(error).font(.caption).foregroundStyle(.red) }
+                if showsCurrentResult, !usesAccountRanking, !pendingEntries.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("랭킹 반영 대기 \(pendingEntries.count)건").font(.headline)
                         Text("피드는 이미 공유됐습니다. 아래 버튼은 랭킹 반영만 다시 확인하며 글을 재게시하지 않습니다.").font(.caption).foregroundStyle(.secondary)
                         Button(retryBusy ? "확인 중" : "랭킹 반영 다시 시도") { Task { await retryRegistration() } }.disabled(retryBusy)
                     }.padding().background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
                 }
-                if loading { ProgressView("순위를 불러오는 중").frame(maxWidth: .infinity) }
-                else if let accountSnapshot {
-                    Text("계정 전환 확인·랭킹 참여 범위의 운동만 집계합니다. 기존 공개 공유 집계와 다른 기준이며 참여 정책은 검토 중입니다.")
-                        .font(.caption).foregroundStyle(.secondary)
+                if !showsCurrentResult || loading {
+                    ProgressView("순위를 불러오는 중")
+                        .frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("ranking.loading")
+                } else if let accountSnapshot {
                     Text(kstPeriod(accountSnapshot.periodStart, accountSnapshot.periodEnd))
-                        .font(.caption)
-                    if let mine = accountSnapshot.aroundMe.first(where: { $0.id == safety.viewerID }) {
-                        Text("현재 \(mine.rank)위 · \(metric.display(mine.value))").font(.headline)
-                    }
-                    podium(accountSnapshot.top)
-                    section("내 위치 · 위아래 3명", rows: accountSnapshot.aroundMe)
-                    section("전체 순위 · 최대 300명", rows: accountSnapshot.top)
-                    if accountSnapshot.top.isEmpty { Text("현재 조건에 포함된 운동이 없습니다.").foregroundStyle(.secondary) }
+                        .font(.caption).foregroundStyle(.secondary)
+                    rankingResults(top: accountSnapshot.top, aroundMe: accountSnapshot.aroundMe)
                     Text("집계 시각 \(accountSnapshot.asOf.formatted())").font(.caption2).foregroundStyle(.secondary)
-                }
-                else if let snapshot {
-                    if let mine = snapshot.around_me.first(where: { $0.id == safety.viewerID }) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("현재 순위").font(.caption).foregroundStyle(.secondary)
-                            HStack { Text("\(mine.rank)위 · \(metric.display(mine.value))").font(.headline); Spacer(); Text("MY").font(.caption2.bold()).foregroundStyle(.purple) }
-                        }.padding(18).background(Color.purple.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    podium(snapshot.top)
-                    if !snapshot.around_me.isEmpty {
-                        section("내 위치 · 위아래 3명", rows: snapshot.around_me)
-                    } else {
-                        Text("현재 집계에 포함된 공개 운동이 없습니다.").font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    section("전체 순위 · 최대 300명", rows: snapshot.top)
-                    if snapshot.top.isEmpty { ContentUnavailableView("아직 집계된 운동이 없어요", systemImage: "figure.run", description: Text("공개 공유한 운동이 집계되면 순위를 확인할 수 있어요.")) }
+                } else if let snapshot {
+                    rankingResults(top: snapshot.top, aroundMe: snapshot.around_me)
                     Text("집계 시각 \(snapshot.as_of)").font(.caption2).foregroundStyle(.secondary)
                 } else {
-                    ContentUnavailableView(SocialRankingReleaseGate.productionReady ? "랭킹을 불러오지 못했어요" : "랭킹 연결 준비 중", systemImage: "medal", description: Text(error ?? "공개 범위와 중복 기록 집계를 검증하고 있어요. 검증 전에는 예시 순위를 실제 순위로 표시하지 않습니다."))
-                    if previewEnabled || SocialRankingReleaseGate.productionReady || AccountActivityRankingReleaseGate.productionReady { Button("다시 시도") { Task { await load() } }.buttonStyle(.bordered) }
+                    ContentUnavailableView(
+                        rankingAvailable ? "랭킹을 불러오지 못했어요" : "랭킹 연결 준비 중",
+                        systemImage: rankingAvailable ? "wifi.exclamationmark" : "medal",
+                        description: Text(error ?? (rankingAvailable ? "연결을 확인한 뒤 다시 시도해 주세요." : "랭킹 집계가 연결되면 순위를 확인할 수 있어요.")))
+                        .accessibilityIdentifier(rankingAvailable ? "ranking.error" : "ranking.unavailable")
+                    if rankingAvailable {
+                        Button("다시 시도") { Task { await load() } }
+                            .buttonStyle(.bordered).accessibilityIdentifier("ranking.retry")
+                    }
                 }
             }.padding(20).padding(.bottom, 100)
         }
@@ -137,6 +134,34 @@ struct SocialRankingView: View {
         .onChange(of: safety.accountGeneration) { _, _ in snapshot = nil; accountSnapshot = nil; selected = nil; pendingEntries = []; badgePolicy = false; badgePreview = false; badgeHistory = false }
         .onChange(of: safety.revision) { _, _ in snapshot = nil; accountSnapshot = nil; selected = nil; pendingEntries = []; badgePolicy = false; badgePreview = false; badgeHistory = false }
         .accessibilityIdentifier("ranking.screen")
+    }
+    @ViewBuilder private func rankingResults(top: [SocialRankingRow], aroundMe: [SocialRankingRow]) -> some View {
+        let visible = top.filter { !safety.isBlocked($0.id) }
+        if visible.isEmpty {
+            ContentUnavailableView {
+                Label("\(period.title) \(sport.title) 랭킹에 표시할 기록이 없어요", systemImage: "medal")
+            } description: {
+                Text("이 기간과 종목에서 집계 기준을 충족해 표시할 수 있는 운동이 아직 없어요.")
+            } actions: {
+                if period == .week {
+                    Button("이번 달 랭킹 보기") { period = .month }
+                        .buttonStyle(.bordered).accessibilityIdentifier("ranking.empty.openMonth")
+                }
+            }
+            .accessibilityIdentifier("ranking.empty")
+        } else {
+            if let mine = aroundMe.first(where: { $0.id == safety.viewerID }) {
+                Text("내 순위 \(mine.rank)위 · \(metric.display(mine.value))")
+                    .font(.headline)
+            } else {
+                Text("내 기록은 이번 집계에 포함되지 않았어요.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            podium(visible)
+            if !aroundMe.isEmpty { section("내 위치 · 위아래 3명", rows: aroundMe) }
+            section("전체 순위 · 최대 300명", rows: visible)
+                .accessibilityIdentifier("ranking.results")
+        }
     }
     private func kstPeriod(_ start: Date, _ end: Date) -> String {
         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "ko_KR"); formatter.timeZone = TimeZone(identifier: "Asia/Seoul"); formatter.dateFormat = "M월 d일"
@@ -210,7 +235,7 @@ struct SocialRankingView: View {
         let key = requestKey
         guard let viewer = safety.viewerID, (safety.canUseSocial || (previewEnabled && safety.canUseActivityPreview)), accountStorage.userID == viewer,
               let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient(),
-              client.auth.currentSession?.user.id == viewer else { return }
+              client.auth.currentSession?.user.id == viewer else { error = "로그인 상태를 확인해 주세요."; return }
         loading = true
         defer { if key == requestKey { loading = false } }
         let policy = AccountActivityReadPolicy.deployed
@@ -223,11 +248,15 @@ struct SocialRankingView: View {
             let result = try await adapter.load(.init(p_period: period.rawValue, p_sport: sport.rawValue, p_metric: metric.rawValue))
             guard key == requestKey, !Task.isCancelled else { return }
             accountSnapshot = result
-        } catch { if key == requestKey { self.error = "새 집계 응답의 범위와 권한을 확인하지 못했습니다. 이전 순위를 대신 표시하지 않습니다." } }
+        } catch { if !Task.isCancelled && key == requestKey { self.error = "순위 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요." } }
     }
 
     @MainActor private func load() async {
-        snapshot = nil; accountSnapshot = nil; error = nil; selected = nil; loading = false
+        guard !Task.isCancelled else { return }
+        let key = requestKey
+        activeKey = key
+        snapshot = nil; accountSnapshot = nil; error = nil; selected = nil; pendingEntries = []; loading = true
+        defer { if key == requestKey { loading = false } }
         #if DEBUG && targetEnvironment(simulator)
         if ReviewDemoMode.isActive, ProcessInfo.processInfo.environment["SOOM_RANKING_LAYOUT_QA"] == "1" {
             snapshot = SocialRankingLayoutFixture.snapshot(viewer: ReviewDemoMode.userID, period: period, sport: sport, metric: metric)
@@ -237,15 +266,15 @@ struct SocialRankingView: View {
         if AccountActivityReadPolicy.deployed == .profileOnlyV2 { previewEnabled = false }
         else if let owner = safety.viewerID, accountStorage.userID == owner,
            let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient() {
-            previewEnabled = (try? await AccountActivityPreviewService(client: client, owner: owner).capability().enabled) == true
-            guard !Task.isCancelled, owner == safety.viewerID else { return }
+            let enabled = (try? await AccountActivityPreviewService(client: client, owner: owner).capability().enabled) == true
+            guard !Task.isCancelled, key == requestKey, owner == safety.viewerID else { return }
+            previewEnabled = enabled
         } else { previewEnabled = false }
         if previewEnabled || AccountActivityReadPolicy.deployed.rankingProductionReady {
             await loadAccountRanking()
             return
         }
         guard SocialRankingReleaseGate.productionReady else { return }
-        let key = requestKey
         guard safety.canUseSocial, let viewer = safety.viewerID, accountStorage.userID == viewer,
               let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient(),
               client.auth.currentSession?.user.id == viewer else { error = "로그인 상태를 확인해 주세요."; return }

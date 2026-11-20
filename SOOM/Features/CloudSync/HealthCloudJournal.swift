@@ -104,6 +104,21 @@ enum HealthCloudJournal {
     }
 
     nonisolated static func validate(kind: String, key: String, data: Data?, deleted: Bool) throws {
+        _ = try decodeValidated(kind: kind, key: key, data: data, deleted: deleted)
+    }
+
+    /// Immutable transport preparation only. No SwiftData object crosses actors.
+    struct PreparedRemoteRow: Sendable {
+        let row: HealthCloudRemoteRecord
+        let data: Data?
+        let valid: Bool
+        fileprivate let payload: HealthCloudPayload?
+        fileprivate init(row: HealthCloudRemoteRecord, data: Data?, valid: Bool, payload: HealthCloudPayload?) {
+            self.row = row; self.data = data; self.valid = valid; self.payload = payload
+        }
+    }
+
+    nonisolated private static func decodeValidated(kind: String, key: String, data: Data?, deleted: Bool) throws -> HealthCloudPayload? {
         guard let kind = HealthCloudKind(rawValue: kind) else { throw HealthCloudError.invalidPayload }
         if kind == .recoverySnapshot {
             guard Int64(key) != nil else { throw HealthCloudError.invalidPayload }
@@ -112,7 +127,7 @@ enum HealthCloudJournal {
         }
         if deleted {
             guard data == nil else { throw HealthCloudError.invalidPayload }
-            return
+            return nil
         }
         guard let data else { throw HealthCloudError.invalidPayload }
         let payload = try HealthCloudPayload.decode(data)
@@ -130,23 +145,30 @@ enum HealthCloudJournal {
         case .recoverySnapshot:
             guard let snapshot = payload.snapshot, snapshotKey(snapshot.date) == key else { throw HealthCloudError.invalidPayload }
         }
+        return payload
     }
 
     /// Validate immutable transport bytes off the UI executor. SwiftData reads,
     /// conflict handling, commits and account checks remain on the main actor.
     nonisolated static func validateBatch(_ rows: [HealthCloudRemoteRecord]) async throws -> [Bool] {
+        try await prepareBatch(rows).map(\.valid)
+    }
+
+    nonisolated static func prepareBatch(_ rows: [HealthCloudRemoteRecord]) async throws -> [PreparedRemoteRow] {
         let task = Task.detached(priority: .userInitiated) {
             #if DEBUG
             assert(!Thread.isMainThread, "Transport validation must stay off the UI thread")
             #endif
             return try rows.map { row in
                 try Task.checkCancellation()
+                let data = row.payloadData
                 do {
-                    try validate(kind: row.kind, key: row.recordKey, data: row.payloadData, deleted: row.isDeleted)
-                    return true
+                    let payload = try decodeValidated(kind: row.kind, key: row.recordKey, data: data, deleted: row.isDeleted)
+                    return PreparedRemoteRow(row: row, data: data, valid: true, payload: payload)
                 } catch {
                     switch error {
-                    case HealthCloudError.invalidPayload, is DecodingError: return false
+                    case HealthCloudError.invalidPayload, is DecodingError:
+                        return PreparedRemoteRow(row: row, data: data, valid: false, payload: nil)
                     default: throw error
                     }
                 }
@@ -158,8 +180,18 @@ enum HealthCloudJournal {
     /// Applies a server version to the account cache. The outbox is handled by
     /// the synchronizer, so this operation must not generate a new local edit.
     static func apply(kind: String, key: String, data: Data?, deleted: Bool, context: ModelContext) throws {
+        try applyDecoded(kind: kind, key: key, payload: data.map(HealthCloudPayload.decode), deleted: deleted, context: context)
+    }
+
+    static func apply(_ prepared: PreparedRemoteRow, context: ModelContext) throws {
+        guard prepared.valid else { throw HealthCloudError.invalidPayload }
+        try applyDecoded(kind: prepared.row.kind, key: prepared.row.recordKey,
+            payload: prepared.payload, deleted: prepared.row.isDeleted, context: context)
+    }
+
+    private static func applyDecoded(kind: String, key: String, payload: HealthCloudPayload?, deleted: Bool,
+                                     context: ModelContext) throws {
         guard let kind = HealthCloudKind(rawValue: kind) else { throw HealthCloudError.invalidPayload }
-        let payload = try data.map(HealthCloudPayload.decode)
         try withoutRecording(context) {
             switch kind {
             case .workout:

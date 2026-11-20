@@ -248,3 +248,90 @@ private enum AccountActivityContractDate {
         return date
     }
 }
+
+
+/// Local native detail envelope. The base card proves profile authorization;
+/// absent or unsupported measurement data never invalidates its basic fields.
+struct AccountActivityNativeDetailEnvelope: Decodable {
+    struct Params: Encodable {
+        let p_card_id: UUID
+        let p_expected_revision: Int64
+    }
+    let contractVersion: Int
+    let card: AccountActivityCardEnvelope
+    private let snapshot: WorkoutSharedDetailSnapshot?
+    private let aggregates: NativeWorkoutSharedAggregateInput?
+    var isSupported: Bool { (1...3).contains(contractVersion) }
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version", card, snapshot, aggregates
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        contractVersion = try container.decode(Int.self, forKey: .contractVersion)
+        card = try container.decode(AccountActivityCardEnvelope.self, forKey: .card)
+        snapshot = try? container.decodeIfPresent(WorkoutSharedDetailSnapshot.self, forKey: .snapshot)
+        aggregates = try? container.decodeIfPresent(NativeWorkoutSharedAggregateInput.self, forKey: .aggregates)
+    }
+
+    func maskedRoute(for row: AccountActivityFeedRow) -> WorkoutRoute? {
+        guard isSupported, card.releaseReady, let issued = card.row,
+              issued.cardID == row.cardID, issued.canonicalID == row.canonicalID,
+              issued.ownerID == row.ownerID, issued.revision == row.revision,
+              let snapshot, snapshot.hasValidPayload,
+              let start = row.cursor?.activityAt else { return nil }
+        // RPC copies only the already-masked persisted v1 route. Its init marks
+        // it masked; do not apply a second endpoint cut.
+        return snapshot.route(start: start)
+    }
+
+    func elapsedTimeline(for row: AccountActivityFeedRow) -> Double? {
+        guard contractVersion >= 2, card.releaseReady, let issued = card.row,
+              issued.cardID == row.cardID, issued.canonicalID == row.canonicalID, issued.ownerID == row.ownerID,
+              issued.revision == row.revision, let snapshot, snapshot.hasValidPayload,
+              let aggregates, aggregates.isValid(elapsed: snapshot.payload.durationSeconds)
+        else { return nil }
+        return aggregates.elapsedTimeline?.endOffsetSeconds
+    }
+
+    func telemetry(for row: AccountActivityFeedRow) -> WorkoutTelemetry? {
+        guard isSupported, card.releaseReady, let issued = card.row,
+              issued.cardID == row.cardID, issued.canonicalID == row.canonicalID,
+              issued.ownerID == row.ownerID, issued.revision == row.revision,
+              let snapshot, snapshot.hasValidPayload,
+              let start = row.cursor?.activityAt else { return nil }
+        var result = snapshot.telemetry(start: start) ?? .init(workoutID: row.cardID, source: .unknown, fetchedAt: start)
+        result.workoutID = row.cardID
+        if contractVersion >= 2, let aggregates, aggregates.isValid(elapsed: snapshot.payload.durationSeconds) {
+            if let timeline = aggregates.elapsedTimeline {
+                if !timeline.samples.isEmpty {
+                    result.samples = timeline.samples.map {
+                        .init(timestamp: start.addingTimeInterval($0.seconds), distanceMeters: $0.distanceMeters,
+                            heartRateBPM: $0.heartRateBPM, cadencePerMinute: $0.cadencePerMinute, powerWatts: $0.powerWatts,
+                            speedMetersPerSecond: $0.speedMetersPerSecond, elevationMeters: $0.elevationMeters,
+                            cadenceUnit: $0.cadenceUnit, source: .unknown)
+                    }
+                }
+                result.events = timeline.pauses.flatMap {
+                    [.init(timestamp: start.addingTimeInterval($0.start), type: "pause"),
+                     .init(timestamp: start.addingTimeInterval($0.end), type: $0.end == timeline.endOffsetSeconds ? "stop" : "resume")]
+                }
+            }
+            result.splits = aggregates.lapIntervals.enumerated().map { index, lap in
+                .init(label: "랩 \(index + 1)", startDate: start.addingTimeInterval(Double(lap.offsetSeconds)),
+                    endDate: start.addingTimeInterval(Double(lap.endOffsetSeconds)),
+                    durationSeconds: Double(lap.endOffsetSeconds - lap.offsetSeconds),
+                    distanceMeters: lap.distanceMeters.map(Double.init))
+            }
+            result.intervals = (aggregates.measuredIntervals ?? []).map {
+                .init(kind: $0.kind, startDate: start.addingTimeInterval($0.offsetSeconds),
+                    endDate: start.addingTimeInterval($0.endOffsetSeconds), value: $0.value)
+            }
+            result.heartRateZones = (aggregates.zoneSeconds ?? []).enumerated().map {
+                .init(name: "Z\($0.offset + 1)", durationSeconds: Double($0.element))
+            }
+        }
+        return result.isEmpty ? nil : result
+    }
+}

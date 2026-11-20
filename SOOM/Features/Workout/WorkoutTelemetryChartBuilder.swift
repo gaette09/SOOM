@@ -24,9 +24,16 @@ enum WorkoutTelemetryChartBuilder {
         }
         let gaps = zip(unique, unique.dropFirst()).map { $1.0.timeIntervalSince($0.0) }.filter { $0 > 0 }.sorted()
         let gapLimit = max(5, min(300, gaps.isEmpty ? 120 : gaps[gaps.count / 2] * 4))
-        var segment = 0
+        let boundaries = telemetry.events.filter { $0.type == "pause" || $0.type == "resume" || $0.type == "stop" }
+            .map(\.timestamp).sorted()
+        var segment = 0, boundary = 0
         return unique.enumerated().map { index, reading in
-            if index > 0, reading.0.timeIntervalSince(unique[index - 1].0) > gapLimit { segment += 1 }
+            var crossedBoundary = false
+            while boundary < boundaries.count && boundaries[boundary] <= reading.0 {
+                if index > 0 && boundaries[boundary] > unique[index - 1].0 { crossedBoundary = true }
+                boundary += 1
+            }
+            if index > 0, crossedBoundary || reading.0.timeIntervalSince(unique[index - 1].0) > gapLimit { segment += 1 }
             return WorkoutTelemetryChartPoint(seconds: reading.0.timeIntervalSince(start),
                 value: reading.1, segment: segment)
         }
@@ -162,20 +169,55 @@ enum WorkoutTelemetryChartBuilder {
         }
     }
 
+    static func recordedPauses(_ events: [WorkoutTelemetryEvent], closedAt workoutEnd: Date? = nil) -> [DateInterval] {
+        var opened: Date?, result: [DateInterval] = []
+        for event in events.sorted(by: { ($0.timestamp, $0.type) < ($1.timestamp, $1.type) }) {
+            if event.type == "pause", opened == nil { opened = event.timestamp }
+            if (event.type == "resume" || event.type == "stop"), let start = opened {
+                if event.timestamp > start { result.append(DateInterval(start: start, end: event.timestamp)) }
+                opened = nil
+            }
+        }
+        if let opened, let workoutEnd, workoutEnd > opened {
+            result.append(DateInterval(start: opened, end: workoutEnd))
+        }
+        return result
+    }
+
     static func heartRateZones(_ telemetry: WorkoutTelemetry, workout: UnifiedWorkout,
                                maximumHeartRate: Double) -> [WorkoutTelemetryZone] {
         guard maximumHeartRate.isFinite, maximumHeartRate > 0 else { return [] }
-        let points = telemetry.samples.filter { $0.heartRateBPM.map { $0.isFinite && (1...300).contains($0) } ?? false }.sorted { $0.timestamp < $1.timestamp }
+        // A conflicting or invalid observation breaks continuity. Other sensor
+        // samples without HR are not evidence of a missing heart-rate sample.
+        let groups = Dictionary(grouping: telemetry.samples.filter {
+            $0.heartRateBPM != nil && $0.timestamp >= workout.startDate && $0.timestamp <= workout.endDate
+        }, by: \.timestamp)
+        let points = groups.keys.sorted().map { time -> (Date, Double?) in
+            let unique = Set(groups[time, default: []].compactMap(\.heartRateBPM))
+            guard unique.count == 1, let bpm = unique.first, bpm.isFinite,
+                  (1...300).contains(bpm) else { return (time, nil) }
+            return (time, bpm)
+        }
         var seconds = [Double](repeating: 0, count: 5)
-        for pair in zip(points, points.dropFirst()) {
-            let start = max(workout.startDate, pair.0.timestamp)
-            let end = min(workout.endDate, pair.1.timestamp)
-            let duration = end.timeIntervalSince(start)
-            // Do not classify unobserved long gaps as if HR stayed constant.
-            guard duration > 0, duration <= 60, let bpm = pair.0.heartRateBPM else { continue }
+        let pauses = recordedPauses(telemetry.events, closedAt: workout.endDate)
+        let cadence = zip(points, points.dropFirst()).compactMap { left, right -> Double? in
+            let gap = right.0.timeIntervalSince(left.0)
+            return left.1 != nil && right.1 != nil && gap > 0 && gap <= 60 ? gap : nil
+        }.sorted()
+        let gapLimit = max(5, min(30, (cadence.isEmpty ? 5 : cadence[(cadence.count - 1) / 2]) * 3))
+        var pauseIndex = 0
+        for (left, right) in zip(points, points.dropFirst()) {
+            let duration = right.0.timeIntervalSince(left.0)
+            guard duration > 0, duration <= gapLimit, let bpm = left.1, right.1 != nil else { continue }
+            // Don't carry a pre-pause measurement through the resume boundary.
+            while pauseIndex < pauses.count && pauses[pauseIndex].end <= left.0 { pauseIndex += 1 }
+            let next = pauseIndex < pauses.count ? pauses[pauseIndex] : nil
+            if let next, next.start <= left.0 { continue }
+            let activeEnd = min(next?.start ?? right.0, right.0)
+            let active = activeEnd.timeIntervalSince(left.0)
             let ratio = bpm / maximumHeartRate
             let index = ratio < 0.6 ? 0 : (ratio < 0.7 ? 1 : (ratio < 0.8 ? 2 : (ratio < 0.9 ? 3 : 4)))
-            seconds[index] += duration
+            seconds[index] += active
         }
         guard seconds.reduce(0, +) > 0 else { return [] }
         return seconds.enumerated().map { index, duration in

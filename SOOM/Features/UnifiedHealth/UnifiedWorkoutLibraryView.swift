@@ -248,10 +248,10 @@ struct UnifiedWorkoutDetailDestination: View {
             splitsOverride: chartSplits,
             heartRateChartSamplesOverride: heartRateChartSamples,
             telemetryOverride: telemetry,
-            healthKitReadPresentation: detailReadMessage.map { message in
-                HealthKitDetailReadPresentation(message: message, isLoading: isReadingDetails,
+            healthKitReadPresentation: canRetryOwnHealthDetails
+                ? HealthKitDetailReadPresentation(message: detailReadMessage ?? "", isLoading: isReadingDetails,
                     retry: { await readMissingDetails(force: true) })
-            },
+                : nil,
             relativeEffortComparisonOverride: relativeEffortComparison,
             achievementsOverride: achievements,
             achievementCountOverride: achievementCount,
@@ -304,34 +304,52 @@ struct UnifiedWorkoutDetailDestination: View {
         }
     }
 
+    private var canRetryOwnHealthDetails: Bool {
+        !ReviewDemoMode.isActive && unifiedWorkout.source == .appleHealthKit
+            && unifiedWorkout.externalId.flatMap(UUID.init(uuidString:)) != nil
+            && modelContext.container === accountStorage.container
+            && !HealthCloudJournal.isRetired(modelContext)
+    }
+
     @MainActor
     private func readMissingDetails(force: Bool = false) async {
-        guard !ReviewDemoMode.isActive, unifiedWorkout.source == .appleHealthKit,
+        guard canRetryOwnHealthDetails,
               let external = unifiedWorkout.externalId, UUID(uuidString: external) != nil,
               !isReadingDetails else { return }
         let needsRoute = persistedRoute == nil && unifiedWorkout.routeMissingReason != .indoorNoLocationData && [.running, .cycling, .walking, .hiking].contains(unifiedWorkout.workoutType)
-        guard force || needsRoute || HealthKitDetailReadCache.needsMeasurements(unifiedWorkout, telemetry: telemetry) else { return }
+        let canReadRecordedZones: Bool
+        if #available(iOS 27.0, *) { canReadRecordedZones = true } else { canReadRecordedZones = false }
+        let needsBase = HealthKitDetailReadCache.needsMeasurements(unifiedWorkout, telemetry: telemetry)
+        let enrich = HealthKitDetailReadCache.shouldEnrichOwnerDetail(unifiedWorkout, telemetry: telemetry,
+                                                                    canReadRecordedZones: canReadRecordedZones)
+        guard force || needsRoute || needsBase || enrich else { return }
+        let optionalOnly = enrich && !force && !needsRoute && !needsBase
         let scope = accountStorage.scopeID
         let container = modelContext.container
         let readID = UUID()
         detailReadID = readID
         isReadingDetails = true
-        detailReadMessage = "건강 앱의 측정값을 확인하고 있어요. 기존 기록은 유지됩니다."
+        if !optionalOnly { detailReadMessage = "건강 앱의 측정값을 확인하고 있어요. 기존 기록은 유지됩니다." }
         defer { if detailReadID == readID { isReadingDetails = false } }
         do {
             let key = HealthKitDetailReadCache.Key(scope: scope, workoutID: unifiedWorkout.id,
-                externalID: external, revision: unifiedWorkout.updatedAt, needsRoute: needsRoute)
+                externalID: external, revision: unifiedWorkout.updatedAt, needsRoute: needsRoute,
+                expandsOwnerHeartRateSeries: force)
             let original = unifiedWorkout
             let result = try await HealthKitDetailReadCache.shared.read(key: key, force: force) {
-                try await HealthKitDetailReadCache.fetch(workout: original, needsRoute: needsRoute)
+                try await HealthKitDetailReadCache.fetch(workout: original, needsRoute: needsRoute,
+                    expandOwnerHeartRateSeries: force)
             }
             guard !Task.isCancelled, scope == accountStorage.scopeID,
                   container === modelContext.container, detailReadID == readID else { return }
-            hydratedWorkout = result.workout
+            if !optionalOnly { hydratedWorkout = result.workout }
             if let incoming = result.telemetry {
-                telemetry = (telemetry?.merging(incoming) ?? incoming).validated(for: unifiedWorkout)
+                telemetry = (telemetry.map { optionalOnly
+                    ? HealthKitDetailReadCache.mergingOwnerEnrichment(incoming, into: $0)
+                    : $0.merging(incoming) } ?? incoming).validated(for: unifiedWorkout)
             }
             if persistedRoute == nil { persistedRoute = result.route }
+            if optionalOnly { return }
             if result.workout == nil {
                 detailReadMessage = "이 기기에서 연결된 건강 운동을 읽지 못했어요. 데이터 존재 여부와 읽기 허용 여부는 이 결과만으로 구분할 수 없어요."
             } else if !result.failedChannels.isEmpty {
@@ -342,7 +360,7 @@ struct UnifiedWorkoutDetailDestination: View {
         } catch is CancellationError {
             if detailReadID == readID { detailReadMessage = nil }
         } catch {
-            guard scope == accountStorage.scopeID, detailReadID == readID else { return }
+            guard !optionalOnly, scope == accountStorage.scopeID, detailReadID == readID else { return }
             detailReadMessage = "측정값 확인을 완료하지 못했어요. 기존 기록을 유지했어요."
         }
     }

@@ -225,12 +225,13 @@ final class HealthAccountStorageController: ObservableObject {
             while true {
                 let rows = try await remote.pull(after: cursor.serverVersion, expectedUserID: owner)
                 try assertCurrent(owner, generation: expectedGeneration)
-                let validation = try await HealthCloudJournal.validateBatch(rows)
+                let preparedRows = try await HealthCloudJournal.prepareBatch(rows)
                 try assertCurrent(owner, generation: expectedGeneration)
                 try Task.checkCancellation()
                 var appliedPullPayload = false
-                for (row, valid) in zip(rows, validation) {
-                    if try receiveOrQuarantine(row, context: context, prevalidated: valid) { appliedPullPayload = true }
+                for prepared in preparedRows {
+                    let row = prepared.row
+                    if try receiveOrQuarantine(row, context: context, prepared: prepared) { appliedPullPayload = true }
                     cursor.serverVersion = max(cursor.serverVersion, row.revision)
                 }
                 try context.save()
@@ -340,11 +341,11 @@ final class HealthAccountStorageController: ObservableObject {
         } catch { errorMessage = HealthCloudError.unavailable.localizedDescription }
     }
 
-    private func receiveOrQuarantine(_ row: HealthCloudRemoteRecord, context: ModelContext, prevalidated: Bool? = nil) throws -> Bool {
+    private func receiveOrQuarantine(_ row: HealthCloudRemoteRecord, context: ModelContext, prepared: HealthCloudJournal.PreparedRemoteRow? = nil) throws -> Bool {
         let quarantineKey = row.kind + ":" + row.recordKey
         do {
-            if let prevalidated {
-                guard prevalidated else { throw HealthCloudError.invalidPayload }
+            if let prepared {
+                guard prepared.valid else { throw HealthCloudError.invalidPayload }
             } else {
                 try HealthCloudJournal.validate(kind: row.kind, key: row.recordKey, data: row.payloadData, deleted: row.isDeleted)
             }
@@ -361,12 +362,13 @@ final class HealthAccountStorageController: ObservableObject {
             default: throw error
             }
         }
-        let applied = try receive(row, context: context)
+        let applied = try receive(row, context: context, prepared: prepared)
         if let invalid = try HealthCloudJournal.find("_invalid", key: quarantineKey, context: context) { context.delete(invalid) }
         return applied
     }
 
-    private func receive(_ row: HealthCloudRemoteRecord, context: ModelContext) throws -> Bool {
+    private func receive(_ row: HealthCloudRemoteRecord, context: ModelContext, prepared: HealthCloudJournal.PreparedRemoteRow? = nil) throws -> Bool {
+        let payloadData = prepared?.data ?? row.payloadData
         guard HealthCloudKind(rawValue: row.kind) != nil else { throw HealthCloudError.invalidPayload }
         let entry = try HealthCloudJournal.find(row.kind, key: row.recordKey, context: context)
             ?? HealthCloudOutboxRecord(kind: row.kind, recordKey: row.recordKey, payload: nil)
@@ -375,14 +377,15 @@ final class HealthAccountStorageController: ObservableObject {
         if entry.pending {
             // This can also be a retry after the server committed but the
             // acknowledgment was lost. Compare payload before declaring conflict.
-            if HealthCloudPayload.equivalent(entry.payload, row.payloadData) && entry.isTombstone == row.isDeleted {
+            if HealthCloudPayload.equivalent(entry.payload, payloadData) && entry.isTombstone == row.isDeleted {
                 entry.serverVersion = row.version; entry.pending = false
             } else { markConflict(entry, row: row) }
             return false
         }
-        try HealthCloudJournal.apply(kind: row.kind, key: row.recordKey,
-            data: row.payloadData, deleted: row.isDeleted, context: context)
-        entry.payload = row.payloadData
+        if let prepared { try HealthCloudJournal.apply(prepared, context: context) }
+        else { try HealthCloudJournal.apply(kind: row.kind, key: row.recordKey,
+            data: payloadData, deleted: row.isDeleted, context: context) }
+        entry.payload = payloadData
         entry.isTombstone = row.isDeleted
         entry.serverVersion = row.version
         entry.pending = false

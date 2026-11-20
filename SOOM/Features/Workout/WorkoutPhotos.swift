@@ -1022,9 +1022,8 @@ struct WorkoutPhotoImage: View {
                                 .overlay(.black.opacity(0.10))
                             Image(uiImage: image)
                                 .resizable()
-                                .frame(width: geometry.size.width,
-                                       height: WorkoutPhotoMediaLayout.widthAnchoredHeight(
-                                        imageSize: image.size, width: geometry.size.width))
+                                .scaledToFit()
+                                .frame(width: geometry.size.width, height: geometry.size.height)
                         }
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .clipped()
@@ -1630,6 +1629,7 @@ struct WorkoutPhotoMediaRow<Route: View>: View {
     @Environment(\.soomFeedRevalidationRevision) private var feedRevalidationRevision
     @Environment(\.soomFeedIsActive) private var feedIsActive
     @Environment(\.soomFeedIsScrolling) private var feedIsScrolling
+    @Environment(\.soomFeedScrollMotionGate) private var scrollMotionGate
     @Environment(\.soomFeedReturnBatch) private var feedReturnBatch
     @Environment(\.soomFeedBatchIsCurrent) private var feedBatchIsCurrent
     @Environment(\.soomFeedCardGrantIsCurrent) private var feedCardGrantIsCurrent
@@ -1755,6 +1755,7 @@ struct WorkoutPhotoMediaRow<Route: View>: View {
             }
             .environment(\.soomFeedRoutePlaybackHistory, allowsFeedPresentationReuse && feedReturnBatch != nil ? feedRoutePlaybackHistory : nil)
             .environment(\.soomFeedRoutePlaybackScope, feedRoutePlaybackScope)
+            .environment(\.soomFeedScrollMotionGate, scrollMotionGate)
             .environment(\.workoutCardRouteViewport, WorkoutCardRouteViewport(
                 isScrolling: feedIsScrolling, sufficientlyVisible: viewportVisible && routeVisible && selectedMediaID == "map",
                 present: viewportPresent && routePresent && selectedMediaID == "map", active: mediaScenePhase == .active, reduceMotion: reduceMotion))

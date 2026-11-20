@@ -93,6 +93,8 @@ struct AccountActivityPendingCard: View {
 #if DEBUG && targetEnvironment(simulator)
 @MainActor enum Feed61CardLifecycleProbe {
     static var isEnabled: Bool { ReviewDemoMode.isActive && ProcessInfo.processInfo.environment["SOOM_FEED_MIXED_REUSE_QA"] == "1" }
+    private(set) static var cardBodyCount = 0
+    static func evaluated() { if isEnabled { cardBodyCount += 1 } }
     private static var lifetimes: Set<UUID> = []
     private(set) static var ownLifetimeCount = 0
     private(set) static var foreignLifetimeCount = 0
@@ -137,24 +139,49 @@ extension View {
         environment(\.soomFeedReturnBatch, nil).environment(\.soomFeedVisibleCardRegistration, nil).environment(\.soomFeedReturnRetry, nil)
             .environment(\.soomFeedLinkedCardStore, nil).environment(\.soomFeedCardGrantIsCurrent, nil)
             .environment(\.soomFeedRoutePlaybackHistory, nil)
+            .environment(\.soomFeedScrollMotionGate, nil)
             .environment(\.soomFeedSocialPresentationStore, nil)
     }
 }
 
 /// A projection is not a feed_posts row. Never route its ID into reactions,
 /// comments, photos, deletion, or the legacy detail lookup.
+/// Foreign cards must not subscribe to the local workout table. Keeping even
+/// an always-false @Query on every remote row makes unrelated local sync writes
+/// invalidate the entire mounted feed. The owner-only scope retains the exact
+/// query and the content still performs all live grant/account checks.
 struct AccountActivitySummaryCard: View {
-    private struct VerifiedGeometry: Equatable { let size: CGSize; let contentRevision: String }
-    private let sourceRow: AccountActivityFeedRow
+    let row: AccountActivityFeedRow
     var currentProfileID: UUID? = nil
-    @Query private var observedOwnRecords: [UnifiedWorkoutRecord]
-    init(row: AccountActivityFeedRow, currentProfileID: UUID? = nil, localViewerID: UUID? = nil) {
-        sourceRow = row; self.currentProfileID = currentProfileID
-        let id = row.canonicalID, owned = localViewerID == row.ownerID
-        // Observe the exact local source once. Foreign cards never select a
-        // local record, and body/authorization reads never issue manual fetches.
-        _observedOwnRecords = Query(filter: #Predicate<UnifiedWorkoutRecord> { $0.id == id && owned })
+    var localViewerID: UUID? = nil
+    var body: some View {
+        if localViewerID == row.ownerID {
+            AccountActivityOwnRecordScope(row: row, currentProfileID: currentProfileID)
+        } else {
+            AccountActivitySummaryContent(sourceRow: row, currentProfileID: currentProfileID, observedOwnRecords: [])
+        }
     }
+}
+
+private struct AccountActivityOwnRecordScope: View {
+    let row: AccountActivityFeedRow
+    let currentProfileID: UUID?
+    @Query private var records: [UnifiedWorkoutRecord]
+    init(row: AccountActivityFeedRow, currentProfileID: UUID?) {
+        self.row = row; self.currentProfileID = currentProfileID
+        let id = row.canonicalID
+        _records = Query(filter: #Predicate<UnifiedWorkoutRecord> { $0.id == id })
+    }
+    var body: some View {
+        AccountActivitySummaryContent(sourceRow: row, currentProfileID: currentProfileID, observedOwnRecords: records)
+    }
+}
+
+private struct AccountActivitySummaryContent: View {
+    private struct VerifiedGeometry: Equatable { let size: CGSize; let contentRevision: String }
+    let sourceRow: AccountActivityFeedRow
+    var currentProfileID: UUID? = nil
+    let observedOwnRecords: [UnifiedWorkoutRecord]
     private var row: AccountActivityFeedRow {
         if case .authorized(let grant)? = returnAccess { return grant.row }
         return sourceRow
@@ -200,14 +227,6 @@ struct AccountActivitySummaryCard: View {
             guard cardGrantIsCurrent?(authority) == true else { return .pending }
         }
         return access
-    }
-    private var batchKey: String {
-        guard let batch = returnBatch else { return "independent" }
-        switch returnAccess {
-        case .authorized(let grant)?: return "\(batch.id):\(grant.id)"
-        case .denied?: return "\(batch.id):denied"
-        default: return "\(batch.id):pending"
-        }
     }
     @Environment(\.scenePhase) private var scene
     @Environment(\.soomScrollViewportWidth) private var viewportWidth
@@ -287,8 +306,25 @@ struct AccountActivitySummaryCard: View {
     @State private var legacyOpeningGeneration: Int?
     @State private var legacyDetailAuthor: FeedProfileDTO?
     @State private var legacyComments: FeedItem?
-    private var rowKey: String { "\(row.ownerID):\(row.canonicalID):\(row.sport):\(row.activityAt):\(row.durationSeconds):\(String(describing: row.distanceMeters))" }
-    private var key: String { "\(row.cardID):\(row.revision):\(safety.accountGeneration):\(safety.revision):\(revision):\(active):\(scene == .active):\(preview):\(row.readPolicy.rawValue):\(rowKey):\(batchKey)" }
+    private var key: String {
+        // One synchronous authorization read per identity construction. This is
+        // not a persisted/mounted grant cache: every getter still rechecks the
+        // live batch, account and revocation authority, without an await.
+        let access = returnAccess
+        let currentRow: AccountActivityFeedRow
+        if case .authorized(let grant)? = access { currentRow = grant.row }
+        else { currentRow = sourceRow }
+        let currentBatchKey: String
+        if let batch = returnBatch {
+            switch access {
+            case .authorized(let grant)?: currentBatchKey = "\(batch.id):\(grant.id)"
+            case .denied?: currentBatchKey = "\(batch.id):denied"
+            default: currentBatchKey = "\(batch.id):pending"
+            }
+        } else { currentBatchKey = "independent" }
+        let rowKey = "\(currentRow.ownerID):\(currentRow.canonicalID):\(currentRow.sport):\(currentRow.activityAt):\(currentRow.durationSeconds):\(String(describing: currentRow.distanceMeters))"
+        return "\(currentRow.cardID):\(currentRow.revision):\(safety.accountGeneration):\(safety.revision):\(revision):\(active):\(scene == .active):\(preview):\(currentRow.readPolicy.rawValue):\(rowKey):\(currentBatchKey)"
+    }
     private var synchronousGrant: FeedReturnCardGrant? {
         guard active, scene == .active, safety.canUseSocial,
               case .authorized(let grant)? = returnAccess else { return nil }
@@ -331,6 +367,9 @@ struct AccountActivitySummaryCard: View {
     }
 
     var body: some View {
+        #if DEBUG && targetEnvironment(simulator)
+        let _ = Feed61CardLifecycleProbe.evaluated()
+        #endif
         let ownResolution = currentFeedOwnResolution
         Group {
             if hasVerifiedPresentation(ownResolution: ownResolution), let date = row.cursor?.activityAt {
@@ -1415,6 +1454,9 @@ struct AccountActivitySummaryDetailPresentation {
     let author: FeedProfileDTO?
     var photos: [WorkoutPhotoReference] = []
     var authorizedLegacyPhotoPostID: UUID? = nil
+    var nativeTelemetry: WorkoutTelemetry? = nil
+    var nativeMaskedRoute: WorkoutRoute? = nil
+    var nativeTimelineElapsed: Double? = nil
     var sharedRecord: WorkoutDetailSharedRecord {
         let presentation = AccountActivityWorkoutCardPresentation(row: row)
         let date = row.cursor?.activityAt ?? .distantPast
@@ -1434,7 +1476,7 @@ struct AccountActivitySummaryDetailPresentation {
                 return photo.storagePath == WorkoutPhotoPolicy.path(ownerID: row.ownerID, postID: postID, photoID: photo.id)
             }, activityContext: "운동 요약",
             activityDate: date, workoutDistanceMeters: row.distanceMeters, workoutDurationSeconds: Double(row.durationSeconds))
-        return WorkoutDetailSharedRecord(item: item)
+        return WorkoutDetailSharedRecord(item: item, nativeTelemetry: nativeTelemetry, nativeMaskedRoute: nativeMaskedRoute, nativeTimelineElapsed: nativeTimelineElapsed)
     }
 }
 
@@ -1451,8 +1493,12 @@ struct AccountActivitySummaryDetailDestination: View {
     @Environment(\.soomFeedRevalidationRevision) private var revision
     @State private var photos: [WorkoutPhotoReference] = []
     @State private var verifiedLegacy: FeedItem?
+    @State private var nativeTelemetry: WorkoutTelemetry?
+    @State private var nativeMaskedRoute: WorkoutRoute?
+    @State private var nativeTimelineElapsed: Double?
     @State private var verified: String?
     @State private var failed = false
+    @State private var historical: HistoricalRecordedZoneOverlay?
     @State private var openingGeneration = CommunitySafetyStore.shared.accountGeneration
     private var key: String { "\(row.cardID):\(row.revision):\(safety.accountGeneration):\(safety.revision):\(revision):\(scene == .active)" }
     var body: some View {
@@ -1463,7 +1509,8 @@ struct AccountActivitySummaryDetailDestination: View {
                         hasAuthorizedSnapshot: item.permittedSharedDetail != nil, hasExactOwnSource: hasExactOwnSource(item)) {
                         FeedItemDetailDestination(item: item).environment(\.feedLegacyPostDeletionAllowed, false)
                     } else {
-                        let shared = AccountActivitySummaryDetailPresentation(row: row, author: author, photos: photos, authorizedLegacyPhotoPostID: verifiedLegacy?.id).sharedRecord
+                        let shared = AccountActivitySummaryDetailPresentation(row: row, author: author, photos: photos, authorizedLegacyPhotoPostID: verifiedLegacy?.id,
+                            nativeTelemetry: nativeTelemetry, nativeMaskedRoute: nativeMaskedRoute, nativeTimelineElapsed: nativeTimelineElapsed).sharedRecord
                         WorkoutDeepDetailView(workout: shared.layoutIdentity, sharedRecord: shared)
                             .environment(\.workoutManagement, nil)
                             .accessibilityIdentifier("feed.projection.readonlyDetail")
@@ -1475,7 +1522,14 @@ struct AccountActivitySummaryDetailDestination: View {
                 } else {
                     ScrollView { SOOMSkeleton(layout: .detail, label: "운동 공개 범위 확인 중").padding(SOOMLayout.screenPadding) }
                 }
-            }.task(id: key) { await refresh() }
+            }.environment(\.historicalRecordedZoneOverlay, historical)
+                .task(id: key) { await refresh() }
+                .task(id: historical?.expiresAt) {
+                    guard let deadline = historical?.expiresAt else { return }
+                    do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow))) }
+                    catch { return }
+                    if historical?.expiresAt == deadline { historical = nil }
+                }
         }.hidesSOOMTabBar().feedCommentProfileNavigationHost()
     }
     private func hasExactOwnSource(_ item: FeedItem) -> Bool {
@@ -1486,7 +1540,7 @@ struct AccountActivitySummaryDetailDestination: View {
         return (try? modelContext.fetch(query).first?.id) == id
     }
     @MainActor private func refresh() async {
-        photos = []; verifiedLegacy = nil; verified = nil; failed = false
+        historical = nil; photos = []; verifiedLegacy = nil; nativeTelemetry = nil; nativeMaskedRoute = nil; nativeTimelineElapsed = nil; verified = nil; failed = false
         let expected = key
         guard scene == .active, safety.canUseSocial, safety.accountGeneration == openingGeneration,
               let viewer = safety.viewerID else { failed = true; return }
@@ -1502,26 +1556,85 @@ struct AccountActivitySummaryDetailDestination: View {
             verified = expected; return
         }
         #endif
+        let authEnvironment = AuthEnvironmentLoader().load()
+        let nativeRuntime = NativeSharedWorkoutRuntime.current(environment: authEnvironment)
+        #if DEBUG && targetEnvironment(simulator)
+        // Explicit local QA must never fall through to a remote project.
+        if ProcessInfo.processInfo.environment["SOOM_NATIVE_CARD_DETAIL_LOCAL"] == "1",
+           nativeRuntime.target != .localQA { failed = true; return }
+        #endif
         guard row.readPolicy == .profileOnlyV2,
-              let client = SupabaseClientProvider(environment: AuthEnvironmentLoader().load()).makeClient(),
+              let client = SupabaseClientProvider(environment: authEnvironment).makeClient(),
               client.auth.currentSession?.user.id == viewer else { failed = true; return }
         struct Params: Encodable { let p_card_id: UUID }
         do {
+            let modernContext = { expected == key && safety.viewerID == viewer && scene == .active }
+            if row.ownerID != viewer, let modern = ModernSourceChartAdapter.active(expectedClient: client),
+               try await modern.mayView(row: row, expectedViewer: viewer, current: modernContext) {
+                let allowedPhotos = (try? await AccountActivityProfilePhotoAdapter(client: client, context: {
+                    .init(viewerID: safety.canUseSocial && scene == .active ? client.auth.currentSession?.user.id : nil,
+                        generation: safety.accountGeneration, safetyRevision: safety.revision,
+                        storageScopeID: viewer.uuidString.lowercased())
+                }).load(row: row)) ?? []
+                if let detail = try await modern.detail(row: row, expectedViewer: viewer, current: modernContext) {
+                    guard !Task.isCancelled, modernContext(), client.auth.currentSession?.user.id == viewer else { return }
+                    nativeTelemetry = detail.telemetry
+                    nativeTimelineElapsed = detail.elapsed
+                    nativeMaskedRoute = nil
+                    photos = allowedPhotos
+                    verified = expected
+                    return
+                }
+                guard !Task.isCancelled, modernContext(), client.auth.currentSession?.user.id == viewer else { return }
+            }
+            guard !Task.isCancelled, modernContext(), client.auth.currentSession?.user.id == viewer else { return }
+            if nativeRuntime.allowsViewer, row.ownerID != viewer,
+               let capabilities = try await nativeRuntime.loadCapabilities(client: client, viewerID: viewer,
+                    isCurrent: { expected == key && safety.viewerID == viewer }), capabilities.detail {
+                // Independently authorized photos are read first. A final fresh
+                // native detail grant closes the window before any publication.
+                let nativePhotos = (try? await AccountActivityProfilePhotoAdapter(client: client, context: {
+                    .init(viewerID: safety.canUseSocial && scene == .active ? client.auth.currentSession?.user.id : nil,
+                        generation: safety.accountGeneration, safetyRevision: safety.revision,
+                        storageScopeID: viewer.uuidString.lowercased())
+                }).load(row: row)) ?? []
+                guard !Task.isCancelled, expected == key, client.auth.currentSession?.user.id == viewer else { return }
+                let useRoute50 = nativeRuntime.allows50mRoutes && capabilities.route50
+                let native: AccountActivityNativeDetailEnvelope = try await client.rpc(
+                    useRoute50 ? "soom_native_card_detail_v3" : "soom_native_card_detail_v2",
+                    params: AccountActivityNativeDetailEnvelope.Params(p_card_id: row.cardID, p_expected_revision: row.revision)).execute().value
+                guard !Task.isCancelled, expected == key, client.auth.currentSession?.user.id == viewer else { return }
+                let current = try native.card.validateForProduction(expectedCardID: row.cardID,
+                    requestViewerID: viewer, currentViewerID: safety.viewerID, requestGeneration: openingGeneration,
+                    currentGeneration: safety.accountGeneration, latestPermittedDate: Date(),
+                    expectedOwnerID: row.ownerID, expectedPolicy: .profileOnlyV2)
+                guard native.contractVersion == (useRoute50 ? 3 : 2), current == row else { failed = true; return }
+                nativeTelemetry = native.telemetry(for: row)
+                nativeMaskedRoute = native.maskedRoute(for: row)
+                nativeTimelineElapsed = native.elapsedTimeline(for: row)
+                photos = nativePhotos
+                verified = expected
+                return
+            }
+            guard !Task.isCancelled, expected == key, client.auth.currentSession?.user.id == viewer else { return }
             let receipt: AccountActivityCardEnvelope = try await client.rpc("soom_activity_card_candidate_v2", params: Params(p_card_id: row.cardID)).execute().value
             guard !Task.isCancelled, expected == key, client.auth.currentSession?.user.id == viewer else { return }
             let current = try receipt.validateForProduction(expectedCardID: row.cardID, requestViewerID: viewer,
                 currentViewerID: safety.viewerID, requestGeneration: openingGeneration, currentGeneration: safety.accountGeneration,
                 latestPermittedDate: Date(), expectedOwnerID: row.ownerID, expectedPolicy: .profileOnlyV2)
             guard current == row else { failed = true; return }
-            var linked: FeedItem?
-            if let legacyItem {
-                let remote = SupabaseFeedRemoteClient(client: client)
-                let repository = SupabaseFeedRepository(clientProvider: SupabaseClientProvider(environment: AuthEnvironmentLoader().load()), remoteFetcher: remote, profileFetcher: remote)
-                let transport = SupabaseAccountActivityFeedTransport(client: client, legacyRepository: repository, readPolicy: row.readPolicy)
-                let fresh = try? await AccountActivityLinkedLegacyDetailAdapter(transport: transport).loadIfLinked(row: row)
-                guard !Task.isCancelled, expected == key, client.auth.currentSession?.user.id == viewer else { return }
-                if let fresh, fresh.id == legacyItem.id, fresh.authorId == row.ownerID { linked = fresh }
+            // A gallery can open with only a projection. It has no legacy hint,
+            // but existing legacy chart access can still be independently verified.
+            let remote = SupabaseFeedRemoteClient(client: client)
+            let repository = SupabaseFeedRepository(clientProvider: SupabaseClientProvider(environment: authEnvironment), remoteFetcher: remote, profileFetcher: remote)
+            let transport = SupabaseAccountActivityFeedTransport(client: client, legacyRepository: repository, readPolicy: row.readPolicy)
+            let linked = try? await AccountActivityDetailFallbackPolicy.resolveFreshLegacy(
+                expectedOwnerID: row.ownerID, existingHint: legacyItem,
+                isCurrent: { modernContext() && client.auth.currentSession?.user.id == viewer }
+            ) {
+                try await AccountActivityLinkedLegacyDetailAdapter(transport: transport).loadIfLinked(row: row)
             }
+            guard !Task.isCancelled, modernContext(), client.auth.currentSession?.user.id == viewer else { return }
             let profilePhotos = (try? await AccountActivityProfilePhotoAdapter(client: client, context: {
                 .init(viewerID: safety.canUseSocial && scene == .active ? client.auth.currentSession?.user.id : nil,
                     generation: safety.accountGeneration, safetyRevision: safety.revision,
@@ -1537,6 +1650,15 @@ struct AccountActivitySummaryDetailDestination: View {
             verifiedLegacy = linked
             photos = profilePhotos
             verified = expected
+            // Add only recorded zones and only after the normal card is revalidated.
+            // This optional, independent read must never delay or clear the normal detail.
+            guard row.ownerID != viewer else { return }
+            let overlay = try? await HistoricalRecordedZoneOverlay.fetch(client: client, row: row,
+                viewer: viewer, postID: linked?.id,
+                current: { modernContext() && safety.canUseSocial && client.auth.currentSession?.user.id == viewer })
+            guard !Task.isCancelled, modernContext(), safety.canUseSocial,
+                  client.auth.currentSession?.user.id == viewer else { return }
+            historical = overlay
         } catch { if expected == key { failed = true } }
     }
 }
@@ -1549,10 +1671,34 @@ extension EnvironmentValues {
     }
 }
 enum AccountActivityDetailFallbackPolicy {
+    /// A hint binds navigation identity only. It never supplies display data or
+    /// authorizes the fresh read. The loader has its own two-fence legacy checks.
+    @MainActor static func resolveFreshLegacy(
+        expectedOwnerID: UUID, existingHint: FeedItem?, isCurrent: () -> Bool,
+        loadAuthorized: () async throws -> FeedItem?
+    ) async throws -> FeedItem? {
+        guard !Task.isCancelled, isCurrent(),
+              existingHint.map({ $0.authorId == expectedOwnerID }) ?? true else { return nil }
+        guard let fresh = try await loadAuthorized(),
+              !Task.isCancelled, isCurrent(), fresh.authorId == expectedOwnerID,
+              existingHint.map({ $0.id == fresh.id }) ?? true else { return nil }
+        return fresh
+    }
+
     static func usesLegacyDetail(hasAuthorizedSnapshot: Bool, hasExactOwnSource: Bool) -> Bool {
         hasAuthorizedSnapshot || hasExactOwnSource
     }
     static func headerVisibility(_ original: FeedPostVisibility?, profileOnlyContext: Bool) -> FeedPostVisibility? {
         profileOnlyContext ? nil : original
+    }
+}
+
+private struct HistoricalRecordedZoneOverlayKey: EnvironmentKey {
+    static let defaultValue: HistoricalRecordedZoneOverlay? = nil
+}
+extension EnvironmentValues {
+    var historicalRecordedZoneOverlay: HistoricalRecordedZoneOverlay? {
+        get { self[HistoricalRecordedZoneOverlayKey.self] }
+        set { self[HistoricalRecordedZoneOverlayKey.self] = newValue }
     }
 }

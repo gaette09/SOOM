@@ -13,6 +13,7 @@ enum WorkoutDetailPresentationStyle {
 
 struct WorkoutDetailContent: View {
     @Environment(\.soomProfileOnlyDetailPresentation) private var profileOnlyDetailPresentation
+    @Environment(\.historicalRecordedZoneOverlay) private var historicalZoneOverlay
     @Environment(\.workoutManagement) private var management
     @Environment(\.workoutDetailSharing) private var sharing
     @Environment(\.modelContext) private var modelContext
@@ -73,6 +74,10 @@ struct WorkoutDetailContent: View {
     var renderShareImage: @MainActor (ShareableWorkoutCardModel, Color) -> UIImage? = { card, tint in
         ShareableWorkoutCardRenderer().render(card: card, tint: tint)
     }
+    @State private var nativeMeasurementReviewPresented = false
+    @State private var nativeMeasurementReviewScope: String?
+    @State private var nativeRouteReviewPresented = false
+    @State private var nativeRouteReviewScope: String?
     @State private var streamZoneSummaries: [WorkoutZoneSummary]?
     @State private var streamSplitInsight: WorkoutSplitInsight?
     @State private var isLoadingZoneSummaries = false
@@ -113,10 +118,6 @@ struct WorkoutDetailContent: View {
             )
             if let sharedRecord {
                 WorkoutRecordMetricsCard(metrics: sharedRecord.presentationMetrics, compact: presentationStyle == .mapSheet)
-                if sharedRecord.item.activityProjection != nil {
-                    Text("공개된 운동 요약이에요. 사진·경로·측정 정보는 현재 공유 범위에서 표시되지 않을 수 있어요.")
-                        .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
-                }
                 if let caption = sharedRecord.item.caption, !caption.isEmpty {
                     Text(caption).font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -125,11 +126,16 @@ struct WorkoutDetailContent: View {
                 WorkoutPhotoMediaRow(workoutID: nil, photos: sharedRecord.item.photos,
                     hasRoute: false) { EmptyView() }
                 }
-                if let telemetry = sharedRecord.presentationTelemetry {
+                if let telemetry = historicalZoneOverlay?.applying(to: sharedRecord.presentationTelemetry,
+                    id: sharedRecord.item.id, authorID: sharedRecord.item.authorId) ?? sharedRecord.presentationTelemetry {
                     detailSection(.sensorData) {
                         WorkoutTelemetrySection(telemetry: telemetry, workout: sharedRecord.presentationWorkout,
                             route: sharedRecord.route, sharedMeasurementOnly: true)
                     }
+                } else {
+                    Text("이 기록에서 공유된 추가 측정 데이터는 없어요.")
+                        .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                        .accessibilityIdentifier("detail.shared.measurements.notAvailable")
                 }
             } else {
                 if let sourceUnifiedWorkout {
@@ -151,11 +157,29 @@ struct WorkoutDetailContent: View {
                         + String(sourceUnifiedWorkout?.averageHeartRate ?? 0)
                         + String(sourceUnifiedWorkout?.durationSeconds ?? 0)
                         + String(TrainingSettingsStore.shared.loadSettings().maxHeartRate ?? 0))
+                if NativeWorkoutAggregateService.reviewEnabled || ModernChartRuntime.current().ownerReviewEnabled,
+                   sourceUnifiedWorkout != nil, accountStorage.userID != nil,
+                   auth.session.currentUser?.id == accountStorage.userID {
+                    Button("추가 측정 공유 검토") {
+                        nativeMeasurementReviewScope = accountStorage.scopeID
+                        nativeMeasurementReviewPresented = true
+                    }
+                    .accessibilityIdentifier("detail.measurementShare.review")
+                }
+                if NativeRoute50Upload.rawFixtureEnabled, sourceUnifiedWorkout != nil,
+                   let owner = accountStorage.userID, auth.session.currentUser?.id == owner {
+                    Button("새 공유 경로 50m 검토") {
+                        nativeRouteReviewScope = accountStorage.scopeID
+                        nativeRouteReviewPresented = true
+                    }.accessibilityIdentifier("detail.route50.review")
+                }
                 detailSection(.sensorData) {
                     if let read = healthKitReadPresentation {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(read.message).font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
-                                .accessibilityIdentifier("detail.health.status")
+                            if !read.message.isEmpty {
+                                Text(read.message).font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                                    .accessibilityIdentifier("detail.health.status")
+                            }
                             if read.isLoading { ProgressView("측정값 확인 중") }
                             else if let retry = read.retry {
                                 Button("건강 측정값 다시 읽기") { Task { await retry() } }
@@ -317,7 +341,43 @@ struct WorkoutDetailContent: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $nativeMeasurementReviewPresented) {
+            if let workout = sourceUnifiedWorkout, let owner = accountStorage.userID,
+               auth.session.currentUser?.id == owner, let scope = nativeMeasurementReviewScope,
+               modelContext.container === accountStorage.container, !HealthCloudJournal.isRetired(modelContext) {
+                let telemetry = try? WorkoutTelemetryStore(modelContext: modelContext).resolved(for: workout)
+                let canAccess = { @MainActor in
+                    accountStorage.scopeID == scope && accountStorage.userID == owner
+                        && auth.session.currentUser?.id == owner && modelContext.container === accountStorage.container
+                        && !HealthCloudJournal.isRetired(modelContext)
+                }
+                NativeMeasurementShareReviewSheet(workout: workout, telemetry: telemetry,
+                    owner: owner, canAccess: canAccess)
+            }
+        }
+        .sheet(isPresented: $nativeRouteReviewPresented) {
+            if let workout = sourceUnifiedWorkout, let owner = accountStorage.userID,
+               auth.session.currentUser?.id == owner, let scope = nativeRouteReviewScope,
+               modelContext.container === accountStorage.container, !HealthCloudJournal.isRetired(modelContext) {
+                let canAccess = { @MainActor in
+                    accountStorage.scopeID == scope && accountStorage.userID == owner
+                        && auth.session.currentUser?.id == owner && modelContext.container === accountStorage.container
+                        && !HealthCloudJournal.isRetired(modelContext)
+                }
+                NativeRoute50ReviewSheet(workout: workout, owner: owner, canAccess: canAccess,
+                    loadOwnerRoute: {
+                        guard canAccess() else { return nil }
+                        let route = try await WorkoutTelemetryStore(modelContext: modelContext).resolvedRoute(for: workout)
+                        guard canAccess(), route?.workoutId == workout.id, route?.privacyMaskApplied == false else { return nil }
+                        return route
+                    })
+            }
+        }
         .onChange(of: accountStorage.scopeID) { _, _ in
+            nativeMeasurementReviewPresented = false
+            nativeMeasurementReviewScope = nil
+            nativeRouteReviewPresented = false
+            nativeRouteReviewScope = nil
             shareComposerPresentation = nil
             isCompanionSheetPresented = false; companionEditScope = nil
         }
@@ -363,15 +423,18 @@ struct WorkoutDetailContent: View {
         return telemetry
     }
 
+    @ViewBuilder
     private func detailSection<Content: View>(
         _ group: WorkoutDetailSectionGroup,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
-        WorkoutDetailSectionContainer(group: group, reduceMotion: reduceMotion) {
-            if group == .growth {
-                WorkoutInsightDisclosure(title: group.title, icon: "chart.line.uptrend.xyaxis",
-                    summary: growthSummary?.shortSummary ?? "이 운동의 성장 지표와 이전 기록을 확인해요.") { content() }
-            } else { content() }
+        if group.isVisible(inSharedDetail: sharedRecord != nil) {
+            WorkoutDetailSectionContainer(group: group, reduceMotion: reduceMotion) {
+                if group == .growth {
+                    WorkoutInsightDisclosure(title: group.title, icon: "chart.line.uptrend.xyaxis",
+                        summary: growthSummary?.shortSummary ?? "이 운동의 성장 지표와 이전 기록을 확인해요.") { content() }
+                } else { content() }
+            }
         }
     }
 
@@ -1882,5 +1945,264 @@ struct WorkoutInsightDisclosure<Content: View>: View {
                 .accessibilityLabel(title + (expanded ? " 접기" : " 자세히 보기"))
                 .accessibilityValue(expanded ? "펼쳐짐" : "접힘")
         }.accessibilityElement(children: .contain)
+    }
+}
+
+
+/// Owner-only panel. Loading a review never opts in. A toggle on this
+/// particular workout must be affirmed afresh before Apply becomes enabled.
+private struct NativeMeasurementShareReviewSheet: View {
+    let workout: UnifiedWorkout
+    let telemetry: WorkoutTelemetry?
+    let owner: UUID
+    let canAccess: @MainActor () -> Bool
+    @Environment(\.dismiss) private var dismiss
+    @State private var review: NativeWorkoutAggregateService.Review?
+    @State private var modernReview: ModernSourceChartAdapter.Review?
+    @State private var affirmed = false
+    @State private var busy = false
+    @State private var status: String?
+    @State private var confirmingWithdrawal = false
+
+    private var available: NativeWorkoutSharedAggregateInput? {
+        telemetry.flatMap { NativeWorkoutSharedAggregateInput.build(workout: workout, telemetry: $0,
+            explicitAcknowledgement: NativeWorkoutSharedAggregateInput.noticeVersion) }
+    }
+
+    private var modernAdapter: ModernSourceChartAdapter? {
+        ModernSourceChartAdapter.active(ownerReview: true)
+    }
+
+    private var availableModern: ModernSourceChartInput? {
+        telemetry.flatMap { ModernSourceChartInput.build(workout: workout, telemetry: $0) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("이 운동의 추가 측정") {
+                    Text("기록이 있는 랩·심박 구간·측정 구간만 공유해요. 이미 이 운동의 측정 정보를 볼 권한이 있는 사람에게만 표시돼요.")
+                    Text("AI 해석, 회복 정보, 개인 심박 기준은 공유하지 않아요. 언제든 여기서 추가 공유를 끌 수 있어요.")
+                    if modernReview != nil, let modern = availableModern {
+                        if !modern.samples.isEmpty {
+                            let measured = modern.render(cardID: workout.id, start: workout.startDate).samples
+                            let channels = WorkoutTelemetryChannel.allCases.filter { channel in
+                                measured.contains { $0.value(for: channel) != nil }
+                            }
+                            if !channels.isEmpty {
+                                Label(channels.map(\.title).joined(separator: " · "), systemImage: "chart.xyaxis.line")
+                            }
+                        }
+                        if let supplement = modern.supplement {
+                            if !supplement.lapIntervals.isEmpty { Label("실제 랩·구간 시간", systemImage: "stopwatch") }
+                            if supplement.zoneSeconds != nil { Label("심박 존 1–5 시간", systemImage: "heart") }
+                            if !(supplement.measuredIntervals?.isEmpty ?? true) { Label("실제로 기록된 측정 구간", systemImage: "list.bullet") }
+                        }
+                        if !modern.pauses.isEmpty { Label("일시정지 전후의 실제 측정 시각", systemImage: "clock") }
+                    } else if let available {
+                        if !available.lapIntervals.isEmpty { Label("실제 랩·구간 시간", systemImage: "stopwatch") }
+                        if available.zoneSeconds != nil { Label("심박 존 1–5 시간", systemImage: "heart") }
+                        if available.elapsedTimeline != nil { Label("일시정지 전후의 실제 측정 시각", systemImage: "clock") }
+                        if !(available.measuredIntervals?.isEmpty ?? true) {
+                            Label("기록된 걸음 수·거리·칼로리·스트로크 등 측정 구간", systemImage: "chart.xyaxis.line")
+                        }
+                    } else { Text("이 운동에 추가 공유할 측정 기록이 없어요.") }
+                }
+                if (modernReview?.canApply == true && availableModern != nil)
+                    || (modernReview == nil && review?.canApply == true && available != nil) {
+                    Section("공유에 동의") {
+                        Toggle("이 운동의 추가 측정을 공유할게요", isOn: $affirmed)
+                            .accessibilityIdentifier("detail.measurementShare.affirm")
+                        Button("공유 적용") { Task { await apply() } }
+                            .disabled(!affirmed || busy)
+                            .accessibilityIdentifier("detail.measurementShare.apply")
+                    }
+                }
+                if modernReview?.hasSaved == true || review?.hasSavedSupplement == true {
+                    Button("추가 측정 공유 철회", role: .destructive) { confirmingWithdrawal = true }
+                        .disabled(busy)
+                        .accessibilityIdentifier("detail.measurementShare.withdraw")
+                }
+                if busy { ProgressView() }
+                if let status { Text(status).font(.footnote) }
+            }
+            .navigationTitle("추가 측정 공유")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() }.disabled(busy) } }
+        }
+        .task { await reload() }
+        .confirmationDialog("이 운동의 추가 측정 공유를 철회할까요?", isPresented: $confirmingWithdrawal) {
+            Button("공유 철회", role: .destructive) { Task { await withdraw() } }
+        } message: { Text("추가 공유한 랩·심박 구간·측정 구간만 내려요. 운동의 기본 기록은 유지돼요.") }
+    }
+
+    @MainActor private func reload() async {
+        defer { busy = false }
+        busy = true
+        do {
+            if let modernAdapter, let next = try await modernAdapter.review(source: workout.id, owner: owner, current: canAccess) {
+                guard canAccess(), !Task.isCancelled else { return }
+                modernReview = next
+                review = nil
+                if !next.canApply && status == nil { status = "이 운동은 현재 추가 측정을 공유할 수 없어요." }
+                return
+            }
+            guard canAccess(), !Task.isCancelled else { return }
+            modernReview = nil
+            let next = try await NativeWorkoutAggregateService.review(sourceID: workout.id, ownerID: owner, isCurrent: canAccess)
+            guard canAccess(), !Task.isCancelled else { return }
+            review = next
+            if next?.canApply != true && status == nil { status = "이 운동은 현재 추가 측정을 공유할 수 없어요." }
+        } catch { if canAccess() { status = "공유 설정을 확인하지 못했어요. 다시 열어 확인해 주세요." } }
+    }
+
+    @MainActor private func apply() async {
+        guard !busy, canAccess(), affirmed, let telemetry else { return }
+        busy = true
+        affirmed = false
+        do {
+            let ok: Bool
+            if let modernReview, let modernAdapter {
+                ok = try await modernAdapter.apply(workout: workout, telemetry: telemetry,
+                    review: modernReview, affirmed: true, current: canAccess)
+            } else if modernReview == nil, let acknowledgement = review?.acknowledgement(affirmed: true) {
+                ok = try await NativeWorkoutAggregateService.upload(workout: workout, telemetry: telemetry,
+                    acknowledgement: acknowledgement, isCurrent: canAccess)
+            } else { ok = false }
+            guard canAccess(), !Task.isCancelled else { return }
+            status = ok ? "이 운동의 추가 측정을 공유했어요." : "공유하지 못했어요. 공개 범위와 동의를 다시 확인해 주세요."
+        } catch { if canAccess() { status = "저장되지 않았어요. 다시 확인해 주세요." } }
+        await reload()
+    }
+
+    @MainActor private func withdraw() async {
+        guard !busy, canAccess() else { return }
+        busy = true
+        affirmed = false
+        do {
+            let ok: Bool
+            if let modernReview, let modernAdapter { ok = try await modernAdapter.withdraw(review: modernReview, current: canAccess) }
+            else if modernReview == nil, let review { ok = try await NativeWorkoutAggregateService.withdraw(review: review, isCurrent: canAccess) }
+            else { ok = false }
+            guard canAccess(), !Task.isCancelled else { return }
+            status = ok ? "이 운동의 추가 측정 공유를 철회했어요." : "공유 상태가 바뀌었어요. 다시 확인해 주세요."
+        } catch { if canAccess() { status = "공유 철회를 확인하지 못했어요." } }
+        await reload()
+    }
+}
+
+
+/// A masked line is drawn entirely on-device. No map tiles, markers, URLs or
+/// network requests receive the original route while the owner is reviewing.
+private struct NativeRoute50ReviewSheet: View {
+    let workout: UnifiedWorkout
+    let owner: UUID
+    let canAccess: @MainActor () -> Bool
+    let loadOwnerRoute: @MainActor () async throws -> WorkoutRoute?
+    @Environment(\.dismiss) private var dismiss
+    @State private var review: NativeRoute50Upload.Review?
+    @State private var ownerRoute: WorkoutRoute?
+    @State private var preview: ShareRouteGeometry?
+    @State private var affirmed = false
+    @State private var busy = false
+    @State private var withdrawConfirm = false
+    @State private var status: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("공유될 경로 미리보기") {
+                    Text("출발과 도착 지점에서 각각 50m 안쪽은 표시하지 않아요. 기존 공유 기록은 바뀌지 않아요.")
+                    if let preview {
+                        Canvas { context, size in
+                            let fitted = preview.fittedPoints(in: CGRect(origin: .zero, size: size))
+                            var previous: Int?
+                            var path = Path()
+                            for (point, position) in zip(preview.points, fitted) {
+                                if previous == point.segmentIndex { path.addLine(to: position) }
+                                else { path.move(to: position) }
+                                previous = point.segmentIndex
+                            }
+                            context.stroke(path, with: .color(SOOMColor.accent), lineWidth: 3)
+                        }
+                        .frame(height: 150)
+                        .accessibilityLabel("출발과 도착 위치가 가려진 경로")
+                        .accessibilityIdentifier("detail.route50.maskedPreview")
+                    } else if !busy { Text("안전하게 표시할 수 있는 공유 경로가 없어요.") }
+                    Text("공유할 때만 서버가 원본 경로를 검사해 가린 경로를 저장해요. 원본 위치는 다른 사람에게 표시되지 않아요.")
+                }
+                if review?.canApply == true, preview != nil {
+                    Section("이 운동만 공유") {
+                        Toggle("출발·도착 50m를 가린 경로를 공유할게요", isOn: $affirmed)
+                            .accessibilityIdentifier("detail.route50.affirm")
+                        Button("경로 공유") { Task { await apply() } }
+                            .disabled(busy || !affirmed)
+                            .accessibilityIdentifier("detail.route50.apply")
+                    }
+                }
+                if review?.hasSavedRoute == true {
+                    Button("이 경로 공유 철회", role: .destructive) { withdrawConfirm = true }
+                        .disabled(busy).accessibilityIdentifier("detail.route50.withdraw")
+                }
+                if busy { ProgressView() }
+                if let status { Text(status).font(.footnote) }
+            }
+            .navigationTitle("50m 경로 공유")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() }.disabled(busy) } }
+        }.task { await refresh(loadPreview: true) }
+        .confirmationDialog("이 운동의 50m 경로 공유를 철회할까요?", isPresented: $withdrawConfirm) {
+            Button("경로 공유 철회", role: .destructive) { Task { await withdraw() } }
+        }
+    }
+
+    @MainActor private func refresh(loadPreview: Bool) async {
+        busy = true
+        defer { busy = false }
+        do {
+            if loadPreview {
+                let route = try await loadOwnerRoute()
+                guard canAccess(), !Task.isCancelled else { return }
+                ownerRoute = route
+                if let route {
+                    let masked = NativeRoute50Upload.maskedPreview(workout: workout, route: route)
+                    preview = ShareRouteGeometry(coordinates: masked.route.map {
+                        .init(latitude: $0.latitude, longitude: $0.longitude, segmentIndex: $0.segment)
+                    })
+                } else { preview = nil }
+            }
+            let next = try await NativeRoute50Upload.review(sourceID: workout.id, ownerID: owner, isCurrent: canAccess)
+            guard canAccess(), !Task.isCancelled else { return }
+            review = next
+            if next?.canApply != true, next?.hasSavedRoute != true, status == nil {
+                status = "이 운동은 새 50m 공유를 적용할 수 없어요. 기존 공유 경로는 그대로 유지돼요."
+            }
+        } catch { if canAccess() { status = "경로 공유 조건을 확인하지 못했어요." } }
+    }
+
+    @MainActor private func apply() async {
+        guard !busy, canAccess(), preview != nil, let ownerRoute, let review,
+              let revision = review.approvedConsentRevision(affirmed: affirmed, sourceID: workout.id, ownerID: owner)
+        else { return }
+        busy = true
+        affirmed = false
+        do {
+            let published = try await NativeRoute50Upload.upload(workout: workout, route: ownerRoute, ownerID: owner,
+                postID: review.postID, expectedRevision: review.expectedRevision, consentRevision: revision,
+                acceptedNotice: NativeRoute50Upload.notice, isCurrent: canAccess)
+            guard canAccess(), !Task.isCancelled else { return }
+            status = published ? "출발·도착 50m를 가린 경로를 공유했어요." : "경로를 공유하지 못했어요. 공유 상태를 다시 확인해 주세요."
+        } catch { if canAccess() { status = "공유되지 않았어요. 공유 조건을 다시 확인해 주세요." } }
+        await refresh(loadPreview: false)
+    }
+
+    @MainActor private func withdraw() async {
+        guard !busy, canAccess(), let review else { return }
+        busy = true
+        affirmed = false
+        do {
+            let removed = try await NativeRoute50Upload.withdraw(review: review, isCurrent: canAccess)
+            guard canAccess(), !Task.isCancelled else { return }
+            status = removed ? "이 운동의 50m 경로 공유를 철회했어요." : "경로 상태가 바뀌었어요. 다시 확인해 주세요."
+        } catch { if canAccess() { status = "경로 공유 철회를 확인하지 못했어요." } }
+        await refresh(loadPreview: false)
     }
 }

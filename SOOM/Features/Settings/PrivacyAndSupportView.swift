@@ -2,8 +2,8 @@ import SwiftUI
 
 enum SOOMPublicInformation {
     static let operatorName = "CHUNG JIHWAN"
-    static let supportEmail = "support@example.com"
-    static let supportURL = URL(string: "mailto:support@example.com")!
+    static let supportEmail = "support@example.invalid"
+    static let supportURL = URL(string: "mailto:support@example.invalid")!
 
     static var privacyPolicyURL: URL? {
         validatedPolicyURL(Bundle.main.object(forInfoDictionaryKey: "SOOMPrivacyPolicyURL") as? String)

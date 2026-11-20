@@ -566,3 +566,20 @@ extension RecordWorkoutSaveFlowTests {
 }
 
 private enum RecordingStorageFailure: Error { case expected }
+
+extension RecordWorkoutSaveFlowTests {
+    func testSOOMRecorderUsesOnlyActualPauseResumeOrStopEventsAndOldSessionsDecode() throws {
+        let start = Date(timeIntervalSince1970: 1_800_100_000)
+        let initial = RecordWorkoutSession(id: UUID(), sport: .running, workoutType: .running,
+            startedAt: start, startedWithLocation: true, state: .active, pausedAt: nil, endedAt: nil)
+        let recovered = try JSONDecoder().decode(RecordWorkoutSession.self, from: JSONEncoder().encode(initial))
+        XCTAssertNil(recovered.measuredPauseEvents)
+        let session = recovered.paused(at: start.addingTimeInterval(20)).resumed(at: start.addingTimeInterval(40))
+            .paused(at: start.addingTimeInterval(75)).finished(at: start.addingTimeInterval(80))
+        let summary = try XCTUnwrap(RecordWorkoutSummaryBuilder.makeSummary(from: session))
+        XCTAssertEqual(summary.durationSeconds, 55)
+        XCTAssertEqual(summary.endedAt.timeIntervalSince(start), 80)
+        XCTAssertEqual(summary.measuredTelemetry.events.map(\.type), ["pause", "resume", "pause", "stop"])
+        XCTAssertEqual(summary.measuredTelemetry.events.map { $0.timestamp.timeIntervalSince(start) }, [20, 40, 75, 80])
+    }
+}

@@ -46,6 +46,10 @@ struct WorkoutDetailSectionGroup: Identifiable, Equatable {
         isCollapsibleReady: false
     )
 
+    func isVisible(inSharedDetail: Bool) -> Bool {
+        !inSharedDetail || id == .sensorData
+    }
+
     static let ordered: [WorkoutDetailSectionGroup] = [
         .sensorData,
         .core,

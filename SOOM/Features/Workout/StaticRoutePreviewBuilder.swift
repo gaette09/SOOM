@@ -33,7 +33,8 @@ struct StaticRoutePreviewBuilder {
             )
         }
 
-        let previewRoute = routeMasker.mask(route: route, policy: privacyPolicy)
+        let previewRoute = route.hasAuthoritativeShareMask && privacyPolicy == .defaultShare
+            ? route : routeMasker.mask(route: route, policy: privacyPolicy)
         let coordinates = previewRoute.coordinates.map {
             ShareRouteCoordinate(latitude: $0.latitude, longitude: $0.longitude, segmentIndex: $0.segmentIndex)
         }

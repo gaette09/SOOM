@@ -78,7 +78,7 @@ enum CommunitySafetyError: LocalizedError, Equatable {
             return "커뮤니티 규칙에 어긋날 수 있는 표현이 있어요. 내용을 수정한 뒤 다시 시도해 주세요."
         }
         if description.contains("SOOM_TEXT_TOO_LONG") { return "내용이 너무 길어요. 글자 수를 줄여 주세요." }
-        if description.contains("SOOM_ACCOUNT_SUSPENDED") { return "현재 계정의 커뮤니티 이용이 제한되어 있어요. 문의: support@example.com" }
+        if description.contains("SOOM_ACCOUNT_SUSPENDED") { return "현재 계정의 커뮤니티 이용이 제한되어 있어요. 문의: support@example.invalid" }
         if description.contains("SOOM_TARGET_UNAVAILABLE") { return "더 이상 볼 수 없는 콘텐츠예요. 피드를 새로 불러와 주세요." }
         if description.contains("SOOM_REPORT_RATE_LIMITED") { return "신고 요청이 많아요. 잠시 후 다시 시도해 주세요." }
         return "요청을 완료하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."

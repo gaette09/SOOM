@@ -97,14 +97,17 @@ enum HealthKitSampleQueryScope { case associated, workoutSource, timeWindow }
 
 final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching {
     private let healthStore: HKHealthStore
+    private let expandOwnerHeartRateSeries: Bool
     private let sampleProvider: (@MainActor (HKQuantityTypeIdentifier, HKWorkout) async throws -> [HKQuantitySample])?
     private let queryProvider: ((HKQuantityTypeIdentifier, HKWorkout, HealthKitSampleQueryScope) async throws -> [HKQuantitySample])?
     init(healthStore: HKHealthStore = HKHealthStore(),
          queryProvider: ((HKQuantityTypeIdentifier, HKWorkout, HealthKitSampleQueryScope) async throws -> [HKQuantitySample])? = nil,
-         sampleProvider: (@MainActor (HKQuantityTypeIdentifier, HKWorkout) async throws -> [HKQuantitySample])? = nil) {
+         sampleProvider: (@MainActor (HKQuantityTypeIdentifier, HKWorkout) async throws -> [HKQuantitySample])? = nil,
+         expandOwnerHeartRateSeries: Bool = false) {
         self.healthStore = healthStore
         self.sampleProvider = sampleProvider
         self.queryProvider = queryProvider
+        self.expandOwnerHeartRateSeries = expandOwnerHeartRateSeries
     }
 
     func fetchTelemetry(for workout: HKWorkout) async throws -> HealthKitWorkoutTelemetryResult {
@@ -114,6 +117,7 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
         guard HKHealthStore.isHealthDataAvailable() else { throw HealthKitAuthorizationError.healthDataUnavailable }
         var detail = HealthKitWorkoutTelemetryResult(telemetry: WorkoutTelemetry(workoutID: workout.uuid, source: .appleHealthKit))
         let bpm = HKUnit.count().unitDivided(by: .minute())
+        var exactOwnerZoneSamples: [WorkoutTelemetrySample] = []
         let speed = HKUnit.meter().unitDivided(by: .second())
         let distance: HKQuantityTypeIdentifier = workout.workoutActivityType == .cycling ? .distanceCycling
             : (workout.workoutActivityType == .swimming ? .distanceSwimming : .distanceWalkingRunning)
@@ -122,14 +126,22 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
         case .running: channels += [(.runningPower, .watt()), (.runningSpeed, speed), (.stepCount, .count())]
         case .walking, .hiking: channels += [(.walkingSpeed, speed), (.stepCount, .count())]
         case .cycling: channels += [(.cyclingPower, .watt()), (.cyclingSpeed, speed), (.cyclingCadence, bpm)]
+        case .swimming: channels += [(.swimmingStrokeCount, .count())]
         default: break
         }
         for (identifier, unit) in channels {
             try Task.checkCancellation()
             do {
-                let readings = try await samples(identifier: identifier, workout: workout)
+                let incoming = try await samples(identifier: identifier, workout: workout)
+                let readings = incoming.values
                 try Task.checkCancellation()
+                let useSeries = expandOwnerHeartRateSeries && identifier == .heartRate
+                var groupedHR: [OwnerHeartReading] = []
+                var exactOwnerHR: [OwnerHeartReading] = []
                 for sample in readings {
+                    // A condensed quantity is not a raw point. In this private
+                    // reader never use its summary as the missing series.
+                    if useSeries && sample.count > 1 { continue }
                     let value = sample.quantity.doubleValue(for: unit)
                     let start = max(sample.startDate, workout.startDate)
                     let end = min(sample.endDate, workout.endDate)
@@ -145,6 +157,10 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
                         if start == sample.startDate && end == sample.endDate && end > start {
                             detail.telemetry.intervals.append(.init(kind: .steps, startDate: start, endDate: end, value: value))
                         }
+                    case .swimmingStrokeCount:
+                        if start == sample.startDate && end == sample.endDate && end > start {
+                            detail.telemetry.intervals.append(.init(kind: .swimStrokeCount, startDate: start, endDate: end, value: value))
+                        }
                     case .activeEnergyBurned:
                         if start == sample.startDate && end == sample.endDate && end > start {
                             detail.telemetry.intervals.append(.init(kind: .energyKcal, startDate: start, endDate: end, value: value))
@@ -154,7 +170,31 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
                             detail.telemetry.intervals.append(.init(kind: .distanceMeters, startDate: start, endDate: end, value: value))
                         }
                     }
-                    if point.hasMeasurement { detail.telemetry.samples.append(point) }
+                    if useSeries, let heart = point.heartRateBPM {
+                        groupedHR.append(.init(time: point.timestamp, bpm: heart))
+                        if sample.startDate == sample.endDate {
+                            exactOwnerHR.append(.init(time: point.timestamp, bpm: heart))
+                        }
+                    } else if point.hasMeasurement { detail.telemetry.samples.append(point) }
+                }
+                if useSeries {
+                    let condensed = readings.filter { $0.count > 1 }
+                    if !condensed.isEmpty {
+                        detail.telemetry.ownerExpandedCondensedHeartRate = true
+                        do {
+                            let expanded = try await ownerHeartRateSeries(condensed, workout: workout, unit: bpm)
+                            groupedHR += expanded
+                            exactOwnerHR += expanded
+                        }
+                        catch is CancellationError { throw CancellationError() }
+                        catch { detail.failedChannels.append(identifier.rawValue) }
+                    }
+                    exactOwnerZoneSamples = (incoming.workoutLinked ? exactOwnerHR : []).map {
+                        .init(timestamp: $0.time, heartRateBPM: $0.bpm, source: .appleHealthKit)
+                    }
+                    detail.telemetry.samples += Self.uniqueOwnerHeartReadings(groupedHR).map {
+                        .init(timestamp: $0.time, heartRateBPM: $0.bpm, source: .appleHealthKit)
+                    }
                 }
             } catch is CancellationError { throw CancellationError() }
             catch { detail.failedChannels.append(identifier.rawValue) }
@@ -164,23 +204,100 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
             switch event.type { case .pause, .motionPaused: name = "pause"; case .resume, .motionResumed: name = "resume"; default: return nil }
             return WorkoutTelemetryEvent(timestamp: event.dateInterval.start, type: name)
         }
-        if workout.workoutActivityType == .swimming {
-            detail.telemetry.splits = Self.swimmingSplits(workout)
+        if workout.workoutActivityType == .swimming,
+           let meters = Self.lapLength(in: workout.metadata) {
+            detail.telemetry.summaryMetrics.append(.init(key: "poolLengthMeters", label: "수영장 길이", value: meters, unit: "m"))
+        }
+        switch workout.workoutActivityType {
+        case .swimming, .running, .cycling:
+            detail.telemetry.splits = Self.recordedSplits(workout, distanceIntervals: detail.telemetry.intervals)
+            if #available(iOS 27.0, *),
+               let group = workout.zoneGroup(for: HKQuantityType(.heartRate)) {
+                detail.telemetry.heartRateZones = Self.recordedHeartRateZones(
+                    configurationIndices: group.configuration.zones.map(\.index),
+                    durations: group.zoneDurations.map { ($0.zone.index, $0.duration) },
+                    activeDuration: workout.duration)
+                // Only the exact HKWorkout's captured boundaries are acceptable.
+                // Only the explicit owner reread supplies validated uncondensed points.
+                if expandOwnerHeartRateSeries, detail.telemetry.heartRateZones.isEmpty,
+                   !detail.failedChannels.contains(HKQuantityTypeIdentifier.heartRate.rawValue) {
+                    let ordered = group.configuration.zones.sorted { $0.index < $1.index }
+                    let uppers = ordered.dropLast().compactMap { $0.maximum?.doubleValue(for: bpm) }
+                    if ordered.count == 5, uppers.count == 4 {
+                        detail.telemetry.historicalCalculatedHeartRateZones = Self.calculateHistoricalZones(
+                            upperBPM: uppers, samples: exactOwnerZoneSamples, events: detail.telemetry.events,
+                            start: workout.startDate, end: workout.endDate, activeDuration: workout.duration)
+                    }
+                }
+            }
+        default: break
         }
         detail.telemetry = detail.telemetry.coalescingSamples()
         return detail
     }
 
-    private func samples(identifier: HKQuantityTypeIdentifier, workout: HKWorkout) async throws -> [HKQuantitySample] {
-        if let sampleProvider { return try await sampleProvider(identifier, workout) }
+    struct OwnerHeartReading {
+        let time: Date
+        let bpm: Double
+    }
+
+    static func uniqueOwnerHeartReadings(_ readings: [OwnerHeartReading]) -> [OwnerHeartReading] {
+        let grouped = Dictionary(grouping: readings.filter { $0.bpm.isFinite && (1...300).contains($0.bpm) }, by: \.time)
+        return grouped.keys.sorted().compactMap { time in
+            let values = Set(grouped[time, default: []].map(\.bpm))
+            guard values.count == 1, let bpm = values.first else { return nil }
+            return .init(time: time, bpm: bpm)
+        }
+    }
+
+    static func acceptedOwnerHeartSeriesPoint(_ interval: DateInterval, workout: DateInterval,
+                                               selectedSample: DateInterval, bpm: Double) -> OwnerHeartReading? {
+        guard interval.start >= workout.start, interval.end <= workout.end,
+              interval.start >= selectedSample.start, interval.end <= selectedSample.end,
+              bpm.isFinite, (1...300).contains(bpm) else { return nil }
+        return .init(time: interval.start.addingTimeInterval(interval.duration / 2), bpm: bpm)
+    }
+
+    private enum OwnerSeriesReadError: Error { case limitExceeded }
+
+    private func ownerHeartRateSeries(_ samples: [HKQuantitySample], workout: HKWorkout,
+                                      unit: HKUnit) async throws -> [OwnerHeartReading] {
+        var selected: [UUID: DateInterval] = [:]
+        for sample in samples where sample.startDate <= sample.endDate {
+            selected[sample.uuid] = .init(start: sample.startDate, end: sample.endDate)
+        }
+        guard !selected.isEmpty, workout.startDate <= workout.endDate else { return [] }
+        guard selected.count <= 128 else { throw OwnerSeriesReadError.limitExceeded }
+        let type = HKQuantityType(.heartRate)
+        let workoutSpan = DateInterval(start: workout.startDate, end: workout.endDate)
+        let predicate = HKSamplePredicate.quantitySample(type: type, predicate: HKQuery.predicateForObjects(with: Set(selected.keys)))
+        let descriptor = HKQuantitySeriesSampleQueryDescriptor(predicate: predicate, options: [.includeSample])
+        var result: [OwnerHeartReading] = []
+        var scanned = 0
+        for try await point in descriptor.results(for: healthStore) {
+            try Task.checkCancellation()
+            scanned += 1
+            guard scanned <= 20_000 else { throw OwnerSeriesReadError.limitExceeded }
+            guard let uuid = point.sample?.uuid, let range = selected[uuid],
+                  let normalized = Self.acceptedOwnerHeartSeriesPoint(point.dateInterval, workout: workoutSpan,
+                      selectedSample: range, bpm: point.quantity.doubleValue(for: unit)) else { continue }
+            result.append(normalized)
+        }
+        return result
+    }
+
+    private func samples(identifier: HKQuantityTypeIdentifier, workout: HKWorkout) async throws ->
+        (values: [HKQuantitySample], workoutLinked: Bool) {
+        if let sampleProvider { return (try await sampleProvider(identifier, workout), false) }
         let linked = try await read(identifier, workout: workout, scope: .associated)
-        if !linked.isEmpty { return linked }
+        if !linked.isEmpty { return (linked, true) }
         let sameSource = matching(try await read(identifier, workout: workout, scope: .workoutSource), workout: workout)
-        if !sameSource.isEmpty { return sameSource }
-        // A Nike workout and Apple Watch heart samples need not have the same
-        // writing app. Never apply this fallback to cumulative distance/energy.
-        guard identifier == .heartRate else { return [] }
-        return Self.unambiguousHeartRate(try await read(identifier, workout: workout, scope: .timeWindow), workout: workout)
+        if !sameSource.isEmpty { return (sameSource, false) }
+        // An associated stream is mandatory when estimating historical zone time.
+        // A wider unique sensor stream is still useful in the ordinary graph.
+        guard identifier == .heartRate else { return ([], false) }
+        return (Self.unambiguousHeartRate(try await read(identifier, workout: workout, scope: .timeWindow),
+                                          workout: workout), false)
     }
 
     private func read(_ identifier: HKQuantityTypeIdentifier, workout: HKWorkout,
@@ -222,6 +339,12 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
     /// Timestamp-only events are insufficient to invent a lap duration.
     static func swimmingSplits(_ workout: HKWorkout) -> [WorkoutTelemetrySplit] {
         guard workout.workoutActivityType == .swimming else { return [] }
+        return recordedSplits(workout, distanceIntervals: [])
+    }
+
+    static func recordedSplits(_ workout: HKWorkout, distanceIntervals: [WorkoutTelemetryInterval]) -> [WorkoutTelemetrySplit] {
+        let swimming = workout.workoutActivityType == .swimming
+        guard swimming || workout.workoutActivityType == .running || workout.workoutActivityType == .cycling else { return [] }
         let events = (workout.workoutEvents ?? []).filter {
             ($0.type == .lap || $0.type == .segment) && $0.dateInterval.duration.isFinite
                 && $0.dateInterval.duration > 0 && $0.dateInterval.start >= workout.startDate
@@ -232,15 +355,103 @@ final class HealthKitWorkoutTelemetryFetcher: HealthKitWorkoutTelemetryFetching 
             .sorted { $0.dateInterval.start < $1.dateInterval.start }
         // Overlapping alternatives cannot be presented as sequential lengths.
         guard !zip(selected, selected.dropFirst()).contains(where: { $0.dateInterval.end > $1.dateInterval.start }) else { return [] }
-        let length = (workout.metadata?[HKMetadataKeyLapLength] as? HKQuantity).flatMap {
-            $0.is(compatibleWith: .meter()) ? $0.doubleValue(for: .meter()) : nil
-        }.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        let length = swimming ? lapLength(in: workout.metadata) : nil
+        let distances = distanceIntervals.filter { $0.kind == .distanceMeters }.sorted { $0.startDate < $1.startDate }
         return selected.enumerated().map { index, event in
-            WorkoutTelemetrySplit(label: (hasLaps ? "랩 " : "구간 ") + String(index + 1),
+            // A generic segment may contain multiple pool lengths. Do not confuse the
+            // pool length metadata with the distance covered during a segment.
+            let measured = measuredDistance(inside: event.dateInterval, from: distances)
+            let distance = measured ?? ((swimming && hasLaps) ? (lapLength(in: event.metadata) ?? length) : nil)
+            return WorkoutTelemetrySplit(label: (hasLaps ? "랩 " : "구간 ") + String(index + 1),
                 startDate: event.dateInterval.start, endDate: event.dateInterval.end,
-                durationSeconds: event.dateInterval.duration, distanceMeters: hasLaps ? length : nil,
+                durationSeconds: event.dateInterval.duration, distanceMeters: distance,
                 provenance: hasLaps ? .healthKitLapEvent : .healthKitSegmentEvent)
         }
+    }
+
+    private static func lapLength(in metadata: [String: Any]?) -> Double? {
+        guard let length = metadata?[HKMetadataKeyLapLength] as? HKQuantity, length.is(compatibleWith: .meter()) else { return nil }
+        let value = length.doubleValue(for: .meter())
+        return value.isFinite && value > 0 ? value : nil
+    }
+
+    /// An exact, nonoverlapping tiling of the event by same-source distance
+    /// samples supplies measured distance. Never prorate a partial sample.
+    private static func measuredDistance(inside event: DateInterval, from distances: [WorkoutTelemetryInterval]) -> Double? {
+        let overlapping = distances.filter { $0.startDate < event.end && $0.endDate > event.start }
+        var boundary = event.start, sum = 0.0
+        for interval in overlapping {
+            guard interval.startDate == boundary, interval.endDate > boundary, interval.endDate <= event.end,
+                  interval.value.isFinite, interval.value >= 0 else { return nil }
+            sum += interval.value
+            boundary = interval.endDate
+        }
+        return boundary == event.end && sum.isFinite && sum > 0 ? sum : nil
+    }
+
+    /// Use HealthKit's confirmed source timings without retaining boundaries or
+    /// making absent/ambiguous zone rows look like zero observations.
+    static func recordedHeartRateZones(configurationIndices: [Int], durations: [(Int, Double)],
+                                      activeDuration: Double) -> [WorkoutTelemetryZone] {
+        let indices = configurationIndices.sorted()
+        guard indices == Array(0...4) || indices == Array(1...5), durations.count == 5,
+              activeDuration.isFinite, activeDuration > 0 else { return [] }
+        var map: [Int: Double] = [:]
+        for (index, seconds) in durations {
+            guard indices.contains(index), map[index] == nil, seconds.isFinite,
+                  seconds >= 0, seconds <= activeDuration else { return [] }
+            map[index] = seconds
+        }
+        let totals = indices.compactMap { map[$0] }
+        let sum = totals.reduce(0, +)
+        guard totals.count == 5, sum > 0, sum <= activeDuration else { return [] }
+        return totals.enumerated().map { .init(name: "Z" + String($0.offset + 1), durationSeconds: $0.element) }
+    }
+
+
+    /// Estimate only observed contiguous intervals; no latest settings, interpolation,
+    /// unobserved endpoints, paused windows, incomplete event sequences or long gaps.
+    static func calculateHistoricalZones(upperBPM: [Double], samples: [WorkoutTelemetrySample],
+                                         events: [WorkoutTelemetryEvent], start: Date, end: Date,
+                                         activeDuration: Double) -> [WorkoutTelemetryZone] {
+        guard upperBPM.count == 4, upperBPM.allSatisfy({ $0.isFinite && (20...250).contains($0) }),
+              zip(upperBPM, upperBPM.dropFirst()).allSatisfy({ $0 < $1 }),
+              start < end, activeDuration.isFinite, activeDuration > 0 else { return [] }
+        var pauseStart: Date?
+        var pauses: [DateInterval] = []
+        for event in events.sorted(by: { $0.timestamp < $1.timestamp }) {
+            guard (start...end).contains(event.timestamp) else { return [] }
+            switch event.type {
+            case "pause":
+                guard pauseStart == nil else { return [] }
+                pauseStart = event.timestamp
+            case "resume":
+                guard let began = pauseStart, began < event.timestamp else { return [] }
+                pauses.append(.init(start: began, end: event.timestamp))
+                pauseStart = nil
+            default: continue
+            }
+        }
+        if let pauseStart, pauseStart < end { pauses.append(.init(start: pauseStart, end: end)) }
+        var sampleMap: [Date: Double] = [:]
+        for sample in samples where (start...end).contains(sample.timestamp) {
+            guard sample.source == .appleHealthKit, let bpm = sample.heartRateBPM,
+                  bpm.isFinite, (20...250).contains(bpm) else { continue }
+            if let previous = sampleMap[sample.timestamp], previous != bpm { return [] }
+            sampleMap[sample.timestamp] = bpm
+        }
+        let ordered = sampleMap.sorted { $0.key < $1.key }
+        var seconds = [Double](repeating: 0, count: 5)
+        for (a,b) in zip(ordered,ordered.dropFirst()) {
+            let delta = b.key.timeIntervalSince(a.key)
+            guard delta > 0, delta <= 15,
+                  !pauses.contains(where: { $0.start < b.key && $0.end > a.key }) else { continue }
+            let zone = upperBPM.firstIndex(where: { a.value < $0 }) ?? 4
+            seconds[zone] += delta
+        }
+        let sum = seconds.reduce(0,+)
+        guard sum >= min(20, activeDuration / 2), sum <= activeDuration else { return [] }
+        return seconds.enumerated().map { .init(name: "Z" + String($0.offset + 1), durationSeconds: $0.element) }
     }
 
     private func matching(_ samples: [HKQuantitySample], workout: HKWorkout) -> [HKQuantitySample] {
@@ -281,10 +492,11 @@ extension UnifiedWorkout {
         let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? distanceMeters
         let running = workout.workoutActivityType == .running
         let power = average(running ? .runningPower : .cyclingPower, .watt(), fallback: mean(.power) ?? averagePowerWatts)
-        let hr = average(.heartRate, bpm, fallback: mean(.heartRate) ?? averageHeartRate)
+        let privateExpanded = telemetry?.ownerExpandedCondensedHeartRate == true
+        let hr = average(.heartRate, bpm, fallback: privateExpanded ? averageHeartRate : (mean(.heartRate) ?? averageHeartRate))
         let maxHR = HKQuantityType.quantityType(forIdentifier: .heartRate).flatMap {
             workout.statistics(for: $0)?.maximumQuantity()?.doubleValue(for: bpm)
-        } ?? telemetry?.samples.compactMap(\.heartRateBPM).max() ?? maxHeartRate
+        } ?? (privateExpanded ? nil : telemetry?.samples.compactMap(\.heartRateBPM).max()) ?? maxHeartRate
         let cadence = running ? averageCadence : average(.cyclingCadence, bpm, fallback: mean(.cadence) ?? averageCadence)
         let elevation = (workout.metadata?[HKMetadataKeyElevationAscended] as? HKQuantity)?.doubleValue(for: .meter()) ?? elevationGainMeters
         let energy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned).flatMap {
@@ -335,6 +547,7 @@ final class HealthKitDetailReadCache {
         let externalID: String
         let revision: Date
         let needsRoute: Bool
+        var expandsOwnerHeartRateSeries: Bool = false
     }
     private struct Entry { let result: HealthKitDetailReadResult; let expires: Date }
     private var entries: [Key: Entry] = [:]
@@ -400,7 +613,61 @@ final class HealthKitDetailReadCache {
                 && !telemetry.samples.contains { $0.distanceMeters != nil })
     }
 
-    static func fetch(workout: UnifiedWorkout, needsRoute: Bool) async throws -> HealthKitDetailReadResult {
+    /// Optional data can arrive after an older import has enough for the base
+    /// card. This is a private, TTL-bound read, not a missing-permissions alert.
+    static func shouldEnrichOwnerDetail(_ workout: UnifiedWorkout, telemetry: WorkoutTelemetry?,
+                                         canReadRecordedZones: Bool) -> Bool {
+        guard workout.source == .appleHealthKit, let telemetry else { return false }
+        let has = { (channel: WorkoutTelemetryChannel) in telemetry.samples.contains { $0.value(for: channel) != nil } }
+        let interval = { (kind: WorkoutTelemetryInterval.Kind) in telemetry.intervals.contains { $0.kind == kind } }
+        switch workout.workoutType {
+        case .running:
+            return (canReadRecordedZones && telemetry.heartRateZones.isEmpty)
+                || !has(.power) || !has(.speed) || (!has(.cadence) && !interval(.steps))
+        case .cycling:
+            return (canReadRecordedZones && telemetry.heartRateZones.isEmpty)
+                || !has(.power) || !has(.speed) || !has(.cadence)
+        case .swimming:
+            return (canReadRecordedZones && telemetry.heartRateZones.isEmpty)
+                || !interval(.swimStrokeCount) || telemetry.splits.contains { $0.distanceMeters == nil }
+                || !telemetry.summaryMetrics.contains { $0.key == "poolLengthMeters" }
+        default:
+            return false
+        }
+    }
+
+    static func mergingOwnerEnrichment(_ incoming: WorkoutTelemetry, into stored: WorkoutTelemetry) -> WorkoutTelemetry {
+        guard incoming.workoutID == stored.workoutID, incoming.source == .appleHealthKit else { return stored }
+        var supplement = incoming
+        for channel in WorkoutTelemetryChannel.allCases where stored.samples.contains(where: { $0.value(for: channel) != nil }) {
+            supplement.samples = supplement.samples.map { $0.removing(channel) }.filter(\.hasMeasurement)
+        }
+        if stored.samples.contains(where: { $0.distanceMeters != nil }) {
+            supplement.samples = supplement.samples.map { var x = $0; x.distanceMeters = nil; return x }.filter(\.hasMeasurement)
+        }
+        let kinds = Set(stored.intervals.map(\.kind))
+        supplement.intervals.removeAll { kinds.contains($0.kind) }
+        var result = stored.merging(supplement)
+        if stored.source == .appleHealthKit {
+            result.splits = result.splits.map { old in
+                guard old.distanceMeters == nil else { return old }
+                let matches = incoming.splits.filter {
+                    ($0.provenance == .healthKitLapEvent || $0.provenance == .healthKitSegmentEvent)
+                        && (old.provenance == nil || old.provenance == $0.provenance)
+                        && $0.startDate == old.startDate && $0.endDate == old.endDate
+                        && $0.durationSeconds == old.durationSeconds && ($0.distanceMeters ?? 0) > 0
+                }
+                guard matches.count == 1 else { return old }
+                var filled = old; filled.distanceMeters = matches[0].distanceMeters
+                filled.provenance = matches[0].provenance
+                return filled
+            }
+        }
+        return result.coalescingSamples()
+    }
+
+    static func fetch(workout: UnifiedWorkout, needsRoute: Bool,
+                      expandOwnerHeartRateSeries: Bool = false) async throws -> HealthKitDetailReadResult {
         guard workout.source == .appleHealthKit, let externalID = workout.externalId,
               let raw = await HealthKitWorkoutLookupProvider().lookupWorkout(externalId: externalID) else {
             return HealthKitDetailReadResult()
@@ -408,7 +675,7 @@ final class HealthKitDetailReadCache {
         try Task.checkCancellation()
         var result = HealthKitDetailReadResult(workout: raw)
         do {
-            let fetched = try await HealthKitWorkoutTelemetryFetcher().fetchTelemetry(for: raw)
+            let fetched = try await HealthKitWorkoutTelemetryFetcher(expandOwnerHeartRateSeries: expandOwnerHeartRateSeries).fetchTelemetry(for: raw)
             result.telemetry = fetched.telemetry.validated(for: workout)
             result.failedChannels = fetched.failedChannels
         } catch is CancellationError { throw CancellationError() }

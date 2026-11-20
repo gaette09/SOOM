@@ -16,6 +16,18 @@ struct WorkoutTelemetrySection: View {
     @Environment(\.workoutRevealContext) private var revealContext
     @State private var presentationCache = WorkoutTelemetryPresentationCache()
     @Environment(\.workoutDetailPresentationStore) private var presentationStore
+    @State private var swimExplanation: SwimExplanation?
+    private enum SwimExplanation: String, Identifiable {
+        case setCalculation, poolLength, appleHeartRateZones, calculatedHeartRateZones
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .setCalculation: "수영 세트 계산"
+            case .poolLength: "수영장 길이 출처"
+            case .appleHeartRateZones, .calculatedHeartRateZones: "심박 구간 출처"
+            }
+        }
+    }
     @ScaledMetric(relativeTo: .subheadline) private var zoneRowHeight: CGFloat = 34
     @ScaledMetric(relativeTo: .subheadline) private var zoneMinimumWidth: CGFloat = 56
     @ScaledMetric(relativeTo: .subheadline) private var zoneStatisticsWidth: CGFloat = 92
@@ -24,8 +36,24 @@ struct WorkoutTelemetrySection: View {
         presentationCache.prepare(telemetry, workout: workout, route: route)
     }
     private var zoneMaximum: Double { sharedMeasurementOnly ? 190 : Double(TrainingSettingsStore.shared.loadZoneBaseline().maxHeartRate ?? 190) }
+    private var isOwnerAppleHistory: Bool {
+        !sharedMeasurementOnly && workout.source == .appleHealthKit &&
+            [.running, .cycling, .swimming].contains(workout.workoutType)
+    }
+
+    private var historicalZoneInfo: SwimExplanation? {
+        if telemetry.historicalFrozenOriginalZones || (isOwnerAppleHistory && !display.heartRateZones.isEmpty) {
+            return .appleHeartRateZones
+        }
+        if isOwnerAppleHistory && !telemetry.historicalCalculatedHeartRateZones.isEmpty { return .calculatedHeartRateZones }
+        return nil
+    }
+
     private var zoneValues: [WorkoutTelemetryZone] {
-        if sharedMeasurementOnly { return display.heartRateZones }
+        if isOwnerAppleHistory {
+            return display.heartRateZones.isEmpty ? telemetry.historicalCalculatedHeartRateZones : display.heartRateZones
+        }
+        if sharedMeasurementOnly || telemetry.ownerExpandedCondensedHeartRate { return display.heartRateZones }
         _ = display
         return presentationCache.zones(maximum: zoneMaximum)
     }
@@ -36,17 +64,34 @@ struct WorkoutTelemetrySection: View {
             showsLapDuration: workout.workoutType == .swimming && !telemetry.splits.isEmpty
                 && telemetry.splits.allSatisfy { $0.label.hasPrefix("랩 ") || $0.label.hasPrefix("구간 ") })
     }
-    private var splits: [WorkoutTelemetrySplit] { _ = display; return presentationCache.splits }
+    private var splits: [WorkoutTelemetrySplit] {
+        if sharedMeasurementOnly { return display.splits }
+        _ = display
+        return presentationCache.splits
+    }
     private func points(_ channel: WorkoutTelemetryChannel) -> [WorkoutTelemetryChartPoint] {
         _ = display; return presentationCache.channels[channel] ?? []
     }
 
     var body: some View {
         VStack(spacing: SOOMLayout.stackSpacing) {
-            if !telemetry.displaySummaryMetrics(for: workout).isEmpty {
-                WorkoutRecordMetricsCard(metrics: telemetry.displaySummaryMetrics(for: workout).map {
+            let metrics = telemetry.displaySummaryMetrics(for: workout)
+            let pool = sharedMeasurementOnly ? nil : metrics.first { $0.key == "poolLengthMeters" }
+            let generalMetrics = metrics.filter { $0.key != "poolLengthMeters" }
+            if !generalMetrics.isEmpty {
+                WorkoutRecordMetricsCard(metrics: generalMetrics.map {
                     WorkoutCardMetric(label: $0.label, value: "\(number($0.value)) \($0.unit)")
                 })
+            }
+            if let pool {
+                SOOMCard {
+                    HStack(spacing: 4) {
+                        Text(pool.label)
+                        Spacer()
+                        Text("\(number(pool.value)) \(pool.unit)").monospacedDigit()
+                        swimInfoButton(.poolLength)
+                    }
+                }
             }
             if !display.samples.contains(where: { sample in
                 sample.heartRateBPM != nil || sample.cadencePerMinute != nil || sample.powerWatts != nil
@@ -58,7 +103,19 @@ struct WorkoutTelemetrySection: View {
                         .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
                 }.accessibilityIdentifier("workout.measurements.unavailable")
             }
-            if showsHeartRateZones { zones }
+            if showsHeartRateZones {
+                if (!sharedMeasurementOnly && !isOwnerAppleHistory && !telemetry.ownerExpandedCondensedHeartRate) || !zoneValues.isEmpty {
+                    zones
+                } else if !points(.heartRate).isEmpty {
+                    Text(sharedMeasurementOnly ? "심박 그래프는 볼 수 있지만, 공유된 심박 구간 시간은 없어요." : "이 기록에서 확인할 수 있는 심박 구간 시간이 없어요.")
+                        .font(.footnote).foregroundStyle(SOOMColor.secondaryInk)
+                        .accessibilityIdentifier("detail.shared.hrZones.notAvailable")
+                }
+            }
+            if !sharedMeasurementOnly {
+                let swimSets = SOOMSwimSetDeriver.derive(telemetry, for: workout)
+                if !swimSets.isEmpty { calculatedSwimSets(swimSets) }
+            }
             if !splits.isEmpty { splitCard }
             if hasCharts {
                 SOOMCard {
@@ -69,7 +126,7 @@ struct WorkoutTelemetrySection: View {
                                 if !points.isEmpty && workout.endDate > workout.startDate {
                                     WorkoutTelemetryChartCard(title: channel.title, unit: unit(channel), points: points,
                                         caption: caption(channel), color: channel == .speed ? SOOMColor.blue : (channel == .elevation ? SOOMColor.green : SOOMColor.accent),
-                                        isHeartRate: channel == .heartRate, colorsHeartRateByZone: !sharedMeasurementOnly,
+                                        isHeartRate: channel == .heartRate, colorsHeartRateByZone: !sharedMeasurementOnly && !isOwnerAppleHistory && !telemetry.ownerExpandedCondensedHeartRate,
                                         maximumHeartRate: zoneMaximum,
                                         endMinutes: WorkoutChartDomainPolicy.minutes(start: workout.startDate, end: workout.endDate),
                                         allowsNegative: channel == .elevation,
@@ -88,6 +145,7 @@ struct WorkoutTelemetrySection: View {
             }
             if !telemetry.events.isEmpty { eventCard }
         }.onAppear { presentationCache.trace?.mark("view-appear") }
+         .sheet(item: $swimExplanation) { info in swimInfoSheet(info) }
     }
 
     private var hasCharts: Bool {
@@ -108,10 +166,13 @@ struct WorkoutTelemetrySection: View {
     private var zones: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().padding(.bottom, 12)
-            Text("심박수 훈련 구간").font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
-                .accessibilityHint(Self.zoneAccessibilityHint(sharedMeasurementOnly: sharedMeasurementOnly,
-                    hasProviderZones: !telemetry.heartRateZones.isEmpty, maximumHeartRate: zoneMaximum))
-                .padding(.bottom, 6)
+            HStack(spacing: 2) {
+                Text("심박수 훈련 구간").font(.subheadline).foregroundStyle(SOOMColor.secondaryInk)
+                    .accessibilityHint(historicalZoneInfo?.title ??
+                        Self.zoneAccessibilityHint(sharedMeasurementOnly: sharedMeasurementOnly,
+                            hasProviderZones: !telemetry.heartRateZones.isEmpty, maximumHeartRate: zoneMaximum))
+                if let historicalZoneInfo { swimInfoButton(historicalZoneInfo) }
+            }.padding(.bottom, 6)
             let total = zoneValues.filter { $0.durationSeconds.isFinite && $0.durationSeconds >= 0 }.reduce(0) { $0 + $1.durationSeconds }
             ForEach(zoneRows) { zone in
                 let seconds = zone.durationSeconds ?? 0
@@ -141,6 +202,72 @@ struct WorkoutTelemetrySection: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func swimInfoButton(_ explanation: SwimExplanation) -> some View {
+        Button { swimExplanation = explanation } label: {
+            Text("!").font(.caption2.weight(.semibold))
+                .foregroundStyle(SOOMColor.secondaryInk)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(explanation.title)
+        .accessibilityHint("측정 출처와 계산 방법을 열어요")
+        .accessibilityIdentifier("detail.swimInfo." + explanation.rawValue)
+    }
+
+    private func swimInfoSheet(_ info: SwimExplanation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(info.title).font(.headline).accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    Button("닫기") { swimExplanation = nil }
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if info == .setCalculation {
+                            Text("SOOM 계산 · Apple 건강에서 가져온 랩 시작·종료 시간과 거리를 사용했어요.")
+                            Text("랩 사이가 15초 이상이거나, 사이에 기록된 일시 정지와 재개가 있으면 새 세트로 나눠요.")
+                            Text("수영 시간은 랩 시간의 합이에요. 100m 페이스는 수영 시간으로 계산하고, 랩 사이 공백은 별도로 보여줘요.")
+                            Text("영법은 추정하지 않아요. Apple 피트니스의 자동 세트와 다를 수 있어요.")
+                        } else if info == .appleHeartRateZones {
+                            Text("Apple 건강 원본 · 이 운동에 저장된 구간별 시간이에요. 현재 설정으로 다시 계산하지 않았어요.")
+                        } else if info == .calculatedHeartRateZones {
+                            Text("SOOM 계산 · 이 운동에 저장된 당시 심박 기준과 실제 측정 시간을 사용했어요.")
+                            Text("일시 정지와 측정 공백은 빼고 계산했어요. Apple 피트니스의 구간 시간과 다를 수 있어요.")
+                        } else {
+                            Text("Apple 건강 원본 · 이 수영 기록에 저장된 수영장 길이예요.")
+                            Text("랩 거리로 수영장 길이를 추정하지 않아요.")
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }.padding()
+         .presentationDetents([.medium, .large])
+    }
+
+    private func calculatedSwimSets(_ rows: [SOOMSwimSetDeriver.SetRow]) -> some View {
+        SOOMCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 2) {
+                    Text("수영 세트").font(.headline)
+                        .accessibilityIdentifier("detail.swimSets.derived")
+                    swimInfoButton(.setCalculation)
+                }
+                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("세트 \(index + 1) · \(number(row.distanceMeters))m · \(row.lapCount)랩")
+                            .font(.subheadline.weight(.semibold))
+                        Text("수영 \(duration(row.swimmingSeconds)) · 경과 \(duration(row.elapsedSeconds)) · \(duration(row.pacePer100m))/100m")
+                            .font(.caption.monospacedDigit())
+                        if let gap = row.gapBeforeNextSet {
+                            Text("다음 세트까지 \(duration(gap))").font(.caption)
+                        }
+                    }
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var splitCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().padding(.bottom, 12)
@@ -150,7 +277,7 @@ struct WorkoutTelemetrySection: View {
                 WorkoutAnimatedSplitRow(split: split, maximumDuration: splits.map(\.durationSeconds).max() ?? 1,
                     display: splitDisplay, maximumMetric: splits.compactMap { splitDisplay.value(distance: $0.distanceMeters, seconds: $0.durationSeconds) }.max() ?? 1,
                     cadenceUnit: unit(.cadence), maximumHeartRate: zoneMaximum,
-                    colorsHeartRateByZone: !sharedMeasurementOnly, revealID: "splits.\(index)", showsUnit: index == 0)
+                    colorsHeartRateByZone: !sharedMeasurementOnly && !telemetry.ownerExpandedCondensedHeartRate, revealID: "splits.\(index)", showsUnit: index == 0)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -161,7 +288,7 @@ struct WorkoutTelemetrySection: View {
             ForEach(Array(telemetry.events.enumerated()), id: \.offset) { _, event in
                 HStack {
                     Text(event.type.lowercased().contains("pause") ? "일시 정지" :
-                        event.type.lowercased().contains("resume") ? "운동 재개" : event.type)
+                        event.type.lowercased().contains("resume") ? "운동 재개" : (event.type == "stop" ? "운동 종료" : event.type))
                     Spacer()
                     Text(duration(event.timestamp.timeIntervalSince(workout.startDate))).monospacedDigit()
                 }.font(.subheadline)
@@ -539,6 +666,9 @@ private struct WorkoutAnimatedSplitRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(split.averageHeartRate.map { "\(Int($0.rounded())) bpm" } ?? "심박 —")
                     .foregroundStyle(split.averageHeartRate.map { colorsHeartRateByZone ? WorkoutDetailPalette.heartRateInk($0, maximum: maximumHeartRate) : SOOMColor.secondaryInk } ?? SOOMColor.secondaryInk)
+                if display.isLapTiming, let pace = display.poolPaceText(distance: split.distanceMeters, seconds: split.durationSeconds) {
+                    Text(pace).foregroundStyle(SOOMColor.secondaryInk)
+                }
                 Text(display.isLapTiming ? (display.distanceText(split.distanceMeters) ?? "거리 —") : (split.elevationChangeMeters.map { String(format: "%+.0f m", $0) } ?? "고도 —"))
                     .foregroundStyle(SOOMColor.secondaryInk)
             }.font(.caption.monospacedDigit())
@@ -549,7 +679,9 @@ private struct WorkoutAnimatedSplitRow: View {
         .accessibilityIdentifier("detail.split.\(split.label)")
     }
     private var distanceAndTime: String {
-        (display.distanceText(split.distanceMeters).map { $0 + " · " } ?? "") + WorkoutSplitDisplay.duration(split.durationSeconds)
+        let distance = display.distanceText(split.distanceMeters).map { $0 + " · " } ?? ""
+        let pace = display.poolPaceText(distance: split.distanceMeters, seconds: split.durationSeconds).map { " · 페이스 " + $0 } ?? ""
+        return distance + WorkoutSplitDisplay.duration(split.durationSeconds) + pace
     }
     private func duration(_ seconds: Double) -> String {
         let total=Int(max(0,seconds).rounded())

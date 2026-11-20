@@ -136,6 +136,8 @@ struct RecordWorkoutSession: Identifiable, Equatable, Codable {
     var state: RecordWorkoutSessionState
     var pausedAt: Date?
     var endedAt: Date?
+    /// Optional for backward decoding of interrupted older recordings.
+    var measuredPauseEvents: [WorkoutTelemetryEvent]?
     var capturedRoute: RecordRouteCapture?
     var accumulatedDistanceMeters: Double
     var lastCoordinate: RecordRouteCoordinate?
@@ -221,6 +223,8 @@ struct RecordWorkoutSession: Identifiable, Equatable, Codable {
         var copy = self
         copy.state = .paused
         copy.pausedAt = max(date, recordingResumedAt ?? startedAt)
+        copy.measuredPauseEvents = (measuredPauseEvents ?? []) + [
+            .init(timestamp: max(date, recordingResumedAt ?? startedAt), type: "pause")]
         copy.currentSpeedMetersPerSecond = nil
         return copy
     }
@@ -231,6 +235,14 @@ struct RecordWorkoutSession: Identifiable, Equatable, Codable {
         copy.state = .active
         let resumedAt = max(date, pausedAt ?? startedAt)
         copy.accumulatedPausedSeconds += max(0, resumedAt.timeIntervalSince(pausedAt ?? resumedAt))
+        if let pausedAt, resumedAt > pausedAt {
+            var events = measuredPauseEvents ?? []
+            if events.last?.timestamp != pausedAt || events.last?.type != "pause" {
+                events.append(.init(timestamp: pausedAt, type: "pause"))
+            }
+            events.append(.init(timestamp: resumedAt, type: "resume"))
+            copy.measuredPauseEvents = events
+        }
         copy.recordingResumedAt = resumedAt
         copy.routeSegmentIndex += 1
         copy.pausedAt = nil
@@ -241,7 +253,17 @@ struct RecordWorkoutSession: Identifiable, Equatable, Codable {
         var copy = self
         copy.state = .finished
         copy.endedAt = max(date, startedAt)
-        if let pausedAt { copy.accumulatedPausedSeconds += max(0, date.timeIntervalSince(pausedAt)) }
+        if let pausedAt {
+            copy.accumulatedPausedSeconds += max(0, date.timeIntervalSince(pausedAt))
+            if date > pausedAt {
+                var events = measuredPauseEvents ?? []
+                if events.last?.timestamp != pausedAt || events.last?.type != "pause" {
+                    events.append(.init(timestamp: pausedAt, type: "pause"))
+                }
+                events.append(.init(timestamp: date, type: "stop"))
+                copy.measuredPauseEvents = events
+            }
+        }
         copy.pausedAt = nil
         copy.endedCoordinate = copy.lastCoordinate
         return copy

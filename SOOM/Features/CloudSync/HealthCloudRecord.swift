@@ -55,7 +55,7 @@ enum HealthCloudError: Error, LocalizedError {
 /// Versioned transport format. DTOs use persistence values so restoring never
 /// fabricates health metrics or calls calculators. Dates use Codable's stable
 /// reference-date representation inside JSON, independent of PostgREST dates.
-struct HealthCloudPayload: Codable {
+struct HealthCloudPayload: Codable, Sendable {
     var formatVersion = 1
     var workout: UnifiedWorkout?
     var route: Route?
@@ -63,7 +63,7 @@ struct HealthCloudPayload: Codable {
     var snapshot: Snapshot?
     var telemetry: WorkoutTelemetry? = nil
 
-    struct Route: Codable {
+    struct Route: Codable, Sendable {
         var id: UUID; var workoutId: UUID; var sourceRaw: String
         var encodedCoordinates: String?; var coordinateCount: Int
         var totalDistanceMeters: Double; var totalElevationGain: Double?
@@ -81,7 +81,7 @@ struct HealthCloudPayload: Codable {
                 createdAt: createdAt, updatedAt: updatedAt, courseIdentity: courseIdentity)
         }
     }
-    struct CheckIn: Codable {
+    struct CheckIn: Codable, Sendable {
         var id: UUID; var date: Date; var fatigueLevel: Int; var sleepQuality: Int
         var muscleSoreness: Int; var moodLevel: Int; var note: String?
         var createdAt: Date; var updatedAt: Date
@@ -97,7 +97,7 @@ struct HealthCloudPayload: Codable {
                 moodLevel: moodLevel, note: note, createdAt: createdAt, updatedAt: updatedAt)
         }
     }
-    struct Snapshot: Codable {
+    struct Snapshot: Codable, Sendable {
         var id: UUID; var date: Date; var score: Int; var status: String
         var recommendation: String; var coachMessage: String; var explanation: String?
         var dataQuality: String; var activityCount: Int; var activityCountKnown: Bool?

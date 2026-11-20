@@ -45,6 +45,8 @@ struct WorkoutRoute: Identifiable, Equatable {
     let privacyMaskApplied: Bool
     /// Display-only metadata. Legacy/shared v1 masked routes used a 200m fence.
     let privacyMaskRadiusMeters: Double?
+    /// Source-backed authorization. A locally masked preview never sets this.
+    let hasAuthoritativeShareMask: Bool
 
     init(
         id: UUID = UUID(),
@@ -56,7 +58,8 @@ struct WorkoutRoute: Identifiable, Equatable {
         bounds: WorkoutRouteBounds? = nil,
         createdAt: Date = Date(),
         privacyMaskApplied: Bool = false,
-        privacyMaskRadiusMeters: Double? = nil
+        privacyMaskRadiusMeters: Double? = nil,
+        hasAuthoritativeShareMask: Bool = false
     ) {
         self.id = id
         self.workoutId = workoutId
@@ -68,6 +71,7 @@ struct WorkoutRoute: Identifiable, Equatable {
         self.createdAt = createdAt
         self.privacyMaskApplied = privacyMaskApplied
         self.privacyMaskRadiusMeters = privacyMaskApplied ? (privacyMaskRadiusMeters ?? 200) : nil
+        self.hasAuthoritativeShareMask = privacyMaskApplied && hasAuthoritativeShareMask
     }
 
     /// Contiguous segments preserve pauses and GPS interruptions without inventing connecting lines.

@@ -63,6 +63,7 @@ struct FeedView: View {
 
     @State private var measuredChrome: FeedChromeLayout?
     @State private var isFeedScrolling = false
+    @State private var scrollMotionGate = FeedScrollMotionGate()
     @State private var hasAppeared = false
     @State private var visibleItems: [FeedItem]
     @State private var isSignInSheetPresented = false
@@ -274,9 +275,11 @@ struct FeedView: View {
             .scrollTargetLayout()
             .modifier(FeedChromeGeometryProbe(name: "live-first-card-group"))
         }
+        .environment(\.soomFeedScrollMotionGate, scrollMotionGate)
         .environment(\.soomFeedIsScrolling, isFeedScrolling)
         .onScrollPhaseChange { _, phase in
             let moving = phase != .idle
+            scrollMotionGate.isScrolling = moving
             if moving != isFeedScrolling { isFeedScrolling = moving }
             #if DEBUG && targetEnvironment(simulator)
             if Feed68ScrollProbe.enabled {

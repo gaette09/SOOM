@@ -280,6 +280,9 @@ struct WorkoutDetailSharedRecord {
     let item: FeedItem
     /// Only an explicitly injected local evaluation session creates this projection.
     var localMetricsProjection: WorkoutSharedMetricsProjection? = nil
+    var nativeTelemetry: WorkoutTelemetry? = nil
+    var nativeMaskedRoute: WorkoutRoute? = nil
+    var nativeTimelineElapsed: Double? = nil
     var metrics: [WorkoutCardMetric] {
         var values = item.recordMetrics
         if let heartRate = item.serverPostSnapshot?.averageHeartRate, (1...300).contains(heartRate) {

@@ -179,7 +179,11 @@ extension EnvironmentValues {
         socialObservation = socialPresentations.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
     }
     @Published private(set) var presentation: FeedReturnBatchPresentation?
-    @Published private(set) var visibleRevision = 0
+    // Visibility schedules missing grants; it does not change rendered content.
+    // Publishing objectWillChange here rebuilt every mounted card on every
+    // viewport transition, even when all grants were already warm.
+    private(set) var visibleRevision = 0
+    let visibilityChanges = PassthroughSubject<Int, Never>()
     @Published private(set) var commitRevision = 0
     private(set) var visibleIDs: Set<UUID> = []
     private var lastVisibleIDs: Set<UUID> = []
@@ -204,12 +208,14 @@ extension EnvironmentValues {
         guard before != visibleIDs else { return }
         if !visibleIDs.isEmpty { lastVisibleIDs = visibleIDs }
         visibleRevision += 1
+        visibilityChanges.send(visibleRevision)
     }
     func setViewport(_ ids: Set<UUID>) {
         guard viewportIDs != ids else { return }
         viewportIDs = ids
         if !ids.isEmpty { lastViewportIDs = ids }
         visibleRevision += 1
+        visibilityChanges.send(visibleRevision)
     }
     @discardableResult func invalidateResource(_ resource: String) -> Bool {
         guard var current = presentation, current.phase == .ready else { return false }

@@ -6,6 +6,41 @@ import Supabase
 @testable import SOOM
 
 @MainActor final class FeedReturnBatchAdapterTests: XCTestCase {
+    func test73IndependentDetailClearsParentMotionFence() async {
+        let ready = expectation(description: "Independent content receives no feed motion fence")
+        let gate = FeedScrollMotionGate(); gate.isScrolling = true
+        let view = Feed73MotionScopeProbe { inherited in
+            XCTAssertNil(inherited)
+            ready.fulfill()
+        }.independentFeedReturnScope().environment(\.soomFeedScrollMotionGate, gate)
+        let host = UIHostingController(rootView: view)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await fulfillment(of: [ready], timeout: 3)
+    }
+
+    func test73ViewportEventsScheduleWithoutInvalidatingRenderedPresentation() {
+        let store = FeedReturnBatchStore()
+        let id = UUID()
+        var redraws = 0
+        var revisions: [Int] = []
+        var subscriptions = Set<AnyCancellable>()
+        store.objectWillChange.sink { redraws += 1 }.store(in: &subscriptions)
+        store.visibilityChanges.sink { revisions.append($0) }.store(in: &subscriptions)
+        store.register(cardID: id, visible: true)
+        store.register(cardID: id, visible: true)
+        store.setViewport([id])
+        store.setViewport([id])
+        store.setViewport([])
+        store.register(cardID: id, visible: false)
+        XCTAssertEqual(revisions, [1, 2, 3, 4])
+        XCTAssertEqual(store.visibleRevision, 4)
+        XCTAssertEqual(redraws, 0, "Scheduling-only events must not redraw every card")
+        XCTAssertTrue(store.visibleIDs.isEmpty)
+        withExtendedLifetime(subscriptions) {}
+    }
+
     private let context = FeedReturnBatchContext(viewerID: UUID(uuidString: "21f8f559-2692-63fe-ceab-c78b7e72f369")!, accountGeneration: 7, safetyRevision: 8, returnEpoch: 9)
     private var fixture: Data { Data(#"{"rows": [{"author": {"id": "a95dc583-796f-9823-9ecc-147995af54ad", "handle": "socialfixture1", "avatar_path": "a95dc583-796f-9823-9ecc-147995af54ad/6e852ca7-3e06-3cf5-40ae-d1597b686e46.jpg", "display_name": "SOOM 사용자"}, "avatar": {"etag": "avatar-one", "size": 1000, "bucket": "profile-avatars", "version": "a1", "object_id": "6e852ca7-3e06-3cf5-40ae-d1597b686e46", "authorized": true, "updated_at": "2026-11-14T17:28:47.963042+09:00", "storage_path": "a95dc583-796f-9823-9ecc-147995af54ad/6e852ca7-3e06-3cf5-40ae-d1597b686e46.jpg", "version_hash": "f39ce0e0c5a0524b428781045030d907679df612450b59d89b1a9f7e41a0c86a"}, "photos": {"rows": [{"id": "674b02cd-cb55-cd5c-ca79-958ee26d3eb9", "object": {"etag": "photo-one", "size": 1000, "version": "v1", "object_id": "674b02cd-cb55-cd5c-ca79-958ee26d3eb9", "updated_at": "2026-11-14T17:28:47.963042+09:00", "version_hash": "77fd628fb10eb15ee720b1abb540ab20effef839ffe027e8d654609ea0f8668e"}, "card_id": "23778b35-6d92-0131-3bf8-bdb05bf30f49", "sort_order": 0, "storage_path": "a95dc583-796f-9823-9ecc-147995af54ad/b72bfb07-64a6-8fde-0811-66f167172788/674b02cd-cb55-cd5c-ca79-958ee26d3eb9.jpg"}], "bucket": "workout-photos", "backing": "legacy", "card_id": "23778b35-6d92-0131-3bf8-bdb05bf30f49", "version": 2, "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "source_id": "b72bfb07-64a6-8fde-0811-66f167172788", "viewer_id": "21f8f559-2692-63fe-ceab-c78b7e72f369", "canonical_id": "b8a848e0-2ec4-a29a-338c-7a19b93e7d29", "release_ready": true, "profile_revision": 1, "projection_revision": 1}, "social": {"state": "ready", "receipt": {"backing": "legacy", "card_id": "23778b35-6d92-0131-3bf8-bdb05bf30f49", "version": 2, "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "source_id": "b72bfb07-64a6-8fde-0811-66f167172788", "viewer_id": "21f8f559-2692-63fe-ceab-c78b7e72f369", "canonical_id": "b8a848e0-2ec4-a29a-338c-7a19b93e7d29", "release_ready": true, "profile_revision": 1, "projection_revision": 1, "write_backing": "legacy", "read_sources": [{"source_kind": "legacy", "source_id": "b72bfb07-64a6-8fde-0811-66f167172788"}], "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "cheer_count": 0, "comment_count": 2, "latest_comment_at": "2026-11-14T17:28:47.335196+09:00", "viewer_has_cheered": false}, "allowed": true, "card_id": "23778b35-6d92-0131-3bf8-bdb05bf30f49", "summary": {"sport": "running", "card_id": "23778b35-6d92-0131-3bf8-bdb05bf30f49", "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "revision": 1, "activity_at": "2020-01-01T00:00:00+09:00", "canonical_id": "b8a848e0-2ec4-a29a-338c-7a19b93e7d29", "distance_meters": 1000, "duration_seconds": 600}, "author_revision": "73affe3640dfa77d9f95ab81d2851b4c7adba5002329ec010f7ddd3c433aac2c", "social_revision": "c4b68ef0d9824711eb9f36d65c6d37acf04e5d95fcb6c3b99abc8f4eed331a26"}, {"author": {"id": "a95dc583-796f-9823-9ecc-147995af54ad", "handle": "socialfixture1", "avatar_path": "a95dc583-796f-9823-9ecc-147995af54ad/6e852ca7-3e06-3cf5-40ae-d1597b686e46.jpg", "display_name": "SOOM 사용자"}, "avatar": {"etag": "avatar-one", "size": 1000, "bucket": "profile-avatars", "version": "a1", "object_id": "6e852ca7-3e06-3cf5-40ae-d1597b686e46", "authorized": true, "updated_at": "2026-11-14T17:28:47.963042+09:00", "storage_path": "a95dc583-796f-9823-9ecc-147995af54ad/6e852ca7-3e06-3cf5-40ae-d1597b686e46.jpg", "version_hash": "f39ce0e0c5a0524b428781045030d907679df612450b59d89b1a9f7e41a0c86a"}, "photos": {"rows": [{"id": "7cc6d0b4-22ea-75c8-a9a2-5dfd900ca47c", "object": {"etag": null, "size": 1000, "version": "v1", "object_id": "7cc6d0b4-22ea-75c8-a9a2-5dfd900ca47c", "updated_at": "2026-11-14T17:28:47.963042+09:00", "version_hash": "30ff12b60f21baa5b47ea4a27a0ebde70c1ecd7036b7b4051fc18e532351f962"}, "card_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "sort_order": 0, "storage_path": "a95dc583-796f-9823-9ecc-147995af54ad/eba4f61f-48bf-0c18-811f-496efa16051c/7cc6d0b4-22ea-75c8-a9a2-5dfd900ca47c.jpg"}], "bucket": "activity-photos-candidate", "backing": "native", "card_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "version": 2, "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "source_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "viewer_id": "21f8f559-2692-63fe-ceab-c78b7e72f369", "canonical_id": "374dab0a-fdae-17b7-8e57-0fb2371ec110", "release_ready": true, "profile_revision": 1, "projection_revision": 1}, "social": {"state": "ready", "receipt": {"backing": "native", "card_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "version": 2, "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "source_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "viewer_id": "21f8f559-2692-63fe-ceab-c78b7e72f369", "canonical_id": "374dab0a-fdae-17b7-8e57-0fb2371ec110", "release_ready": true, "profile_revision": 1, "projection_revision": 1, "write_backing": "native", "read_sources": [{"source_kind": "native", "source_id": "eba4f61f-48bf-0c18-811f-496efa16051c"}], "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "cheer_count": 1, "comment_count": 1, "latest_comment_at": "2026-11-14T17:28:47.335196+09:00", "viewer_has_cheered": true}, "allowed": true, "card_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "summary": {"sport": "running", "card_id": "eba4f61f-48bf-0c18-811f-496efa16051c", "owner_id": "a95dc583-796f-9823-9ecc-147995af54ad", "revision": 1, "activity_at": "2020-01-01T00:00:00+09:00", "canonical_id": "374dab0a-fdae-17b7-8e57-0fb2371ec110", "distance_meters": 1000, "duration_seconds": 600}, "author_revision": "73affe3640dfa77d9f95ab81d2851b4c7adba5002329ec010f7ddd3c433aac2c", "social_revision": "4ecd9c537dbb6326b25e424a2a1ace6d0a2a5198d8341fe38482fce97f61a2b6"}], "scope": "home", "version": 2, "has_more": false, "viewer_id": "21f8f559-2692-63fe-ceab-c78b7e72f369", "return_epoch": 9, "release_ready": true, "safety_revision": 8, "needs_page_reload": false, "account_generation": 7, "membership_revision": "c86de0df0087853bcc0c5338c4e36ef171ab46b8ab70527d1cd5ef841418db1e"}"#.utf8) }
     private func object() throws -> [String: Any] { try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any]) }
@@ -682,4 +717,10 @@ extension FeedReturnBatchAdapterTests {
         cache.clear()
         XCTAssertNil(cache.chromeReservation(viewerID: scope.viewerID, width: 390, dynamicType: "large", environment: "fixture"))
     }
+}
+
+private struct Feed73MotionScopeProbe: View {
+    @Environment(\.soomFeedScrollMotionGate) private var gate
+    let check: (FeedScrollMotionGate?) -> Void
+    var body: some View { Color.clear.onAppear { check(gate) } }
 }
